@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Worker Type &amp; Count</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white transition-colors duration-200">
+<div class="relative flex h-screen w-full flex-col overflow-x-hidden max-w-[480px] mx-auto bg-background-light dark:bg-background-dark">
+<!-- TopAppBar -->
+<header class="flex items-center bg-white dark:bg-[#1c2b14] p-4 pb-4 justify-between sticky top-0 z-10 shadow-sm">
+<div class="text-[#131811] dark:text-white flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-3xl">arrow_back_ios_new</span>
+</div>
+<h2 class="text-[#131811] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Select Workers</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex items-center justify-center rounded-full h-12 w-12 bg-primary/20 text-[#131811] dark:text-white transition-all active:scale-95">
+<span class="material-symbols-outlined text-3xl">volume_up</span>
+</button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto pb-32">
+<!-- SectionHeader: Who do you need? -->
+<div class="px-4 pt-6">
+<h3 class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-tight">Who do you need?</h3>
+<p class="text-gray-500 dark:text-gray-400 text-base mt-1">Choose worker type</p>
+</div>
+<!-- ImageGrid / Selection Cards -->
+<div class="grid grid-cols-2 gap-4 p-4">
+<!-- Individual Selection -->
+<button class="flex flex-col items-center gap-4 p-6 bg-white dark:bg-[#1c2b14] rounded-xl border-4 border-transparent hover:border-primary focus:border-primary transition-all shadow-sm">
+<div class="w-full aspect-square flex items-center justify-center bg-primary/10 rounded-full mb-2">
+<span class="material-symbols-outlined text-7xl text-primary">person</span>
+</div>
+<p class="text-[#131811] dark:text-white text-lg font-bold">Individual</p>
+</button>
+<!-- Group Selection -->
+<button class="flex flex-col items-center gap-4 p-6 bg-white dark:bg-[#1c2b14] rounded-xl border-4 border-primary shadow-lg ring-4 ring-primary/10">
+<div class="w-full aspect-square flex items-center justify-center bg-primary rounded-full mb-2">
+<span class="material-symbols-outlined text-7xl text-white">group</span>
+</div>
+<p class="text-[#131811] dark:text-white text-lg font-bold">Group</p>
+</button>
+</div>
+<!-- SectionHeader: How many? -->
+<div class="px-4 pt-4">
+<h3 class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-tight">How many?</h3>
+</div>
+<!-- Large Stepper / ListItem variant -->
+<div class="px-4 py-4">
+<div class="flex items-center justify-between bg-white dark:bg-[#1c2b14] p-6 rounded-xl shadow-sm">
+<button class="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-3xl font-bold active:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-4xl">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<input class="text-6xl font-bold w-32 p-0 text-center bg-transparent border-none focus:ring-0 text-primary" type="number" value="10"/>
+<span class="text-gray-400 font-medium uppercase tracking-widest text-xs mt-2">Workers</span>
+</div>
+<button class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white text-3xl font-bold shadow-lg shadow-primary/30 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-4xl">add</span>
+</button>
+</div>
+</div>
+<!-- Quick Selection Chips -->
+<div class="flex gap-3 px-4 pb-8 overflow-x-auto">
+<button class="flex-1 py-4 px-6 bg-white dark:bg-[#1c2b14] border-2 border-gray-100 dark:border-gray-800 rounded-full text-xl font-bold hover:bg-primary/10 active:scale-95 transition-all">5</button>
+<button class="flex-1 py-4 px-6 bg-primary dark:bg-primary border-2 border-primary rounded-full text-xl font-bold text-white shadow-md active:scale-95 transition-all">10</button>
+<button class="flex-1 py-4 px-6 bg-white dark:bg-[#1c2b14] border-2 border-gray-100 dark:border-gray-800 rounded-full text-xl font-bold hover:bg-primary/10 active:scale-95 transition-all">20</button>
+<button class="flex-1 py-4 px-6 bg-white dark:bg-[#1c2b14] border-2 border-gray-100 dark:border-gray-800 rounded-full text-xl font-bold hover:bg-primary/10 active:scale-95 transition-all">50</button>
+</div>
+</main>
+<!-- Fixed Footer Actions -->
+<div class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto p-4 bg-gradient-to-t from-background-light via-background-light to-transparent dark:from-background-dark dark:via-background-dark pt-10">
+<button class="w-full h-16 bg-primary text-white text-xl font-bold rounded-full shadow-xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-[0.98] transition-all">
+<span>Find Workers</span>
+<span class="material-symbols-outlined">trending_flat</span>
+</button>
+<!-- Bottom Navigation Mock -->
+<div class="flex items-center justify-around mt-4 pt-2 border-t border-gray-200 dark:border-gray-800 pb-2">
+<div class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined text-2xl">home</span>
+<span class="text-[10px] font-bold">Home</span>
+</div>
+<div class="flex flex-col items-center text-gray-400">
+<span class="material-symbols-outlined text-2xl">work</span>
+<span class="text-[10px] font-bold">Jobs</span>
+</div>
+<div class="flex flex-col items-center text-gray-400">
+<span class="material-symbols-outlined text-2xl">person</span>
+<span class="text-[10px] font-bold">Profile</span>
+</div>
+</div>
+</div>
+</div>
+</body></html>

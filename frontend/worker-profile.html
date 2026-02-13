@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Worker Profile - Lime &amp; White Theme</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "vibrant-lime": "#5bec13",
+                        "pure-white": "#ffffff",
+                        "high-contrast-black": "#000000"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "1.5rem",
+                        "xl": "2.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #ffffff;
+            color: #000000;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 48;
+            font-size: 32px;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex flex-col">
+<header class="sticky top-0 z-50 bg-white px-4 py-4 flex items-center justify-between border-b border-gray-100 shadow-sm">
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-gray-50 transition-colors">
+<span class="material-symbols-outlined text-high-contrast-black">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-high-contrast-black">Worker Profile</h1>
+<div class="w-12 h-12"></div>
+</header>
+<main class="flex-1 overflow-y-auto pb-44">
+<div class="px-4 pt-6 pb-2">
+<div class="bg-white border-4 border-vibrant-lime rounded-lg p-5 flex items-center gap-4 shadow-sm">
+<div class="text-vibrant-lime">
+<span class="material-symbols-outlined filled-icon !text-5xl">volume_up</span>
+</div>
+<div>
+<h2 class="text-2xl font-black text-high-contrast-black">మీ వివరాలు నింపండి</h2>
+<p class="text-sm text-high-contrast-black font-semibold">Mee details fill cheyyandi</p>
+</div>
+</div>
+</div>
+<div class="mt-8">
+<h3 class="px-6 text-xl font-bold mb-4 flex items-center gap-3 text-high-contrast-black">
+<span class="material-symbols-outlined text-vibrant-lime filled-icon">handyman</span>
+                Skills
+            </h3>
+<div class="grid grid-cols-2 gap-4 px-4">
+<button class="flex flex-col items-center justify-center gap-3 aspect-square rounded-lg bg-vibrant-lime p-4 shadow-md transition-all active:scale-95">
+<span class="material-symbols-outlined text-4xl text-high-contrast-black filled-icon">agriculture</span>
+<span class="font-bold text-lg text-high-contrast-black">Plowing</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 aspect-square rounded-lg border-4 border-vibrant-lime bg-white p-4 transition-all active:scale-95">
+<span class="material-symbols-outlined text-4xl text-vibrant-lime">psychiatry</span>
+<span class="font-bold text-lg text-high-contrast-black">Seeding</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 aspect-square rounded-lg bg-vibrant-lime p-4 shadow-md transition-all active:scale-95">
+<span class="material-symbols-outlined text-4xl text-high-contrast-black filled-icon">grass</span>
+<span class="font-bold text-lg text-high-contrast-black">Harvesting</span>
+</button>
+<button class="flex flex-col items-center justify-center gap-3 aspect-square rounded-lg border-4 border-vibrant-lime bg-white p-4 transition-all active:scale-95">
+<span class="material-symbols-outlined text-4xl text-vibrant-lime">vaccines</span>
+<span class="font-bold text-lg text-high-contrast-black">Pesticides</span>
+</button>
+</div>
+</div>
+<div class="mt-10">
+<h3 class="px-6 text-xl font-bold mb-4 flex items-center gap-3 text-high-contrast-black">
+<span class="material-symbols-outlined text-vibrant-lime filled-icon">pets</span>
+                Domestic Animals
+            </h3>
+<div class="flex flex-col gap-3 px-4">
+<div class="flex items-center justify-between bg-white border-2 border-gray-100 p-4 rounded-lg shadow-sm">
+<div class="flex items-center gap-4">
+<div class="text-vibrant-lime">
+<span class="material-symbols-outlined filled-icon">cruelty_free</span>
+</div>
+<span class="text-xl font-bold text-high-contrast-black">Cow</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">remove</span>
+</button>
+<span class="text-2xl font-black w-8 text-center text-high-contrast-black">02</span>
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between bg-white border-2 border-gray-100 p-4 rounded-lg shadow-sm">
+<div class="flex items-center gap-4">
+<div class="text-vibrant-lime">
+<span class="material-symbols-outlined filled-icon">sound_detection_dog_barking</span>
+</div>
+<span class="text-xl font-bold text-high-contrast-black">Buffalo</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">remove</span>
+</button>
+<span class="text-2xl font-black w-8 text-center text-high-contrast-black">01</span>
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between bg-white border-2 border-gray-100 p-4 rounded-lg shadow-sm">
+<div class="flex items-center gap-4">
+<div class="text-vibrant-lime">
+<span class="material-symbols-outlined filled-icon">egg</span>
+</div>
+<span class="text-xl font-bold text-high-contrast-black">Hen</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">remove</span>
+</button>
+<span class="text-2xl font-black w-8 text-center text-high-contrast-black">10</span>
+<button class="w-12 h-12 rounded-full bg-vibrant-lime text-high-contrast-black flex items-center justify-center active:scale-90 shadow-sm">
+<span class="material-symbols-outlined font-bold">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 flex flex-col gap-4">
+<button class="w-full bg-vibrant-lime text-high-contrast-black text-2xl font-black py-5 rounded-full shadow-lg active:scale-95 transition-transform uppercase tracking-widest">
+            SAVE
+        </button>
+<nav class="flex justify-around items-center pb-2">
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined">home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-vibrant-lime">
+<span class="material-symbols-outlined filled-icon">account_circle</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined">assignment</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</nav>
+</div>
+
+</body></html>

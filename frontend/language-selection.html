@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display min-h-screen flex flex-col">
+<div class="relative flex h-full min-h-screen w-full flex-col group/design-root overflow-x-hidden p-4">
+<!-- Voice Guidance Header -->
+<div class="flex flex-col items-center justify-center pt-10 pb-6">
+<button class="flex flex-col items-center gap-3 bg-primary/20 dark:bg-primary/10 p-6 rounded-full transition-all active:scale-95 border-4 border-primary">
+<span class="material-symbols-outlined text-primary text-[64px]">
+                    volume_up
+                </span>
+<span class="text-[#131811] dark:text-white text-lg font-bold">Listen to instructions</span>
+</button>
+</div>
+<!-- Headline -->
+<div class="pb-8">
+<h1 class="text-[#131811] dark:text-white tracking-tight text-[36px] font-bold leading-tight text-center">
+                Choose your language
+            </h1>
+<p class="text-center text-[#131811]/70 dark:text-white/70 text-lg">अपनी भाषा चुनें / మీ భాషను ఎంచుకోండి</p>
+</div>
+<!-- Language Buttons -->
+<div class="flex flex-col gap-5 max-w-[480px] mx-auto w-full">
+<!-- Telugu Button -->
+<button class="flex items-center gap-6 p-4 bg-white dark:bg-[#23351a] rounded-full border-b-8 border-gray-200 dark:border-black active:border-b-0 active:translate-y-1 transition-all shadow-lg w-full group">
+<div class="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 bg-primary/20 flex items-center justify-center">
+<div class="w-16 h-16 bg-center bg-no-repeat bg-contain" data-alt="Map outline of Andhra Pradesh and Telangana" data-location="Hyderabad" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC_3ntu0vu-qFLRiWc_xiIDLFwoYMqqjwfxOnGdna-4vi5MS2nIoAF_ptaY6a-CMP8eRYTFQzhjnUYsDO4bOCOOLJPj980cfBxJ0WhB83ltHzzgcOND7AYOblBncFqPfIO-Hushwn9LjpYKm-XdAONch-UdP5EaPbTqTz4OYNY_qXySp8f1od21BdrQTCRtsmFi4N3uUa4Mg__Bxhn09yEZB8DbR7QAuDzzlGKUXu88aJ9VyKoLYaXGZXt110WUn-5T38vjmWXUveY8");'>
+</div>
+</div>
+<div class="flex flex-col items-start">
+<span class="text-3xl font-bold text-[#131811] dark:text-white">తెలుగు</span>
+<span class="text-xl text-[#131811]/60 dark:text-white/60">Telugu</span>
+</div>
+<div class="ml-auto pr-4">
+<span class="material-symbols-outlined text-primary text-4xl">chevron_right</span>
+</div>
+</button>
+<!-- Hindi Button -->
+<button class="flex items-center gap-6 p-4 bg-white dark:bg-[#23351a] rounded-full border-b-8 border-gray-200 dark:border-black active:border-b-0 active:translate-y-1 transition-all shadow-lg w-full">
+<div class="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 bg-primary/20 flex items-center justify-center">
+<div class="w-16 h-16 bg-center bg-no-repeat bg-contain" data-alt="Flag of India icon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA56jOtNcS3X37jKCAPdwr7VXKFh1xtKafknz6VHxQ_FolGvhHM5_Q__KtKTvdlXSia488B2sF0Oviv3g8LMJiveIbDkD3cJyI7uVjmiHMA3924vZfWLtfVRNRQPzrBfMIdD0-0tRx5VSFN8n9qpWEKAw-pixBwJUGqXYNaUBgh8HyCQ1LLh7L0wdDXyUtdk3kLkgSXZz2Gq0oLcKlEtlpRqlaTbk4u0M4hKc1tT6sIT2hcpM64AjVsclYzGkzN10OOwaJLGf_thjT2");'>
+</div>
+</div>
+<div class="flex flex-col items-start">
+<span class="text-3xl font-bold text-[#131811] dark:text-white">हिन्दी</span>
+<span class="text-xl text-[#131811]/60 dark:text-white/60">Hindi</span>
+</div>
+<div class="ml-auto pr-4">
+<span class="material-symbols-outlined text-primary text-4xl">chevron_right</span>
+</div>
+</button>
+<!-- English Button -->
+<button class="flex items-center gap-6 p-4 bg-white dark:bg-[#23351a] rounded-full border-b-8 border-gray-200 dark:border-black active:border-b-0 active:translate-y-1 transition-all shadow-lg w-full">
+<div class="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 bg-primary/20 flex items-center justify-center">
+<div class="w-16 h-16 bg-center bg-no-repeat bg-contain" data-alt="Global communication or English flag icon" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBmQlniJWkhin2Gn1t9oy6L4mQJSW_3yY8HHGfJ2ma6LuH1XDpX0d7iuevnzYTSafjzSe04eW7M-mIib9Frnc2LLGMz0fAfe_G3bIvx-m64ofUq_bJC1KstG74YNRkkRcpLQHaM8QyQeeTv7A2RPAM57_tcgjhshouShBdhDKCaOP-0NonFZ9aDWc-e7l5AdrnHBHNA4bqRtedSFNntmbDRVUb7ryr4dQarqm0_IKjC8DGjwFcdt3jKuA54cs57tAa8cNw1ha-GhIku");'>
+</div>
+</div>
+<div class="flex flex-col items-start">
+<span class="text-3xl font-bold text-[#131811] dark:text-white">English</span>
+<span class="text-xl text-[#131811]/60 dark:text-white/60">Global</span>
+</div>
+<div class="ml-auto pr-4">
+<span class="material-symbols-outlined text-primary text-4xl">chevron_right</span>
+</div>
+</button>
+</div>
+<!-- Helper Image / Visual Context -->
+<div class="mt-auto pt-10 px-4">
+<div class="grid grid-cols-1 gap-3 max-w-[480px] mx-auto">
+<div class="flex items-center justify-center p-6 bg-primary/10 dark:bg-primary/5 rounded-xl border-2 border-dashed border-primary/30">
+<div class="flex flex-col items-center gap-2">
+<span class="material-symbols-outlined text-primary text-4xl">touch_app</span>
+<p class="text-center text-[#131811] dark:text-white font-medium">Touch any button to select</p>
+</div>
+</div>
+</div>
+</div>
+<div class="h-10"></div>
+</div>
+</body></html>

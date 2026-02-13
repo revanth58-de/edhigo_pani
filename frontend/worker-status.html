@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Worker Status Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                        "status-working": "#FF4D4D",
+                        "status-break": "#FFD700",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white transition-colors duration-300">
+<!-- Top Navigation Bar -->
+<div class="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="flex items-center p-4 pb-2 justify-between max-w-md mx-auto">
+<div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl">account_circle</span>
+</div>
+<h2 class="text-xl font-bold leading-tight tracking-[-0.015em] flex-1 text-center">My Status</h2>
+<div class="size-12 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">notifications</span>
+</div>
+</div>
+</div>
+<!-- Main Content Area -->
+<main class="pt-24 pb-32 px-4 flex flex-col gap-6 max-w-md mx-auto min-h-screen">
+<!-- Status Label -->
+<div class="px-2">
+<p class="text-sm font-medium opacity-60 uppercase tracking-widest">Tap to change</p>
+</div>
+<!-- Card: Available (Active State Example) -->
+<div class="relative group cursor-pointer">
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl border-4 border-primary ring-4 ring-primary/20 scale-[1.02]">
+<div class="flex flex-[2_2_0px] flex-col justify-center gap-2">
+<div class="flex flex-col gap-1">
+<p class="text-2xl font-bold leading-tight">Ready to Work</p>
+<p class="text-primary font-bold text-lg leading-normal">Available</p>
+</div>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-primary">check_circle</span>
+<span class="font-medium">Active Now</span>
+</div>
+</div>
+<div class="w-32 h-32 bg-primary/10 rounded-xl flex items-center justify-center border-2 border-primary/20">
+<span class="material-symbols-outlined text-primary text-6xl">check_circle</span>
+</div>
+</div>
+</div>
+<!-- Card: Working -->
+<div class="relative group cursor-pointer">
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-md border-2 border-transparent hover:border-status-working transition-all">
+<div class="flex flex-[2_2_0px] flex-col justify-center gap-1">
+<p class="text-2xl font-bold leading-tight">In Progress</p>
+<p class="text-status-working font-semibold text-lg leading-normal">Working</p>
+</div>
+<div class="w-32 h-32 bg-status-working/10 rounded-xl flex items-center justify-center border-2 border-status-working/20">
+<span class="material-symbols-outlined text-status-working text-6xl">engineering</span>
+</div>
+</div>
+</div>
+<!-- Card: Break -->
+<div class="relative group cursor-pointer">
+<div class="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-md border-2 border-transparent hover:border-status-break transition-all">
+<div class="flex flex-[2_2_0px] flex-col justify-center gap-1">
+<p class="text-2xl font-bold leading-tight">Taking a Break</p>
+<p class="text-[#b19500] dark:text-status-break font-semibold text-lg leading-normal">Break</p>
+</div>
+<div class="w-32 h-32 bg-status-break/10 rounded-xl flex items-center justify-center border-2 border-status-break/20">
+<span class="material-symbols-outlined text-[#b19500] dark:text-status-break text-6xl">coffee_maker</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Floating Audio Guidance Button -->
+<div class="fixed bottom-24 right-6 z-50">
+<button class="flex items-center justify-center rounded-full h-16 w-16 bg-primary text-[#131811] shadow-2xl active:scale-95 transition-transform border-4 border-white dark:border-zinc-800">
+<span class="material-symbols-outlined text-3xl">volume_up</span>
+</button>
+</div>
+<!-- Bottom Navigation Bar (iOS Style) -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 pb-8 pt-3 px-6 z-50">
+<div class="flex justify-around items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-3xl fill-current">radio_button_checked</span>
+<span class="text-xs font-bold uppercase tracking-tighter">Status</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+<span class="material-symbols-outlined text-3xl">history</span>
+<span class="text-xs font-bold uppercase tracking-tighter">History</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-zinc-400 dark:text-zinc-500">
+<span class="material-symbols-outlined text-3xl">person</span>
+<span class="text-xs font-bold uppercase tracking-tighter">Profile</span>
+</button>
+</div>
+</nav>
+</body></html>

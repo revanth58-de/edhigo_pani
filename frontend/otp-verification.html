@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>OTP Verification</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+<!-- Voice Guidance Header -->
+<div class="flex flex-col items-center pt-12 pb-6 px-6">
+<div class="bg-primary/20 p-4 rounded-full mb-4">
+<span class="material-symbols-outlined text-primary text-4xl" style="font-variation-settings: 'FILL' 1">volume_up</span>
+</div>
+<h1 class="text-[#131811] dark:text-white tracking-tight text-[28px] font-bold leading-tight text-center">
+            OTP enter cheyyandi
+        </h1>
+<p class="text-[#6f8961] dark:text-[#a0b090] text-lg font-medium mt-2">Enter the 4-digit code</p>
+</div>
+<!-- OTP Input Display -->
+<div class="flex-grow flex flex-col items-center justify-start py-8">
+<div class="flex gap-4 justify-center px-4 mb-8">
+<!-- Large focusable boxes for OTP -->
+<div class="w-16 h-20 bg-white dark:bg-[#25331d] border-4 border-primary rounded-2xl flex items-center justify-center shadow-lg">
+<span class="text-3xl font-bold text-[#131811] dark:text-white">8</span>
+</div>
+<div class="w-16 h-20 bg-white dark:bg-[#25331d] border-4 border-primary rounded-2xl flex items-center justify-center shadow-lg">
+<span class="text-3xl font-bold text-[#131811] dark:text-white">2</span>
+</div>
+<div class="w-16 h-20 bg-white dark:bg-[#25331d] border-2 border-[#dfe6db] dark:border-[#3a4d2f] rounded-2xl flex items-center justify-center">
+<span class="text-3xl font-bold text-[#dfe6db] dark:text-[#3a4d2f]">_</span>
+</div>
+<div class="w-16 h-20 bg-white dark:bg-[#25331d] border-2 border-[#dfe6db] dark:border-[#3a4d2f] rounded-2xl flex items-center justify-center">
+<span class="text-3xl font-bold text-[#dfe6db] dark:text-[#3a4d2f]">_</span>
+</div>
+</div>
+<!-- Verify Button and Resend -->
+<div class="w-full max-w-md px-6 space-y-4">
+<button class="w-full h-16 bg-primary text-[#131811] rounded-full text-xl font-black shadow-xl flex items-center justify-center gap-2 hover:brightness-105 active:scale-[0.98] transition-transform">
+<span>Verify</span>
+<span class="material-symbols-outlined font-bold">check_circle</span>
+</button>
+<div class="flex flex-col items-center gap-1">
+<p class="text-[#6f8961] dark:text-[#a0b090] text-sm">Didn't receive code?</p>
+<button class="text-primary font-bold text-lg underline underline-offset-4 decoration-2">Resend OTP</button>
+</div>
+</div>
+</div>
+<!-- Custom Large Numeric Keypad -->
+<div class="bg-white dark:bg-[#1a2b13] rounded-t-xl p-6 shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)]">
+<div class="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+<!-- Row 1 -->
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">1</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">2</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">3</button>
+<!-- Row 2 -->
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">4</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">5</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">6</button>
+<!-- Row 3 -->
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">7</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">8</button>
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">9</button>
+<!-- Row 4 -->
+<div class="aspect-square"></div> <!-- Empty spacer -->
+<button class="aspect-square flex items-center justify-center bg-background-light dark:bg-[#2a3d21] rounded-full text-3xl font-bold text-[#131811] dark:text-white active:bg-primary/30 active:scale-95 transition-all">0</button>
+<button class="aspect-square flex items-center justify-center bg-[#ffebeb] dark:bg-[#4d1f1f] rounded-full text-3xl font-bold text-red-600 dark:text-red-400 active:bg-red-200 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-4xl">backspace</span>
+</button>
+</div>
+<!-- Safety padding for home indicator -->
+<div class="h-6"></div>
+</div>
+</body></html>

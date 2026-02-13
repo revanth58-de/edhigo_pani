@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rate Farmer - Group Leader</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white transition-colors duration-300">
+<div class="relative flex h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl">
+<!-- TopAppBar with Voice Guidance -->
+<div class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between">
+<div class="text-[#131811] dark:text-white flex size-12 shrink-0 items-center justify-center">
+<span class="material-symbols-outlined text-3xl">arrow_back</span>
+</div>
+<h2 class="text-[#131811] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Rate Farmer</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 bg-primary/20 text-primary gap-2 text-base font-bold leading-normal tracking-[0.015em] min-w-0 px-3">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto pb-24">
+<!-- ProfileHeader -->
+<div class="flex p-6 @container">
+<div class="flex w-full flex-col gap-4 items-center">
+<div class="flex gap-4 flex-col items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full min-h-24 w-24 border-4 border-primary/30" data-alt="Portrait of a smiling male farmer in traditional attire" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDrgZQXZTmOL_gvPbxZ-7RjPDTvHGh7hsjuzleI9ugDDDoMTrcjLAai7GVIR80AYjQWnAJkpP2_y7sr6rv14jSf71rAKXfKhssxxk1m_PXGJnflyz3hiCGgnv4xD66hWGzftBVtTiUU740UxbioBDJArHfxF9o1iQNlaEL647gge6fIc3WOPBkw6jQ69pfpsuT7yPM2cJCoK1gLVyqWd9XjmD8r9sDjq2LEDOcJMhpsPEJTwzFda8SgUmN7iNOheNS1Y6qZBRFTUg4y");'>
+</div>
+<div class="flex flex-col items-center justify-center">
+<p class="text-[#131811] dark:text-white text-xl font-bold leading-tight tracking-[-0.015em] text-center">Farmer: Ramesh Kumar</p>
+<p class="text-[#6f8961] dark:text-primary/70 text-base font-medium leading-normal text-center">Job: Wheat Harvest (ID: 482)</p>
+</div>
+</div>
+</div>
+</div>
+<!-- HeadlineText -->
+<div class="flex flex-col items-center px-4 pb-6">
+<h2 class="text-[#131811] dark:text-white tracking-light text-2xl font-bold leading-tight text-center">How was the farmer's work?</h2>
+<p class="text-sm opacity-60 text-center mt-1">Tap one of the faces below</p>
+</div>
+<!-- ImageGrid / Massive Emoji Rating -->
+<div class="grid grid-cols-1 gap-4 px-6">
+<!-- Happy Option -->
+<div class="relative bg-primary/10 dark:bg-primary/20 border-4 border-primary flex items-center gap-6 rounded-xl p-5 cursor-pointer shadow-sm">
+<div class="text-6xl">😊</div>
+<div>
+<p class="text-[#131811] dark:text-white text-xl font-bold leading-tight">Excellent</p>
+<p class="text-[#6f8961] dark:text-primary/70 text-sm">Worked very fast</p>
+</div>
+<div class="ml-auto bg-primary rounded-full p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-xl">check</span>
+</div>
+</div>
+<!-- Neutral Option -->
+<div class="bg-background-light dark:bg-[#25321d] border-2 border-transparent flex items-center gap-6 rounded-xl p-5 cursor-pointer shadow-sm">
+<div class="text-6xl opacity-80">😐</div>
+<div>
+<p class="text-[#131811] dark:text-white text-xl font-bold leading-tight">Good</p>
+<p class="text-[#6f8961] dark:text-primary/70 text-sm">Average performance</p>
+</div>
+</div>
+<!-- Sad Option -->
+<div class="bg-background-light dark:bg-[#25321d] border-2 border-transparent flex items-center gap-6 rounded-xl p-5 cursor-pointer shadow-sm">
+<div class="text-6xl opacity-80">😟</div>
+<div>
+<p class="text-[#131811] dark:text-white text-xl font-bold leading-tight">Needs Help</p>
+<p class="text-[#6f8961] dark:text-primary/70 text-sm">Delayed the work</p>
+</div>
+</div>
+</div>
+<!-- SingleButton (DONE) -->
+<div class="flex px-6 py-10 justify-center">
+<button class="flex w-full min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 px-5 bg-primary text-[#131811] text-xl font-black leading-normal tracking-[0.05em] shadow-lg active:scale-95 transition-transform">
+<span class="truncate uppercase">FINISH JOB</span>
+</button>
+</div>
+</div>
+<!-- Bottom Navigation -->
+<div class="absolute bottom-0 left-0 right-0 bg-white dark:bg-background-dark border-t border-gray-100 dark:border-white/10 px-6 py-3 flex justify-between items-center">
+<div class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold">HOME</span>
+</div>
+<div class="flex flex-col items-center text-[#131811] dark:text-white opacity-40">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px] font-bold">JOBS</span>
+</div>
+<div class="flex flex-col items-center text-[#131811] dark:text-white opacity-40">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-bold">GROUP</span>
+</div>
+<div class="flex flex-col items-center text-[#131811] dark:text-white opacity-40">
+<span class="material-symbols-outlined">person</span>
+<span class="text-[10px] font-bold">PROFILE</span>
+</div>
+</div>
+</div>
+</body></html>

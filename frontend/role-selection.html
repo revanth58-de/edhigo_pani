@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Role Selection</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Lexend -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 32px;
+        }
+        .icon-large {
+            font-size: 48px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] antialiased">
+<div class="relative flex h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-background-light dark:bg-background-dark">
+<!-- Top App Bar (Voice Guidance Focus) -->
+<div class="flex items-center bg-white dark:bg-[#1c2a15] p-6 pb-4 justify-between sticky top-0 z-10 shadow-sm">
+<button aria-label="Play audio" class="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-[#131811] shadow-lg active:scale-95 transition-transform">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+<h2 class="text-[#131811] dark:text-white text-xl font-bold leading-tight flex-1 text-center">Role Selection</h2>
+<div class="flex w-14 items-center justify-end">
+<button class="flex size-14 items-center justify-center rounded-full bg-transparent text-[#131811] dark:text-white">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</div>
+<!-- Headline Text (Telugu & English) -->
+<div class="px-6 pt-8 pb-4">
+<h1 class="text-[#131811] dark:text-white tracking-tight text-[36px] font-bold leading-tight text-center">Meeru evaru?</h1>
+<p class="text-[#6f8961] dark:text-gray-400 text-lg text-center font-medium mt-1">Who are you?</p>
+</div>
+<!-- Role Selection Cards Container -->
+<div class="flex-1 px-4 space-y-4 pb-12 overflow-y-auto">
+<!-- Farmer Card -->
+<div class="p-2">
+<button class="w-full flex flex-col items-center justify-center rounded-xl bg-white dark:bg-[#1c2a15] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border-2 border-transparent active:border-primary active:bg-primary/5 transition-all p-6 group">
+<div class="w-24 h-24 mb-4 rounded-full bg-primary/10 flex items-center justify-center group-active:bg-primary/30">
+<span class="material-symbols-outlined icon-large text-primary">agriculture</span>
+</div>
+<div class="flex w-full flex-col items-center gap-1">
+<p class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">Farmer</p>
+<p class="text-[#6f8961] dark:text-gray-400 text-base font-normal">Person with a plow</p>
+</div>
+<div class="mt-4 flex w-full justify-center">
+<div class="bg-primary px-8 py-2 rounded-full text-[#131811] font-bold text-sm shadow-sm">Select</div>
+</div>
+</button>
+</div>
+<!-- Worker Card -->
+<div class="p-2">
+<button class="w-full flex flex-col items-center justify-center rounded-xl bg-white dark:bg-[#1c2a15] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border-2 border-transparent active:border-primary active:bg-primary/5 transition-all p-6 group">
+<div class="w-24 h-24 mb-4 rounded-full bg-primary/10 flex items-center justify-center group-active:bg-primary/30">
+<span class="material-symbols-outlined icon-large text-primary">handyman</span>
+</div>
+<div class="flex w-full flex-col items-center gap-1">
+<p class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">Worker</p>
+<p class="text-[#6f8961] dark:text-gray-400 text-base font-normal">Person with a sickle</p>
+</div>
+<div class="mt-4 flex w-full justify-center">
+<div class="bg-primary px-8 py-2 rounded-full text-[#131811] font-bold text-sm shadow-sm">Select</div>
+</div>
+</button>
+</div>
+<!-- Group Leader Card -->
+<div class="p-2">
+<button class="w-full flex flex-col items-center justify-center rounded-xl bg-white dark:bg-[#1c2a15] shadow-[0_4px_12px_rgba(0,0,0,0.08)] border-2 border-transparent active:border-primary active:bg-primary/5 transition-all p-6 group">
+<div class="w-24 h-24 mb-4 rounded-full bg-primary/10 flex items-center justify-center group-active:bg-primary/30">
+<span class="material-symbols-outlined icon-large text-primary">groups</span>
+</div>
+<div class="flex w-full flex-col items-center gap-1">
+<p class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">Group Leader</p>
+<p class="text-[#6f8961] dark:text-gray-400 text-base font-normal">Three people together</p>
+</div>
+<div class="mt-4 flex w-full justify-center">
+<div class="bg-primary px-8 py-2 rounded-full text-[#131811] font-bold text-sm shadow-sm">Select</div>
+</div>
+</button>
+</div>
+</div>
+<!-- Safe Area Spacer for iOS -->
+<div class="h-8 bg-background-light dark:bg-background-dark"></div>
+</div>
+</body></html>

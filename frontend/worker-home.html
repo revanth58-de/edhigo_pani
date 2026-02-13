@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Worker Home - Start Work</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .massive-button-shadow {
+            box-shadow: 0 10px 25px -5px rgba(91, 236, 19, 0.4);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#131811] dark:text-white transition-colors duration-300">
+<div class="relative flex h-screen w-full flex-col overflow-x-hidden">
+<!-- TopAppBar Component -->
+<div class="flex items-center bg-white dark:bg-[#1c2a15] p-4 pb-2 justify-between border-b border-[#e5e7eb] dark:border-white/10">
+<div class="flex size-12 shrink-0 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary" data-alt="User profile portrait of a smiling worker" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCfBvp-DKp1QW65tjx_Ltt1XQhH2Q770TibAgL3F4iuf4kiK0LUwoad-gapR_3yBiequSyFgM45Hinu1MFFNUwhVs7npirieHwUH3NrdLwxfq8s5tYv9G-rI_A2CTUV6NXYPoT7wEGVMNaCbHoWqYzWwBoqYhxUiMQLcpZgW7oANKAh0ApmwsLfarGUYvl3pkEmE03PDi-tC4quPTU-q1YMClbxY5UthEwfXHXIX1XYZz_95Tqxy2NRTM92KOMT4LkfMpm0NkrZ1NIi");'>
+</div>
+</div>
+<h2 class="text-[#131811] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 ml-2">Home</h2>
+<div class="flex items-center justify-end bg-primary/20 dark:bg-primary/10 px-4 py-1.5 rounded-full">
+<span class="relative flex h-3 w-3 mr-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</span>
+<p class="text-[#131811] dark:text-primary text-base font-bold leading-normal tracking-[0.015em] shrink-0">Online</p>
+</div>
+</div>
+<!-- ProfileHeader Component -->
+<div class="flex p-4 mt-4">
+<div class="flex w-full flex-col gap-4 items-center">
+<div class="flex flex-col items-center justify-center">
+<p class="text-[#131811] dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">Namaste, Ramesh</p>
+<p class="text-[#6f8961] dark:text-[#a3bfa3] text-lg font-normal leading-normal text-center mt-1">Ready to earn today?</p>
+</div>
+</div>
+</div>
+<!-- HeadlineText Component (Voice Prompt) -->
+<div class="flex flex-col items-center px-4 pb-2 pt-8">
+<div class="flex items-center gap-3 bg-white dark:bg-[#25351e] px-6 py-4 rounded-xl shadow-sm mb-4 border border-[#e5e7eb] dark:border-white/5">
+<div class="text-primary animate-pulse">
+<span class="material-symbols-outlined !text-4xl">volume_up</span>
+</div>
+<h3 class="text-[#131811] dark:text-white tracking-light text-2xl font-bold leading-tight text-center">Pani start cheyyandi</h3>
+</div>
+<p class="text-sm text-[#6f8961] dark:text-[#a3bfa3] uppercase font-bold tracking-widest">Tap the button below</p>
+</div>
+<!-- Massive START WORK Button Component -->
+<div class="flex flex-1 items-center justify-center px-4 py-6">
+<button class="massive-button-shadow group flex flex-col aspect-square w-64 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-primary text-[#131811] transition-transform active:scale-95 border-8 border-white dark:border-[#1c2a15]">
+<span class="material-symbols-outlined !text-7xl mb-2">play_arrow</span>
+<span class="text-3xl font-black leading-normal tracking-tight">START WORK</span>
+</button>
+</div>
+<!-- ActionsBar Component (Quick Actions) -->
+<div class="px-4 mb-24">
+<div class="gap-4 grid grid-cols-2">
+<div class="flex flex-col items-center gap-2 bg-white dark:bg-[#1c2a15] p-4 rounded-lg shadow-sm border border-[#e5e7eb] dark:border-white/5">
+<div class="rounded-full bg-[#f2f4f0] dark:bg-[#25351e] p-4">
+<span class="material-symbols-outlined text-[#131811] dark:text-primary !text-3xl">support_agent</span>
+</div>
+<p class="text-[#131811] dark:text-white text-base font-bold leading-normal">Help</p>
+</div>
+<div class="flex flex-col items-center gap-2 bg-white dark:bg-[#1c2a15] p-4 rounded-lg shadow-sm border border-[#e5e7eb] dark:border-white/5">
+<div class="rounded-full bg-[#f2f4f0] dark:bg-[#25351e] p-4">
+<span class="material-symbols-outlined text-[#131811] dark:text-primary !text-3xl">account_balance_wallet</span>
+</div>
+<p class="text-[#131811] dark:text-white text-base font-bold leading-normal">Earnings</p>
+</div>
+</div>
+</div>
+<!-- Bottom Navigation Bar (Custom Component for Platform: iOS) -->
+<div class="fixed bottom-0 w-full bg-white/95 dark:bg-[#1c2a15]/95 backdrop-blur-md border-t border-[#e5e7eb] dark:border-white/10 pb-8 pt-3 px-8 flex justify-between items-center z-50">
+<div class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined !text-3xl">home</span>
+<span class="text-xs font-bold uppercase tracking-tighter">Home</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-[#6f8961] dark:text-[#a3bfa3]">
+<span class="material-symbols-outlined !text-3xl">history</span>
+<span class="text-xs font-bold uppercase tracking-tighter">History</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-[#6f8961] dark:text-[#a3bfa3]">
+<span class="material-symbols-outlined !text-3xl">notifications</span>
+<span class="text-xs font-bold uppercase tracking-tighter">Alerts</span>
+</div>
+<div class="flex flex-col items-center gap-1 text-[#6f8961] dark:text-[#a3bfa3]">
+<span class="material-symbols-outlined !text-3xl">person</span>
+<span class="text-xs font-bold uppercase tracking-tighter">Profile</span>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Farmer Home - Work Type</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white transition-colors duration-300">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-[480px] mx-auto bg-white dark:bg-background-dark">
+<!-- TopAppBar -->
+<header class="flex items-center bg-white dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
+<div class="flex size-12 shrink-0 items-center">
+<div class="bg-primary/20 rounded-full size-10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-2xl">account_circle</span>
+</div>
+</div>
+<h2 class="text-[#131811] dark:text-white text-xl font-bold leading-tight tracking-tight flex-1 text-center">Farmer Home</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex size-10 cursor-pointer items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined">volume_up</span>
+</button>
+</div>
+</header>
+<main class="flex-1 flex flex-col">
+<!-- HeadlineText & MetaText (Voice Guidance) -->
+<div class="px-6 pt-8 pb-4">
+<h1 class="text-[#131811] dark:text-white text-3xl font-extrabold leading-tight text-center">Select Work Type</h1>
+<div class="mt-2 flex items-center justify-center gap-2 bg-primary/10 py-2 px-4 rounded-full w-fit mx-auto">
+<span class="material-symbols-outlined text-primary text-xl">record_voice_over</span>
+<p class="text-[#6f8961] dark:text-primary/80 text-lg font-bold">Pani select cheyyandi</p>
+</div>
+</div>
+<!-- Work Type Grid (High Affordance) -->
+<div class="grid grid-cols-2 gap-4 p-4 mb-24">
+<!-- Sowing Card -->
+<button class="flex flex-col items-center justify-center gap-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-lg border-2 border-transparent active:border-primary active:scale-95 transition-all">
+<div class="size-20 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined text-5xl">potted_plant</span>
+</div>
+<p class="text-xl font-black text-gray-800 dark:text-gray-100">Sowing</p>
+<div class="rounded-full bg-gray-100 dark:bg-gray-700 p-2">
+<span class="material-symbols-outlined text-gray-400">play_circle</span>
+</div>
+</button>
+<!-- Harvesting Card -->
+<button class="flex flex-col items-center justify-center gap-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-lg border-2 border-transparent active:border-primary active:scale-95 transition-all">
+<div class="size-20 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600">
+<span class="material-symbols-outlined text-5xl">agriculture</span>
+</div>
+<p class="text-xl font-black text-gray-800 dark:text-gray-100">Harvesting</p>
+<div class="rounded-full bg-gray-100 dark:bg-gray-700 p-2">
+<span class="material-symbols-outlined text-gray-400">play_circle</span>
+</div>
+</button>
+<!-- Irrigation Card -->
+<button class="flex flex-col items-center justify-center gap-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-lg border-2 border-transparent active:border-primary active:scale-95 transition-all">
+<div class="size-20 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
+<span class="material-symbols-outlined text-5xl">water_drop</span>
+</div>
+<p class="text-xl font-black text-gray-800 dark:text-gray-100">Irrigation</p>
+<div class="rounded-full bg-gray-100 dark:bg-gray-700 p-2">
+<span class="material-symbols-outlined text-gray-400">play_circle</span>
+</div>
+</button>
+<!-- Labour Card -->
+<button class="flex flex-col items-center justify-center gap-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-lg border-2 border-transparent active:border-primary active:scale-95 transition-all">
+<div class="size-20 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500">
+<span class="material-symbols-outlined text-5xl">engineering</span>
+</div>
+<p class="text-xl font-black text-gray-800 dark:text-gray-100">Labour</p>
+<div class="rounded-full bg-gray-100 dark:bg-gray-700 p-2">
+<span class="material-symbols-outlined text-gray-400">play_circle</span>
+</div>
+</button>
+<!-- Tractor Card (Full Width) -->
+<button class="col-span-2 flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-gray-800 p-6 shadow-lg border-2 border-transparent active:border-primary active:scale-95 transition-all">
+<div class="flex items-center gap-6">
+<div class="size-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+<span class="material-symbols-outlined text-5xl">agriculture</span>
+</div>
+<p class="text-2xl font-black text-gray-800 dark:text-gray-100">Tractor</p>
+</div>
+<div class="rounded-full bg-gray-100 dark:bg-gray-700 p-3">
+<span class="material-symbols-outlined text-gray-400 text-3xl">play_circle</span>
+</div>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full max-w-[480px] bg-white dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 px-6 py-4 flex justify-between items-center shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined text-3xl">home</span>
+<p class="text-sm font-bold">Home</p>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-3xl">history</span>
+<p class="text-sm font-bold">History</p>
+</a>
+<a class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500" href="#">
+<span class="material-symbols-outlined text-3xl">help</span>
+<p class="text-sm font-bold">Help</p>
+</a>
+</nav>
+</div>
+</body></html>

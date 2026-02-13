@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Navigation - Worker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white antialiased">
+<div class="relative flex h-screen w-full flex-col overflow-hidden">
+<!-- Top Navigation Status -->
+<div class="absolute top-0 left-0 right-0 z-10 p-4">
+<div class="flex items-center bg-white dark:bg-[#1f2e16] p-4 rounded-xl shadow-lg border-2 border-primary/20">
+<div class="flex size-14 shrink-0 items-center justify-center bg-primary rounded-full text-black">
+<span class="material-symbols-outlined !text-4xl">turn_right</span>
+</div>
+<div class="ml-4 flex-1">
+<h2 class="text-[#131811] dark:text-white text-2xl font-bold leading-tight tracking-[-0.015em]">200m</h2>
+<p class="text-[#6f8961] dark:text-primary/80 text-lg font-medium">Turn Right at North Gate</p>
+</div>
+<button class="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+<span class="material-symbols-outlined filled-icon">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Full Screen Map Area -->
+<div class="relative flex-1 bg-[#e5e7eb] dark:bg-[#0d140a]">
+<!-- Placeholder for Map Visualization -->
+<div class="absolute inset-0 bg-cover bg-center" data-location="Rural Farm Field Navigation Path" style='background-image: url("https://placeholder.pics/svg/300");'>
+<!-- Simulated Route Line (SVG Overlay) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" viewbox="0 0 400 800">
+<path class="opacity-80" d="M 200 700 L 200 400 L 350 350" fill="none" stroke="#5bec13" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"></path>
+<!-- User Position Arrow -->
+<circle cx="200" cy="550" fill="white" r="15" stroke="#131811" stroke-width="2"></circle>
+<path d="M 200 540 L 192 560 L 208 560 Z" fill="#131811"></path>
+</svg>
+<!-- Map Controls -->
+<div class="absolute right-4 bottom-40 flex flex-col gap-3">
+<div class="flex flex-col gap-0.5 shadow-xl">
+<button class="flex size-12 items-center justify-center rounded-t-full bg-white dark:bg-[#1f2e16] border-b border-gray-100">
+<span class="material-symbols-outlined text-[#131811] dark:text-white">add</span>
+</button>
+<button class="flex size-12 items-center justify-center rounded-b-full bg-white dark:bg-[#1f2e16]">
+<span class="material-symbols-outlined text-[#131811] dark:text-white">remove</span>
+</button>
+</div>
+<button class="flex size-14 items-center justify-center rounded-full bg-white dark:bg-[#1f2e16] shadow-xl border-2 border-primary">
+<span class="material-symbols-outlined filled-icon text-primary">navigation</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Voice Guidance Prompt -->
+<div class="absolute bottom-32 left-0 right-0 px-4">
+<div class="flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-[#1f2e16] p-4 shadow-2xl border-l-8 border-primary">
+<div class="flex flex-col gap-1">
+<p class="text-[#131811] dark:text-white text-lg font-bold leading-tight">Follow the green line</p>
+<p class="text-[#6f8961] dark:text-primary/70 text-sm font-normal">Arriving in 4 minutes</p>
+</div>
+<button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-primary text-black gap-2 font-bold shadow-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined filled-icon">record_voice_over</span>
+<span class="truncate">LISTEN</span>
+</button>
+</div>
+</div>
+<!-- Bottom Action & Navigation Area -->
+<div class="bg-white dark:bg-[#1f2e16] rounded-t-xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+<!-- Arrived Button -->
+<div class="px-4 py-4">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 px-5 bg-primary text-black gap-4 text-xl font-black tracking-widest shadow-lg active:bg-primary/90">
+<span class="material-symbols-outlined !text-3xl filled-icon">check_circle</span>
+<span class="truncate uppercase">I AM HERE</span>
+</button>
+</div>
+<!-- Tab Bar -->
+<div class="flex gap-2 border-t border-[#f2f4f0] dark:border-white/10 px-4 pb-6 pt-2">
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#6f8961] dark:text-white/60" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<p class="text-xs font-medium tracking-[0.015em]">Jobs</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-primary" href="#">
+<span class="material-symbols-outlined filled-icon">map</span>
+<p class="text-xs font-bold tracking-[0.015em]">Navigate</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#6f8961] dark:text-white/60" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<p class="text-xs font-medium tracking-[0.015em]">Me</p>
+</a>
+<a class="flex flex-1 flex-col items-center justify-end gap-1 text-[#6f8961] dark:text-white/60" href="#">
+<span class="material-symbols-outlined">help_center</span>
+<p class="text-xs font-medium tracking-[0.015em]">Help</p>
+</a>
+</div>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Arrival Alert - Farmer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .pulse-ring {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+                opacity: 0.8;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.4;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+<!-- Top App Bar -->
+<div class="flex items-center bg-white dark:bg-zinc-900 p-4 pb-4 justify-between sticky top-0 z-50 border-b border-gray-100 dark:border-zinc-800">
+<div class="text-[#131811] dark:text-white flex size-12 shrink-0 items-center justify-center">
+<span class="material-symbols-outlined text-3xl">menu</span>
+</div>
+<h2 class="text-[#131811] dark:text-white text-xl font-bold leading-tight tracking-tight flex-1 text-center pr-12">Worker Arrival</h2>
+</div>
+<main class="flex-1 flex flex-col items-center justify-center px-4 py-8">
+<!-- Voice Guidance Indicator -->
+<div class="flex flex-col items-center mb-6">
+<div class="flex items-center gap-2 bg-primary/10 dark:bg-primary/20 px-4 py-2 rounded-full border border-primary/20">
+<span class="material-symbols-outlined text-primary animate-pulse">volume_up</span>
+<p class="text-[#131811] dark:text-white text-base font-bold">Worker vacharu, scan cheyyandi</p>
+</div>
+<p class="text-[#6f8961] dark:text-zinc-400 text-sm mt-2 font-medium">Voice guidance active 🔊</p>
+</div>
+<!-- Pulse Animation & Bell -->
+<div class="relative flex items-center justify-center h-48 w-48 mb-12">
+<!-- Pulsing Rings -->
+<div class="absolute inset-0 bg-primary/30 rounded-full pulse-ring" style="animation-delay: 0s;"></div>
+<div class="absolute inset-0 bg-primary/20 rounded-full pulse-ring" style="animation-delay: 0.5s;"></div>
+<div class="absolute inset-0 bg-primary/10 rounded-full pulse-ring" style="animation-delay: 1s;"></div>
+<!-- Main Bell Icon Container -->
+<div class="relative z-10 bg-white dark:bg-zinc-800 p-8 rounded-full shadow-2xl">
+<span class="material-symbols-outlined text-7xl text-primary" style="font-variation-settings: 'FILL' 1;">notifications_active</span>
+</div>
+</div>
+<!-- Headline -->
+<h1 class="text-[#131811] dark:text-white tracking-tight text-3xl font-extrabold leading-tight text-center mb-8">Worker vacharu</h1>
+<!-- Worker Card -->
+<div class="w-full max-w-sm p-4 mb-10">
+<div class="flex items-center justify-between gap-4 rounded-xl bg-white dark:bg-zinc-900 p-4 shadow-xl border-l-8 border-primary">
+<div class="flex flex-col gap-1">
+<p class="text-[#131811] dark:text-white text-2xl font-bold leading-tight">Ramesh Kumar</p>
+<p class="text-[#6f8961] dark:text-zinc-400 text-lg font-medium">Farm Hand • 07:05 AM</p>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-sm text-primary">location_on</span>
+<span class="text-xs text-zinc-500 uppercase tracking-widest font-bold">Main Gate Arrival</span>
+</div>
+</div>
+<div class="w-24 h-24 bg-center bg-no-repeat bg-cover rounded-full border-4 border-background-light dark:border-zinc-800 shadow-md shrink-0" data-alt="Portrait photo of a male farm worker smiling" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB_3IwejAKSpKlHL78J0OfDQmD3qrvdq9H0fLeENSfWQ19MyoyKyviGBECQkcZRqlZkrJFnzHPHD0pFSiJrlZlkTj6FNSX1qNkfje5N2Qe9romEyr2Nr8bPqn496qrKEbdwyWIPozasPMqReDmk_sut9MRKlNzaszQdPyrzZiFr23xs1Ay2_nP34U_LBvcXzRIDUT0SSqF0LhxcIMR3lLFfSeNaDfE9yJldLPUvupllzQjGBhMAjTnXOJ3U1b91K6Vw0i2Y3ZceqajG");'>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="w-full max-w-sm px-4">
+<button class="w-full bg-primary text-[#131811] flex flex-col items-center justify-center py-8 rounded-xl shadow-lg active:scale-95 transition-transform duration-100 hover:bg-[#52d411]">
+<span class="material-symbols-outlined text-6xl mb-2" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+<span class="text-2xl font-black tracking-tighter uppercase">SCAN ATTENDANCE (IN)</span>
+</button>
+</div>
+</main>
+<!-- Bottom Navigation Bar -->
+<div class="sticky bottom-0 w-full bg-white dark:bg-zinc-900 border-t border-gray-100 dark:border-zinc-800 px-6 py-4 flex justify-between items-center z-50">
+<div class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="text-[10px] font-bold uppercase mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center text-zinc-400">
+<span class="material-symbols-outlined text-3xl">history</span>
+<span class="text-[10px] font-bold uppercase mt-1 text-zinc-500">History</span>
+</div>
+<div class="flex flex-col items-center text-zinc-400">
+<span class="material-symbols-outlined text-3xl">groups</span>
+<span class="text-[10px] font-bold uppercase mt-1 text-zinc-500">Workers</span>
+</div>
+<div class="flex flex-col items-center text-zinc-400">
+<span class="material-symbols-outlined text-3xl">person</span>
+<span class="text-[10px] font-bold uppercase mt-1 text-zinc-500">Profile</span>
+</div>
+</div>
+<!-- Background Decoration for visual appeal -->
+<div class="fixed top-0 left-0 w-full h-full pointer-events-none opacity-20 dark:opacity-5 z-[-1]">
+<div class="absolute top-[10%] left-[-10%] w-64 h-64 bg-primary rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[20%] right-[-10%] w-80 h-80 bg-primary/50 rounded-full blur-[120px]"></div>
+</div>
+</body></html>

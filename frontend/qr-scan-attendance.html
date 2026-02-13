@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>QR Scan - Attendance In</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .camera-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            mask-image: radial-gradient(circle, transparent 150px, black 151px);
+            -webkit-mask-image: radial-gradient(circle, transparent 150px, black 151px);
+        }
+        .scanner-box {
+            border: 4px solid #5bec13;
+            box-shadow: 0 0 20px rgba(91, 236, 19, 0.5);
+        }
+        .success-tick {
+            animation: scaleIn 0.5s ease-out forwards;
+        }
+        @keyframes scaleIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-[#131811] dark:text-white h-screen overflow-hidden">
+<!-- Full Screen Camera Viewport Mockup -->
+<div class="fixed inset-0 z-0">
+<div class="w-full h-full bg-cover bg-center" data-alt="Worker scanning a QR code in a farm field" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDLyb_zAQOzpGdQrnCSOmPKKRyS4lyV2LiRp48AeEspAMDzEX5TzcZITiNd62tmpJCjeOzVfaz8ggndPhdHrWUbJupPZJwy1cjtFuPBzLw9hkmw4xQoxzJpfVZVeASe2A05fd2OvQbo4hBURbDfS0nis3kQCZCCOwB3LqL0A9EOkuaiH6K2zRR1WVhMJn6wkk5ciTfXt-HnO4OcGelIPmsfpJRnTlWZcHstxcvsClWTKH-KhZBSFYvNu1zcfBmC709-xMVBaX5MergO')">
+<!-- Dimmed Overlay with cutout -->
+<div class="absolute inset-0 bg-black/60"></div>
+</div>
+</div>
+<!-- UI Layer -->
+<div class="relative z-10 flex flex-col h-full justify-between py-12 px-6">
+<!-- Header / Status -->
+<div class="flex flex-col items-center">
+<div class="bg-white/90 dark:bg-black/80 backdrop-blur-md px-6 py-3 rounded-full shadow-lg border border-primary/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl font-bold">qr_code_scanner</span>
+<h1 class="text-xl font-bold tracking-tight">QR Scan - Attendance In</h1>
+</div>
+</div>
+<p class="mt-4 text-white text-lg font-medium bg-black/40 px-4 py-1 rounded-full backdrop-blur-sm">
+                Focus QR Code inside the square
+            </p>
+</div>
+<!-- Scanning Guide (The Square) -->
+<div class="flex items-center justify-center">
+<div class="relative w-72 h-72">
+<!-- Corner Borders -->
+<div class="absolute inset-0 scanner-box rounded-xl"></div>
+<!-- Scanning Line Effect -->
+<div class="absolute top-0 left-0 w-full h-1 bg-primary/80 shadow-[0_0_15px_#5bec13] animate-[scan_2s_linear_infinite]"></div>
+<!-- Visual Icon Guide -->
+<div class="absolute inset-0 flex items-center justify-center opacity-40">
+<span class="material-symbols-outlined text-white text-8xl">center_focus_weak</span>
+</div>
+</div>
+</div>
+<!-- Success Overlay (Hidden by default, can be toggled in real app) -->
+<!-- To show, add class 'flex' and remove 'hidden' -->
+<div class="hidden absolute inset-0 bg-primary/90 z-50 flex-col items-center justify-center text-[#131811]">
+<div class="success-tick bg-white rounded-full p-8 shadow-2xl">
+<span class="material-symbols-outlined text-9xl font-bold">check_circle</span>
+</div>
+<h2 class="text-4xl font-bold mt-8">Attendance Marked!</h2>
+<p class="text-xl mt-2 opacity-80">हाज़िरी लग गई है</p>
+</div>
+<!-- Bottom Controls -->
+<div class="flex flex-col items-center gap-6">
+<!-- Voice Help Guidance Card -->
+<div class="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 w-full max-w-xs text-center">
+<div class="flex items-center justify-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary">record_voice_over</span>
+<span class="text-white font-medium">Automatic Voice Active</span>
+</div>
+<p class="text-white/80 text-sm">"कृपया अपना कैमरा क्यूआर कोड की ओर रखें"</p>
+</div>
+<!-- Large Action Buttons from Components List Inspired -->
+<div class="flex items-center gap-6 w-full justify-center">
+<!-- Gallery/Torch Controls -->
+<button class="flex shrink-0 items-center justify-center rounded-full size-14 bg-black/60 text-white border border-white/20 hover:bg-black/80 transition-all">
+<span class="material-symbols-outlined text-2xl">flashlight_on</span>
+</button>
+<!-- Help Button (Main Affordance) -->
+<button class="flex min-w-[180px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-16 px-8 bg-primary text-[#131811] gap-3 shadow-[0_8px_30px_rgb(91,236,19,0.4)] active:scale-95 transition-all">
+<span class="material-symbols-outlined text-3xl font-bold">vibration</span>
+<span class="text-xl font-extrabold leading-normal tracking-wide">Help / मदद</span>
+</button>
+<button class="flex shrink-0 items-center justify-center rounded-full size-14 bg-black/60 text-white border border-white/20 hover:bg-black/80 transition-all">
+<span class="material-symbols-outlined text-2xl">photo_library</span>
+</button>
+</div>
+</div>
+</div>
+<style>
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+    </style>
+</body></html>

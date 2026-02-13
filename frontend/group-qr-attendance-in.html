@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Group QR - Attendance In</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .qr-gradient {
+            background: linear-gradient(135deg, #5bec13 0%, #46b80e 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center">
+<!-- Top Navigation Area (Minimalist) -->
+<div class="w-full flex items-center justify-between p-6">
+<button class="flex items-center justify-center size-12 rounded-full bg-white dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700">
+<span class="material-symbols-outlined text-[#131811] dark:text-white" style="font-size: 28px;">close</span>
+</button>
+<div class="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+<span class="material-symbols-outlined text-[#131811] dark:text-white text-sm">volume_up</span>
+<span class="text-[#131811] dark:text-white text-xs font-medium uppercase tracking-wider">Voice On</span>
+</div>
+</div>
+<!-- Main QR Container -->
+<div class="flex-1 w-full flex flex-col items-center justify-center px-6">
+<!-- Massive QR Code Section -->
+<div class="relative w-full max-w-[340px] aspect-square bg-white dark:bg-white p-6 rounded-xl shadow-2xl border-[6px] border-primary">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="A large scannable QR code for worker attendance" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA4HxanaiqUIAuTu4M8eN3cw8l318yu-lFkhPcDLJSvp9mSuDYGWCump5eu9toK7AWBmdSa9nVC092PKSAybo79XM2VKEhEVWZfZbM6Ijc6qKXUyzzOaRSs7Sc6cLN4kzLPV71k2v8WHZ0UgQLFUhEYx6IsRQIZJbmulna3LRMdaN07AoiaGpXzhxdlHb_xIgGBFp25q4yXk1Lqy-wEP9tKScXoC0MqE8M6ssz4DvFkLL8vtjjpWnQTsyvrRDMdQbrCTkp8zk2cffgn");'>
+</div>
+<!-- Scanning Visual Affordance -->
+<div class="absolute -top-4 -right-4 size-16 bg-primary rounded-full flex items-center justify-center shadow-lg border-4 border-white dark:border-background-dark">
+<span class="material-symbols-outlined text-white" style="font-size: 32px;">qr_code_scanner</span>
+</div>
+</div>
+<!-- Worker Count Badge -->
+<div class="mt-12 w-full max-w-[280px]">
+<div class="bg-primary py-4 px-8 rounded-full shadow-lg flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-[#131811]" style="font-size: 32px; font-variation-settings: 'FILL' 1;">groups</span>
+<h1 class="text-[#131811] text-3xl font-bold leading-none tracking-tight">15 WORKERS</h1>
+</div>
+</div>
+</div>
+<!-- Instructional Footer Area -->
+<div class="w-full bg-white dark:bg-zinc-900 rounded-t-xl p-8 flex flex-col items-center gap-2 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] border-t border-zinc-100 dark:border-zinc-800">
+<!-- Local Language Instruction (Primary) -->
+<p class="text-[#131811] dark:text-white text-2xl font-bold text-center leading-tight">
+            Ee QR code chupinchandi
+        </p>
+<!-- Translation/Secondary Instruction -->
+<p class="text-zinc-500 dark:text-zinc-400 text-lg font-medium text-center">
+            (Show this QR code)
+        </p>
+<!-- Visual Instruction Hint -->
+<div class="mt-4 flex items-center gap-4 text-primary">
+<div class="h-[2px] w-8 bg-zinc-200 dark:bg-zinc-700"></div>
+<span class="material-symbols-outlined" style="font-size: 40px;">tap_and_play</span>
+<div class="h-[2px] w-8 bg-zinc-200 dark:bg-zinc-700"></div>
+</div>
+</div>
+<!-- System Brightness Notification (Hidden/Subtle) -->
+<div class="h-5"></div>
+</body></html>

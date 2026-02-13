@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Group Attendance Confirmed</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;700&amp;family=Noto+Sans:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#5bec13",
+              "background-light": "#f6f8f6",
+              "background-dark": "#162210",
+            },
+            fontFamily: {
+              "display": ["Lexend", "sans-serif"],
+              "sans": ["Lexend", "Noto Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 48;
+        }
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#131811] dark:text-white transition-colors duration-300">
+<!-- Main Container (Mobile Form Factor Simulation) -->
+<div class="relative flex h-screen w-full max-w-[480px] mx-auto flex-col overflow-x-hidden bg-background-light dark:bg-background-dark">
+<!-- Main Content Area (Centering the success state) -->
+<div class="flex flex-col items-center justify-center grow px-6 pt-12">
+<!-- Success Icon Section -->
+<div class="relative mb-8">
+<!-- Large Outer Circle -->
+<div class="flex items-center justify-center w-48 h-48 bg-primary/20 rounded-full animate-pulse">
+<!-- Middle Circle -->
+<div class="flex items-center justify-center w-36 h-36 bg-primary/40 rounded-full">
+<!-- Success Checkmark -->
+<div class="flex items-center justify-center w-24 h-24 bg-primary text-[#131811] rounded-full shadow-lg">
+<span class="material-symbols-outlined !text-6xl" data-icon="check_circle">check</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Headline Text -->
+<div class="w-full">
+<h1 class="text-[#131811] dark:text-white tracking-tight text-[36px] font-bold leading-tight px-4 text-center pb-2 pt-4">
+                    15 Workers Checked In
+                </h1>
+</div>
+<!-- Voice Guidance Indicator & Body Text -->
+<div class="flex flex-col items-center gap-3 pt-4">
+<div class="flex items-center gap-2 px-6 py-2 bg-primary/10 rounded-full">
+<span class="material-symbols-outlined text-primary !text-2xl" data-icon="volume_up">volume_up</span>
+<p class="text-[#131811] dark:text-primary text-lg font-medium leading-normal">
+                        'Fifteen workers are now checked in'
+                    </p>
+</div>
+<p class="text-[#131811]/60 dark:text-white/60 text-sm font-normal text-center mt-2">
+                    Confirmation voice guidance playing...
+                </p>
+</div>
+</div>
+<!-- Static Image Placeholder (Representing the Farm/Group) -->
+<div class="px-8 mb-6">
+<div class="w-full aspect-[4/1] overflow-hidden rounded-xl bg-primary/5 border-2 border-primary/20 flex items-center justify-center">
+<div class="w-full h-full bg-center bg-no-repeat bg-cover opacity-80" data-alt="Abstract green landscape pattern representing a farm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDCxe3DabTRU_Qa8y7ktkDtm8f3zi_xcnALNfv67y9JcpC97rymJekSGAzaOjwir_1OMgbLPo1EqsE30DkR11SC6VCZn0qfu8xG9psLFRkAVYIQkAzue0N2BG8kS7CY2PAUAlyC_4c4U1CbEBz3V0j-Pze2UxgaNz8UyMB9jS9QGpe2UcZSbT-wCo6jxBnuabL8Ma4zENGDTWWvHG8OXU_9cR-q4BQc6Ru1Or6SnnKiEaHM6_VKeAyoO6cs7aWM2x99MSh55KO6R8Iv");'>
+</div>
+</div>
+</div>
+<!-- Bottom Action Button Section -->
+<div class="px-6 py-8 pb-12">
+<button class="flex w-full min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-20 px-5 bg-primary text-[#131811] text-2xl font-black leading-normal tracking-wide shadow-xl active:scale-95 transition-transform">
+<span class="truncate uppercase">OK</span>
+</button>
+</div>
+</div>
+</body></html>

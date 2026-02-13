@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login Screen</title>
+<!-- Tailwind CSS with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Lexend -->
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#5bec13",
+              "background-light": "#f6f8f6",
+              "background-dark": "#162210",
+            },
+            fontFamily: {
+              "display": ["Lexend", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body {
+        font-family: 'Lexend', sans-serif;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      /* Remove numeric arrows for input */
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen transition-colors duration-300">
+<div class="flex flex-col h-screen max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl overflow-hidden">
+<!-- Voice Guidance Bar / ActionPanel style -->
+<div class="p-4 pt-8">
+<div class="flex flex-1 items-center justify-between gap-4 rounded-xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
+<div class="flex flex-col gap-1">
+<p class="text-[#131811] dark:text-white text-lg font-bold leading-tight">Mobile number enter cheyyandi</p>
+<p class="text-[#6f8961] dark:text-gray-400 text-sm font-normal leading-normal">Tap speaker to hear</p>
+</div>
+<button class="flex size-14 cursor-pointer items-center justify-center rounded-full bg-primary text-[#131811] shadow-lg active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-3xl">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Phone Number Input Display -->
+<div class="px-6 py-6 text-center">
+<div class="flex flex-col items-center">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary">phone_iphone</span>
+<p class="text-[#6f8961] dark:text-gray-400 font-medium uppercase tracking-widest text-xs">Phone Number</p>
+</div>
+<div class="relative w-full">
+<input class="w-full text-center text-4xl font-bold bg-transparent border-b-2 border-primary/30 focus:border-primary text-[#131811] dark:text-white py-4 outline-none tracking-widest" placeholder="0000 000000" readonly="" type="text" value=""/>
+</div>
+</div>
+</div>
+<!-- Spacer to push keypad down -->
+<div class="flex-grow"></div>
+<!-- Massive Custom Numeric Keypad (TextGrid Style) -->
+<div class="p-4">
+<div class="grid grid-cols-3 gap-3">
+<!-- Numbers 1-9 -->
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">1</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">2</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">3</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">4</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">5</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">6</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">7</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">8</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">9</button>
+<!-- Bottom Row -->
+<div class="h-20"></div>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">0</button>
+<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-red-50 text-red-500 shadow-sm transition-colors">
+<span class="material-symbols-outlined text-4xl">backspace</span>
+</button>
+</div>
+</div>
+<!-- Primary Action Button -->
+<div class="p-6 pb-10">
+<button class="w-full flex h-16 items-center justify-center overflow-hidden rounded-full bg-primary text-[#131811] text-xl font-bold shadow-xl active:scale-95 transition-all">
+<span class="truncate">Continue</span>
+<span class="material-symbols-outlined ml-2">arrow_forward</span>
+</button>
+</div>
+</div>
+</body></html>

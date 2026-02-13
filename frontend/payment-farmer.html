@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Payment Screen - Farmer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .voice-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(91, 236, 19, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(91, 236, 19, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(91, 236, 19, 0); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="bg-white dark:bg-background-dark/50 sticky top-0 z-10">
+<div class="flex items-center p-4 justify-between border-b border-gray-100 dark:border-gray-800">
+<div class="text-black dark:text-white flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-3xl">arrow_back</span>
+</div>
+<h2 class="text-black dark:text-white text-xl font-bold leading-tight flex-1 text-center">Payment</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="voice-pulse flex items-center justify-center rounded-full h-12 w-12 bg-primary/20 text-black dark:text-white">
+<span class="material-symbols-outlined text-primary">record_voice_over</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto pb-32">
+<!-- Voice Guidance Banner -->
+<div class="px-4 pt-4">
+<div class="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl">volume_up</span>
+<p class="text-sm font-medium text-black dark:text-white">"Dabbulu pay cheyyandi" (Please pay the amount)</p>
+</div>
+</div>
+<!-- Headline Amount Section -->
+<div class="mt-8 text-center px-4">
+<p class="text-gray-500 dark:text-gray-400 text-lg font-medium mb-1">Total Amount to Pay</p>
+<h1 class="text-black dark:text-white text-6xl font-black tracking-tight py-4">₹500</h1>
+</div>
+<!-- Payment Selection -->
+<div class="px-4 mt-8">
+<div class="flex gap-4">
+<!-- Cash Button -->
+<label class="flex-1 group cursor-pointer">
+<input class="hidden peer" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-xl border-4 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-5xl mb-2 text-gray-400 peer-checked:text-primary">payments</span>
+<span class="text-xl font-bold text-gray-600 dark:text-gray-300 peer-checked:text-black dark:peer-checked:text-white">CASH</span>
+</div>
+</label>
+<!-- UPI Button -->
+<label class="flex-1 group cursor-pointer">
+<input checked="" class="hidden peer" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-xl border-4 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+<span class="material-symbols-outlined text-5xl mb-2 text-gray-400 peer-checked:text-primary">qr_code_2</span>
+<span class="text-xl font-bold text-gray-600 dark:text-gray-300 peer-checked:text-black dark:peer-checked:text-white">UPI</span>
+</div>
+</label>
+</div>
+</div>
+<!-- QR Code Section (Visible if UPI Selected) -->
+<div class="mt-8 px-4 flex flex-col items-center">
+<p class="text-gray-600 dark:text-gray-400 font-bold mb-4 uppercase tracking-wider">Scan This Code</p>
+<div class="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+<div class="w-64 h-64 bg-center bg-no-repeat bg-cover rounded-lg" data-alt="Digital QR code for payment" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB6TL85L4Wwjhf5gOhdtUsM8zyOpIG4vchYWcBBo88WXWUek4FH_G2idRP78LQMctxJmrLNO_fG2BLZ4yzJhrTjUIPqjPRnmDAZlC0nQL6Qq2bnYSq6YPVQVmxj3AlHpAlJ3fZtgOV4ZopnUieEnAINE4EzmWQ1KZ_l2NQ0Yj5isWljCwlbdcYtoPb0N5f4l3J9B8jZBt-tXtOsW3oe1XmjNEJPKABiOnhA9nB3amJuVOgWhRTf0X8Celttwd-_3NQw3xjwsN9GSkSc");'>
+</div>
+</div>
+<p class="mt-4 text-xs text-gray-400">Transaction ID: TXN89324021</p>
+</div>
+</main>
+<!-- Bottom Sticky Action and Navigation -->
+<div class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-background-dark/80 backdrop-blur-lg border-t border-gray-100 dark:border-gray-800">
+<!-- Main Action Button -->
+<div class="px-4 py-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-black text-2xl font-black py-6 rounded-full shadow-xl shadow-primary/20 flex items-center justify-center gap-3 active:scale-95 transition-transform">
+                PAID
+                <span class="material-symbols-outlined font-black text-3xl">check_circle</span>
+</button>
+</div>
+<!-- Tab Bar -->
+<div class="flex justify-around items-center pb-6 pt-2">
+<button class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1">home</span>
+<span class="text-[10px] font-bold mt-1">HOME</span>
+</button>
+<button class="flex flex-col items-center text-gray-400">
+<span class="material-symbols-outlined text-3xl">history</span>
+<span class="text-[10px] font-bold mt-1">HISTORY</span>
+</button>
+<button class="flex flex-col items-center text-gray-400">
+<span class="material-symbols-outlined text-3xl">account_circle</span>
+<span class="text-[10px] font-bold mt-1">PROFILE</span>
+</button>
+</div>
+</div>
+</body></html>

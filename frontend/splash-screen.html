@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+
+<html class="light" lang="te"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                        "earth-brown": "#4a3728",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom rotation for the loader to match requirements without JS */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin 2s linear infinite;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display overflow-hidden">
+<div class="relative flex h-screen w-full flex-col items-center justify-between py-12 px-6">
+<!-- Top Spacer for iOS Notch/Status Bar area -->
+<div class="h-10"></div>
+<!-- Logo Section -->
+<div class="flex flex-col items-center gap-8">
+<div class="relative @container">
+<!-- Outer Glow/Ring -->
+<div class="absolute -inset-4 bg-primary/20 rounded-full blur-2xl"></div>
+<!-- Main Logo Container -->
+<div class="relative w-48 h-48 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-xl border-4 border-primary">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-7xl">
+                            eco
+                        </span>
+<span class="material-symbols-outlined text-earth-brown dark:text-primary/80 text-6xl -mt-4">
+                            handshake
+                        </span>
+</div>
+</div>
+</div>
+<!-- Circular Loading Animation Component Style -->
+<div class="flex flex-col items-center gap-4">
+<div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin-slow"></div>
+<p class="text-earth-brown/60 dark:text-white/60 text-sm font-medium tracking-widest uppercase">
+                    Loading
+                </p>
+</div>
+</div>
+<!-- Bottom Voice Guidance Section -->
+<div class="w-full max-w-sm flex flex-col items-center gap-6">
+<!-- Voice Guidance Component -->
+<div class="flex flex-col items-center gap-2">
+<div class="flex items-center gap-1 h-8">
+<!-- Visual Waveform Affordance -->
+<div class="w-1 bg-primary h-4 rounded-full"></div>
+<div class="w-1 bg-primary h-8 rounded-full"></div>
+<div class="w-1 bg-primary h-6 rounded-full"></div>
+<div class="w-1 bg-primary h-10 rounded-full"></div>
+<div class="w-1 bg-primary h-5 rounded-full"></div>
+</div>
+<div class="flex px-4 py-3 justify-center">
+<div class="flex min-w-[84px] max-w-[480px] items-center justify-center overflow-hidden rounded-full h-14 px-6 bg-primary text-background-dark gap-3 shadow-lg">
+<span class="material-symbols-outlined text-background-dark" style="font-size: 28px;">
+                            volume_up
+                        </span>
+<span class="truncate text-lg font-bold">App start avutondi</span>
+</div>
+</div>
+</div>
+<!-- Branding Text -->
+<div class="text-center">
+<p class="text-[#131811] dark:text-white/80 text-sm font-medium opacity-50">
+                    Farmer-Worker Connect
+                </p>
+</div>
+</div>
+<!-- Decorative Earthy Element -->
+<div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent"></div>
+</div>
+</body></html>

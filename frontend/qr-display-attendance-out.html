@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Attendance Out - QR Display</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display transition-colors duration-300">
+<!-- Top Status Bar Placeholder (iOS style) -->
+<div class="h-12 w-full"></div>
+<!-- Header Section -->
+<header class="w-full px-4 pt-4 flex flex-col items-center">
+<div class="bg-primary/20 text-[#131811] dark:text-primary px-6 py-2 rounded-full mb-4">
+<span class="text-sm font-bold tracking-widest uppercase">Worker Mode</span>
+</div>
+<h1 class="text-[#131811] dark:text-white text-[38px] font-bold leading-none tracking-tight text-center uppercase">
+            SCAN TO FINISH
+        </h1>
+</header>
+<!-- Main QR Display Area -->
+<main class="flex-1 flex flex-col items-center justify-center px-8">
+<!-- Visual Instruction Wrapper -->
+<div class="w-full max-w-sm aspect-square bg-white dark:bg-zinc-800 rounded-xl shadow-2xl p-6 flex flex-col items-center justify-center relative border-4 border-primary">
+<!-- QR Code Placeholder -->
+<div class="w-full h-full bg-white flex items-center justify-center rounded-lg overflow-hidden">
+<div class="w-full h-full bg-center bg-no-repeat bg-contain" data-alt="A very large high contrast QR code for scanning" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAoxCqW1f4Cly0XYHkPmHboSTWkFoy9WBvTqBWMSSU0ro07B1bvjw-rP2kI8D2aYoCbyGxnMVueGVnlasjt2LbGfaIf4AezFNvevFMMkE0SMulEuPNfVRDd9RZ-AN73IDXXyDDWfUJYTzcYxGOqwEIAAoFZAXPBOZ395DCj0cGLMRBobbltve_9Rxj7ieMpTfgJrSV_WY1HC8q3kPoNu1Nfy6INPm0OENquSFYAXcu9E05oOIZ_DMOF186CcFBVpDv_SHDuEwhigkSY");'>
+</div>
+</div>
+<!-- Corner Scanning Guides -->
+<div class="absolute -top-2 -left-2 w-8 h-8 border-t-4 border-l-4 border-primary"></div>
+<div class="absolute -top-2 -right-2 w-8 h-8 border-t-4 border-r-4 border-primary"></div>
+<div class="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-primary"></div>
+<div class="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-primary"></div>
+</div>
+<!-- Translation & Guidance -->
+<div class="mt-10 flex flex-col items-center space-y-2">
+<p class="text-[#131811] dark:text-zinc-300 text-xl font-medium text-center italic">
+                "Pani ayipoyindi, scan cheyandi"
+            </p>
+<p class="text-zinc-500 dark:text-zinc-400 text-base text-center">
+                Work finished, please scan
+            </p>
+</div>
+</main>
+<!-- Bottom Controls & Voice Guidance -->
+<footer class="p-6 flex flex-col items-center gap-6">
+<!-- Voice Status Indicator -->
+<div class="flex items-center gap-3 bg-primary py-4 px-8 rounded-full shadow-lg cursor-pointer active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-black text-3xl">volume_up</span>
+<span class="text-black font-bold text-lg">Play Voice Instructions</span>
+</div>
+<!-- Help Link -->
+<button class="flex items-center gap-2 text-[#131811] dark:text-white opacity-60">
+<span class="material-symbols-outlined">help</span>
+<span class="font-medium underline decoration-2 underline-offset-4">Need help scanning?</span>
+</button>
+<!-- Home Indicator Spacing -->
+<div class="h-4"></div>
+</footer>
+<!-- Full Screen Brightness Reminder (Simulated Visual) -->
+<div class="fixed top-4 right-4 bg-yellow-400 text-black p-2 rounded-full shadow-md">
+<span class="material-symbols-outlined block">light_mode</span>
+</div>
+</body></html>

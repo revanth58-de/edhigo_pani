@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Group Setup - Leader</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col">
+<!-- Top App Bar -->
+<header class="bg-white dark:bg-black p-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
+<div class="flex items-center justify-center w-12 h-12 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+<span class="material-symbols-outlined text-gray-800 dark:text-white text-3xl">arrow_back</span>
+</div>
+<h1 class="text-xl font-bold text-gray-900 dark:text-white flex-1 text-center">Set Up Group</h1>
+<div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/20">
+<span class="material-symbols-outlined text-gray-900 dark:text-white">volume_up</span>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto px-6 py-4 space-y-8">
+<!-- Member Count Section -->
+<section class="space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">groups</span>
+<h2 class="text-2xl font-bold text-gray-900 dark:text-white">How many workers?</h2>
+</div>
+<div class="flex items-center justify-between bg-white dark:bg-gray-900 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
+<button class="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full active:scale-90 transition-transform shadow-md">
+<span class="material-symbols-outlined text-4xl text-gray-900 dark:text-white">remove</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="text-6xl font-bold text-gray-900 dark:text-white">15</span>
+<span class="text-gray-500 dark:text-gray-400 font-medium">MEMBERS</span>
+</div>
+<button class="w-16 h-16 flex items-center justify-center bg-primary rounded-full active:scale-90 transition-transform shadow-lg">
+<span class="material-symbols-outlined text-4xl text-white">add</span>
+</button>
+</div>
+</section>
+<!-- Payment Type Section -->
+<section class="space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">payments</span>
+<h2 class="text-2xl font-bold text-gray-900 dark:text-white">Choose Payment</h2>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- Per Day Option -->
+<label class="relative cursor-pointer">
+<input checked="" class="peer sr-only" name="payment_type" type="radio" value="day"/>
+<div class="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl border-4 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all shadow-sm">
+<span class="material-symbols-outlined text-5xl text-gray-400 peer-checked:text-primary">wb_sunny</span>
+<span class="text-lg font-bold text-gray-900 dark:text-white">Per Day</span>
+</div>
+</label>
+<!-- Per Acre Option -->
+<label class="relative cursor-pointer">
+<input class="peer sr-only" name="payment_type" type="radio" value="acre"/>
+<div class="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-900 rounded-xl border-4 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 transition-all shadow-sm">
+<span class="material-symbols-outlined text-5xl text-gray-400 peer-checked:text-primary">landscape</span>
+<span class="text-lg font-bold text-gray-900 dark:text-white">Per Acre</span>
+</div>
+</label>
+</div>
+</section>
+<!-- Go Live Button -->
+<div class="pt-6">
+<button class="w-full bg-primary text-gray-900 py-6 rounded-full text-2xl font-bold shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-3xl font-bold">podcasts</span>
+                GO LIVE
+            </button>
+</div>
+</main>
+<!-- Bottom Navigation -->
+<nav class="bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800 px-6 py-4">
+<div class="flex justify-between items-center max-w-md mx-auto">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-3xl">home</span>
+<span class="text-xs font-bold">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-3xl">history</span>
+<span class="text-xs font-bold">History</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-3xl">person</span>
+<span class="text-xs font-bold">Profile</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-gray-400">
+<span class="material-symbols-outlined text-3xl">settings</span>
+<span class="text-xs font-bold">More</span>
+</button>
+</div>
+</nav>
+</body></html>

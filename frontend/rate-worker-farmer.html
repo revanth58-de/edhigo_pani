@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Rate Worker - Farmer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .selected-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-[#131811] dark:text-white transition-colors duration-300">
+<!-- Top Navigation Bar -->
+<div class="flex items-center bg-white dark:bg-zinc-900 p-4 pb-2 justify-between border-b border-zinc-100 dark:border-zinc-800 sticky top-0 z-10">
+<div class="text-[#131811] dark:text-white flex size-12 shrink-0 items-center justify-center cursor-pointer">
+<span class="material-symbols-outlined text-3xl">arrow_back</span>
+</div>
+<h2 class="text-[#131811] dark:text-white text-xl font-bold leading-tight tracking-tight flex-1 text-center font-display">Rating</h2>
+<div class="flex w-12 items-center justify-end">
+<button class="flex size-12 cursor-pointer items-center justify-center rounded-full bg-primary/20 text-primary">
+<span class="material-symbols-outlined text-2xl">volume_up</span>
+</button>
+</div>
+</div>
+<!-- Main Content Container -->
+<main class="max-w-md mx-auto min-h-[calc(100vh-140px)] pb-24">
+<!-- Voice Guidance Title Section -->
+<div class="py-8 px-6 text-center">
+<div class="inline-flex items-center justify-center mb-2 px-4 py-1 bg-primary/10 rounded-full">
+<span class="material-symbols-outlined text-primary text-sm mr-2">graphic_eq</span>
+<span class="text-xs font-bold uppercase tracking-wider text-primary">Voice Guidance</span>
+</div>
+<h2 class="text-[#131811] dark:text-white text-[36px] font-bold leading-tight tracking-tight px-4 font-display">Pani ela undi?</h2>
+<p class="text-zinc-500 dark:text-zinc-400 mt-1 text-lg">How was the work?</p>
+</div>
+<!-- Massive Emoji Grid -->
+<div class="grid grid-cols-1 gap-4 p-6">
+<!-- Good Option -->
+<div class="flex flex-col items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-xl border-4 border-primary shadow-lg shadow-primary/10 transition-transform active:scale-95 cursor-pointer">
+<div class="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center">
+<span class="text-6xl">😊</span>
+</div>
+<p class="text-[#131811] dark:text-white text-2xl font-bold leading-normal font-display">Good</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<!-- OK Option -->
+<div class="flex flex-col items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-transform active:scale-95 cursor-pointer">
+<div class="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+<span class="text-4xl">😐</span>
+</div>
+<p class="text-[#131811] dark:text-white text-lg font-bold leading-normal font-display">OK</p>
+</div>
+<!-- Bad Option -->
+<div class="flex flex-col items-center gap-4 bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 transition-transform active:scale-95 cursor-pointer">
+<div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+<span class="text-4xl">☹️</span>
+</div>
+<p class="text-[#131811] dark:text-white text-lg font-bold leading-normal font-display">Bad</p>
+</div>
+</div>
+</div>
+<!-- Section Header for Stars -->
+<div class="mt-4">
+<h4 class="text-[#6f8961] dark:text-primary text-base font-bold leading-normal tracking-wide px-4 py-2 text-center uppercase font-display">Detailed Stars</h4>
+</div>
+<!-- Actions Bar (Stars) -->
+<div class="px-6 py-4">
+<div class="flex justify-between items-center bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800">
+<div class="flex flex-col items-center gap-2 flex-1 cursor-pointer">
+<div class="rounded-full bg-background-light dark:bg-zinc-800 p-4 active:bg-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl selected-icon">star</span>
+</div>
+<p class="text-[#131811] dark:text-white text-sm font-bold leading-normal">1</p>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1 cursor-pointer">
+<div class="rounded-full bg-background-light dark:bg-zinc-800 p-4 active:bg-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl selected-icon">star</span>
+</div>
+<p class="text-[#131811] dark:text-white text-sm font-bold leading-normal">2</p>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1 cursor-pointer">
+<div class="rounded-full bg-background-light dark:bg-zinc-800 p-4 active:bg-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl selected-icon">star</span>
+</div>
+<p class="text-[#131811] dark:text-white text-sm font-bold leading-normal">3</p>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1 cursor-pointer">
+<div class="rounded-full bg-background-light dark:bg-zinc-800 p-4 active:bg-primary/20">
+<span class="material-symbols-outlined text-primary text-3xl selected-icon">star</span>
+</div>
+<p class="text-[#131811] dark:text-white text-sm font-bold leading-normal">4</p>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1 cursor-pointer">
+<div class="rounded-full bg-background-light dark:bg-zinc-800 p-4 active:bg-primary/20">
+<span class="material-symbols-outlined text-zinc-300 dark:text-zinc-700 text-3xl">star</span>
+</div>
+<p class="text-zinc-400 dark:text-zinc-600 text-sm font-bold leading-normal">5</p>
+</div>
+</div>
+</div>
+<!-- Finish Button -->
+<div class="px-6 mt-8 mb-12">
+<button class="w-full bg-primary text-white h-20 rounded-xl text-2xl font-bold shadow-xl shadow-primary/30 active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-3xl">task_alt</span>
+<span>FINISH</span>
+</button>
+</div>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 px-6 py-3 flex justify-between items-center z-20">
+<div class="flex flex-col items-center text-primary">
+<span class="material-symbols-outlined text-3xl selected-icon">home</span>
+<span class="text-[10px] font-bold uppercase mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center text-zinc-400 dark:text-zinc-600">
+<span class="material-symbols-outlined text-3xl">history</span>
+<span class="text-[10px] font-bold uppercase mt-1">History</span>
+</div>
+<div class="flex flex-col items-center text-zinc-400 dark:text-zinc-600">
+<span class="material-symbols-outlined text-3xl">account_circle</span>
+<span class="text-[10px] font-bold uppercase mt-1">Profile</span>
+</div>
+</nav>
+</body></html>

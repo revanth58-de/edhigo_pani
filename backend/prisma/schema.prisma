@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────── MODELS ────────────
+// Note: SQLite doesn't support enums, so we use String fields.
+// Valid values are documented in comments.
+
+model User {
+  id          String   @id @default(uuid())
+  phone       String   @unique
+  name        String?
+  role        String?  // "farmer" | "worker" | "leader"
+  language    String   @default("te") // "te" | "hi" | "en"
+  village     String?
+  photoUrl    String?
+  landAcres   Float?
+  animals     String?  // JSON string: { cow: 2, buffalo: 1, hen: 10 }
+  skills      String?  // JSON string: ["plowing", "seeding"]
+  ratingAvg   Float    @default(0)
+  ratingCount Int      @default(0)
+  latitude    Float?
+  longitude   Float?
+  status      String   @default("offline") // "available" | "working" | "on_break" | "offline"
+  otp         String?
+  otpExpiresAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  jobsPosted       Job[]             @relation("FarmerJobs")
+  attendances      Attendance[]
+  paymentsMade     Payment[]         @relation("FarmerPayments")
+  paymentsReceived Payment[]         @relation("WorkerPayments")
+  ratingsGiven     Rating[]          @relation("RaterRatings")
+  ratingsReceived  Rating[]          @relation("RateeRatings")
+  groupsLed        Group[]
+  groupMemberships GroupMember[]
+  applications     JobApplication[]
+
+  @@map("users")
+}
+
+model Job {
+  id            String   @id @default(uuid())
+  farmerId      String
+  workType      String   // "sowing" | "harvesting" | "irrigation" | "labour" | "tractor"
+  workerType    String   @default("individual") // "individual" | "group"
+  workersNeeded Int      @default(1)
+  payPerDay     Float
+  farmLatitude  Float?
+  farmLongitude Float?
+  farmAddress   String?
+  status        String   @default("pending") // "pending" | "matched" | "in_progress" | "completed" | "cancelled"
+  startTime     DateTime?
+  endTime       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  farmer       User             @relation("FarmerJobs", fields: [farmerId], references: [id])
+  attendances  Attendance[]
+  payments     Payment[]
+  ratings      Rating[]
+  applications JobApplication[]
+
+  @@map("jobs")
+}
+
+model Attendance {
+  id               String    @id @default(uuid())
+  jobId            String
+  workerId         String
+  qrCodeIn         String?
+  qrCodeOut        String?
+  checkIn          DateTime?
+  checkOut         DateTime?
+  checkInLatitude  Float?
+  checkInLongitude Float?
+  checkOutLatitude Float?
+  checkOutLongitude Float?
+  hoursWorked      Float?
+  createdAt        DateTime  @default(now())
+
+  // Relations
+  job    Job  @relation(fields: [jobId], references: [id])
+  worker User @relation(fields: [workerId], references: [id])
+
+  @@map("attendances")
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  jobId     String
+  farmerId  String
+  workerId  String
+  amount    Float
+  method    String   // "cash" | "upi"
+  upiRef    String?
+  status    String   @default("pending") // "pending" | "completed" | "failed"
+  paidAt    DateTime?
+  createdAt DateTime @default(now())
+
+  // Relations
+  job    Job  @relation(fields: [jobId], references: [id])
+  farmer User @relation("FarmerPayments", fields: [farmerId], references: [id])
+  worker User @relation("WorkerPayments", fields: [workerId], references: [id])
+
+  @@map("payments")
+}
+
+model Rating {
+  id         String   @id @default(uuid())
+  jobId      String
+  fromUserId String
+  toUserId   String
+  emoji      String   // "happy" | "neutral" | "sad"
+  stars      Int?     // 1-5
+  createdAt  DateTime @default(now())
+
+  // Relations
+  job      Job  @relation(fields: [jobId], references: [id])
+  fromUser User @relation("RaterRatings", fields: [fromUserId], references: [id])
+  toUser   User @relation("RateeRatings", fields: [toUserId], references: [id])
+
+  @@map("ratings")
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  leaderId  String
+  name      String?
+  qrCode    String?
+  status    String   @default("forming") // "forming" | "active" | "completed"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  leader  User          @relation(fields: [leaderId], references: [id])
+  members GroupMember[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String    @id @default(uuid())
+  groupId   String
+  workerId  String
+  status    String    @default("invited") // "invited" | "joined" | "checked_in" | "checked_out"
+  joinedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  group  Group @relation(fields: [groupId], references: [id])
+  worker User  @relation(fields: [workerId], references: [id])
+
+  @@map("group_members")
+}
+
+model JobApplication {
+  id        String   @id @default(uuid())
+  jobId     String
+  workerId  String
+  groupId   String?
+  status    String   @default("pending") // "pending" | "accepted" | "rejected" | "withdrawn"
+  distance  Float?
+  appliedAt DateTime @default(now())
+
+  // Relations
+  job    Job  @relation(fields: [jobId], references: [id])
+  worker User @relation(fields: [workerId], references: [id])
+
+  @@map("job_applications")
+}

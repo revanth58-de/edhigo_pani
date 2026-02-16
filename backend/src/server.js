@@ -11,6 +11,10 @@ const { setIO } = require('./config/socket');
 // Import routes
 const authRoutes = require('./routes/auth.routes');
 const jobsRoutes = require('./routes/jobs.routes');
+const attendanceRoutes = require('./routes/attendance.routes');
+const ratingsRoutes = require('./routes/ratings.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const groupRoutes = require('./routes/group.routes');
 
 // Initialize Express
 const app = express();
@@ -25,8 +29,17 @@ const io = new Server(server, {
 });
 
 // ─── Middleware ───
-app.use(helmet());
-app.use(cors());
+// CORS must be before helmet so preflight requests work
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false,
+  contentSecurityPolicy: false, // Disable CSP in development
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,6 +54,10 @@ app.use('/api/', limiter);
 // ─── Routes ───
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobsRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/ratings', ratingsRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

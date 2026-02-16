@@ -1,10 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const { createJob, getNearbyJobs } = require('../controllers/jobs.controller');
+const jobController = require('../controllers/job.controller');
 
-// Protected routes (require JWT)
-router.post('/', authenticate, createJob);
-router.get('/nearby', authenticate, getNearbyJobs);
+// Create a new job
+router.post('/', jobController.createJob);
+
+// Get all jobs
+router.get('/', jobController.getJobs);
+
+// Update job status
+router.put('/:id/status', jobController.updateJobStatus);
+
+// Accept job
+router.post('/:id/accept', jobController.acceptJob);
 
 module.exports = router;

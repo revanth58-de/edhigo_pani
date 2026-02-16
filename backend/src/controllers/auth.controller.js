@@ -23,6 +23,8 @@ const sendOTP = async (req, res, next) => {
   try {
     const { phone } = req.body;
 
+    console.log('📞 Send OTP Request for phone:', phone);
+
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required' });
     }
@@ -30,12 +32,16 @@ const sendOTP = async (req, res, next) => {
     const otp = generateOTP();
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
 
+    console.log('🔑 Generated OTP:', { otp, expiresAt: otpExpiresAt });
+
     // Upsert user — create if doesn't exist, update OTP if exists
     const user = await prisma.user.upsert({
       where: { phone },
       update: { otp, otpExpiresAt },
       create: { phone, otp, otpExpiresAt },
     });
+
+    console.log('✅ OTP saved for user:', { userId: user.id, phone: user.phone });
 
     // ON-SCREEN OTP: Return the OTP directly (no SMS cost!)
     // In production, you'd show it on a separate verification screen
@@ -46,6 +52,7 @@ const sendOTP = async (req, res, next) => {
       userId: user.id,
     });
   } catch (error) {
+    console.error('💥 Send OTP Error:', error);
     next(error);
   }
 };
@@ -55,6 +62,8 @@ const verifyOTP = async (req, res, next) => {
   try {
     const { phone, otp } = req.body;
 
+    console.log('🔐 OTP Verification Request:', { phone, otp });
+
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone and OTP are required' });
     }
@@ -62,14 +71,28 @@ const verifyOTP = async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { phone } });
 
     if (!user) {
+      console.log('❌ User not found for phone:', phone);
       return res.status(404).json({ error: 'User not found' });
     }
 
+    console.log('📱 User found:', { 
+      id: user.id, 
+      phone: user.phone,
+      storedOTP: user.otp,
+      receivedOTP: otp,
+      otpExpiresAt: user.otpExpiresAt 
+    });
+
     if (user.otp !== otp) {
-      return res.status(401).json({ error: 'Invalid OTP' });
+      console.log('❌ OTP Mismatch:', { stored: user.otp, received: otp });
+      return res.status(401).json({ 
+        error: 'Invalid OTP',
+        debug: { expected: user.otp, received: otp } // For development only
+      });
     }
 
     if (user.otpExpiresAt < new Date()) {
+      console.log('❌ OTP Expired:', { expiresAt: user.otpExpiresAt, now: new Date() });
       return res.status(401).json({ error: 'OTP expired' });
     }
 
@@ -80,6 +103,8 @@ const verifyOTP = async (req, res, next) => {
     });
 
     const tokens = generateTokens(user.id);
+
+    console.log('✅ OTP Verified Successfully for user:', user.id);
 
     res.json({
       message: 'OTP verified successfully',
@@ -93,6 +118,7 @@ const verifyOTP = async (req, res, next) => {
       ...tokens,
     });
   } catch (error) {
+    console.error('💥 OTP Verification Error:', error);
     next(error);
   }
 };

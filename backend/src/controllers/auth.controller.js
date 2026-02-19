@@ -29,27 +29,29 @@ const sendOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
+    // Check if this phone is already a fully registered user
+    const existingUser = await prisma.user.findUnique({ where: { phone } });
+    const isExistingUser = !!(existingUser?.name && existingUser?.role);
+
     const otp = generateOTP();
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
 
     console.log('🔑 Generated OTP:', { otp, expiresAt: otpExpiresAt });
 
     // Upsert user — create if doesn't exist, update OTP if exists
-    const user = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { phone },
       update: { otp, otpExpiresAt },
       create: { phone, otp, otpExpiresAt },
     });
 
-    console.log('✅ OTP saved for user:', { userId: user.id, phone: user.phone });
+    console.log('✅ OTP saved. isExistingUser:', isExistingUser);
 
-    // ON-SCREEN OTP: Return the OTP directly (no SMS cost!)
-    // In production, you'd show it on a separate verification screen
     res.json({
       message: 'OTP generated successfully',
-      otp: otp, // Displayed on-screen to the user
-      expiresIn: config.otpExpiryMinutes * 60, // seconds
-      userId: user.id,
+      otp: otp,
+      isExistingUser,           // <-- frontend can use this to detect existing users
+      expiresIn: config.otpExpiryMinutes * 60,
     });
   } catch (error) {
     console.error('💥 Send OTP Error:', error);
@@ -60,7 +62,7 @@ const sendOTP = async (req, res, next) => {
 // POST /api/auth/verify-otp
 const verifyOTP = async (req, res, next) => {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, name, village, role } = req.body;
 
     console.log('🔐 OTP Verification Request:', { phone, otp });
 
@@ -75,17 +77,17 @@ const verifyOTP = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('📱 User found:', { 
-      id: user.id, 
+    console.log('📱 User found:', {
+      id: user.id,
       phone: user.phone,
       storedOTP: user.otp,
       receivedOTP: otp,
-      otpExpiresAt: user.otpExpiresAt 
+      otpExpiresAt: user.otpExpiresAt
     });
 
     if (user.otp !== otp) {
       console.log('❌ OTP Mismatch:', { stored: user.otp, received: otp });
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Invalid OTP',
         debug: { expected: user.otp, received: otp } // For development only
       });
@@ -96,10 +98,16 @@ const verifyOTP = async (req, res, next) => {
       return res.status(401).json({ error: 'OTP expired' });
     }
 
-    // Clear OTP after successful verification
-    await prisma.user.update({
+    // Clear OTP and optionally save registration data in one update
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { otp: null, otpExpiresAt: null },
+      data: {
+        otp: null,
+        otpExpiresAt: null,
+        ...(name && { name }),
+        ...(village && { village }),
+        ...(role && ['farmer', 'worker', 'leader'].includes(role) && { role }),
+      },
     });
 
     const tokens = generateTokens(user.id);
@@ -109,14 +117,23 @@ const verifyOTP = async (req, res, next) => {
     res.json({
       message: 'OTP verified successfully',
       user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
-        language: user.language,
+        id: updatedUser.id,
+        phone: updatedUser.phone,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        village: updatedUser.village,
+        language: updatedUser.language,
+        photoUrl: updatedUser.photoUrl,
+        landAcres: updatedUser.landAcres,
+        animals: updatedUser.animals,
+        skills: updatedUser.skills,
+        ratingAvg: updatedUser.ratingAvg,
+        ratingCount: updatedUser.ratingCount,
+        status: updatedUser.status,
       },
       ...tokens,
     });
+
   } catch (error) {
     console.error('💥 OTP Verification Error:', error);
     next(error);

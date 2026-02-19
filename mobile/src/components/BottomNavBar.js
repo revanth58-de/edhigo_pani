@@ -7,7 +7,7 @@ import { colors } from '../theme/colors';
 
 const FARMER_TABS = [
   { key: 'Home', icon: 'home', label: 'Home', screen: 'FarmerHome' },
-  { key: 'History', icon: 'history', label: 'History', screen: 'FarmerHome', params: { tab: 'history' } },
+  { key: 'History', icon: 'history', label: 'History', screen: 'FarmerHistory' },
   { key: 'ShowQR', icon: 'qr-code', label: 'Show QR', screen: 'QRAttendance', params: { type: 'in' } },
   { key: 'Profile', icon: 'person', label: 'Profile', screen: 'FarmerProfile' },
 ];

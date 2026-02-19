@@ -7,8 +7,8 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  Switch,
-  Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
@@ -16,28 +16,38 @@ import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import { jobAPI } from '../../services/api';
 
 const WorkerHomeScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const [isOnline, setIsOnline] = useState(true);
+  const [searching, setSearching] = useState(false);
 
   useEffect(() => {
     Speech.speak('Pani start cheyyandi', { language: 'te' });
   }, []);
 
-  const handleStartWork = () => {
-    Speech.speak('Starting job search', { language: 'en' });
-    // Simulate receiving job offer
-    navigation.navigate('JobOffer', {
-      job: {
-        id: '1',
-        workType: 'Harvesting',
-        farmerName: 'Rajesh Kumar',
-        location: 'Gachibowli',
-        distance: '2.5 km',
-        payPerDay: 500,
-      },
-    });
+  const handleStartWork = async () => {
+    setSearching(true);
+    Speech.speak('Looking for jobs near you', { language: 'en' });
+    try {
+      const response = await jobAPI.getJobs({ status: 'pending' });
+      const jobs = response?.data?.data || [];
+      if (jobs.length === 0) {
+        Speech.speak('No jobs found nearby. Try again later.', { language: 'en' });
+        Alert.alert('No Jobs', 'No pending jobs found near you. Please try again later.');
+        return;
+      }
+      // Take the first available pending job
+      const job = jobs[0];
+      Speech.speak('Job found! Review the details.', { language: 'en' });
+      navigation.navigate('JobOffer', { job });
+    } catch (error) {
+      console.error('Fetch jobs error:', error);
+      Alert.alert('Error', 'Could not fetch jobs. Check your connection.');
+    } finally {
+      setSearching(false);
+    }
   };
 
   const toggleOnlineStatus = (value) => {
@@ -73,12 +83,22 @@ const WorkerHomeScreen = ({ navigation }) => {
         {/* Massive START WORK Button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.startButton}
+            style={[styles.startButton, (!isOnline || searching) && { opacity: 0.7 }]}
             activeOpacity={0.9}
             onPress={handleStartWork}
+            disabled={!isOnline || searching}
           >
-            <MaterialIcons name="play-arrow" size={72} color={colors.backgroundDark} />
-            <Text style={styles.startButtonText}>START WORK</Text>
+            {searching ? (
+              <>
+                <ActivityIndicator color={colors.backgroundDark} size="large" />
+                <Text style={styles.startButtonText}>SEARCHING...</Text>
+              </>
+            ) : (
+              <>
+                <MaterialIcons name="play-arrow" size={72} color={colors.backgroundDark} />
+                <Text style={styles.startButtonText}>START WORK</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 

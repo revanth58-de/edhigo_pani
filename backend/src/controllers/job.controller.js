@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 const createJob = async (req, res) => {
   try {
     const {
-      farmerId,
       workType,
       workerType,
       workersNeeded,
@@ -15,15 +14,21 @@ const createJob = async (req, res) => {
       farmAddress,
     } = req.body;
 
+    // Always use the authenticated user's ID — not from body
+    const farmerId = req.user?.id;
+    if (!farmerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
     const job = await prisma.job.create({
       data: {
         farmerId,
         workType,
         workerType: workerType || 'individual',
-        workersNeeded: parseInt(workersNeeded),
+        workersNeeded: parseInt(workersNeeded) || 1,
         payPerDay: parseFloat(payPerDay),
-        farmLatitude: parseFloat(farmLatitude),
-        farmLongitude: parseFloat(farmLongitude),
+        farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
+        farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
         farmAddress,
         status: 'pending',
       },
@@ -48,7 +53,7 @@ const createJob = async (req, res) => {
 const getJobs = async (req, res) => {
   try {
     const { status, farmerId, id } = req.query;
-    
+
     const where = {};
     if (id) where.id = id;
     if (status) where.status = status;
@@ -145,11 +150,11 @@ const acceptJob = async (req, res) => {
     // Update job status and assign worker (for individual jobs, we might want a separate assignment table, 
     // but for simplicity we'll just mark it 'matched' and handle applications logic if needed. 
     // In this simple flow, "Accept" = "Matched")
-    
+
     // For this MVP, we assume 1-1 matching for individual jobs
     const job = await prisma.job.update({
       where: { id },
-      data: { 
+      data: {
         status: 'matched',
         // In a real app we'd add the worker to a relation, 
         // but schema.prisma shows `workersNeeded` and `applications`.
@@ -168,9 +173,9 @@ const acceptJob = async (req, res) => {
     // Notify Farmer
     const io = req.app.get('io');
     if (io) {
-      io.to(`job:${id}`).emit('job:accepted', { 
-        jobId: id, 
-        workerId 
+      io.to(`job:${id}`).emit('job:accepted', {
+        jobId: id,
+        workerId
       });
     }
 
@@ -190,9 +195,37 @@ const acceptJob = async (req, res) => {
   }
 };
 
+// GET /api/jobs/my-jobs - Get jobs posted by the authenticated farmer
+const getMyJobs = async (req, res) => {
+  try {
+    const farmerId = req.user?.id;
+    if (!farmerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: { farmerId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: jobs,
+    });
+  } catch (error) {
+    console.error('Get My Jobs Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch your jobs',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createJob,
   getJobs,
   updateJobStatus,
   acceptJob,
+  getMyJobs,
 };

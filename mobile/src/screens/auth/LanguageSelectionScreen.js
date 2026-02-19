@@ -25,7 +25,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
     setLanguage(lang);
     // Small delay for voice feedback
     setTimeout(() => {
-      navigation.replace('Login');
+      navigation.replace('Register');
     }, 500);
   };
 
@@ -64,7 +64,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundLight} />
 
       {/* Voice Guidance Header */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.voiceHeader}
         onPress={handleVoiceGuidance}
         activeOpacity={0.8}

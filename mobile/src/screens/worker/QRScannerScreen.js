@@ -64,12 +64,12 @@ const QRScannerScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
+
       {/* Camera View */}
       <Camera
         style={styles.camera}
-        type={Camera.Constants.Type.back}
-        flashMode={flashOn ? Camera.Constants.FlashMode.torch : Camera.Constants.FlashMode.off}
+        type="back"
+        flashMode={flashOn ? "torch" : "off"}
         onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
       >
         {/* Dark Overlay */}
@@ -92,7 +92,7 @@ const QRScannerScreen = ({ navigation, route }) => {
             <View style={[styles.corner, styles.cornerTopRight]} />
             <View style={[styles.corner, styles.cornerBottomLeft]} />
             <View style={[styles.corner, styles.cornerBottomRight]} />
-            
+
             {/* Scanning line */}
             <View style={styles.scanLine} />
 

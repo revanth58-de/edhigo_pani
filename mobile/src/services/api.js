@@ -21,7 +21,7 @@ export const setAuthToken = (token) => {
 // ─── Auth API ───
 export const authAPI = {
     sendOTP: (phone) => apiClient.post('/auth/send-otp', { phone }),
-    verifyOTP: (phone, otp) => apiClient.post('/auth/verify-otp', { phone, otp }),
+    verifyOTP: (phone, otp, registrationData = {}) => apiClient.post('/auth/verify-otp', { phone, otp, ...registrationData }),
     setRole: (role) => apiClient.post('/auth/set-role', { role }),
     updateProfile: (data) => apiClient.put('/auth/profile', data),
     getMe: () => apiClient.get('/auth/me'),
@@ -32,6 +32,7 @@ export const authAPI = {
 export const jobAPI = {
     createJob: (jobData) => apiClient.post('/jobs', jobData),
     getJobs: (filters) => apiClient.get('/jobs', { params: filters }),
+    getMyJobs: () => apiClient.get('/jobs/my-jobs'),
     getJob: (jobId) => apiClient.get(`/jobs/${jobId}`),
     updateStatus: (jobId, status) => apiClient.put(`/jobs/${jobId}/status`, { status }),
     acceptJob: (jobId, workerId) => apiClient.post(`/jobs/${jobId}/accept`, { workerId }),

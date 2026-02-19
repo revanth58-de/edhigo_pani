@@ -43,6 +43,8 @@ const FarmerHomeScreen = ({ navigation }) => {
 
       {/* Main Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+
+
         {/* Headline */}
         <View style={styles.headlineContainer}>
           <Text style={styles.headline}>Select Work Type</Text>
@@ -113,6 +115,22 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     alignItems: 'center',
   },
+  greetingContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 4,
+  },
+  greetingText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#131811',
+  },
+  greetingSubText: {
+    fontSize: 14,
+    color: '#6f8961',
+    marginTop: 2,
+  },
+
   headline: {
     fontSize: 28,
     fontWeight: '800',

@@ -17,14 +17,14 @@ import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 
 const OTPScreen = ({ navigation, route }) => {
-  const { phone, otp: receivedOTP } = route.params;
+  const { phone, otp: receivedOTP, name, village, role, fromRegister } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
 
   useEffect(() => {
     Speech.speak('OTP enter cheyyandi. Enter the 4-digit code', { language: 'te' });
-    
+
     // Display the OTP to the user
     if (receivedOTP) {
       Alert.alert(
@@ -58,9 +58,11 @@ const OTPScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      // Use authStore's verifyOTP action which handles everything
-      // Navigation happens automatically via AppNavigator's conditional rendering
-      await verifyOTPAction(phone, otpToVerify);
+      // Pass registration data (name/village/role) only for new registrations
+      const registrationData = fromRegister
+        ? { name, village, role }
+        : {};
+      await verifyOTPAction(phone, otpToVerify, registrationData);
       Speech.speak('OTP verified successfully', { language: 'en' });
     } catch (error) {
       console.error('Verify OTP Error:', error);
@@ -76,7 +78,7 @@ const OTPScreen = ({ navigation, route }) => {
       const response = await authService.sendOTP(phone);
       if (response.success) {
         Alert.alert('Success', 'OTP sent successfully');
-        Speech.speak('New OTP sent', { language: 'en'});
+        Speech.speak('New OTP sent', { language: 'en' });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to resend OTP');
@@ -99,114 +101,114 @@ const OTPScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-      {/* Voice Guidance Header */}
-      <View style={styles.header}>
-        <View style={styles.voiceIcon}>
-          <MaterialIcons name="volume-up" size={40} color={colors.primary} />
+        {/* Voice Guidance Header */}
+        <View style={styles.header}>
+          <View style={styles.voiceIcon}>
+            <MaterialIcons name="volume-up" size={40} color={colors.primary} />
+          </View>
+          <Text style={styles.title}>OTP enter cheyyandi</Text>
+          <Text style={styles.subtitle}>Enter the 4-digit code</Text>
         </View>
-        <Text style={styles.title}>OTP enter cheyyandi</Text>
-        <Text style={styles.subtitle}>Enter the 4-digit code</Text>
-      </View>
 
-      {/* Display OTP Code on Screen */}
-      {receivedOTP && (
-        <View style={styles.otpDisplayContainer}>
-          <Text style={styles.otpDisplayLabel}>YOUR OTP CODE</Text>
-          <Text style={styles.otpDisplayCode}>{receivedOTP}</Text>
-        </View>
-      )}
+        {/* Display OTP Code on Screen */}
+        {receivedOTP && (
+          <View style={styles.otpDisplayContainer}>
+            <Text style={styles.otpDisplayLabel}>YOUR OTP CODE</Text>
+            <Text style={styles.otpDisplayCode}>{receivedOTP}</Text>
+          </View>
+        )}
 
-      {/* OTP Input Display */}
-      <View style={styles.otpContainer}>
-        <View style={styles.otpBoxRow}>
-          {otpBoxes.map(({ index, digit, isFilled }) => (
-            <View
-              key={index}
+        {/* OTP Input Display */}
+        <View style={styles.otpContainer}>
+          <View style={styles.otpBoxRow}>
+            {otpBoxes.map(({ index, digit, isFilled }) => (
+              <View
+                key={index}
+                style={[
+                  styles.otpBox,
+                  isFilled && styles.otpBoxFilled,
+                ]}
+              >
+                <Text style={[styles.otpDigit, !isFilled && styles.otpDigitEmpty]}>
+                  {digit}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Verify Button and Resend */}
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
               style={[
-                styles.otpBox,
-                isFilled && styles.otpBoxFilled,
+                styles.verifyButton,
+                (otp.length !== 4 || loading) && styles.verifyButtonDisabled,
               ]}
+              onPress={() => verifyOTP()}
+              disabled={otp.length !== 4 || loading}
+              activeOpacity={0.9}
             >
-              <Text style={[styles.otpDigit, !isFilled && styles.otpDigitEmpty]}>
-                {digit}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Verify Button and Resend */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.verifyButton,
-              (otp.length !== 4 || loading) && styles.verifyButtonDisabled,
-            ]}
-            onPress={() => verifyOTP()}
-            disabled={otp.length !== 4 || loading}
-            activeOpacity={0.9}
-          >
-            {loading ? (
-              <ActivityIndicator color={colors.backgroundDark} />
-            ) : (
-              <>
-                <Text style={styles.verifyButtonText}>Verify</Text>
-                <MaterialIcons name="check-circle" size={24} color={colors.backgroundDark} />
-              </>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.resendContainer}>
-            <Text style={styles.resendQuestion}>Didn't receive code?</Text>
-            <TouchableOpacity onPress={handleResendOTP}>
-              <Text style={styles.resendButton}>Resend OTP</Text>
+              {loading ? (
+                <ActivityIndicator color={colors.backgroundDark} />
+              ) : (
+                <>
+                  <Text style={styles.verifyButtonText}>Verify</Text>
+                  <MaterialIcons name="check-circle" size={24} color={colors.backgroundDark} />
+                </>
+              )}
             </TouchableOpacity>
+
+            <View style={styles.resendContainer}>
+              <Text style={styles.resendQuestion}>Didn't receive code?</Text>
+              <TouchableOpacity onPress={handleResendOTP}>
+                <Text style={styles.resendButton}>Resend OTP</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Keypad */}
-      <View style={styles.keypadContainer}>
-        <View style={styles.keypad}>
-          {keypadNumbers.map((row, rowIndex) => (
-            <View key={rowIndex} style={styles.keypadRow}>
-              {row.map((key, keyIndex) => {
-                if (key === null) {
-                  return <View key={keyIndex} style={styles.keypadKey} />;
-                }
-                if (key === 'backspace') {
+        {/* Keypad */}
+        <View style={styles.keypadContainer}>
+          <View style={styles.keypad}>
+            {keypadNumbers.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.keypadRow}>
+                {row.map((key, keyIndex) => {
+                  if (key === null) {
+                    return <View key={keyIndex} style={styles.keypadKey} />;
+                  }
+                  if (key === 'backspace') {
+                    return (
+                      <TouchableOpacity
+                        key={keyIndex}
+                        style={[styles.keypadKey, styles.keypadKeyActive, styles.backspaceKey]}
+                        onPress={handleBackspace}
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons name="backspace" size={40} color="#EF4444" />
+                      </TouchableOpacity>
+                    );
+                  }
                   return (
                     <TouchableOpacity
                       key={keyIndex}
-                      style={[styles.keypadKey, styles.keypadKeyActive, styles.backspaceKey]}
-                      onPress={handleBackspace}
+                      style={[styles.keypadKey, styles.keypadKeyActive]}
+                      onPress={() => handleNumberPress(key)}
                       activeOpacity={0.7}
                     >
-                      <MaterialIcons name="backspace" size={40} color="#EF4444" />
+                      <Text style={styles.keypadKeyText}>{key}</Text>
                     </TouchableOpacity>
                   );
-                }
-                return (
-                  <TouchableOpacity
-                    key={keyIndex}
-                    style={[styles.keypadKey, styles.keypadKeyActive]}
-                    onPress={() => handleNumberPress(key)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={styles.keypadKeyText}>{key}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          ))}
+                })}
+              </View>
+            ))}
+          </View>
+          <View style={{ height: 24 }} />
         </View>
-        <View style={{ height: 24 }} />
-      </View>
       </ScrollView>
     </View>
   );

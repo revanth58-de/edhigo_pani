@@ -1,6 +1,6 @@
 // Shared Top App Bar with Help icon in top-right
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
@@ -10,14 +10,18 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
     if (onHelp) {
       onHelp();
     } else {
-      Speech.speak('How can I help you? You can contact support for assistance.', {
-        language: 'en',
+      const phoneNumber = '+911800123456';
+      Linking.canOpenURL(`tel:${phoneNumber}`).then((supported) => {
+        if (supported) {
+          Linking.openURL(`tel:${phoneNumber}`);
+        } else {
+          Alert.alert(
+            'Help / సహాయం',
+            '📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.',
+            [{ text: 'OK' }]
+          );
+        }
       });
-      Alert.alert(
-        'Help / సహాయం',
-        'Need assistance?\n\n📞 Call Support: +91 1800-XXX-XXXX\n📧 Email: support@farmconnect.in\n\nVoice guidance is available on every screen.',
-        [{ text: 'OK' }]
-      );
     }
   };
 

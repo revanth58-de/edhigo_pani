@@ -10,12 +10,14 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
+import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const QRAttendanceScreen = ({ navigation, route }) => {
   const { job, type = 'in' } = route.params || {};
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     Speech.speak(type === 'in' ? 'Scan QR code to check in' : 'Scan QR code to check out', { language: 'en' });
@@ -23,6 +25,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
   const qrData = JSON.stringify({
     jobId: job?.id,
+    farmerId: user?.id,
     type: type,
     timestamp: Date.now(),
   });
@@ -34,7 +37,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
       {/* Top Bar with Help */}
       <TopBar title={type === 'in' ? 'Check In QR' : 'Check Out QR'} showBack navigation={navigation} />
 
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}

@@ -4,8 +4,11 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
+import useAuthStore from '../store/authStore';
 
 const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
+  const { isVoiceEnabled, toggleVoice } = useAuthStore();
+
   const handleHelp = () => {
     if (onHelp) {
       onHelp();
@@ -25,6 +28,14 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
     }
   };
 
+  const handleToggleVoice = () => {
+    toggleVoice();
+    const message = !isVoiceEnabled ? 'Voice guidance enabled' : 'Voice guidance disabled';
+    if (!isVoiceEnabled) {
+      Speech.speak(message, { language: 'en' });
+    }
+  };
+
   return (
     <View style={styles.topBar}>
       {showBack && navigation ? (
@@ -35,9 +46,16 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>
       ) : (
-        <View style={styles.iconButton}>
-          <MaterialIcons name="account-circle" size={32} color={colors.primary} />
-        </View>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={handleToggleVoice}
+        >
+          <MaterialIcons
+            name={isVoiceEnabled ? "volume-up" : "volume-off"}
+            size={28}
+            color={colors.primary}
+          />
+        </TouchableOpacity>
       )}
 
       <Text style={styles.title} numberOfLines={1}>{title}</Text>

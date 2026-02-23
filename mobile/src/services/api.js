@@ -70,4 +70,50 @@ export const groupAPI = {
     addMember: (groupId, workerId) => apiClient.post(`/groups/${groupId}/members`, { workerId }),
 };
 
+// Interceptor to handle 401 Unauthorized errors (token expiration)
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        // If error is 401 and it's not a retry or a login/refresh request
+        if (
+            error.response?.status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url.includes('/auth/')
+        ) {
+            originalRequest._retry = true;
+
+            try {
+                // We need to import the store dynamically to avoid circular dependency
+                // Alternatively, we can read from AsyncStorage directly
+                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+                const raw = await AsyncStorage.getItem('edhigo_auth');
+                const saved = raw ? JSON.parse(raw) : null;
+
+                if (saved?.refreshToken) {
+                    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+                        refreshToken: saved.refreshToken
+                    });
+
+                    const { accessToken } = response.data;
+
+                    // Update header and retry
+                    setAuthToken(accessToken);
+                    originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+
+                    // Also need to update the store (this is tricky with circular deps)
+                    // We'll let the user re-login if this fails, or find a better way to sync
+
+                    return apiClient(originalRequest);
+                }
+            } catch (refreshError) {
+                // If refresh fails, clear auth (handled by the app state usually)
+                console.error('Token refresh failed:', refreshError);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default apiClient;

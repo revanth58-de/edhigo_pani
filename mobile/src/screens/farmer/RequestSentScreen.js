@@ -10,6 +10,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { socketService } from '../../services/socketService';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -23,16 +24,30 @@ const RequestSentScreen = ({ navigation, route }) => {
       setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
     }, 500);
 
-    // Simulate finding workers and navigate after 5 seconds
-    const timer = setTimeout(() => {
-      navigation.replace('RequestAccepted', { job });
-    }, 5000);
+    // Connect and join job room
+    socketService.connect();
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for real acceptance
+    socketService.onJobAccepted((data) => {
+      // SECURITY: Ensure this acceptance is for OUR job
+      if (data.jobId === job?.id) {
+        console.log('🎉 Job accepted real-time:', data);
+        navigation.replace('RequestAccepted', { job: { ...job, ...data } });
+      } else {
+        console.log('📡 Received job:accepted for different job, ignoring:', data.jobId);
+      }
+    });
 
     return () => {
       clearInterval(interval);
-      clearTimeout(timer);
+      socketService.offJobAccepted();
+      // We don't necessarily want to disconnect the whole socket here 
+      // as we might need it for location in the next screen
     };
-  }, []);
+  }, [job?.id]);
 
   return (
     <View style={styles.container}>

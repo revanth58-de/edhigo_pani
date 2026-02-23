@@ -19,28 +19,36 @@ import BottomNavBar from '../../components/BottomNavBar';
 import { jobAPI } from '../../services/api';
 
 const WorkerHomeScreen = ({ navigation }) => {
-  const user = useAuthStore((state) => state.user);
+  const { user, logout, isVoiceEnabled } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    Speech.speak('Pani start cheyyandi', { language: 'te' });
-  }, []);
+    if (isVoiceEnabled) {
+      Speech.speak('Pani start cheyyandi', { language: 'te' });
+    }
+  }, [isVoiceEnabled]);
 
   const handleStartWork = async () => {
     setSearching(true);
-    Speech.speak('Looking for jobs near you', { language: 'en' });
+    if (isVoiceEnabled) {
+      Speech.speak('Looking for jobs near you', { language: 'en' });
+    }
     try {
       const response = await jobAPI.getJobs({ status: 'pending' });
       const jobs = response?.data?.data || [];
       if (jobs.length === 0) {
-        Speech.speak('No jobs found nearby. Try again later.', { language: 'en' });
+        if (isVoiceEnabled) {
+          Speech.speak('No jobs found nearby. Try again later.', { language: 'en' });
+        }
         Alert.alert('No Jobs', 'No pending jobs found near you. Please try again later.');
         return;
       }
       // Take the first available pending job
       const job = jobs[0];
-      Speech.speak('Job found! Review the details.', { language: 'en' });
+      if (isVoiceEnabled) {
+        Speech.speak('Job found! Review the details.', { language: 'en' });
+      }
       navigation.navigate('JobOffer', { job });
     } catch (error) {
       console.error('Fetch jobs error:', error);
@@ -52,9 +60,11 @@ const WorkerHomeScreen = ({ navigation }) => {
 
   const toggleOnlineStatus = (value) => {
     setIsOnline(value);
-    Speech.speak(value ? 'You are now online' : 'You are now offline', {
-      language: 'en',
-    });
+    if (isVoiceEnabled) {
+      Speech.speak(value ? 'You are now online' : 'You are now offline', {
+        language: 'en',
+      });
+    }
   };
 
   return (
@@ -117,6 +127,34 @@ const WorkerHomeScreen = ({ navigation }) => {
             <Text style={styles.actionText}>Earnings</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            if (global.window && global.window.confirm) {
+              if (window.confirm('Are you sure you want to logout?')) {
+                logout();
+              }
+            } else {
+              Alert.alert(
+                'Logout',
+                'Are you sure you want to logout?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: () => logout(),
+                  },
+                ]
+              );
+            }
+          }}
+        >
+          <MaterialIcons name="logout" size={22} color="#EF4444" />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Bottom Navigation */}
@@ -337,6 +375,24 @@ const styles = StyleSheet.create({
   },
   navTextActive: {
     color: colors.primary,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    height: 52,
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 16,
+    marginTop: 24,
+    borderRadius: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#EF4444',
   },
 });
 

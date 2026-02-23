@@ -13,6 +13,8 @@ import * as Speech from 'expo-speech';
 import { Camera } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { attendanceService } from '../../services/api/attendanceService';
+import useAuthStore from '../../store/authStore';
+import * as Location from 'expo-location';
 
 const QRScannerScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -33,23 +35,34 @@ const QRScannerScreen = ({ navigation, route }) => {
     setScanned(true);
 
     try {
-      const response = await attendanceService.checkIn({
-        jobId: job.id,
-        workerId: job.workerId, // from job context
+      const qrInfo = JSON.parse(data);
+      const isCheckOut = qrInfo.type === 'out';
+
+      const { coords } = await Location.getCurrentPositionAsync({});
+      const user = useAuthStore.getState().user;
+
+      const payload = {
+        jobId: qrInfo.jobId || job.id,
+        workerId: user?.id,
         qrData: data,
-        timestamp: new Date().toISOString(),
-      });
+        [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
+        [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+      };
+
+      const response = await (isCheckOut
+        ? attendanceService.checkOut(payload)
+        : attendanceService.checkIn(payload));
 
       if (response.success) {
-        Speech.speak('Attendance marked! हाज़िरी लग गई है', { language: 'hi' });
-        navigation.replace('AttendanceConfirmed', { job });
+        Speech.speak(isCheckOut ? 'Work completed! धन्यवाद' : 'Attendance marked! हाज़िरी लग गई है', { language: 'hi' });
+        navigation.replace(isCheckOut ? 'PaymentConfirmed' : 'AttendanceConfirmed', { job });
       } else {
-        Alert.alert('Error', response.message || 'Failed to mark attendance');
+        Alert.alert('Error', response.message || 'Failed to process attendance');
         setScanned(false);
       }
     } catch (error) {
-      console.error('Mark Attendance Error:', error);
-      Alert.alert('Error', 'Failed to mark attendance. Please try again.');
+      console.error('QR Scan Error:', error);
+      Alert.alert('Error', 'Invalid QR code or processing error.');
       setScanned(false);
     }
   };

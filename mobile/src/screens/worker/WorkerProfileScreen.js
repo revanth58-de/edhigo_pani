@@ -11,15 +11,18 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import { Alert, Platform } from 'react-native';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 
 const WorkerProfileScreen = ({ navigation }) => {
-  const user = useAuthStore((state) => state.user);
+  const { user, logout, isVoiceEnabled } = useAuthStore();
   const [isAvailable, setIsAvailable] = useState(true);
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Your profile information', { language: 'en' });
+    if (isVoiceEnabled) {
+      Speech.speak('Your profile information', { language: 'en' });
+    }
   };
 
   const stats = [
@@ -117,6 +120,34 @@ const WorkerProfileScreen = ({ navigation }) => {
             <Text style={styles.actionButtonText}>Work History</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              if (window.confirm('Are you sure you want to logout?')) {
+                logout();
+              }
+            } else {
+              Alert.alert(
+                'Logout',
+                'Are you sure you want to logout?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: () => logout(),
+                  },
+                ]
+              );
+            }
+          }}
+        >
+          <MaterialIcons name="logout" size={22} color="#EF4444" />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -374,6 +405,24 @@ const styles = StyleSheet.create({
   },
   navTextActive: {
     color: colors.primary,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    height: 52,
+    backgroundColor: '#FEF2F2',
+    marginHorizontal: 16,
+    marginTop: 24,
+    borderRadius: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+  },
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#EF4444',
   },
 });
 

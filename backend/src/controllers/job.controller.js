@@ -124,12 +124,18 @@ const acceptJob = async (req, res) => {
   try {
     const { id } = req.params;
     const { workerId } = req.body;
+    const ip = req.ip || req.connection.remoteAddress;
 
-    console.log('📥 Accept Job Request:', { jobId: id, workerId });
+    console.log(`📥 [${new Date().toISOString()}] Accept Job Request from IP: ${ip}`);
+    console.log('📦 Request Body:', req.body);
+    console.log('📦 Job ID from Params:', id);
 
     // Check if job exists
     const existingJob = await prisma.job.findUnique({ where: { id } });
-    console.log('🔍 Job Found:', existingJob ? { id: existingJob.id, status: existingJob.status } : 'NOT FOUND');
+    console.log('🔍 Database Job Check:', existingJob
+      ? { id: existingJob.id, status: existingJob.status, farmerId: existingJob.farmerId }
+      : 'NOT FOUND'
+    );
 
     if (!existingJob) {
       console.log('❌ Job not found');

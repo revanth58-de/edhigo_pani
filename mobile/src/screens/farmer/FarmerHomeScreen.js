@@ -7,6 +7,9 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
+  Image,
+  Animated,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
@@ -15,23 +18,134 @@ import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
+const AnimatedCard = ({ workType, onPress }) => {
+  const hoverAnim = React.useRef(new Animated.Value(0)).current;
+
+  const handleMouseEnter = () => {
+    Animated.timing(hoverAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleMouseLeave = () => {
+    Animated.timing(hoverAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const translateY = hoverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0], // Safe offset
+  });
+
+  const scale = hoverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.1],
+  });
+
+  const textColor = hoverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#0F172A', '#FFFFFF'],
+  });
+
+  const subtextColor = hoverAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#64748B', '#162210'], // Darker green/black for contrast on bright primary
+  });
+
+  return (
+    <TouchableOpacity
+      style={styles.workTypeCard}
+      activeOpacity={0.9}
+      onPress={() => onPress(workType.name)}
+      onMouseEnter={Platform.OS === 'web' ? handleMouseEnter : undefined}
+      onMouseLeave={Platform.OS === 'web' ? handleMouseLeave : undefined}
+    >
+      {/* Absolute Background Animation */}
+      <Animated.View
+        style={[
+          styles.hoverBackground,
+          { transform: [{ translateY }] }
+        ]}
+      />
+
+      <View style={styles.imageHeader}>
+        <Animated.Image
+          source={{ uri: workType.image }}
+          style={[styles.cardImage, { transform: [{ scale }] }]}
+        />
+      </View>
+
+      <View style={styles.cardContent}>
+        <Animated.Text style={[styles.workTypeName, { color: textColor }]} numberOfLines={1}>
+          {workType.name}
+        </Animated.Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 const FarmerHomeScreen = ({ navigation }) => {
-  const user = useAuthStore((state) => state.user);
+  const { isVoiceEnabled } = useAuthStore();
 
   useEffect(() => {
-    Speech.speak('Pani select cheyyandi. Select work type', { language: 'te' });
-  }, []);
+    if (isVoiceEnabled) {
+      Speech.speak('Pani select cheyyandi. Select work type', { language: 'te' });
+    }
+  }, [isVoiceEnabled]);
 
   const handleWorkTypeSelect = (workType) => {
-    Speech.speak(`${workType} selected`, { language: 'en' });
+    if (isVoiceEnabled) {
+      Speech.speak(`${workType} selected`, { language: 'en' });
+    }
     navigation.navigate('SelectWorkers', { workType });
   };
 
   const workTypes = [
-    { id: 'sowing', name: 'Sowing', icon: 'grass', color: '#FFA500', bgColor: '#FFF5E6' },
-    { id: 'harvesting', name: 'Harvesting', icon: 'agriculture', color: '#FFD700', bgColor: '#FFFBF0' },
-    { id: 'irrigation', name: 'Irrigation', icon: 'water-drop', color: '#4A90E2', bgColor: '#E3F2FD' },
-    { id: 'labour', name: 'Labour', icon: 'engineering', color: '#EF4444', bgColor: '#FEE2E2' },
+    {
+      id: 'sowing',
+      name: 'Sowing',
+      image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop',
+      color: '#FFA500',
+      bgColor: '#FFF5E6',
+      description: ''
+    },
+    {
+      id: 'harvesting',
+      name: 'Harvesting',
+      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
+      color: '#FFD700',
+      bgColor: '#FFFBF0',
+      description: ''
+    },
+    {
+      id: 'irrigation',
+      name: 'Irrigation',
+      image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop',
+      color: '#4A90E2',
+      bgColor: '#E3F2FD',
+      description: ''
+    },
+    {
+      id: 'labour',
+      name: 'Labour',
+      image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop',
+      color: '#EF4444',
+      bgColor: '#FEE2E2',
+      description: ''
+    },
+    {
+      id: 'tractor',
+      name: 'Tractor',
+      image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+      description: ''
+    },
   ];
 
   return (
@@ -56,39 +170,13 @@ const FarmerHomeScreen = ({ navigation }) => {
 
         {/* Work Type Grid */}
         <View style={styles.grid}>
-          {workTypes.map((workType, index) => (
-            <TouchableOpacity
+          {workTypes.map((workType) => (
+            <AnimatedCard
               key={workType.id}
-              style={[styles.workTypeCard, index > 3 && styles.fullWidthCard]}
-              activeOpacity={0.9}
-              onPress={() => handleWorkTypeSelect(workType.name)}
-            >
-              <View style={[styles.iconCircle, { backgroundColor: workType.bgColor }]}>
-                <MaterialIcons name={workType.icon} size={48} color={workType.color} />
-              </View>
-              <Text style={styles.workTypeName}>{workType.name}</Text>
-              <View style={styles.playButton}>
-                <MaterialIcons name="play-circle" size={24} color="#9CA3AF" />
-              </View>
-            </TouchableOpacity>
+              workType={workType}
+              onPress={handleWorkTypeSelect}
+            />
           ))}
-
-          {/* Tractor Card (Full Width) */}
-          <TouchableOpacity
-            style={styles.tractorCard}
-            activeOpacity={0.9}
-            onPress={() => handleWorkTypeSelect('Tractor')}
-          >
-            <View style={styles.tractorLeft}>
-              <View style={[styles.iconCircle, { backgroundColor: '#D1FAE5' }]}>
-                <MaterialIcons name="agriculture" size={48} color="#10B981" />
-              </View>
-              <Text style={styles.tractorName}>Tractor</Text>
-            </View>
-            <View style={styles.playButton}>
-              <MaterialIcons name="play-circle" size={32} color="#9CA3AF" />
-            </View>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -156,68 +244,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     padding: 16,
-    gap: 16,
+    gap: 12,
+    justifyContent: 'space-between',
   },
   workTypeCard: {
-    width: '47%',
+    width: '48%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    marginBottom: 12,
+    position: 'relative',
   },
-  fullWidthCard: {
+  hoverBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+    backgroundColor: colors.primary, // App primary green
+  },
+  imageHeader: {
     width: '100%',
+    height: 120,
+    backgroundColor: '#F3F4F6',
+    zIndex: 2,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+  cardImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  cardContent: {
+    padding: 12,
+    zIndex: 2,
   },
   workTypeName: {
     fontSize: 20,
-    fontWeight: '900',
-    color: '#1F2937',
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+    textAlign: 'center',
   },
-  playButton: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 9999,
-    padding: 8,
-  },
-  tractorCard: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  tractorLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-  },
-  tractorName: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#1F2937',
+  workTypeDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
   },
 });
 

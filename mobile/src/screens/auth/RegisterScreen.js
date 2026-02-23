@@ -169,7 +169,7 @@ const RegisterScreen = ({ navigation }) => {
 
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate('LanguageSelection')}>
                         <MaterialIcons name="arrow-back" size={28} color={colors.primary} />
                     </TouchableOpacity>
                     <View style={styles.logoCircle}>

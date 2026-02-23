@@ -80,15 +80,29 @@ const checkIn = async (req, res) => {
 // Worker Check-Out
 const checkOut = async (req, res) => {
   try {
-    const { attendanceId, qrCodeOut, checkOutLatitude, checkOutLongitude } = req.body;
+    const { attendanceId, jobId, workerId, qrCodeOut, checkOutLatitude, checkOutLongitude } = req.body;
+
+    let targetId = attendanceId;
+
+    if (!targetId && jobId && workerId) {
+      const activeRecord = await prisma.attendance.findFirst({
+        where: { jobId, workerId, checkOut: null },
+        orderBy: { checkIn: 'desc' }
+      });
+      if (activeRecord) targetId = activeRecord.id;
+    }
+
+    if (!targetId) {
+      return res.status(404).json({ success: false, message: 'Active attendance record not found' });
+    }
 
     const attendance = await prisma.attendance.update({
-      where: { id: attendanceId },
+      where: { id: targetId },
       data: {
         qrCodeOut,
         checkOut: new Date(),
-        checkOutLatitude: parseFloat(checkOutLatitude),
-        checkOutLongitude: parseFloat(checkOutLongitude),
+        checkOutLatitude: parseFloat(checkOutLatitude || 0),
+        checkOutLongitude: parseFloat(checkOutLongitude || 0),
       },
       include: { job: true }
     });
@@ -100,8 +114,8 @@ const checkOut = async (req, res) => {
 
     // Update with hours
     await prisma.attendance.update({
-        where: { id: attendanceId },
-        data: { hoursWorked: hours }
+      where: { id: attendanceId },
+      data: { hoursWorked: hours }
     });
 
     // Update worker status
@@ -109,6 +123,17 @@ const checkOut = async (req, res) => {
       where: { id: attendance.workerId },
       data: { status: 'available' }
     });
+
+    // Notify Farmer via Socket
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`job:${attendance.jobId}`).emit('attendance:check_out', {
+        attendanceId: attendance.id,
+        workerId: attendance.workerId,
+        timestamp: attendance.checkOut,
+        hoursWorked: hours
+      });
+    }
 
     res.status(200).json({
       success: true,

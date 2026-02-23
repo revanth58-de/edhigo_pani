@@ -10,20 +10,34 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { socketService } from '../../services/socketService';
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
   const { job } = route.params;
 
   useEffect(() => {
     Speech.speak('Workers accepted! They are on the way.', { language: 'en' });
-    
-    // Auto-navigate after 3 seconds
-    const timer = setTimeout(() => {
-      navigation.navigate('ArrivalAlert', { job });
-    }, 3000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    // Connect and join room
+    socketService.connect();
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for arrival
+    socketService.socket?.on('job:arrival', (data) => {
+      if (data.jobId === job?.id) {
+        console.log('🏁 Workers have arrived at farm!');
+        navigation.navigate('ArrivalAlert', { job });
+      } else {
+        console.log('📡 Arrival for different job ignored:', data.jobId);
+      }
+    });
+
+    return () => {
+      socketService.socket?.off('job:arrival');
+    };
+  }, [job?.id]);
 
   return (
     <View style={styles.container}>

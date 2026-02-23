@@ -35,7 +35,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-    
+
     // Auto-speak instructions
     speak('Please scan worker QR code', language);
   }, []);
@@ -49,16 +49,6 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
     ]);
   };
 
-  const handleSimulateScan = () => {
-    if (scanned) return;
-    setScanned(true);
-    // Simulate valid worker QR
-    const mockData = `worker:${worker?.id || '123'}:job:${job?.id || '456'}`;
-    
-    setTimeout(() => {
-       navigation.navigate('WorkInProgress', { worker, job, scanData: mockData });
-    }, 500);
-  };
 
   const toggleFlash = () => {
     setFlashMode(
@@ -78,7 +68,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="black" />
-      
+
       <Camera
         style={StyleSheet.absoluteFillObject}
         type={Camera.Constants.Type.back}
@@ -95,7 +85,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
             </View>
             <Text style={styles.subHeader}>Focus QR Code inside the square</Text>
           </View>
-          
+
           <View style={styles.overlayCenter}>
             <View style={styles.overlaySide} />
             <View style={styles.scannerBox}>
@@ -107,7 +97,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.overlaySide} />
           </View>
-          
+
           <View style={styles.overlayBottom}>
             {/* Voice Help Card */}
             <View style={styles.voiceCard}>
@@ -121,20 +111,16 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
             {/* Controls */}
             <View style={styles.controlsRow}>
               <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash}>
-                <MaterialIcons 
-                  name={flashMode === Camera.Constants.FlashMode.torch ? "flashlight-off" : "flashlight-on"} 
-                  size={24} 
-                  color="white" 
+                <MaterialIcons
+                  name={flashMode === Camera.Constants.FlashMode.torch ? "flashlight-off" : "flashlight-on"}
+                  size={24}
+                  color="white"
                 />
               </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.helpBtn} onPress={handleSimulateScan}>
-                <MaterialIcons name="touch-app" size={28} color="#131811" />
-                <Text style={styles.helpText}>Simulate Scan</Text>
-              </TouchableOpacity>
-              
+
+
               <TouchableOpacity style={styles.controlBtn} onPress={() => navigation.goBack()}>
-                 <MaterialIcons name="close" size={24} color="white" />
+                <MaterialIcons name="close" size={24} color="white" />
               </TouchableOpacity>
             </View>
           </View>

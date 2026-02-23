@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
+import { socketService } from '../../services/socketService';
 
 const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -21,14 +22,45 @@ const NavigationScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     Speech.speak('Navigate to farmer location', { language: 'en' });
+
+    // Connect socket
+    socketService.connect();
+
+    // Start location tracking
+    let locationSubscription;
+    const startTracking = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+
+      locationSubscription = await Location.watchPositionAsync(
+        { accuracy: Location.Accuracy.High, distanceInterval: 10 },
+        (location) => {
+          const { latitude, longitude } = location.coords;
+          socketService.emitLocation({
+            userId: user?.id,
+            jobId: job?.id,
+            latitude,
+            longitude,
+          });
+        }
+      );
+    };
+
+    startTracking();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
   }, []);
 
   const handleOpenMaps = async () => {
     const destination = `${job?.farmLatitude || 17.385044},${job?.farmLongitude || 78.486671}`;
     const label = job?.farmAddress || 'Farm Location';
-    
+
     const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${label}`;
-    
+
     const supported = await Linking.canOpenURL(url);
     if (supported) {
       await Linking.openURL(url);
@@ -107,7 +139,11 @@ const NavigationScreen = ({ navigation, route }) => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.arrivedButton}
-          onPress={() => navigation.navigate('QRScanner', { job })}
+          onPress={() => {
+            // In a real flow, we notify the server/farmer of arrival
+            socketService.socket?.emit('job:arrival', { jobId: job?.id, workerId: user?.id });
+            navigation.navigate('QRScanner', { job });
+          }}
           activeOpacity={0.9}
         >
           <MaterialIcons name="check-circle" size={32} color={colors.backgroundDark} />

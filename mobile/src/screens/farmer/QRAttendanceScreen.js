@@ -12,6 +12,7 @@ import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import { socketService } from '../../services/socketService';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
@@ -21,7 +22,34 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     Speech.speak(type === 'in' ? 'Scan QR code to check in' : 'Scan QR code to check out', { language: 'en' });
-  }, [type]);
+
+    socketService.connect();
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for attendance events
+    const eventName = type === 'in' ? 'attendance:check_in' : 'attendance:check_out';
+    socketService.socket?.on(eventName, (data) => {
+      // data coming from backend includes jobId and workerId
+      if (data.jobId === job?.id || !data.jobId) {
+        console.log(`✅ Attendance ${type} successful for job ${job?.id}:`, data);
+        Speech.speak(`Attendance ${type === 'in' ? 'in' : 'out'} successful`, { language: 'en' });
+
+        if (type === 'in') {
+          navigation.replace('WorkInProgress', { job });
+        } else {
+          navigation.replace('Payment', { job, attendanceData: data });
+        }
+      } else {
+        console.log(`📡 Attendance for different job ignored: ${data.jobId}`);
+      }
+    });
+
+    return () => {
+      socketService.socket?.off(eventName);
+    };
+  }, [type, job?.id]);
 
   const qrData = JSON.stringify({
     jobId: job?.id,

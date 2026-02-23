@@ -89,6 +89,13 @@ io.on('connection', (socket) => {
     logger.info(`Socket ${socket.id} joined job:${jobId}`);
   });
 
+  // Worker arrives at farm
+  socket.on('job:arrival', (data) => {
+    const { jobId, workerId } = data;
+    logger.info(`🏁 Worker ${workerId} arrived for job:${jobId}`);
+    io.to(`job:${jobId}`).emit('job:arrival', { workerId });
+  });
+
   socket.on('disconnect', () => {
     logger.info(`Socket disconnected: ${socket.id}`);
   });

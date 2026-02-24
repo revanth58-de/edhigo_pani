@@ -15,12 +15,14 @@ import * as Speech from 'expo-speech';
 import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
   const { workType } = route.params;
   const user = useAuthStore((state) => state.user);
   const [workerType, setWorkerType] = useState('group'); // 'individual' or 'group'
   const [workersNeeded, setWorkersNeeded] = useState(10);
+  const [payPerDay, setPayPerDay] = useState('500');
 
   const handleVoiceGuidance = () => {
     Speech.speak('Choose worker type and number of workers needed', { language: 'en' });
@@ -47,6 +49,21 @@ const SelectWorkersScreen = ({ navigation, route }) => {
     }
 
     try {
+      let latitude = user.latitude;
+      let longitude = user.longitude;
+
+      // Try to get fresh location for accuracy
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          latitude = loc.coords.latitude;
+          longitude = loc.coords.longitude;
+        }
+      } catch (locErr) {
+        console.warn('Could not get fresh location, falling back to profile');
+      }
+
       // Create job posting
       const jobData = {
         farmerId: user.id,
@@ -55,12 +72,12 @@ const SelectWorkersScreen = ({ navigation, route }) => {
         workersNeeded,
         payPerDay: 500, // Default, could be made configurable
         farmAddress: user.village || 'Hyderabad',
-        farmLatitude: user.latitude || 17.385044,
-        farmLongitude: user.longitude || 78.486671,
+        farmLatitude: latitude || 17.385044,
+        farmLongitude: longitude || 78.486671,
       };
 
       const response = await jobService.createJob(jobData);
-      
+
       if (response.success) {
         Speech.speak('Finding workers for you', { language: 'en' });
         navigation.navigate('RequestSent', { job: response.data });
@@ -91,7 +108,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-     <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Section: Who do you need? */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Who do you need?</Text>
@@ -194,6 +211,25 @@ const SelectWorkersScreen = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Section: Pay Per Day */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Pay Per Day</Text>
+          <Text style={styles.sectionSubtitle}>Enter amount in Rupees</Text>
+        </View>
+
+        <View style={styles.payInputContainer}>
+          <View style={styles.payInputCard}>
+            <Text style={styles.currencySymbol}>₹</Text>
+            <TextInput
+              style={styles.payInput}
+              value={payPerDay}
+              onChangeText={setPayPerDay}
+              keyboardType="numeric"
+              placeholder="500"
+            />
+          </View>
         </View>
       </ScrollView>
 
@@ -389,6 +425,33 @@ const styles = StyleSheet.create({
   },
   quickSelectTextActive: {
     color: '#FFFFFF',
+  },
+  payInputContainer: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  payInputCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderWidth: 2,
+    borderColor: '#F3F4F6',
+    gap: 12,
+  },
+  currencySymbol: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  payInput: {
+    flex: 1,
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#131811',
+    padding: 0, // Remove default padding
   },
   footer: {
     position: 'absolute',

@@ -5,10 +5,10 @@
 
 // IMPORTANT: Update this IP address with your PC's local IP
 // To find your IP: Run `ipconfig` in PowerShell and look for "IPv4 Address"
-const LOCAL_IP = '10.123.56.246';
+const LOCAL_IP = '10.128.2.53';
 
 // For development - choose ONE of these modes:
-const DEV_MODE = 'LOCAL_NETWORK'; // Options: 'LOCAL_NETWORK', 'TUNNEL', 'LOCALHOST'
+const DEV_MODE = 'LOCALHOST'; // Options: 'LOCAL_NETWORK', 'TUNNEL', 'LOCALHOST'
 
 /**
  * API URLs for different modes

@@ -11,9 +11,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
+import MapDashboard from '../../components/MapDashboard';
+import { useState } from 'react';
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
   const { job } = route.params;
+  const [workerLocation, setWorkerLocation] = useState(null);
 
   useEffect(() => {
     Speech.speak('Workers accepted! They are on the way.', { language: 'en' });
@@ -29,8 +32,19 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
       if (data.jobId === job?.id) {
         console.log('🏁 Workers have arrived at farm!');
         navigation.navigate('ArrivalAlert', { job });
-      } else {
-        console.log('📡 Arrival for different job ignored:', data.jobId);
+      }
+    });
+
+    // Listen for worker tracking
+    socketService.onLocationUpdate((data) => {
+      if (data.userId === job?.workerId) {
+        setWorkerLocation({
+          id: data.userId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          type: 'worker',
+          active: true
+        });
       }
     });
 
@@ -41,7 +55,16 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
+
+      {/* Rapido-style Live Tracking Map */}
+      <View style={styles.mapWrap}>
+        <MapDashboard
+          height="100%"
+          userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
+          markers={workerLocation ? [workerLocation] : []}
+        />
+      </View>
 
       <View style={styles.content}>
         {/* Success Icon */}
@@ -94,6 +117,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  mapWrap: {
+    height: '35%',
   },
   content: {
     flex: 1,

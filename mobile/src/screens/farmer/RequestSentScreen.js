@@ -11,6 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
+import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -52,6 +53,16 @@ const RequestSentScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Rapido-style Background Map */}
+      <View style={styles.mapWrap}>
+        <MapDashboard
+          height="100%"
+          userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
+          markers={[]} // Pulse is already in IconContainer, let's keep it minimalist
+        />
+        <View style={styles.mapOverlay} />
+      </View>
 
       <View style={styles.content}>
         {/* Animated Icon */}
@@ -109,11 +120,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  mapWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
+  },
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
   content: {
     flex: 1,
+    paddingTop: '40%',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    zIndex: 10,
   },
   iconContainer: {
     position: 'relative',

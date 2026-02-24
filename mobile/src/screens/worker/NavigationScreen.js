@@ -16,15 +16,17 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
+import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
 
 const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
-  const user = useAuthStore((state) => state.user);
+  const { user } = useAuthStore();
   const language = useAuthStore((state) => state.language) || 'en';
   const [distance, setDistance] = useState('2.5 km');
   const [eta, setETA] = useState('15 min');
+  const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
     safeSpeech(t('voice.navigateToFarm'), { language: getSpeechLang(language) });
@@ -42,6 +44,7 @@ const NavigationScreen = ({ navigation, route }) => {
         { accuracy: Location.Accuracy.High, distanceInterval: 10 },
         (location) => {
           const { latitude, longitude } = location.coords;
+          setCurrentLocation([longitude, latitude]);
           socketService.emitLocation({
             userId: user?.id,
             jobId: job?.id,
@@ -56,7 +59,11 @@ const NavigationScreen = ({ navigation, route }) => {
 
     return () => {
       if (locationSubscription) {
-        locationSubscription.remove();
+        if (typeof locationSubscription.remove === 'function') {
+          locationSubscription.remove();
+        } else if (typeof locationSubscription.stop === 'function') {
+          locationSubscription.stop();
+        }
       }
     };
   }, []);
@@ -85,10 +92,19 @@ const NavigationScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* Map Placeholder */}
+      {/* live MapDashboard */}
       <View style={styles.mapContainer}>
-        <View style={styles.mapOverlay} />
-        <MaterialIcons name="map" size={120} color="rgba(255,255,255,0.3)" />
+        <MapDashboard
+          height="100%"
+          userLocation={currentLocation}
+          markers={[{
+            id: job.id,
+            latitude: job.farmLatitude || 17.385044,
+            longitude: job.farmLongitude || 78.486671,
+            type: 'job',
+            active: true
+          }]}
+        />
       </View>
 
       {/* Navigation Info Card */}

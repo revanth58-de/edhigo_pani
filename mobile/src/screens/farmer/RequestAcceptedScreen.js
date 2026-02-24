@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import { jobService } from '../../services/api/jobService';
+import MapDashboard from '../../components/MapDashboard';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
@@ -30,6 +31,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   // Worker data from the job acceptance or fetched data
   const [worker, setWorker] = useState(null);
   const [eta, setEta] = useState('10m');
+  const [workerLocation, setWorkerLocation] = useState(null);
 
   useEffect(() => {
     if (isVoiceEnabled) {
@@ -68,9 +70,15 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
     // Listen for worker location updates
     socketService.onLocationUpdate((data) => {
-      if (data.workerId === job?.workerId || data.jobId === job?.id) {
-        // Update ETA if provided
+      if (data.workerId === job?.workerId || data.userId === job?.workerId || data.jobId === job?.id) {
         if (data.eta) setEta(data.eta);
+        setWorkerLocation({
+          id: data.userId || data.workerId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          type: 'worker',
+          active: true
+        });
       }
     });
 
@@ -166,7 +174,16 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
+
+      {/* Rapido-style Live Tracking Map */}
+      <View style={styles.mapWrap}>
+        <MapDashboard
+          height="100%"
+          userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
+          markers={workerLocation ? [workerLocation] : []}
+        />
+      </View>
 
       {/* Header */}
       <View style={styles.header}>
@@ -305,6 +322,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  mapWrap: {
+    height: '35%',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -323,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
     position: 'relative',
   },
-  mapPlaceholder: {
+  content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',

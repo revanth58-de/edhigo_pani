@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { Camera } from 'expo-camera';
+import { CameraView, requestCameraPermissionsAsync } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
@@ -28,7 +28,7 @@ const QRScannerScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
+      const { status } = await requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
       safeSpeech(t('voice.scanQRPrompt'), { language: getSpeechLang(language) });
     })();
@@ -83,11 +83,10 @@ const QRScannerScreen = ({ navigation, route }) => {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* Camera View */}
-      <Camera
+      <CameraView
         style={styles.camera}
-        type="back"
-        flashMode={flashOn ? "torch" : "off"}
-        onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        facing="back"
+        onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
       >
         {/* Dark Overlay */}
         <View style={styles.overlay} />
@@ -163,7 +162,7 @@ const QRScannerScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </View>
-      </Camera>
+      </CameraView>
     </View>
   );
 };

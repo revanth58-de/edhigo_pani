@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import MapDashboard from '../../components/MapDashboard';
 import { jobAPI } from '../../services/api';
 
 const WorkerHomeScreen = ({ navigation }) => {
@@ -26,6 +27,29 @@ const WorkerHomeScreen = ({ navigation }) => {
   const [searching, setSearching] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+  const [jobs, setJobs] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    fetchNearbyJobs();
+  }, []);
+
+  const fetchNearbyJobs = async () => {
+    try {
+      const response = await jobAPI.getJobs({ status: 'pending' });
+      const jobList = response?.data?.data || [];
+      const markers = jobList.map(j => ({
+        id: j.id,
+        latitude: j.farmLatitude || 17.3850,
+        longitude: j.farmLongitude || 78.4867,
+        type: 'job',
+        title: j.workType || 'Farm Job'
+      }));
+      setJobs(markers);
+    } catch (e) {
+      console.warn('Failed to fetch jobs for map');
+    }
+  };
 
   useEffect(() => {
     if (isVoiceEnabled) {
@@ -79,6 +103,22 @@ const WorkerHomeScreen = ({ navigation }) => {
       <TopBar title={t('worker.workerHome')} navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Rapido-style Map for Workers */}
+        <View style={styles.mapWrap}>
+          <MapDashboard
+            markers={jobs}
+            userLocation={userLocation}
+            height={280}
+            onMarkerPress={(job) => navigation.navigate('JobOffer', { job })}
+          />
+          <View style={styles.mapOverlay}>
+            <View style={[styles.onlineStatusBadge, { backgroundColor: isOnline ? colors.primary : '#9CA3AF' }]}>
+              <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#fff' : '#666' }]} />
+              <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <Text style={styles.greetingText}>{t('common.namaste')}, {user?.name || 'Ramesh'}</Text>
@@ -237,6 +277,48 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 120,
+  },
+  mapWrap: {
+    height: 280,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  onlineStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  onlineLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#fff',
+    textTransform: 'uppercase',
   },
   profileHeader: {
     padding: 16,

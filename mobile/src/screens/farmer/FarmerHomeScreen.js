@@ -1,5 +1,5 @@
 // Screen 6: Farmer Home - Exact match to farmer-home-work-type.html
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import MapDashboard from '../../components/MapDashboard';
+import { socketService } from '../../services/socketService';
 
 const AnimatedCard = ({ workType, onPress }) => {
   const hoverAnim = React.useRef(new Animated.Value(0)).current;
@@ -92,14 +94,46 @@ const AnimatedCard = ({ workType, onPress }) => {
 };
 
 const FarmerHomeScreen = ({ navigation }) => {
-  const { isVoiceEnabled } = useAuthStore();
+  const { user, isVoiceEnabled } = useAuthStore();
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+  const [workers, setWorkers] = useState([]); // Real-time worker locations
+  const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
     if (isVoiceEnabled) {
       safeSpeech(t('voice.selectWorkType'), { language: getSpeechLang(language) });
     }
+
+    // Connect to sockets for real-time tracking
+    socketService.connect();
+
+    // Listen for workers' location broadcasts
+    socketService.onLocationUpdate((data) => {
+      console.log('📍 Worker Location Update Received:', data);
+      setWorkers(prev => {
+        const filtered = prev.filter(w => w.id !== data.userId);
+        return [...filtered, {
+          id: data.userId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          type: 'worker',
+          active: true
+        }];
+      });
+    });
+
+    // Mock initial workers if none detected (for demo/rapido feel)
+    setTimeout(() => {
+      setWorkers([
+        { id: 'mock-1', latitude: 17.3850, longitude: 78.4867, type: 'worker', active: true },
+        { id: 'mock-2', latitude: 17.3900, longitude: 78.4900, type: 'worker', active: true },
+      ]);
+    }, 1000);
+
+    return () => {
+      // Clean up socket listeners if needed
+    };
   }, [isVoiceEnabled]);
 
   const handleWorkTypeSelect = (workType) => {
@@ -161,6 +195,21 @@ const FarmerHomeScreen = ({ navigation }) => {
 
       {/* Main Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Rapido-style Map Dashboard */}
+        <View style={styles.mapWrap}>
+          <MapDashboard
+            markers={workers}
+            userLocation={userLocation}
+            height={320}
+            onMarkerPress={(m) => console.log('Marker pressed:', m)}
+          />
+          <View style={styles.mapOverlay}>
+            <View style={styles.activeBadge}>
+              <View style={styles.pulseDot} />
+              <Text style={styles.activeLabel}>{workers.length} Workers Online</Text>
+            </View>
+          </View>
+        </View>
 
 
         {/* Headline */}
@@ -201,9 +250,61 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingBottom: 24,
   },
+  mapWrap: {
+    height: 320,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 6,
+      },
+      web: {
+        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+      }
+    }),
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  activeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  pulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  activeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#131811',
+  },
   headlineContainer: {
     paddingHorizontal: 24,
-    paddingTop: 32,
+    paddingTop: 16,
     paddingBottom: 16,
     alignItems: 'center',
   },

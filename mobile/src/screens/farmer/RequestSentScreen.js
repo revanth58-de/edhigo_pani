@@ -16,6 +16,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
+import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -92,13 +93,16 @@ const RequestSentScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <MaterialIcons name="wifi-tethering" size={24} color="#131811" />
-        <Text style={styles.headerTitle}>{t('requestSent.title')}</Text>
+      {/* Rapido-style Background Map */}
+      <View style={styles.mapWrap}>
+        <MapDashboard
+          height="100%"
+          userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
+          markers={[]}
+        />
+        <View style={styles.mapOverlay} />
       </View>
 
-      {/* Main Content */}
       <View style={styles.content}>
         {/* Title */}
         <Text style={styles.title}>{t('requestSent.findingWorkers')}</Text>
@@ -154,25 +158,61 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+  mapWrap: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '45%',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#131811',
+  mapOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
   },
   content: {
     flex: 1,
+    paddingTop: '40%',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
-    paddingTop: 16,
+    zIndex: 10,
+  },
+  iconContainer: {
+    position: 'relative',
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  pulseCircle1: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: `${colors.primary}1A`,
+  },
+  pulseCircle2: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: `${colors.primary}33`,
+  },
+  iconCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 4,
+    borderColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 16,
   },
   title: {
     fontSize: 32,

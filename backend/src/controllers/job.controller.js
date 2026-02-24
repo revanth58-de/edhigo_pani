@@ -66,8 +66,26 @@ const getJobs = async (req, res) => {
         farmer: {
           select: {
             name: true,
+            phone: true,
             photoUrl: true,
             ratingAvg: true,
+          },
+        },
+        applications: {
+          include: {
+            worker: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                photoUrl: true,
+                ratingAvg: true,
+                skills: true,
+                village: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
           },
         },
       },
@@ -82,6 +100,62 @@ const getJobs = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch jobs',
+      error: error.message,
+    });
+  }
+};
+
+// Get a single job by ID (with full relations)
+const getJobById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const job = await prisma.job.findUnique({
+      where: { id },
+      include: {
+        farmer: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            photoUrl: true,
+            ratingAvg: true,
+            village: true,
+          },
+        },
+        applications: {
+          include: {
+            worker: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                photoUrl: true,
+                ratingAvg: true,
+                skills: true,
+                village: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: job,
+    });
+  } catch (error) {
+    console.error('Get Job By ID Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch job',
       error: error.message,
     });
   }
@@ -162,9 +236,6 @@ const acceptJob = async (req, res) => {
       where: { id },
       data: {
         status: 'matched',
-        // In a real app we'd add the worker to a relation, 
-        // but schema.prisma shows `workersNeeded` and `applications`.
-        // Let's create an application record automatically.
       },
     });
 
@@ -176,19 +247,40 @@ const acceptJob = async (req, res) => {
       }
     });
 
-    // Notify Farmer
+    // Fetch worker details to include in the notification
+    const workerDetails = await prisma.user.findUnique({
+      where: { id: workerId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        photoUrl: true,
+        ratingAvg: true,
+        skills: true,
+        village: true,
+        latitude: true,
+        longitude: true,
+      },
+    });
+
+    // Notify Farmer with worker details
     const io = req.app.get('io');
     if (io) {
       io.to(`job:${id}`).emit('job:accepted', {
         jobId: id,
-        workerId
+        workerId,
+        workerName: workerDetails?.name || 'Worker',
+        workerPhone: workerDetails?.phone || null,
+        workerPhotoUrl: workerDetails?.photoUrl || null,
+        workerRating: workerDetails?.ratingAvg || 0,
+        workerSkills: workerDetails?.skills || null,
       });
     }
 
     res.status(200).json({
       success: true,
       message: 'Job accepted successfully',
-      data: job
+      data: { ...job, worker: workerDetails },
     });
 
   } catch (error) {
@@ -228,10 +320,48 @@ const getMyJobs = async (req, res) => {
   }
 };
 
+// Cancel a job
+const cancelJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existingJob = await prisma.job.findUnique({ where: { id } });
+    if (!existingJob) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    const job = await prisma.job.update({
+      where: { id },
+      data: { status: 'cancelled' },
+    });
+
+    // Notify via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`job:${id}`).emit('job:cancelled', { jobId: id });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Job cancelled successfully',
+      data: job,
+    });
+  } catch (error) {
+    console.error('Cancel Job Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel job',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createJob,
   getJobs,
+  getJobById,
   updateJobStatus,
   acceptJob,
+  cancelJob,
   getMyJobs,
 };

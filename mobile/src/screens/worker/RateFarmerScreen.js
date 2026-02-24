@@ -13,16 +13,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { ratingService } from '../../services/api/ratingService';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const RateFarmerScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route.params || {};
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRatingPress = (value) => {
     setRating(value);
-    Speech.speak(`${value} stars selected`, { language: 'en' });
+    safeSpeech(`${value} ${t('voice.starsSelected')}`, { language: getSpeechLang(language) });
   };
 
   const handleSubmit = async () => {
@@ -40,7 +45,7 @@ const RateFarmerScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        Speech.speak('Thank you for rating!', { language: 'en' });
+        safeSpeech(t('voice.thankYouRating'), { language: getSpeechLang(language) });
         navigation.navigate('WorkerHome');
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');

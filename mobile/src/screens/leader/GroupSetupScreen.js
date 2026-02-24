@@ -13,8 +13,13 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupSetupScreen = ({ navigation }) => {
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [groupName, setGroupName] = useState('');
   const [memberCount, setMemberCount] = useState(5);
 
@@ -23,7 +28,7 @@ const GroupSetupScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please enter a group name');
       return;
     }
-    Speech.speak('Group created successfully', { language: 'en' });
+    safeSpeech(t('voice.groupCreated'), { language: getSpeechLang(language) });
     navigation.navigate('GroupJobOffer', { groupName, memberCount });
   };
 
@@ -35,14 +40,14 @@ const GroupSetupScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Group</Text>
+        <Text style={styles.headerTitle}>{t('leader.createGroup')}</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.inputCard}>
           <MaterialIcons name="groups" size={48} color={colors.primary} />
-          <Text style={styles.inputLabel}>Group Name</Text>
+          <Text style={styles.inputLabel}>{t('leader.groupName')}</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter group name..."
@@ -53,7 +58,7 @@ const GroupSetupScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.counterCard}>
-          <Text style={styles.counterLabel}>Number of Members</Text>
+          <Text style={styles.counterLabel}>{t('leader.members')}</Text>
           <View style={styles.counter}>
             <TouchableOpacity
               style={styles.counterButton}
@@ -85,7 +90,7 @@ const GroupSetupScreen = ({ navigation }) => {
           onPress={handleCreateGroup}
           activeOpacity={0.9}
         >
-          <Text style={styles.createButtonText}>CREATE GROUP</Text>
+          <Text style={styles.createButtonText}>{t('leader.createGroup').toUpperCase()}</Text>
           <MaterialIcons name="arrow-forward" size={24} color={colors.backgroundDark} />
         </TouchableOpacity>
       </View>

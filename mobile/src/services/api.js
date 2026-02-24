@@ -5,8 +5,9 @@ const apiClient = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
+        'bypass-tunnel-reminder': 'true', // Required for localtunnel to skip interstitial page
     },
-    timeout: 10000,
+    timeout: 15000,
 });
 
 // Set auth token for authenticated requests

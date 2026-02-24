@@ -15,9 +15,14 @@ import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
 import { paymentService } from '../../services/api/paymentService';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { job, workers } = route.params;
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'cash' or 'upi'
   const [loading, setLoading] = useState(false);
 
@@ -25,13 +30,11 @@ const PaymentScreen = ({ navigation, route }) => {
   const upiId = 'farmer@upi';
 
   React.useEffect(() => {
-    Speech.speak('Dabbulu pay cheyyandi', { language: 'te' });
+    safeSpeech(t('voice.payAmount'), { language: getSpeechLang(language) });
   }, []);
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Please pay the amount. Choose cash or UPI payment method.', {
-      language: 'en',
-    });
+    safeSpeech(t('voice.payAmount'), { language: getSpeechLang(language) });
   };
 
   const handlePayment = async () => {
@@ -44,7 +47,7 @@ const PaymentScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        Speech.speak('Payment successful!', { language: 'en' });
+        safeSpeech(t('voice.paymentSuccess'), { language: getSpeechLang(language) });
         navigation.navigate('RateWorker', { job, workers });
       } else {
         Alert.alert('Error', response.message || 'Payment failed');

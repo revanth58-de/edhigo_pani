@@ -10,16 +10,21 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { colors } from '../../theme/colors';
 
 const SplashScreen = ({ navigation }) => {
+  const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
   const spinAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     // Voice guidance
-    Speech.speak('App start avutondi', { language: 'te' });
+    safeSpeech(t('voice.chooseLanguage'), { language: getSpeechLang(language) });
 
     // Fade in animation
     Animated.timing(fadeAnim, {

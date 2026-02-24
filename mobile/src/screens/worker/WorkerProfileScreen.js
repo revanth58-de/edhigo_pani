@@ -13,22 +13,26 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { Alert, Platform } from 'react-native';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, isVoiceEnabled } = useAuthStore();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [isAvailable, setIsAvailable] = useState(true);
+  const { t } = useTranslation();
 
   const handleVoiceGuidance = () => {
     if (isVoiceEnabled) {
-      Speech.speak('Your profile information', { language: 'en' });
+      safeSpeech(t('voice.profileInfo'), { language: getSpeechLang(language) });
     }
   };
 
   const stats = [
-    { label: 'Jobs Done', value: '24', icon: 'work' },
-    { label: 'Rating', value: '4.8', icon: 'star' },
-    { label: 'Earnings', value: '₹12,000', icon: 'payments' },
+    { label: t('worker.jobsDone'), value: '24', icon: 'work' },
+    { label: t('worker.rating'), value: '4.8', icon: 'star' },
+    { label: t('worker.earnings'), value: '₹12,000', icon: 'payments' },
   ];
 
   const skills = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'];
@@ -42,7 +46,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t('nav.profile')}</Text>
         <TouchableOpacity onPress={handleVoiceGuidance}>
           <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
@@ -89,7 +93,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="construction" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>Skills</Text>
+            <Text style={styles.sectionTitle}>{t('worker.skills')}</Text>
           </View>
           <View style={styles.skillsContainer}>
             {skills.map((skill, index) => (
@@ -104,7 +108,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="location-on" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>Village</Text>
+            <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
           </View>
           <Text style={styles.sectionValue}>{user?.village || 'Gachibowli, Hyderabad'}</Text>
         </View>
@@ -113,11 +117,11 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={styles.actionsContainer}>
           <TouchableOpacity style={styles.actionButton}>
             <MaterialIcons name="edit" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Edit Profile</Text>
+            <Text style={styles.actionButtonText}>{t('profile.editProfile')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <MaterialIcons name="history" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Work History</Text>
+            <Text style={styles.actionButtonText}>{t('worker.workHistory')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -146,7 +150,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           }}
         >
           <MaterialIcons name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />

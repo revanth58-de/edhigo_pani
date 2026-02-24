@@ -14,16 +14,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { authService } from '../../services/api/authService';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const OTPScreen = ({ navigation, route }) => {
   const { phone, otp: receivedOTP, name, village, role, fromRegister } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak('OTP enter cheyyandi. Enter the 4-digit code', { language: 'te' });
+    safeSpeech(t('auth.enterOTP'), { language: getSpeechLang(language) });
 
     // Display the OTP to the user
     if (receivedOTP) {
@@ -63,7 +67,7 @@ const OTPScreen = ({ navigation, route }) => {
         ? { name, village, role }
         : {};
       await verifyOTPAction(phone, otpToVerify, registrationData);
-      Speech.speak('OTP verified successfully', { language: 'en' });
+      safeSpeech(t('voice.otpVerified'), { language: getSpeechLang(language) });
     } catch (error) {
       console.error('Verify OTP Error:', error);
       Alert.alert('Error', 'Invalid OTP. Please try again.');
@@ -78,7 +82,7 @@ const OTPScreen = ({ navigation, route }) => {
       const response = await authService.sendOTP(phone);
       if (response.success) {
         Alert.alert('Success', 'OTP sent successfully');
-        Speech.speak('New OTP sent', { language: 'en' });
+        safeSpeech(t('voice.newOtpSent'), { language: getSpeechLang(language) });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to resend OTP');
@@ -112,8 +116,8 @@ const OTPScreen = ({ navigation, route }) => {
           <View style={styles.voiceIcon}>
             <MaterialIcons name="volume-up" size={40} color={colors.primary} />
           </View>
-          <Text style={styles.title}>OTP enter cheyyandi</Text>
-          <Text style={styles.subtitle}>Enter the 4-digit code</Text>
+          <Text style={styles.title}>{t('auth.enterOTP')}</Text>
+          <Text style={styles.subtitle}>{t('auth.verifyOTP')}</Text>
         </View>
 
         {/* Display OTP Code on Screen */}
@@ -164,9 +168,9 @@ const OTPScreen = ({ navigation, route }) => {
             </TouchableOpacity>
 
             <View style={styles.resendContainer}>
-              <Text style={styles.resendQuestion}>Didn't receive code?</Text>
+              <Text style={styles.resendQuestion}>{t('auth.resendOTP')}</Text>
               <TouchableOpacity onPress={handleResendOTP}>
-                <Text style={styles.resendButton}>Resend OTP</Text>
+                <Text style={styles.resendButton}>{t('auth.resendOTP')}</Text>
               </TouchableOpacity>
             </View>
           </View>

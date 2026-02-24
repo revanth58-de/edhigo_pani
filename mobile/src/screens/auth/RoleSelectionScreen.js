@@ -13,19 +13,23 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { authService } from '../../services/api/authService';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const RoleSelectionScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak('Meeru evaru? Who are you? Select your role', { language: 'te' });
+    safeSpeech(t('auth.selectRole'), { language: getSpeechLang(language) });
   }, []);
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Choose farmer if you have land. Choose worker if you work on farms. Choose group leader if you manage a team.', {
-      language: 'en',
+    safeSpeech(t('voice.selectRole'), {
+      language: getSpeechLang(language),
     });
   };
 
@@ -36,7 +40,7 @@ const RoleSelectionScreen = ({ navigation }) => {
       if (response.success) {
         // Update user role in store
         updateUser({ ...response.data, role });
-        Speech.speak(`${roleName} selected`, { language: 'en' });
+        safeSpeech(`${roleName} ${t('voice.roleSelected')}`, { language: getSpeechLang(language) });
         
         // Navigation is handled by AppNavigator based on user.role
         // Just wait for state update to trigger automatic navigation
@@ -56,21 +60,21 @@ const RoleSelectionScreen = ({ navigation }) => {
   const roles = [
     {
       id: 'farmer',
-      name: 'Farmer',
+      name: t('auth.iAmFarmer'),
       icon: 'agriculture',
-      description: 'Person with a plow',
+      description: t('common.farmer'),
     },
     {
       id: 'worker',
-      name: 'Worker',
+      name: t('auth.iAmWorker'),
       icon: 'handyman',
-      description: 'Person with a sickle',
+      description: t('common.worker'),
     },
     {
       id: 'leader',
-      name: 'Group Leader',
+      name: t('auth.iAmLeader'),
       icon: 'groups',
-      description: 'Three people together',
+      description: t('common.leader'),
     },
   ];
 
@@ -87,7 +91,7 @@ const RoleSelectionScreen = ({ navigation }) => {
         >
           <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Role Selection</Text>
+        <Text style={styles.topBarTitle}>{t('auth.selectRole')}</Text>
         <TouchableOpacity style={styles.helpButton}>
           <MaterialIcons name="help" size={28} color="#131811" />
         </TouchableOpacity>
@@ -95,8 +99,8 @@ const RoleSelectionScreen = ({ navigation }) => {
 
       {/* Headline */}
       <View style={styles.headlineContainer}>
-        <Text style={styles.mainHeadline}>Meeru evaru?</Text>
-        <Text style={styles.subHeadline}>Who are you?</Text>
+        <Text style={styles.mainHeadline}>{t('auth.selectRole')}</Text>
+        <Text style={styles.subHeadline}>{t('auth.selectRole')}</Text>
       </View>
 
       {/* Role Cards */}

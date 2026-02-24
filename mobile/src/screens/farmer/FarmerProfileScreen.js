@@ -15,6 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { authAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
@@ -139,6 +140,7 @@ const FarmerProfileScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
   const logout = useAuthStore((state) => state.logout);
+  const { t } = useTranslation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -222,7 +224,7 @@ const FarmerProfileScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      <TopBar title="Farm Profile" showBack navigation={navigation} />
+      <TopBar title={t('profile.farmProfile')} showBack navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
 
@@ -314,12 +316,12 @@ const FarmerProfileScreen = ({ navigation }) => {
             ) : (
               <Text style={styles.statValue}>{viewLand}</Text>
             )}
-            <Text style={styles.statLabel}>Total Land</Text>
+            <Text style={styles.statLabel}>{t('profile.totalLand')}</Text>
           </View>
           <View style={styles.statCard}>
             <MaterialIcons name="grass" size={32} color={colors.primary} />
             <Text style={styles.statValue}>{isEditing ? editCrops.length : viewCrops.length}</Text>
-            <Text style={styles.statLabel}>Crops</Text>
+            <Text style={styles.statLabel}>{t('profile.crops')}</Text>
           </View>
           <View style={styles.statCard}>
             <MaterialIcons name="pets" size={32} color={colors.primary} />
@@ -328,7 +330,7 @@ const FarmerProfileScreen = ({ navigation }) => {
                 ? Object.values(editAnimals).filter((v) => v > 0).length
                 : animalCount}
             </Text>
-            <Text style={styles.statLabel}>Animals</Text>
+            <Text style={styles.statLabel}>{t('profile.animals')}</Text>
           </View>
         </View>
 
@@ -336,7 +338,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="eco" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Crops Grown</Text>
+            <Text style={styles.sectionTitle}>{t('profile.cropsGrown')}</Text>
           </View>
 
           {isEditing ? (
@@ -380,7 +382,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="pets" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Domestic Animals</Text>
+            <Text style={styles.sectionTitle}>{t('profile.domesticAnimals')}</Text>
           </View>
 
           {isEditing ? (
@@ -435,7 +437,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="construction" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Farm Equipment</Text>
+            <Text style={styles.sectionTitle}>{t('profile.farmEquipment')}</Text>
           </View>
 
           {isEditing ? (
@@ -480,7 +482,7 @@ const FarmerProfileScreen = ({ navigation }) => {
           <View style={styles.editActionRow}>
             <TouchableOpacity style={styles.cancelButton} onPress={handleEditToggle}>
               <MaterialIcons name="close" size={22} color={colors.primary} />
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.saveButton, isSaving && { opacity: 0.7 }]}
@@ -501,7 +503,7 @@ const FarmerProfileScreen = ({ navigation }) => {
           <>
             <TouchableOpacity style={styles.editButton} onPress={handleEditToggle}>
               <MaterialIcons name="edit" size={24} color="#FFFFFF" />
-              <Text style={styles.editButtonText}>Edit Profile</Text>
+              <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.logoutButton}
@@ -528,7 +530,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               }}
             >
               <MaterialIcons name="logout" size={22} color="#EF4444" />
-              <Text style={styles.logoutButtonText}>Logout</Text>
+              <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
             </TouchableOpacity>
           </>
         )}

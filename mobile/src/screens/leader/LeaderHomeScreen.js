@@ -12,14 +12,18 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LeaderHomeScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak('Group leader home. Create a new group to start.', { language: 'en' });
+    safeSpeech(t('voice.leaderHome'), { language: getSpeechLang(language) });
   }, []);
 
   return (
@@ -27,14 +31,14 @@ const LeaderHomeScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <TopBar title="Group Leader" navigation={navigation} />
+      <TopBar title={t('leader.leaderHome')} navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Welcome Card */}
         <View style={styles.welcomeCard}>
           <MaterialIcons name="emoji-people" size={64} color={colors.primary} />
-          <Text style={styles.welcomeTitle}>Namaste, {user?.name || 'Leader'}!</Text>
-          <Text style={styles.welcomeSubtitle}>Ready to lead your group?</Text>
+          <Text style={styles.welcomeTitle}>{t('common.namaste')}, {user?.name || 'Leader'}!</Text>
+          <Text style={styles.welcomeSubtitle}>{t('worker.readyToEarn')}</Text>
         </View>
 
         {/* Voice Prompt */}
@@ -52,7 +56,7 @@ const LeaderHomeScreen = ({ navigation }) => {
           <View style={styles.startGroupIcon}>
             <MaterialIcons name="group-add" size={64} color={colors.backgroundDark} />
           </View>
-          <Text style={styles.startGroupText}>START NEW GROUP</Text>
+          <Text style={styles.startGroupText}>{t('leader.createGroup').toUpperCase()}</Text>
           <Text style={styles.startGroupSubtext}>Tap to create a group and find work</Text>
         </TouchableOpacity>
 

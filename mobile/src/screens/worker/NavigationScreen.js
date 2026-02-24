@@ -13,15 +13,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
+import useAuthStore from '../../store/authStore';
 
 const NavigationScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route.params || {};
+  const { t } = useTranslation();
+  const user = useAuthStore((state) => state.user);
+  const language = useAuthStore((state) => state.language) || 'en';
   const [distance, setDistance] = useState('2.5 km');
   const [eta, setETA] = useState('15 min');
 
   useEffect(() => {
-    Speech.speak('Navigate to farmer location', { language: 'en' });
+    safeSpeech(t('voice.navigateToFarm'), { language: getSpeechLang(language) });
 
     // Connect socket
     socketService.connect();
@@ -70,8 +76,8 @@ const NavigationScreen = ({ navigation, route }) => {
   };
 
   const handleCall = () => {
-    Speech.speak('Calling farmer', { language: 'en' });
-    const phoneNumber = `tel:${job?.farmerPhone || '+919876543210'}`;
+    safeSpeech(t('voice.callingFarmer'), { language: getSpeechLang(language) });
+    const phoneNumber = `tel:${job?.farmer?.phone || job?.farmerPhone || 'unknown'}`;
     Linking.openURL(phoneNumber);
   };
 

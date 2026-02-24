@@ -14,16 +14,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
   const { workType } = route.params;
   const user = useAuthStore((state) => state.user);
   const [workerType, setWorkerType] = useState('group'); // 'individual' or 'group'
-  const [workersNeeded, setWorkersNeeded] = useState(10);
+  const [workersNeeded, setWorkersNeeded] = useState(1);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Choose worker type and number of workers needed', { language: 'en' });
+    safeSpeech(t('voice.chooseWorkers'), { language: getSpeechLang(language) });
   };
 
   const handleIncrement = () => {
@@ -60,10 +64,13 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       };
 
       const response = await jobService.createJob(jobData);
-      
       if (response.success) {
-        Speech.speak('Finding workers for you', { language: 'en' });
-        navigation.navigate('RequestSent', { job: response.data });
+        // response.data is the full response body: { success, message, data: jobObj }
+        const jobObj = response.data.data || response.data;
+        safeSpeech(t('voice.findingWorkers'), { language: getSpeechLang(language) });
+        navigation.navigate('RequestSent', {
+          job: { ...jobObj, workersNeeded, payPerDay: 500 },
+        });
       } else {
         Alert.alert('Error', response.message || 'Failed to create job');
       }
@@ -82,7 +89,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back-ios" size={28} color="#131811" />
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Select Workers</Text>
+        <Text style={styles.topBarTitle}>{t('selectWorkers.title')}</Text>
         <TouchableOpacity
           style={styles.voiceButton}
           onPress={handleVoiceGuidance}
@@ -94,8 +101,8 @@ const SelectWorkersScreen = ({ navigation, route }) => {
      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Section: Who do you need? */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Who do you need?</Text>
-          <Text style={styles.sectionSubtitle}>Choose worker type</Text>
+          <Text style={styles.sectionTitle}>{t('selectWorkers.howManyWorkers')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('selectWorkers.title')}</Text>
         </View>
 
         {/* Worker Type Selection */}
@@ -118,7 +125,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
                 color={workerType === 'individual' ? '#FFFFFF' : colors.primary}
               />
             </View>
-            <Text style={styles.workerTypeText}>Individual</Text>
+            <Text style={styles.workerTypeText}>{t('selectWorkers.individual')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -139,13 +146,13 @@ const SelectWorkersScreen = ({ navigation, route }) => {
                 color={workerType === 'group' ? '#FFFFFF' : colors.primary}
               />
             </View>
-            <Text style={styles.workerTypeText}>Group</Text>
+            <Text style={styles.workerTypeText}>{t('selectWorkers.group')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Section: How many? */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How many?</Text>
+          <Text style={styles.sectionTitle}>{t('selectWorkers.howManyWorkers')}</Text>
         </View>
 
         {/* Stepper */}
@@ -160,7 +167,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
 
             <View style={styles.stepperValue}>
               <Text style={styles.stepperNumber}>{workersNeeded}</Text>
-              <Text style={styles.stepperLabel}>WORKERS</Text>
+              <Text style={styles.stepperLabel}>{t('common.workers')}</Text>
             </View>
 
             <TouchableOpacity
@@ -204,7 +211,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
           onPress={handleFindWorkers}
           activeOpacity={0.9}
         >
-          <Text style={styles.findButtonText}>Find Workers</Text>
+          <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>
           <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>

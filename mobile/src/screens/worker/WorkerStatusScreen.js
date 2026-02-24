@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, shadows, borderRadius } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import { speak } from '../../utils/voiceGuidance';
 
@@ -45,6 +46,7 @@ const STATUS_OPTIONS = [
 
 const WorkerStatusScreen = ({ navigation }) => {
   const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
   const [currentStatus, setCurrentStatus] = useState('working'); // Default to working after attendance
 
   useEffect(() => {

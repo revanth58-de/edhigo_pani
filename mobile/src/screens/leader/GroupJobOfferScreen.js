@@ -12,9 +12,14 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
   const { groupName, memberCount } = route.params;
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const job = {
     workType: 'Harvesting',
     payPerDay: 500,
@@ -24,11 +29,11 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    Speech.speak('Group job offer received', { language: 'en' });
+    safeSpeech(t('voice.groupJobOfferReceived'), { language: getSpeechLang(language) });
   }, []);
 
   const handleAccept = () => {
-    Speech.speak('Job accepted', { language: 'en' });
+    safeSpeech(t('voice.jobAccepted'), { language: getSpeechLang(language) });
     navigation.navigate('GroupQRAttendance', { job, groupName, memberCount });
   };
 

@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 
@@ -132,17 +133,19 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
-      {!isAuthenticated ? (
-        <AuthNavigator />
-      ) : user?.role === 'worker' ? (
-        <WorkerNavigator />
-      ) : user?.role === 'leader' ? (
-        <LeaderNavigator />
-      ) : (
-        <FarmerNavigator />
-      )}
-    </NavigationContainer>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+      <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
+        {!isAuthenticated ? (
+          <AuthNavigator />
+        ) : user?.role === 'worker' ? (
+          <WorkerNavigator />
+        ) : user?.role === 'leader' ? (
+          <LeaderNavigator />
+        ) : (
+          <FarmerNavigator />
+        )}
+      </NavigationContainer>
+    </SafeAreaView>
   );
 };
 

@@ -14,7 +14,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
@@ -91,16 +93,18 @@ const AnimatedCard = ({ workType, onPress }) => {
 
 const FarmerHomeScreen = ({ navigation }) => {
   const { isVoiceEnabled } = useAuthStore();
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
     if (isVoiceEnabled) {
-      Speech.speak('Pani select cheyyandi. Select work type', { language: 'te' });
+      safeSpeech(t('voice.selectWorkType'), { language: getSpeechLang(language) });
     }
   }, [isVoiceEnabled]);
 
   const handleWorkTypeSelect = (workType) => {
     if (isVoiceEnabled) {
-      Speech.speak(`${workType} selected`, { language: 'en' });
+      safeSpeech(`${workType} ${t('voice.workTypeSelected')}`, { language: getSpeechLang(language) });
     }
     navigation.navigate('SelectWorkers', { workType });
   };
@@ -108,7 +112,7 @@ const FarmerHomeScreen = ({ navigation }) => {
   const workTypes = [
     {
       id: 'sowing',
-      name: 'Sowing',
+      name: t('farmerHome.sowing'),
       image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop',
       color: '#FFA500',
       bgColor: '#FFF5E6',
@@ -116,7 +120,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     },
     {
       id: 'harvesting',
-      name: 'Harvesting',
+      name: t('farmerHome.harvesting'),
       image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
       color: '#FFD700',
       bgColor: '#FFFBF0',
@@ -124,7 +128,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     },
     {
       id: 'irrigation',
-      name: 'Irrigation',
+      name: t('farmerHome.irrigation'),
       image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop',
       color: '#4A90E2',
       bgColor: '#E3F2FD',
@@ -132,7 +136,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     },
     {
       id: 'labour',
-      name: 'Labour',
+      name: t('farmerHome.labour'),
       image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop',
       color: '#EF4444',
       bgColor: '#FEE2E2',
@@ -140,7 +144,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     },
     {
       id: 'tractor',
-      name: 'Tractor',
+      name: t('farmerHome.tractor'),
       image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
       color: '#10B981',
       bgColor: '#D1FAE5',
@@ -153,7 +157,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top App Bar with Help icon */}
-      <TopBar title="Farmer Home" navigation={navigation} />
+      <TopBar title={t('farmerHome.selectWorkType')} navigation={navigation} />
 
       {/* Main Content */}
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -161,10 +165,10 @@ const FarmerHomeScreen = ({ navigation }) => {
 
         {/* Headline */}
         <View style={styles.headlineContainer}>
-          <Text style={styles.headline}>Select Work Type</Text>
+          <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
           <View style={styles.voiceBadge}>
             <MaterialIcons name="record-voice-over" size={20} color={colors.primary} />
-            <Text style={styles.voiceBadgeText}>Pani select cheyyandi</Text>
+            <Text style={styles.voiceBadgeText}>{t('farmerHome.selectWorkType')}</Text>
           </View>
         </View>
 
@@ -181,7 +185,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <BottomNavBar role="farmer" activeTab="Home" />
+      <BottomNavBar role="farmer" activeTab="Discovery" />
     </View>
   );
 };

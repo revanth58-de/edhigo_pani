@@ -8,14 +8,14 @@ import { colors } from '../theme/colors';
 const FARMER_TABS = [
   { key: 'Home', icon: 'home', label: 'Home', screen: 'FarmerHome' },
   { key: 'History', icon: 'history', label: 'History', screen: 'FarmerHistory' },
-  { key: 'ShowQR', icon: 'qr-code', label: 'Show QR', screen: 'QRAttendance', params: { type: 'in' } },
+  { key: 'ScanQR', icon: 'qr-code-scanner', label: 'Scan QR', screen: 'QRScanner', params: { role: 'farmer' } },
   { key: 'Profile', icon: 'person', label: 'Profile', screen: 'FarmerProfile' },
 ];
 
 const WORKER_TABS = [
   { key: 'Home', icon: 'home', label: 'Home', screen: 'WorkerHome' },
   { key: 'History', icon: 'history', label: 'History', screen: 'WorkerHome', params: { tab: 'history' } },
-  { key: 'ShowQR', icon: 'qr-code', label: 'Show QR', screen: 'QRScanner' },
+  { key: 'ScanQR', icon: 'qr-code-scanner', label: 'Scan QR', screen: 'QRScanner', params: { role: 'worker' } },
   { key: 'Profile', icon: 'person', label: 'Profile', screen: 'WorkerProfile' },
 ];
 

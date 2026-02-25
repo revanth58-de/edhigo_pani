@@ -1,4 +1,4 @@
-// Screen 17: Worker Home - Exact match to worker-home.html
+// Screen 17: Worker Home - Fixed and Refactored
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
@@ -19,12 +20,13 @@ import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { jobAPI } from '../../services/api';
 
-const WorkerHomeScreen = ({ navigation }) => {
+const WorkerHomeScreen = ({ navigation, route }) => {
   const { user, logout, isVoiceEnabled } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
   const [searching, setSearching] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const activeTab = route.params?.tab || 'home';
 
   useEffect(() => {
     fetchNearbyJobs();
@@ -82,12 +84,16 @@ const WorkerHomeScreen = ({ navigation }) => {
     }
   };
 
-  const toggleOnlineStatus = (value) => {
-    setIsOnline(value);
-    if (isVoiceEnabled) {
-      Speech.speak(value ? 'You are now online' : 'You are now offline', {
-        language: 'en',
-      });
+  const handleHelp = () => {
+    const phoneNumber = '+911800123456';
+    if (Platform.OS === 'web') {
+      window.alert('📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.');
+    } else {
+      Alert.alert(
+        'Help / సహాయం',
+        '📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -154,17 +160,20 @@ const WorkerHomeScreen = ({ navigation }) => {
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={handleHelp}>
             <View style={styles.actionIconCircle}>
               <MaterialIcons name="support-agent" size={30} color={colors.primary} />
             </View>
             <Text style={styles.actionText}>Help</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('QRScanner', { role: 'worker' })}
+          >
             <View style={styles.actionIconCircle}>
-              <MaterialIcons name="account-balance-wallet" size={30} color={colors.primary} />
+              <MaterialIcons name="qr-code-scanner" size={30} color={colors.primary} />
             </View>
-            <Text style={styles.actionText}>Earnings</Text>
+            <Text style={styles.actionText}>Scan QR</Text>
           </TouchableOpacity>
         </View>
 
@@ -197,8 +206,32 @@ const WorkerHomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* History Overlay */}
+      {activeTab === 'history' && (
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#fff', zIndex: 100, paddingTop: 60 }]}>
+          <TopBar title="Work History" showBack navigation={navigation} onHelp={() => navigation.setParams({ tab: 'home' })} />
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Recent Jobs</Text>
+            <View style={{ gap: 12 }}>
+              {[1, 2, 3].map(i => (
+                <View key={i} style={{ padding: 16, backgroundColor: '#F9FAFB', borderRadius: 12, borderLeftWidth: 4, borderLeftColor: colors.primary, marginBottom: 12 }}>
+                  <Text style={{ fontWeight: 'bold' }}>Harvesting - Feb {25 - i}, 2026</Text>
+                  <Text style={{ color: '#64748B' }}>₹500 • Completed</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={{ padding: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center', marginTop: 20 }}
+              onPress={() => navigation.setParams({ tab: 'home' })}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close History</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
+
       {/* Bottom Navigation */}
-      <BottomNavBar role="worker" activeTab="Home" />
+      <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
     </View>
   );
 };
@@ -207,66 +240,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundLight,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${colors.primary}33`,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  topBarTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#131811',
-    flex: 1,
-    marginLeft: 8,
-  },
-  onlineStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${colors.primary}33`,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 9999,
-    gap: 8,
-  },
-  onlineDot: {
-    width: 12,
-    height: 12,
-    position: 'relative',
-  },
-  onlinePing: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-    opacity: 0.75,
-  },
-  onlineDotInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: colors.primary,
-  },
-  onlineText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#131811',
   },
   content: {
     flex: 1,
@@ -424,39 +397,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#131811',
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-    paddingBottom: 32,
-    paddingHorizontal: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  navItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  navText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    letterSpacing: -0.5,
-    textTransform: 'uppercase',
-  },
-  navTextActive: {
-    color: colors.primary,
   },
   logoutButton: {
     flexDirection: 'row',

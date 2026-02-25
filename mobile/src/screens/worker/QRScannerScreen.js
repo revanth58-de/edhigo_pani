@@ -68,10 +68,29 @@ const QRScannerScreen = ({ navigation, route }) => {
   };
 
   if (hasPermission === null) {
-    return <View style={styles.container}><Text>Requesting camera permission...</Text></View>;
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.permissionText}>Requesting camera permission...</Text>
+      </View>
+    );
   }
   if (hasPermission === false) {
-    return <View style={styles.container}><Text>No access to camera</Text></View>;
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <MaterialIcons name="camera-alt" size={64} color="#9CA3AF" />
+        <Text style={styles.permissionText}>No access to camera</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={async () => {
+            const { status } = await requestCameraPermissionsAsync();
+            setHasPermission(status === 'granted');
+          }}
+        >
+          <Text style={styles.retryButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
@@ -167,6 +186,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  permissionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   camera: {
     flex: 1,

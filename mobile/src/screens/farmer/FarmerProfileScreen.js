@@ -182,6 +182,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         animals: stringifyAnimals(editAnimals),
         skills: stringifyCrops(editCrops),       // reusing skills field for crops
         status: stringifyEquipment(editEquipment), // reusing status field for equipment (temp)
+        avatarIcon: selectedAvatar,
       };
       const response = await authAPI.updateProfile(payload);
       updateUser({
@@ -499,9 +500,19 @@ const FarmerProfileScreen = ({ navigation }) => {
           </View>
         ) : (
           <>
-            <TouchableOpacity style={styles.editButton} onPress={handleEditToggle}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={handleEditToggle}
+            >
               <MaterialIcons name="edit" size={24} color="#FFFFFF" />
               <Text style={styles.editButtonText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('FarmerHistory')}
+            >
+              <MaterialIcons name="history" size={24} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary }]}>Work History</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.logoutButton}

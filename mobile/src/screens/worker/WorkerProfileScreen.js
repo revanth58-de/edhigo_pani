@@ -16,6 +16,7 @@ import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, isVoiceEnabled } = useAuthStore();
@@ -156,25 +157,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="home" size={30} color="#6f8961" />
-          <Text style={styles.navText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="history" size={30} color="#6f8961" />
-          <Text style={styles.navText}>History</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="notifications" size={30} color="#6f8961" />
-          <Text style={styles.navText}>Alerts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="person" size={30} color={colors.primary} />
-          <Text style={[styles.navText, styles.navTextActive]}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar role="worker" activeTab="Profile" />
     </View>
   );
 };

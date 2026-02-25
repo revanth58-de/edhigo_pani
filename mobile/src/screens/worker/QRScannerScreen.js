@@ -19,7 +19,7 @@ import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
 
 const QRScannerScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job, role = 'worker' } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [hasPermission, setHasPermission] = useState(null);
@@ -46,7 +46,7 @@ const QRScannerScreen = ({ navigation, route }) => {
       const user = useAuthStore.getState().user;
 
       const payload = {
-        jobId: qrInfo.jobId || job.id,
+        jobId: qrInfo.jobId || job?.id,
         workerId: user?.id,
         qrData: data,
         [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,

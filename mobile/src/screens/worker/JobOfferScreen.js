@@ -16,6 +16,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { jobService } from '../../services/api/jobService';
+import { socketService } from '../../services/socketService';
 
 const JobOfferScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -28,6 +29,33 @@ const JobOfferScreen = ({ navigation, route }) => {
     safeSpeech(t('voice.newJobOffer'), {
       language: getSpeechLang(language),
     });
+
+    // Connect socket and join rooms for cancellation alerts
+    socketService.connect();
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for job cancellation by farmer
+    socketService.onJobCancelled((data) => {
+      if (data.jobId === job?.id) {
+        console.log('❌ Job cancelled by farmer while viewing offer:', data);
+        navigation.replace('JobCancelled', {
+          job: {
+            ...job,
+            farmerName: data.farmerName,
+            workType: data.workType,
+          },
+        });
+      }
+    });
+
+    return () => {
+      socketService.offJobCancelled();
+    };
   }, []);
 
   const handleAccept = async () => {

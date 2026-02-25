@@ -325,7 +325,16 @@ const cancelJob = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existingJob = await prisma.job.findUnique({ where: { id } });
+    const existingJob = await prisma.job.findUnique({
+      where: { id },
+      include: {
+        farmer: { select: { name: true } },
+        applications: {
+          where: { status: 'accepted' },
+          select: { workerId: true },
+        },
+      },
+    });
     if (!existingJob) {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
@@ -338,7 +347,21 @@ const cancelJob = async (req, res) => {
     // Notify via Socket.io
     const io = req.app.get('io');
     if (io) {
-      io.to(`job:${id}`).emit('job:cancelled', { jobId: id });
+      const cancelPayload = {
+        jobId: id,
+        workType: existingJob.workType || 'job',
+        farmerName: existingJob.farmer?.name || 'Farmer',
+      };
+
+      // Notify everyone in the job room
+      io.to(`job:${id}`).emit('job:cancelled', cancelPayload);
+
+      // Also notify each accepted worker via their personal room
+      if (existingJob.applications && existingJob.applications.length > 0) {
+        existingJob.applications.forEach((app) => {
+          io.to(`user:${app.workerId}`).emit('worker:job_cancelled', cancelPayload);
+        });
+      }
     }
 
     res.status(200).json({

@@ -225,6 +225,27 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
         );
     }
 
+    // ─── Native Fallback (no WebView available) ───
+    if (Platform.OS !== 'web') {
+        return (
+            <View style={[styles.container, { height }]}>
+                <View style={styles.fallbackContainer}>
+                    <MaterialIcons name="map" size={48} color={colors.primary} />
+                    <Text style={styles.fallbackText}>Map View</Text>
+                    <Text style={styles.fallbackSubtext}>
+                        {markers.length > 0 ? `${markers.length} nearby` : 'Loading...'}
+                    </Text>
+                </View>
+                {/* Map Controls */}
+                <View style={styles.controls}>
+                    <TouchableOpacity style={styles.controlBtn} onPress={() => {}}>
+                        <MaterialIcons name="my-location" size={24} color={colors.primary} />
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
     // ─── Web Render ───
     return (
         <View style={[styles.container, { height }]}>
@@ -290,6 +311,24 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
+    },
+    fallbackContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+        borderRadius: 16,
+    },
+    fallbackText: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#131811',
+        marginTop: 8,
+    },
+    fallbackSubtext: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginTop: 4,
     }
 });
 

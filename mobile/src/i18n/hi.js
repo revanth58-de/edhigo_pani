@@ -306,6 +306,7 @@ export default {
     scanQRPrompt: 'कृपया अपना कैमरा QR कोड की ओर रखें',
     workCompleted: 'काम पूरा हुआ! धन्यवाद',
     attendanceMarked: 'उपस्थिति दर्ज!',
+    jobCancelledByFarmer: 'किसान ने इस काम को रद्द कर दिया है',
 
     // Leader
     leaderHome: 'ग्रुप लीडर होम। नया ग्रुप शुरू करने के लिए ग्रुप बनाएं।',

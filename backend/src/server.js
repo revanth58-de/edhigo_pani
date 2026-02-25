@@ -92,6 +92,12 @@ io.on('connection', (socket) => {
     logger.info(`Socket ${socket.id} joined job:${jobId}`);
   });
 
+  // Join a personal user room for notifications (cancellations, etc.)
+  socket.on('user:join', (userId) => {
+    socket.join(`user:${userId}`);
+    logger.info(`Socket ${socket.id} joined user:${userId}`);
+  });
+
   // Worker arrives at farm
   socket.on('job:arrival', (data) => {
     const { jobId, workerId } = data;
@@ -112,8 +118,8 @@ setIO(io);
 app.use(errorHandler);
 
 // ─── Start Server ───
-server.listen(config.port, () => {
-  logger.info(`🚀 FarmConnect server running on port ${config.port}`);
+server.listen(config.port, '0.0.0.0', () => {
+  logger.info(`🚀 FarmConnect server running on port ${config.port} (bound to 0.0.0.0)`);
   logger.info(`📡 Environment: ${config.nodeEnv}`);
 });
 

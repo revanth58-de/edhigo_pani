@@ -34,6 +34,28 @@ const NavigationScreen = ({ navigation, route }) => {
     // Connect socket
     socketService.connect();
 
+    // Join rooms for real-time updates
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for job cancellation by farmer
+    socketService.onJobCancelled((data) => {
+      if (data.jobId === job?.id) {
+        console.log('❌ Job cancelled by farmer:', data);
+        navigation.replace('JobCancelled', {
+          job: {
+            ...job,
+            farmerName: data.farmerName,
+            workType: data.workType,
+          },
+        });
+      }
+    });
+
     // Start location tracking
     let locationSubscription;
     const startTracking = async () => {
@@ -58,6 +80,7 @@ const NavigationScreen = ({ navigation, route }) => {
     startTracking();
 
     return () => {
+      socketService.offJobCancelled();
       if (locationSubscription) {
         if (typeof locationSubscription.remove === 'function') {
           locationSubscription.remove();

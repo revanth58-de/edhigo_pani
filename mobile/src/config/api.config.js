@@ -7,29 +7,19 @@ import { Platform } from 'react-native';
 
 // IMPORTANT: Update this IP address with your PC's local IP
 // To find your IP: Run `ipconfig` in PowerShell and look for "IPv4 Address"
-const LOCAL_IP = '10.128.2.53';
-
-// For development - choose ONE of these modes:
-const DEV_MODE = 'LOCALHOST'; // Options: 'LOCAL_NETWORK', 'TUNNEL', 'LOCALHOST'
+const LOCAL_IP = '192.168.1.102';
 
 /**
  * Auto-detect the best API URL based on the platform:
- * - Android emulator: uses 10.0.2.2 (maps to host localhost)
  * - Web browser: uses localhost directly
- * - Physical device: uses local network IP
+ * - Android / iOS (physical device or emulator): uses local network IP
+ *   (10.0.2.2 only works in Android emulator, NOT on physical phones)
  */
 const getApiUrl = () => {
-  if (Platform.OS === 'android') {
-    // Android emulator uses 10.0.2.2 to reach host machine's localhost
-    return 'http://10.0.2.2:5000/api';
-  } else if (Platform.OS === 'web') {
-    // Web browser runs on the same machine as the backend
+  if (Platform.OS === 'web') {
     return 'http://localhost:5000/api';
-  } else if (Platform.OS === 'ios') {
-    // iOS simulator can use localhost, physical device needs local IP
-    return `http://${LOCAL_IP}:5000/api`;
   }
-  // Fallback
+  // Android + iOS physical devices & simulators all use the local network IP
   return `http://${LOCAL_IP}:5000/api`;
 };
 

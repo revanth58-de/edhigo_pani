@@ -306,6 +306,7 @@ export default {
     scanQRPrompt: 'దయచేసి మీ కెమెరాను QR కోడ్ వైపు చూపించండి',
     workCompleted: 'పని పూర్తయింది! ధన్యవాదాలు',
     attendanceMarked: 'హాజరు నమోదైంది!',
+    jobCancelledByFarmer: 'రైతు ఈ పనిని రద్దు చేశారు',
 
     // Leader
     leaderHome: 'గ్రూప్ లీడర్ హోమ్. కొత్త గ్రూప్ ప్రారంభించడానికి గ్రూప్ సృష్టించండి.',

@@ -306,6 +306,7 @@ export default {
     scanQRPrompt: 'Please point your camera at the QR code',
     workCompleted: 'Work completed! Thank you',
     attendanceMarked: 'Attendance marked!',
+    jobCancelledByFarmer: 'The farmer has cancelled this job',
 
     // Leader
     leaderHome: 'Group leader home. Create a new group to start.',

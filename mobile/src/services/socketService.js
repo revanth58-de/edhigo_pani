@@ -90,6 +90,27 @@ class SocketService {
             this.socket.emit('location:update', data);
         }
     }
+
+    joinUserRoom(userId) {
+        if (this.socket) {
+            this.socket.emit('user:join', userId);
+            console.log(`📡 Joined room: user:${userId}`);
+        }
+    }
+
+    onJobCancelled(callback) {
+        if (this.socket) {
+            this.socket.on('job:cancelled', callback);
+            this.socket.on('worker:job_cancelled', callback);
+        }
+    }
+
+    offJobCancelled() {
+        if (this.socket) {
+            this.socket.off('job:cancelled');
+            this.socket.off('worker:job_cancelled');
+        }
+    }
 }
 
 export const socketService = new SocketService();

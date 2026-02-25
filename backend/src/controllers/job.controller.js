@@ -379,6 +379,43 @@ const cancelJob = async (req, res) => {
   }
 };
 
+// Get nearby available workers (for farmer map display)
+const getNearbyWorkers = async (req, res) => {
+  try {
+    const workers = await prisma.user.findMany({
+      where: {
+        role: 'worker',
+        status: { in: ['available', 'online'] },
+        latitude: { not: null },
+        longitude: { not: null },
+      },
+      select: {
+        id: true,
+        name: true,
+        latitude: true,
+        longitude: true,
+        skills: true,
+        ratingAvg: true,
+        village: true,
+        status: true,
+      },
+      take: 50,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: workers,
+    });
+  } catch (error) {
+    console.error('Get Nearby Workers Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch nearby workers',
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createJob,
   getJobs,
@@ -387,4 +424,5 @@ module.exports = {
   acceptJob,
   cancelJob,
   getMyJobs,
+  getNearbyWorkers,
 };

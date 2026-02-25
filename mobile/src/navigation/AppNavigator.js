@@ -41,6 +41,7 @@ import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
+import LeaderProfileScreen from '../screens/leader/LeaderProfileScreen';
 import GroupSetupScreen from '../screens/leader/GroupSetupScreen';
 import GroupJobOfferScreen from '../screens/leader/GroupJobOfferScreen';
 import GroupQRAttendanceScreen from '../screens/leader/GroupQRAttendanceScreen';
@@ -105,6 +106,7 @@ const WorkerNavigator = () => (
 const LeaderNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="LeaderHome" component={LeaderHomeScreen} />
+    <Stack.Screen name="LeaderProfile" component={LeaderProfileScreen} />
     <Stack.Screen name="GroupSetup" component={GroupSetupScreen} />
     <Stack.Screen name="GroupJobOffer" component={GroupJobOfferScreen} />
     <Stack.Screen name="GroupQRAttendance" component={GroupQRAttendanceScreen} />
@@ -136,7 +138,7 @@ const AppNavigator = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
-      <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
+      <NavigationContainer>
         {!isAuthenticated ? (
           <AuthNavigator />
         ) : user?.role === 'worker' ? (

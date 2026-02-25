@@ -12,6 +12,9 @@ router.get('/', jobController.getJobs);
 // Get jobs posted by the authenticated farmer (must be before /:id)
 router.get('/my-jobs', authenticate, jobController.getMyJobs);
 
+// Get nearby available workers for map display
+router.get('/nearby-workers', authenticate, jobController.getNearbyWorkers);
+
 // Get a single job by ID (with full relations)
 router.get('/:id', authenticate, jobController.getJobById);
 

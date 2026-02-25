@@ -38,6 +38,7 @@ export const jobAPI = {
     updateStatus: (jobId, status) => apiClient.put(`/jobs/${jobId}/status`, { status }),
     acceptJob: (jobId, workerId) => apiClient.post(`/jobs/${jobId}/accept`, { workerId }),
     cancelJob: (jobId) => apiClient.delete(`/jobs/${jobId}`),
+    getNearbyWorkers: () => apiClient.get('/jobs/nearby-workers'),
 };
 
 // ─── Attendance API ───

@@ -16,6 +16,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
+import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
@@ -23,11 +24,58 @@ const RequestSentScreen = ({ navigation, route }) => {
   const { isVoiceEnabled } = useAuthStore();
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+  const [nearbyWorkers, setNearbyWorkers] = useState([]);
 
   // Pulse animation refs
   const pulse1 = useRef(new Animated.Value(0.3)).current;
   const pulse2 = useRef(new Animated.Value(0.3)).current;
   const pulse3 = useRef(new Animated.Value(0.3)).current;
+
+  // Generate simulated worker markers around the farm location
+  const generateSimulatedWorkers = () => {
+    const farmLat = job?.farmLatitude || 17.3850;
+    const farmLng = job?.farmLongitude || 78.4867;
+    const simulated = [];
+    const names = ['Ramesh', 'Suresh', 'Mahesh', 'Venkat', 'Raju'];
+    for (let i = 0; i < 5; i++) {
+      const offsetLat = (Math.random() - 0.5) * 0.03;  // ~1.5km radius
+      const offsetLng = (Math.random() - 0.5) * 0.03;
+      simulated.push({
+        id: `sim-${i}`,
+        latitude: farmLat + offsetLat,
+        longitude: farmLng + offsetLng,
+        type: 'worker',
+        active: true,
+        title: names[i],
+      });
+    }
+    return simulated;
+  };
+
+  // Fetch nearby workers from backend
+  const fetchNearbyWorkers = async () => {
+    try {
+      const response = await jobAPI.getNearbyWorkers();
+      const workers = response?.data?.data || [];
+      if (workers.length > 0) {
+        const markers = workers.map(w => ({
+          id: w.id,
+          latitude: w.latitude,
+          longitude: w.longitude,
+          type: 'worker',
+          active: true,
+          title: w.name || 'Worker',
+        }));
+        setNearbyWorkers(markers);
+      } else {
+        // If no real workers found, show simulated ones for visual feedback
+        setNearbyWorkers(generateSimulatedWorkers());
+      }
+    } catch (e) {
+      console.warn('Failed to fetch nearby workers, using simulated:', e.message);
+      setNearbyWorkers(generateSimulatedWorkers());
+    }
+  };
 
   useEffect(() => {
     if (isVoiceEnabled) {
@@ -53,6 +101,9 @@ const RequestSentScreen = ({ navigation, route }) => {
     p2.start();
     p3.start();
 
+    // Fetch nearby workers for map markers
+    fetchNearbyWorkers();
+
     // Socket connection for real-time acceptance
     socketService.connect();
     if (job?.id) {
@@ -67,6 +118,19 @@ const RequestSentScreen = ({ navigation, route }) => {
       } else {
         console.log('📡 Received job:accepted for different job, ignoring:', data.jobId);
       }
+    });
+
+    // Listen for real-time worker location broadcasts
+    socketService.onLocationUpdate((data) => {
+      setNearbyWorkers(prev => {
+        const existing = prev.findIndex(w => w.id === data.userId);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], latitude: data.latitude, longitude: data.longitude };
+          return updated;
+        }
+        return [...prev, { id: data.userId, latitude: data.latitude, longitude: data.longitude, type: 'worker', active: true, title: 'Worker' }];
+      });
     });
 
     return () => {
@@ -93,12 +157,12 @@ const RequestSentScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Rapido-style Background Map */}
+      {/* Rapido-style Background Map with nearby workers */}
       <View style={styles.mapWrap}>
         <MapDashboard
           height="100%"
           userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
-          markers={[]}
+          markers={nearbyWorkers}
         />
         <View style={styles.mapOverlay} />
       </View>

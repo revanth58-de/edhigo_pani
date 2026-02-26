@@ -510,6 +510,14 @@ const FarmerProfileScreen = ({ navigation }) => {
               <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('FarmerHistory')}
+            >
+              <MaterialIcons name="history" size={24} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary }]}>Work History</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.logoutButton}
               onPress={() => {
                 if (Platform.OS === 'web') {

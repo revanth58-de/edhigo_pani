@@ -160,7 +160,7 @@ const LoginScreen = ({ navigation }) => {
               <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
               <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
             </View>
-            <Text style={styles.phoneDisplay}>
+            <Text style={[styles.phoneDisplay, phone.length === 0 && { color: '#9CA3AF' }]}>
               {phone.length === 0 ? '0000 000000' : formatPhone(phone)}
             </Text>
             <View style={styles.displayUnderline} />

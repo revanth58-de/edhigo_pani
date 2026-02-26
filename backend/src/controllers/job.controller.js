@@ -320,7 +320,60 @@ const getMyJobs = async (req, res) => {
   }
 };
 
+// Cancel/delete a job
+const cancelJob = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Check if job exists
+    const job = await prisma.job.findUnique({ where: { id } });
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
+    // Update status to cancelled instead of deleting to keep history
+    await prisma.job.update({
+      where: { id },
+      data: { status: 'cancelled' }
+    });
+
+    res.status(200).json({ success: true, message: 'Job cancelled successfully' });
+  } catch (error) {
+    console.error('Cancel Job Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to cancel job', error: error.message });
+  }
+};
+
+// Get nearby workers
+const getNearbyWorkers = async (req, res) => {
+  try {
+    // In a real app, this would use geospatial queries
+    // For now, we return all active workers
+    const workers = await prisma.user.findMany({
+      where: {
+        role: 'worker',
+        // Optional: filter where latitude/longitude is not null
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        photoUrl: true,
+        ratingAvg: true,
+        latitude: true,
+        longitude: true,
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: workers
+    });
+  } catch (error) {
+    console.error('Get Nearby Workers Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch nearby workers', error: error.message });
+  }
+};
+
 module.exports = {
+
   createJob,
   getJobs,
   getJobById,

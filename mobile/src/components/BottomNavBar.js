@@ -21,10 +21,10 @@ const WORKER_TABS = [
 ];
 
 const LEADER_TABS = [
-  { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'LeaderHome' },
-  { key: 'History', icon: 'history', labelKey: 'nav.history', screen: 'LeaderHome', params: { tab: 'history' } },
-  { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'GroupQRAttendance' },
-  { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'LeaderHome', params: { tab: 'profile' } },
+  { key: 'Home', icon: 'home', label: 'Home', screen: 'LeaderHome' },
+  { key: 'History', icon: 'history', label: 'History', screen: 'LeaderHome', params: { tab: 'history' } },
+  { key: 'ShowQR', icon: 'qr-code', label: 'Show QR', screen: 'GroupQRAttendance' },
+  { key: 'Profile', icon: 'person', label: 'Profile', screen: 'LeaderHome', params: { tab: 'profile' } },
 ];
 
 const ROLE_TABS = {

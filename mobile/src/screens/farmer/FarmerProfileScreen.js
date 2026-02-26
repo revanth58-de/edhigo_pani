@@ -507,14 +507,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               onPress={handleEditToggle}
             >
               <MaterialIcons name="edit" size={24} color="#FFFFFF" />
-              <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
-              onPress={() => navigation.navigate('FarmerHistory')}
-            >
-              <MaterialIcons name="history" size={24} color={colors.primary} />
-              <Text style={[styles.editButtonText, { color: colors.primary }]}>Work History</Text>
+              <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.logoutButton}

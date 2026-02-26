@@ -18,8 +18,6 @@ import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { authAPI } from '../../services/api';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const AVATAR_OPTIONS = [
@@ -30,58 +28,19 @@ const AVATAR_OPTIONS = [
 ];
 
 const WorkerProfileScreen = ({ navigation }) => {
-  const { user, updateUser, logout, isVoiceEnabled } = useAuthStore();
-  const language = useAuthStore((state) => state.language) || 'en';
-  const { t } = useTranslation();
-
+  const { user, logout, isVoiceEnabled } = useAuthStore();
   const [isAvailable, setIsAvailable] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-
-  // Editable state
-  const [editName, setEditName] = useState(user?.name || '');
-  const [editVillage, setEditVillage] = useState(user?.village || '');
-  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
 
   const handleVoiceGuidance = () => {
     if (isVoiceEnabled) {
-      safeSpeech(t('voice.profileInfo'), { language: getSpeechLang(language) });
-    }
-  };
-
-  const handleEditToggle = () => {
-    if (!isEditing) {
-      setEditName(user?.name || '');
-      setEditVillage(user?.village || '');
-      setSelectedAvatar(user?.avatarIcon || 'person');
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const payload = {
-        name: editName.trim() || undefined,
-        village: editVillage.trim() || undefined,
-        avatarIcon: selectedAvatar,
-      };
-      const response = await authAPI.updateProfile(payload);
-      updateUser(response.data.user);
-      setIsEditing(false);
-      Alert.alert('✅ ' + t('common.success'), t('profile.saveSuccess'));
-    } catch (error) {
-      Alert.alert(t('common.error'), t('profile.saveError'));
-    } finally {
-      setIsSaving(false);
+      Speech.speak('Your profile information', { language: 'en' });
     }
   };
 
   const stats = [
-    { label: t('worker.jobsDone'), value: '24', icon: 'work' },
-    { label: t('worker.rating'), value: '4.8', icon: 'star' },
-    { label: t('profile.experience'), value: '2 Yrs', icon: 'verified' },
+    { label: 'Jobs Done', value: '24', icon: 'work' },
+    { label: 'Rating', value: '4.8', icon: 'star' },
+    { label: 'Earnings', value: '₹12,000', icon: 'payments' },
   ];
 
   const skills = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'];
@@ -210,8 +169,8 @@ const WorkerProfileScreen = ({ navigation }) => {
         {/* Skills Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="construction" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>{t('worker.skills')}</Text>
+            <MaterialIcons name="construction" size={24} color="#131811" />
+            <Text style={styles.sectionTitle}>Skills</Text>
           </View>
           <View style={styles.skillsContainer}>
             {skills.map((skill, index) => (
@@ -222,75 +181,54 @@ const WorkerProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
+        {/* Village Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="location-on" size={24} color="#131811" />
+            <Text style={styles.sectionTitle}>Village</Text>
+          </View>
+          <Text style={styles.sectionValue}>{user?.village || 'Gachibowli, Hyderabad'}</Text>
+        </View>
+
         {/* Quick Actions */}
-        {isEditing ? (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.cancelButton]}
-              onPress={handleEditToggle}
-            >
-              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.saveButton, isSaving && { opacity: 0.7 }]}
-              onPress={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
-              ) : (
-                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleEditToggle}
-            >
-              <MaterialIcons name="edit" size={24} color={colors.primary} />
-              <Text style={styles.actionButtonText}>{t('profile.editProfile')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
-            >
-              <MaterialIcons name="history" size={24} color={colors.primary} />
-              <Text style={styles.actionButtonText}>{t('worker.workHistory')}</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialIcons name="edit" size={24} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton}>
+            <MaterialIcons name="history" size={24} color={colors.primary} />
+            <Text style={styles.actionButtonText}>Work History</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Logout Button */}
-        {!isEditing && (
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={() => {
-              if (Platform.OS === 'web') {
-                if (window.confirm(t('profile.logoutConfirm'))) {
-                  logout();
-                }
-              } else {
-                Alert.alert(
-                  t('profile.logout'),
-                  t('profile.logoutConfirm'),
-                  [
-                    { text: t('common.cancel'), style: 'cancel' },
-                    {
-                      text: t('profile.logout'),
-                      style: 'destructive',
-                      onPress: () => logout(),
-                    },
-                  ]
-                );
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => {
+            if (Platform.OS === 'web') {
+              if (window.confirm('Are you sure you want to logout?')) {
+                logout();
               }
-            }}
-          >
-            <MaterialIcons name="logout" size={22} color="#EF4444" />
-            <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
-          </TouchableOpacity>
-        )}
+            } else {
+              Alert.alert(
+                'Logout',
+                'Are you sure you want to logout?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Logout',
+                    style: 'destructive',
+                    onPress: () => logout(),
+                  },
+                ]
+              );
+            }
+          }}
+        >
+          <MaterialIcons name="logout" size={22} color="#EF4444" />
+          <Text style={styles.logoutButtonText}>Logout</Text>
+        </TouchableOpacity>
 
         <View style={{ height: 100 }} />
       </ScrollView>

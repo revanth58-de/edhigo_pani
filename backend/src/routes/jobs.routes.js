@@ -12,9 +12,6 @@ router.get('/', jobController.getJobs);
 // Get jobs posted by the authenticated farmer (must be before /:id)
 router.get('/my-jobs', authenticate, jobController.getMyJobs);
 
-// Get a single job by ID (with full relations)
-router.get('/:id', authenticate, jobController.getJobById);
-
 // Update job status
 router.put('/:id/status', authenticate, jobController.updateJobStatus);
 

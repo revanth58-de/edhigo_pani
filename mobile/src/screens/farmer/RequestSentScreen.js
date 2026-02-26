@@ -16,42 +16,20 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
+import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
-  const { isVoiceEnabled } = useAuthStore();
-  const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
-
-  // Pulse animation refs
-  const pulse1 = useRef(new Animated.Value(0.3)).current;
-  const pulse2 = useRef(new Animated.Value(0.3)).current;
-  const pulse3 = useRef(new Animated.Value(0.3)).current;
+  const [dots, setDots] = useState('');
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('requestSent.findingMessage'), { language: getSpeechLang(language) });
-    }
+    Speech.speak('Finding workers for you. Please wait.', { language: 'en' });
 
-    // Staggered pulse animations
-    const createPulse = (anim, delay) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 1500, easing: Easing.ease, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.3, duration: 1500, easing: Easing.ease, useNativeDriver: true }),
-        ])
-      );
-    };
-
-    const p1 = createPulse(pulse1, 0);
-    const p2 = createPulse(pulse2, 500);
-    const p3 = createPulse(pulse3, 1000);
-
-    p1.start();
-    p2.start();
-    p3.start();
+    // Animated dots
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
 
     // Socket connection for real-time acceptance
     socketService.connect();
@@ -67,6 +45,19 @@ const RequestSentScreen = ({ navigation, route }) => {
       } else {
         console.log('📡 Received job:accepted for different job, ignoring:', data.jobId);
       }
+    });
+
+    // Listen for real-time worker location broadcasts
+    socketService.onLocationUpdate((data) => {
+      setNearbyWorkers(prev => {
+        const existing = prev.findIndex(w => w.id === data.userId);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], latitude: data.latitude, longitude: data.longitude };
+          return updated;
+        }
+        return [...prev, { id: data.userId, latitude: data.latitude, longitude: data.longitude, type: 'worker', active: true, title: 'Worker' }];
+      });
     });
 
     return () => {
@@ -93,12 +84,12 @@ const RequestSentScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Rapido-style Background Map */}
+      {/* Rapido-style Background Map with nearby workers */}
       <View style={styles.mapWrap}>
         <MapDashboard
           height="100%"
           userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
-          markers={[]}
+          markers={[]} // Pulse is already in IconContainer, let's keep it minimalist
         />
         <View style={styles.mapOverlay} />
       </View>

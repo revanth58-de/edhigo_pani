@@ -16,6 +16,7 @@ import {
 import { Camera } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, borderRadius, shadows } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
 import { speak } from '../../utils/voiceGuidance';
 import useAuthStore from '../../store/authStore';
 
@@ -25,6 +26,7 @@ const SCANNER_SIZE = width * 0.7;
 const QRAttendanceINScreen = ({ navigation, route }) => {
   const { worker, job } = route.params || {};
   const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
 
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
@@ -81,7 +83,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
           <View style={styles.overlayTop}>
             <View style={styles.headerPill}>
               <MaterialIcons name="qr-code-scanner" size={24} color={colors.primary} />
-              <Text style={styles.headerText}>QR Scan - Attendance In</Text>
+              <Text style={styles.headerText}>{t('qr.checkIn')}</Text>
             </View>
             <Text style={styles.subHeader}>Focus QR Code inside the square</Text>
           </View>

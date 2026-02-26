@@ -9,13 +9,19 @@ router.post('/', authenticate, jobController.createJob);
 // Get all jobs (with optional filters)
 router.get('/', jobController.getJobs);
 
-// Get jobs posted by the authenticated farmer
+// Get jobs posted by the authenticated farmer (must be before /:id)
 router.get('/my-jobs', authenticate, jobController.getMyJobs);
+
+// Get a single job by ID (with full relations)
+router.get('/:id', authenticate, jobController.getJobById);
 
 // Update job status
 router.put('/:id/status', authenticate, jobController.updateJobStatus);
 
 // Accept job
 router.post('/:id/accept', authenticate, jobController.acceptJob);
+
+// Cancel/delete a job
+router.delete('/:id', authenticate, jobController.cancelJob);
 
 module.exports = router;

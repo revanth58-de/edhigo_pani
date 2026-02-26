@@ -11,14 +11,19 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
+import useAuthStore from '../../store/authStore';
 
 const WorkStatusScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route.params || {};
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
   const [isOnBreak, setIsOnBreak] = useState(false);
 
   useEffect(() => {
-    Speech.speak('Work is in progress', { language: 'en' });
+    safeSpeech(t('voice.workInProgress'), { language: getSpeechLang(language) });
     
     // Timer logic
     let seconds = 0;
@@ -37,11 +42,11 @@ const WorkStatusScreen = ({ navigation, route }) => {
 
   const handleBreak = () => {
     setIsOnBreak(!isOnBreak);
-    Speech.speak(isOnBreak ? 'Break ended' : 'Break started', { language: 'en' });
+    safeSpeech(isOnBreak ? t('voice.breakEnded') : t('voice.breakStarted'), { language: getSpeechLang(language) });
   };
 
   const handleEndWork = () => {
-    Speech.speak('Ending work', { language: 'en' });
+    safeSpeech(t('voice.endingWork'), { language: getSpeechLang(language) });
     navigation.navigate('QRScanner', { job, type: 'out' });
   };
 

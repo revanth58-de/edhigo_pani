@@ -12,16 +12,20 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LanguageSelectionScreen = ({ navigation }) => {
   const setLanguage = useAuthStore((state) => state.setLanguage);
+  const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
 
   useEffect(() => {
-    Speech.speak('Choose your language', { language: 'en' });
+    safeSpeech(t('voice.chooseLanguage'), { language: getSpeechLang(language) });
   }, []);
 
   const handleLanguageSelect = async (lang, text) => {
-    Speech.speak(text, { language: lang });
+    safeSpeech(text, { language: lang });
     setLanguage(lang);
     // Small delay for voice feedback
     setTimeout(() => {
@@ -30,8 +34,8 @@ const LanguageSelectionScreen = ({ navigation }) => {
   };
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Choose Telugu, Hindi, or English. Touch any button to select.', {
-      language: 'en',
+    safeSpeech(t('voice.chooseLanguageHelp'), {
+      language: getSpeechLang(language),
     });
   };
 

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { jobAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
@@ -91,6 +92,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    const { t } = useTranslation();
 
     const fetchJobs = async (isRefresh = false) => {
         try {
@@ -169,7 +171,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-            <TopBar title="Job History" showBack navigation={navigation} />
+            <TopBar title={t('history.title')} showBack navigation={navigation} />
 
             <ScrollView
                 style={styles.scroll}

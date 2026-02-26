@@ -12,12 +12,16 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { CameraView, requestCameraPermissionsAsync } from 'expo-camera';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { attendanceService } from '../../services/api/attendanceService';
 import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
 
 const QRScannerScreen = ({ navigation, route }) => {
   const { job, role = 'worker' } = route.params || {};
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
@@ -26,7 +30,7 @@ const QRScannerScreen = ({ navigation, route }) => {
     (async () => {
       const { status } = await requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-      Speech.speak('कृपया अपना कैमरा क्यूआर कोड की ओर रखें', { language: 'hi' });
+      safeSpeech(t('voice.scanQRPrompt'), { language: getSpeechLang(language) });
     })();
   }, []);
 
@@ -54,7 +58,7 @@ const QRScannerScreen = ({ navigation, route }) => {
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        Speech.speak(isCheckOut ? 'Work completed! धन्यवाद' : 'Attendance marked! हाज़िरी लग गई है', { language: 'hi' });
+        safeSpeech(isCheckOut ? t('voice.workCompleted') : t('voice.attendanceMarked'), { language: getSpeechLang(language) });
         navigation.replace(isCheckOut ? 'PaymentConfirmed' : 'AttendanceConfirmed', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to process attendance');

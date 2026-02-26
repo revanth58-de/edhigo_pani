@@ -10,12 +10,17 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupAttendanceConfirmedScreen = ({ navigation, route }) => {
   const { job, groupName, memberCount } = route.params;
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak('Group attendance confirmed! Work started.', { language: 'en' });
+    safeSpeech(t('voice.groupAttendanceConfirmed'), { language: getSpeechLang(language) });
   }, []);
 
   return (

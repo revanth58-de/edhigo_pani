@@ -14,21 +14,25 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
   const sendOTP = useAuthStore((state) => state.sendOTP);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak('Mobile number enter cheyyandi', { language: 'te' });
+    safeSpeech(t('auth.enterPhone'), { language: getSpeechLang(language) });
   }, []);
 
   const handleVoiceGuidance = () => {
-    Speech.speak('Enter your 10-digit mobile number using the keypad below', {
-      language: 'en',
+    safeSpeech(t('auth.enterPhone'), {
+      language: getSpeechLang(language),
     });
   };
 
@@ -60,7 +64,7 @@ const LoginScreen = ({ navigation }) => {
       }
 
       // Registered user — proceed to OTP
-      Speech.speak('OTP sent successfully', { language: 'en' });
+      safeSpeech(t('voice.otpSent'), { language: getSpeechLang(language) });
       navigation.navigate('OTP', {
         phone: phone,
         otp: result?.otp,
@@ -137,8 +141,8 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.voiceBar}>
             <View style={styles.voiceBarInner}>
               <View>
-                <Text style={styles.voiceTitle}>Mobile number enter cheyyandi</Text>
-                <Text style={styles.voiceSubtitle}>Tap speaker to hear</Text>
+                <Text style={styles.voiceTitle}>{t('auth.enterPhone')}</Text>
+                <Text style={styles.voiceSubtitle}>{t('auth.listenInstructions')}</Text>
               </View>
               <TouchableOpacity
                 style={styles.voiceButton}
@@ -154,7 +158,7 @@ const LoginScreen = ({ navigation }) => {
           <View style={styles.displaySection}>
             <View style={styles.labelRow}>
               <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
-              <Text style={styles.label}>PHONE NUMBER</Text>
+              <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
             </View>
             <Text style={styles.phoneDisplay}>
               {phone.length === 0 ? '0000 000000' : formatPhone(phone)}
@@ -215,7 +219,7 @@ const LoginScreen = ({ navigation }) => {
                   <ActivityIndicator color={colors.backgroundDark} />
                 ) : (
                   <>
-                    <Text style={styles.continueButtonText}>Continue</Text>
+                    <Text style={styles.continueButtonText}>{t('auth.sendOTP')}</Text>
                     <MaterialIcons name="arrow-forward" size={24} color={colors.backgroundDark} />
                   </>
                 )}

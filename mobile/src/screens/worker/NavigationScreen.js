@@ -13,22 +13,48 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
 
 const NavigationScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route.params || {};
+  const { t } = useTranslation();
   const { user } = useAuthStore();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [distance, setDistance] = useState('2.5 km');
   const [eta, setETA] = useState('15 min');
   const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
-    Speech.speak('Navigate to farmer location', { language: 'en' });
+    safeSpeech(t('voice.navigateToFarm'), { language: getSpeechLang(language) });
 
     // Connect socket
     socketService.connect();
+
+    // Join rooms for real-time updates
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for job cancellation by farmer
+    socketService.onJobCancelled((data) => {
+      if (data.jobId === job?.id) {
+        console.log('❌ Job cancelled by farmer:', data);
+        navigation.replace('JobCancelled', {
+          job: {
+            ...job,
+            farmerName: data.farmerName,
+            workType: data.workType,
+          },
+        });
+      }
+    });
 
     // Start location tracking
     let locationSubscription;
@@ -54,6 +80,7 @@ const NavigationScreen = ({ navigation, route }) => {
     startTracking();
 
     return () => {
+      socketService.offJobCancelled();
       if (locationSubscription) {
         if (typeof locationSubscription.remove === 'function') {
           locationSubscription.remove();
@@ -79,8 +106,8 @@ const NavigationScreen = ({ navigation, route }) => {
   };
 
   const handleCall = () => {
-    Speech.speak('Calling farmer', { language: 'en' });
-    const phoneNumber = `tel:${job?.farmerPhone || '+919876543210'}`;
+    safeSpeech(t('voice.callingFarmer'), { language: getSpeechLang(language) });
+    const phoneNumber = `tel:${job?.farmer?.phone || job?.farmerPhone || 'unknown'}`;
     Linking.openURL(phoneNumber);
   };
 

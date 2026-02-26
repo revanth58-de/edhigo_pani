@@ -29,10 +29,16 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
   };
 
   const handleToggleVoice = () => {
+    // Capture old state before toggling
+    const wasEnabled = isVoiceEnabled;
     toggleVoice();
-    const message = !isVoiceEnabled ? 'Voice guidance enabled' : 'Voice guidance disabled';
-    if (!isVoiceEnabled) {
-      Speech.speak(message, { language: 'en' });
+
+    if (wasEnabled) {
+      // Voice was ON → turning OFF: stop any ongoing speech immediately
+      Speech.stop();
+    } else {
+      // Voice was OFF → turning ON: announce it
+      Speech.speak('Voice guidance enabled', { language: 'en' });
     }
   };
 

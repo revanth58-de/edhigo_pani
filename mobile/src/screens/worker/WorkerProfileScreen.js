@@ -8,13 +8,18 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
-import { Alert, Platform } from 'react-native';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { authAPI } from '../../services/api';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const AVATAR_OPTIONS = [
@@ -26,6 +31,9 @@ const AVATAR_OPTIONS = [
 
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, updateUser, logout, isVoiceEnabled } = useAuthStore();
+  const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
+
   const [isAvailable, setIsAvailable] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +46,7 @@ const WorkerProfileScreen = ({ navigation }) => {
 
   const handleVoiceGuidance = () => {
     if (isVoiceEnabled) {
-      Speech.speak('Your profile information', { language: 'en' });
+      safeSpeech(t('voice.profileInfo'), { language: getSpeechLang(language) });
     }
   };
 
@@ -62,18 +70,18 @@ const WorkerProfileScreen = ({ navigation }) => {
       const response = await authAPI.updateProfile(payload);
       updateUser(response.data.user);
       setIsEditing(false);
-      Alert.alert('✅ Saved', 'Profile updated successfully!');
+      Alert.alert('✅ ' + t('common.success'), t('profile.saveSuccess'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert(t('common.error'), t('profile.saveError'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const stats = [
-    { label: 'Jobs Done', value: '24', icon: 'work' },
-    { label: 'Rating', value: '4.8', icon: 'star' },
-    { label: 'Experience', value: '2 Yrs', icon: 'verified' },
+    { label: t('worker.jobsDone'), value: '24', icon: 'work' },
+    { label: t('worker.rating'), value: '4.8', icon: 'star' },
+    { label: t('profile.experience'), value: '2 Yrs', icon: 'verified' },
   ];
 
   const skills = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'];
@@ -87,7 +95,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>{t('nav.profile')}</Text>
         <TouchableOpacity onPress={handleVoiceGuidance}>
           <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
@@ -183,8 +191,8 @@ const WorkerProfileScreen = ({ navigation }) => {
         {/* Village Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="location-on" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>Village</Text>
+            <MaterialIcons name="location-on" size={24} color={colors.primary} />
+            <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
           </View>
           {isEditing ? (
             <TextInput
@@ -202,8 +210,8 @@ const WorkerProfileScreen = ({ navigation }) => {
         {/* Skills Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="construction" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>Skills</Text>
+            <MaterialIcons name="construction" size={24} color={colors.primary} />
+            <Text style={styles.sectionTitle}>{t('worker.skills')}</Text>
           </View>
           <View style={styles.skillsContainer}>
             {skills.map((skill, index) => (
@@ -221,7 +229,7 @@ const WorkerProfileScreen = ({ navigation }) => {
               style={[styles.actionButton, styles.cancelButton]}
               onPress={handleEditToggle}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionButton, styles.saveButton, isSaving && { opacity: 0.7 }]}
@@ -231,7 +239,7 @@ const WorkerProfileScreen = ({ navigation }) => {
               {isSaving ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.saveButtonText}>Save Changes</Text>
+                <Text style={styles.saveButtonText}>{t('common.save')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -242,14 +250,14 @@ const WorkerProfileScreen = ({ navigation }) => {
               onPress={handleEditToggle}
             >
               <MaterialIcons name="edit" size={24} color={colors.primary} />
-              <Text style={styles.actionButtonText}>Edit Profile</Text>
+              <Text style={styles.actionButtonText}>{t('profile.editProfile')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
             >
               <MaterialIcons name="history" size={24} color={colors.primary} />
-              <Text style={styles.actionButtonText}>Work History</Text>
+              <Text style={styles.actionButtonText}>{t('worker.workHistory')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -260,17 +268,17 @@ const WorkerProfileScreen = ({ navigation }) => {
             style={styles.logoutButton}
             onPress={() => {
               if (Platform.OS === 'web') {
-                if (window.confirm('Are you sure you want to logout?')) {
+                if (window.confirm(t('profile.logoutConfirm'))) {
                   logout();
                 }
               } else {
                 Alert.alert(
-                  'Logout',
-                  'Are you sure you want to logout?',
+                  t('profile.logout'),
+                  t('profile.logoutConfirm'),
                   [
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('common.cancel'), style: 'cancel' },
                     {
-                      text: 'Logout',
+                      text: t('profile.logout'),
                       style: 'destructive',
                       onPress: () => logout(),
                     },
@@ -280,7 +288,7 @@ const WorkerProfileScreen = ({ navigation }) => {
             }}
           >
             <MaterialIcons name="logout" size={22} color="#EF4444" />
-            <Text style={styles.logoutButtonText}>Logout</Text>
+            <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
           </TouchableOpacity>
         )}
 

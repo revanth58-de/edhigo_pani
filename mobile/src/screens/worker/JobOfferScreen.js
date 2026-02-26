@@ -13,17 +13,49 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { jobService } from '../../services/api/jobService';
+import { socketService } from '../../services/socketService';
 
 const JobOfferScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route.params || {};
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
+  const language = useAuthStore((state) => state.language) || 'en';
   const [loading, setLoading] = React.useState(false);
 
   useEffect(() => {
-    Speech.speak('New job offer available. Review the details and accept or reject.', {
-      language: 'en',
+    safeSpeech(t('voice.newJobOffer'), {
+      language: getSpeechLang(language),
     });
+
+    // Connect socket and join rooms for cancellation alerts
+    socketService.connect();
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    // Listen for job cancellation by farmer
+    socketService.onJobCancelled((data) => {
+      if (data.jobId === job?.id) {
+        console.log('❌ Job cancelled by farmer while viewing offer:', data);
+        navigation.replace('JobCancelled', {
+          job: {
+            ...job,
+            farmerName: data.farmerName,
+            workType: data.workType,
+          },
+        });
+      }
+    });
+
+    return () => {
+      socketService.offJobCancelled();
+    };
   }, []);
 
   const handleAccept = async () => {
@@ -37,7 +69,7 @@ const JobOfferScreen = ({ navigation, route }) => {
       const response = await jobService.acceptJob(job.id, user.id);
       
       if (response.success) {
-        Speech.speak('Job accepted successfully!', { language: 'en' });
+        safeSpeech(t('voice.jobAccepted'), { language: getSpeechLang(language) });
         navigation.navigate('Navigation', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to accept job');
@@ -51,7 +83,7 @@ const JobOfferScreen = ({ navigation, route }) => {
   };
 
   const handleReject = () => {
-    Speech.speak('Job rejected', { language: 'en' });
+    safeSpeech(t('voice.jobRejected'), { language: getSpeechLang(language) });
     navigation.goBack();
   };
 

@@ -14,7 +14,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
+import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
@@ -24,6 +26,8 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const { user, logout, isVoiceEnabled } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
   const [searching, setSearching] = useState(false);
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [jobs, setJobs] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
   const activeTab = route.params?.tab || 'home';
@@ -51,21 +55,21 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     if (isVoiceEnabled) {
-      Speech.speak('Pani start cheyyandi', { language: 'te' });
+      safeSpeech(t('voice.startWork'), { language: getSpeechLang(language) });
     }
   }, [isVoiceEnabled]);
 
   const handleStartWork = async () => {
     setSearching(true);
     if (isVoiceEnabled) {
-      Speech.speak('Looking for jobs near you', { language: 'en' });
+      safeSpeech(t('voice.lookingJobs'), { language: getSpeechLang(language) });
     }
     try {
       const response = await jobAPI.getJobs({ status: 'pending' });
       const jobs = response?.data?.data || [];
       if (jobs.length === 0) {
         if (isVoiceEnabled) {
-          Speech.speak('No jobs found nearby. Try again later.', { language: 'en' });
+          safeSpeech(t('voice.noJobsFound'), { language: getSpeechLang(language) });
         }
         Alert.alert('No Jobs', 'No pending jobs found near you. Please try again later.');
         return;
@@ -73,7 +77,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       // Take the first available pending job
       const job = jobs[0];
       if (isVoiceEnabled) {
-        Speech.speak('Job found! Review the details.', { language: 'en' });
+        safeSpeech(t('voice.jobFound'), { language: getSpeechLang(language) });
       }
       navigation.navigate('JobOffer', { job });
     } catch (error) {
@@ -81,6 +85,15 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       Alert.alert('Error', 'Could not fetch jobs. Check your connection.');
     } finally {
       setSearching(false);
+    }
+  };
+
+  const toggleOnlineStatus = (value) => {
+    setIsOnline(value);
+    if (isVoiceEnabled) {
+      safeSpeech(value ? t('voice.nowOnline') : t('voice.nowOffline'), {
+        language: getSpeechLang(language),
+      });
     }
   };
 
@@ -102,7 +115,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Top Bar */}
-      <TopBar title="Worker Home" navigation={navigation} />
+      <TopBar title={t('worker.workerHome')} navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Rapido-style Map for Workers */}
@@ -123,15 +136,15 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Text style={styles.greetingText}>Namaste, {user?.name || 'Ramesh'}</Text>
-          <Text style={styles.subText}>Ready to earn today?</Text>
+          <Text style={styles.greetingText}>{t('common.namaste')}, {user?.name || 'Ramesh'}</Text>
+          <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
         </View>
 
         {/* Voice Prompt */}
         <View style={styles.voicePrompt}>
           <View style={styles.voicePromptInner}>
             <MaterialIcons name="volume-up" size={36} color={colors.primary} />
-            <Text style={styles.voicePromptText}>Pani start cheyyandi</Text>
+            <Text style={styles.voicePromptText}>{t('worker.startWork')}</Text>
           </View>
           <Text style={styles.voiceHint}>TAP THE BUTTON BELOW</Text>
         </View>
@@ -147,12 +160,12 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             {searching ? (
               <>
                 <ActivityIndicator color={colors.backgroundDark} size="large" />
-                <Text style={styles.startButtonText}>SEARCHING...</Text>
+                <Text style={styles.startButtonText}>{t('worker.searching')}</Text>
               </>
             ) : (
               <>
                 <MaterialIcons name="play-arrow" size={72} color={colors.backgroundDark} />
-                <Text style={styles.startButtonText}>START WORK</Text>
+                <Text style={styles.startButtonText}>{t('worker.startWork')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -164,7 +177,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             <View style={styles.actionIconCircle}>
               <MaterialIcons name="support-agent" size={30} color={colors.primary} />
             </View>
-            <Text style={styles.actionText}>Help</Text>
+            <Text style={styles.actionText}>{t('worker.help')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
@@ -173,7 +186,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             <View style={styles.actionIconCircle}>
               <MaterialIcons name="qr-code-scanner" size={30} color={colors.primary} />
             </View>
-            <Text style={styles.actionText}>Scan QR</Text>
+            <Text style={styles.actionText}>{t('worker.earnings')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -202,7 +215,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           }}
         >
           <MaterialIcons name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
+          <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
         </TouchableOpacity>
       </ScrollView>
 

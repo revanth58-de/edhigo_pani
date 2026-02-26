@@ -10,9 +10,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
   const { job, groupName, memberCount } = route.params;
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [hasPermission, setHasPermission] = useState(null);
   const [scanned, setScanned] = useState(false);
 
@@ -21,12 +26,12 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-    Speech.speak('Scan QR code for group attendance', { language: 'en' });
+    safeSpeech(t('voice.groupAttendanceScan'), { language: getSpeechLang(language) });
   }, []);
 
   const handleBarCodeScanned = ({ data }) => {
     setScanned(true);
-    Speech.speak('Attendance recorded', { language: 'en' });
+    safeSpeech(t('voice.attendanceRecorded'), { language: getSpeechLang(language) });
     navigation.navigate('GroupAttendanceConfirmed', { job, groupName, memberCount });
   };
 

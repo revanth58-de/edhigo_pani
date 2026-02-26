@@ -59,7 +59,7 @@ const VOICE_MESSAGES = {
 };
 
 // Get the correct language code for expo-speech
-const getSpeechLang = (langCode) => {
+export const getSpeechLang = (langCode) => {
   switch (langCode) {
     case 'te':
       return 'te-IN';
@@ -69,6 +69,17 @@ const getSpeechLang = (langCode) => {
     default:
       return 'en-IN';
   }
+};
+
+/**
+ * Safe Speech — stops any ongoing speech before starting new speech.
+ * Use this instead of Speech.speak() directly to prevent queued/repeating voices.
+ * @param {string} text — text to speak
+ * @param {object} options — expo-speech options (language, pitch, rate, etc.)
+ */
+export const safeSpeech = (text, options = {}) => {
+  Speech.stop();
+  Speech.speak(text, options);
 };
 
 /**

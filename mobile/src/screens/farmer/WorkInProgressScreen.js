@@ -11,13 +11,18 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const WorkInProgressScreen = ({ navigation, route }) => {
   const { job } = route.params;
+  const { t } = useTranslation();
+  const language = useAuthStore((state) => state.language) || 'en';
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
   useEffect(() => {
-    Speech.speak('Work is in progress', { language: 'en' });
+    safeSpeech(t('voice.workInProgress'), { language: getSpeechLang(language) });
     
     let seconds = 0;
     const interval = setInterval(() => {

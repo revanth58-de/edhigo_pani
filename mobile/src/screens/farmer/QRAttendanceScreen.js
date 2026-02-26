@@ -12,16 +12,20 @@ import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
+import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const QRAttendanceScreen = ({ navigation, route }) => {
   const { job, type = 'in' } = route.params || {};
+  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
+  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    Speech.speak(type === 'in' ? 'Scan QR code to check in' : 'Scan QR code to check out', { language: 'en' });
+    safeSpeech(type === 'in' ? t('voice.scanCheckIn') : t('voice.scanCheckOut'), { language: getSpeechLang(language) });
 
     socketService.connect();
     if (job?.id) {
@@ -34,7 +38,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
       // data coming from backend includes jobId and workerId
       if (data.jobId === job?.id || !data.jobId) {
         console.log(`✅ Attendance ${type} successful for job ${job?.id}:`, data);
-        Speech.speak(`Attendance ${type === 'in' ? 'in' : 'out'} successful`, { language: 'en' });
+        safeSpeech(t('voice.attendanceSuccess'), { language: getSpeechLang(language) });
 
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
@@ -124,7 +128,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <BottomNavBar role="farmer" activeTab="ShowQR" />
+      <BottomNavBar role="farmer" activeTab="Discovery" />
     </View>
   );
 };

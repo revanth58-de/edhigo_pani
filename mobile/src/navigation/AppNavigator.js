@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 
@@ -36,6 +37,7 @@ import AttendanceConfirmedScreen from '../screens/worker/AttendanceConfirmedScre
 import WorkStatusScreen from '../screens/worker/WorkStatusScreen';
 import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
+import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -93,6 +95,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkStatus" component={WorkStatusScreen} />
     <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
+    <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
   </Stack.Navigator>
@@ -132,17 +135,19 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
-      {!isAuthenticated ? (
-        <AuthNavigator />
-      ) : user?.role === 'worker' ? (
-        <WorkerNavigator />
-      ) : user?.role === 'leader' ? (
-        <LeaderNavigator />
-      ) : (
-        <FarmerNavigator />
-      )}
-    </NavigationContainer>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+      <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
+        {!isAuthenticated ? (
+          <AuthNavigator />
+        ) : user?.role === 'worker' ? (
+          <WorkerNavigator />
+        ) : user?.role === 'leader' ? (
+          <LeaderNavigator />
+        ) : (
+          <FarmerNavigator />
+        )}
+      </NavigationContainer>
+    </SafeAreaView>
   );
 };
 

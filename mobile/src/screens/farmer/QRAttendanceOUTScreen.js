@@ -17,6 +17,7 @@ import {
 import QRCode from 'react-native-qrcode-svg';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, borderRadius, shadows } from '../../theme/colors';
+import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import { speak } from '../../utils/voiceGuidance';
 
@@ -25,6 +26,7 @@ const { width } = Dimensions.get('window');
 const QRAttendanceOUTScreen = ({ navigation, route }) => {
   const { worker, job, duration, startTime } = route.params || {};
   const language = useAuthStore((state) => state.language) || 'en';
+  const { t } = useTranslation();
 
   // Mock Calculation
   // Rate: ₹400/day (8 hours) => ₹50/hour => ~₹0.83/minute
@@ -68,7 +70,7 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
         <View style={styles.modePill}>
           <Text style={styles.modeText}>WORKER MODE</Text>
         </View>
-        <Text style={styles.headerTitle}>SCAN TO FINISH</Text>
+        <Text style={styles.headerTitle}>{t('qr.checkOut').toUpperCase()}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

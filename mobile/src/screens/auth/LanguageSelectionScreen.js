@@ -67,17 +67,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundLight} />
 
-      {/* Voice Guidance Header */}
-      <TouchableOpacity
-        style={styles.voiceHeader}
-        onPress={handleVoiceGuidance}
-        activeOpacity={0.8}
-      >
-        <View style={styles.voiceIconContainer}>
-          <MaterialIcons name="volume-up" size={64} color={colors.primary} />
-        </View>
-        <Text style={styles.voiceHeaderText}>Listen to instructions</Text>
-      </TouchableOpacity>
+      <View style={{ height: 40 }} />
 
       {/* Headline */}
       <View style={styles.headlineContainer}>
@@ -133,28 +123,10 @@ const styles = StyleSheet.create({
     padding: 16,
     minHeight: '100%',
   },
-  // Voice Guidance Header
-  voiceHeader: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingBottom: 24,
-  },
-  voiceIconContainer: {
-    backgroundColor: `${colors.primary}33`, // 20% opacity
-    padding: 24,
-    borderRadius: 9999,
-    borderWidth: 4,
-    borderColor: colors.primary,
-    marginBottom: 12,
-  },
-  voiceHeaderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
   // Headline
   headlineContainer: {
     paddingBottom: 32,
+    marginTop: 24,
   },
   mainHeadline: {
     fontSize: 36,

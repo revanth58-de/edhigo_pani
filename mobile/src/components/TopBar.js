@@ -1,13 +1,12 @@
 // Shared Top App Bar with Help icon in top-right
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
-import useAuthStore from '../store/authStore';
+import { useTranslation } from '../i18n';
 
 const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
-  const { isVoiceEnabled, toggleVoice } = useAuthStore();
+  const { t } = useTranslation();
 
   const handleHelp = () => {
     if (onHelp) {
@@ -20,25 +19,11 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
         } else {
           Alert.alert(
             'Help / సహాయం',
-            '📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.',
+            'Support: +91 1800-123-456',
             [{ text: 'OK' }]
           );
         }
       });
-    }
-  };
-
-  const handleToggleVoice = () => {
-    // Capture old state before toggling
-    const wasEnabled = isVoiceEnabled;
-    toggleVoice();
-
-    if (wasEnabled) {
-      // Voice was ON → turning OFF: stop any ongoing speech immediately
-      Speech.stop();
-    } else {
-      // Voice was OFF → turning ON: announce it
-      Speech.speak('Voice guidance enabled', { language: 'en' });
     }
   };
 
@@ -52,16 +37,7 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>
       ) : (
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={handleToggleVoice}
-        >
-          <MaterialIcons
-            name={isVoiceEnabled ? "volume-up" : "volume-off"}
-            size={28}
-            color={colors.primary}
-          />
-        </TouchableOpacity>
+        <View style={styles.iconButtonPlaceholder} />
       )}
 
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
@@ -80,9 +56,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingTop: Platform.OS === 'ios' ? 52 : 40, // Increased top padding for mobile status bar visibility
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    zIndex: 100,
   },
   iconButton: {
     width: 44,
@@ -92,8 +70,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  iconButtonPlaceholder: {
+    width: 44,
+  },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#131811',
     flex: 1,

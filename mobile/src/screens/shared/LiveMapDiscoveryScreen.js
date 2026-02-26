@@ -60,16 +60,6 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* Voice Guidance Banner */}
-      <View style={styles.voiceBanner}>
-        <View style={styles.voiceIconCircle}>
-          <MaterialIcons name="record-voice-over" size={20} color="#FFFFFF" />
-        </View>
-        <Text style={styles.voiceBannerText}>
-          "{t('discovery.tapGreenButton')}"
-        </Text>
-      </View>
-
       {/* Search Bar */}
       <View style={styles.searchBar}>
         <MaterialIcons name="search" size={24} color="#9CA3AF" />
@@ -145,36 +135,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  voiceBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#F8F9FA',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginTop: StatusBar.currentHeight || 44,
-    borderRadius: 12,
-    marginHorizontal: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  voiceIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#6B7280',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceBannerText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#131811',
   },
   searchBar: {
     flexDirection: 'row',

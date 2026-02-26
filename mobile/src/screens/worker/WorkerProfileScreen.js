@@ -55,9 +55,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('nav.profile')}</Text>
-        <TouchableOpacity onPress={handleVoiceGuidance}>
-          <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
-        </TouchableOpacity>
+        <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -115,7 +113,7 @@ const WorkerProfileScreen = ({ navigation }) => {
               placeholderTextColor="#9CA3AF"
             />
           ) : (
-            <Text style={styles.name}>{user?.name || 'Worker Name'}</Text>
+            <Text style={styles.name}>{user?.name || t('common.worker')}</Text>
           )}
 
           <Text style={styles.phone}>{user?.phone || '+91 9876543210'}</Text>
@@ -249,7 +247,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingTop: 48,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     backgroundColor: colors.primary,
   },
   headerTitle: {

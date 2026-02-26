@@ -101,9 +101,7 @@ const FarmerHomeScreen = ({ navigation }) => {
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('voice.selectWorkType'), { language: getSpeechLang(language) });
-    }
+    // Voice guidance removed
 
     // Connect to sockets for real-time tracking
     socketService.connect();
@@ -137,9 +135,6 @@ const FarmerHomeScreen = ({ navigation }) => {
   }, [isVoiceEnabled]);
 
   const handleWorkTypeSelect = (workType) => {
-    if (isVoiceEnabled) {
-      safeSpeech(`${workType} ${t('voice.workTypeSelected')}`, { language: getSpeechLang(language) });
-    }
     navigation.navigate('SelectWorkers', { workType });
   };
 
@@ -215,10 +210,6 @@ const FarmerHomeScreen = ({ navigation }) => {
         {/* Headline */}
         <View style={styles.headlineContainer}>
           <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
-          <View style={styles.voiceBadge}>
-            <MaterialIcons name="record-voice-over" size={20} color={colors.primary} />
-            <Text style={styles.voiceBadgeText}>{t('farmerHome.selectWorkType')}</Text>
-          </View>
         </View>
 
         {/* Work Type Grid */}

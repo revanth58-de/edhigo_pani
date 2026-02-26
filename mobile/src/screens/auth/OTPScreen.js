@@ -111,22 +111,7 @@ const OTPScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Voice Guidance Bar */}
-        <View style={styles.voiceBar}>
-          <View style={styles.voiceBarInner}>
-            <View>
-              <Text style={styles.voiceTitle}>{t('auth.enterOTP')}</Text>
-              <Text style={styles.voiceSubtitle}>{t('auth.listenInstructions')}</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.voiceButton}
-              onPress={() => safeSpeech(t('auth.enterOTP'), { language: getSpeechLang(language) })}
-              activeOpacity={0.8}
-            >
-              <MaterialIcons name="volume-up" size={30} color={colors.backgroundDark} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <View style={{ height: 40 }} />
 
         {/* OTP Input Section */}
         <View style={styles.otpInputSection}>
@@ -239,21 +224,6 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  voiceBar: { padding: 16, paddingTop: 32 },
-  voiceBarInner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 20, backgroundColor: '#FFFFFF', borderRadius: 24,
-    borderWidth: 1, borderColor: '#dfe6db',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-    gap: 16,
-  },
-  voiceTitle: { fontSize: 18, fontWeight: 'bold', color: '#131811', marginBottom: 4 },
-  voiceSubtitle: { fontSize: 14, color: '#6f8961' },
-  voiceButton: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8,
-  },
   otpInputSection: { paddingHorizontal: 24, paddingVertical: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
   label: { fontSize: 12, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },

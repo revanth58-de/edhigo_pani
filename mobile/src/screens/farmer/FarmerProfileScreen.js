@@ -283,7 +283,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               placeholderTextColor="#9CA3AF"
             />
           ) : (
-            <Text style={styles.name}>{user?.name || '—'}</Text>
+            <Text style={styles.name}>{user?.name || t('common.farmer')}</Text>
           )}
 
           <Text style={styles.phone}>{user?.phone ? `+91 ${user.phone}` : '—'}</Text>

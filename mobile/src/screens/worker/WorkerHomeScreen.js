@@ -54,31 +54,23 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('voice.startWork'), { language: getSpeechLang(language) });
-    }
-  }, [isVoiceEnabled]);
+    // Voice guidance removed
+  }, []);
 
   const handleStartWork = async () => {
     setSearching(true);
-    if (isVoiceEnabled) {
-      safeSpeech(t('voice.lookingJobs'), { language: getSpeechLang(language) });
-    }
+    // Voice guidance removed
     try {
       const response = await jobAPI.getJobs({ status: 'pending' });
       const jobs = response?.data?.data || [];
       if (jobs.length === 0) {
-        if (isVoiceEnabled) {
-          safeSpeech(t('voice.noJobsFound'), { language: getSpeechLang(language) });
-        }
+        // Voice guidance removed
         Alert.alert('No Jobs', 'No pending jobs found near you. Please try again later.');
         return;
       }
       // Take the first available pending job
       const job = jobs[0];
-      if (isVoiceEnabled) {
-        safeSpeech(t('voice.jobFound'), { language: getSpeechLang(language) });
-      }
+      // Voice guidance removed
       navigation.navigate('JobOffer', { job });
     } catch (error) {
       console.error('Fetch jobs error:', error);
@@ -90,11 +82,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
   const toggleOnlineStatus = (value) => {
     setIsOnline(value);
-    if (isVoiceEnabled) {
-      safeSpeech(value ? t('voice.nowOnline') : t('voice.nowOffline'), {
-        language: getSpeechLang(language),
-      });
-    }
+    // Voice guidance removed
   };
 
   const handleHelp = () => {
@@ -136,18 +124,13 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Text style={styles.greetingText}>{t('common.namaste')}, {user?.name || 'Ramesh'}</Text>
+          <Text style={styles.greetingText}>
+            {t('common.namaste')}, {user?.name || t('common.worker')}
+          </Text>
           <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
         </View>
 
-        {/* Voice Prompt */}
-        <View style={styles.voicePrompt}>
-          <View style={styles.voicePromptInner}>
-            <MaterialIcons name="volume-up" size={36} color={colors.primary} />
-            <Text style={styles.voicePromptText}>{t('worker.startWork')}</Text>
-          </View>
-          <Text style={styles.voiceHint}>TAP THE BUTTON BELOW</Text>
-        </View>
+        <View style={{ height: 40 }} />
 
         {/* Massive START WORK Button */}
         <View style={styles.buttonContainer}>
@@ -160,12 +143,24 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             {searching ? (
               <>
                 <ActivityIndicator color={colors.backgroundDark} size="large" />
-                <Text style={styles.startButtonText}>{t('worker.searching')}</Text>
+                <Text
+                  style={styles.startButtonText}
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                >
+                  {t('worker.searching')}
+                </Text>
               </>
             ) : (
               <>
                 <MaterialIcons name="play-arrow" size={72} color={colors.backgroundDark} />
-                <Text style={styles.startButtonText}>{t('worker.startWork')}</Text>
+                <Text
+                  style={styles.startButtonText}
+                  adjustsFontSizeToFit
+                  numberOfLines={1}
+                >
+                  {t('worker.startWork')}
+                </Text>
               </>
             )}
           </TouchableOpacity>
@@ -186,7 +181,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             <View style={styles.actionIconCircle}>
               <MaterialIcons name="qr-code-scanner" size={30} color={colors.primary} />
             </View>
-            <Text style={styles.actionText}>{t('worker.earnings')}</Text>
+            <Text style={styles.actionText}>{t('qr.scanQR')}</Text>
           </TouchableOpacity>
         </View>
 

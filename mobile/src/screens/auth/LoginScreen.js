@@ -12,11 +12,9 @@ import {
   Modal,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
@@ -24,17 +22,6 @@ const LoginScreen = ({ navigation }) => {
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
   const sendOTP = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
-
-  useEffect(() => {
-    safeSpeech(t('auth.enterPhone'), { language: getSpeechLang(language) });
-  }, []);
-
-  const handleVoiceGuidance = () => {
-    safeSpeech(t('auth.enterPhone'), {
-      language: getSpeechLang(language),
-    });
-  };
 
   const handleNumberPress = (num) => {
     if (phone.length < 10) {
@@ -54,21 +41,17 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      // Use SAME format as RegisterScreen (no +91 prefix) so the DB lookup matches
       const result = await sendOTP(phone);
 
       if (!result?.isExistingUser) {
-        // Phone not registered yet — show modal
         setShowNotRegisteredModal(true);
         return;
       }
 
-      // Registered user — proceed to OTP
-      safeSpeech(t('voice.otpSent'), { language: getSpeechLang(language) });
       navigation.navigate('OTP', {
         phone: phone,
         otp: result?.otp,
-        fromRegister: false, // login flow — don't overwrite name/village/role
+        fromRegister: false,
       });
     } catch (error) {
       console.error('Send OTP Error:', error);
@@ -92,15 +75,14 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* ── Not-registered modal ── */}
       <Modal
         transparent
         animationType="fade"
         visible={showNotRegisteredModal}
         onRequestClose={() => setShowNotRegisteredModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
             <View style={styles.modalIconWrap}>
               <MaterialIcons name="person-add" size={52} color={colors.primary} />
             </View>
@@ -124,37 +106,17 @@ const LoginScreen = ({ navigation }) => {
             >
               <Text style={styles.modalDismiss}>Dismiss</Text>
             </TouchableOpacity>
-          </View>
-        </View>
+          </div>
+        </div>
       </Modal>
 
-      {/* ── Main screen ── */}
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Voice Guidance Bar */}
-          <View style={styles.voiceBar}>
-            <View style={styles.voiceBarInner}>
-              <View>
-                <Text style={styles.voiceTitle}>{t('auth.enterPhone')}</Text>
-                <Text style={styles.voiceSubtitle}>{t('auth.listenInstructions')}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.voiceButton}
-                onPress={handleVoiceGuidance}
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="volume-up" size={30} color={colors.backgroundDark} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Phone Number Display */}
           <View style={styles.displaySection}>
             <View style={styles.labelRow}>
               <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
@@ -168,15 +130,12 @@ const LoginScreen = ({ navigation }) => {
 
           <View style={{ flex: 1 }} />
 
-          {/* Custom Numeric Keypad */}
           <View style={styles.keypadContainer}>
             <View style={styles.keypad}>
               {keypadNumbers.map((row, rowIndex) => (
                 <View key={rowIndex} style={styles.keypadRow}>
                   {row.map((key, keyIndex) => {
-                    if (key === null) {
-                      return <View key={keyIndex} style={styles.keypadKey} />;
-                    }
+                    if (key === null) return <View key={keyIndex} style={styles.keypadKey} />;
                     if (key === 'backspace') {
                       return (
                         <TouchableOpacity
@@ -204,7 +163,6 @@ const LoginScreen = ({ navigation }) => {
               ))}
             </View>
 
-            {/* Continue Button */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
@@ -233,27 +191,9 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundLight,
-  },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  voiceBar: { padding: 16, paddingTop: 32 },
-  voiceBarInner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 20, backgroundColor: '#FFFFFF', borderRadius: 24,
-    borderWidth: 1, borderColor: '#dfe6db',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
-    gap: 16,
-  },
-  voiceTitle: { fontSize: 18, fontWeight: 'bold', color: '#131811', marginBottom: 4 },
-  voiceSubtitle: { fontSize: 14, color: '#6f8961' },
-  voiceButton: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8,
-  },
   displaySection: { paddingHorizontal: 24, paddingVertical: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   label: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
@@ -277,31 +217,12 @@ const styles = StyleSheet.create({
   continueButtonDisabled: { opacity: 0.5 },
   continueButtonText: { fontSize: 20, fontWeight: 'bold', color: colors.backgroundDark },
 
-  // Modal styles (same as RegisterScreen for consistency)
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center', alignItems: 'center', padding: 24,
-  },
-  modalCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 28, padding: 32,
-    alignItems: 'center', width: '100%', gap: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.3, shadowRadius: 32, elevation: 20,
-  },
-  modalIconWrap: {
-    width: 88, height: 88, borderRadius: 44,
-    backgroundColor: `${colors.primary}15`,
-    justifyContent: 'center', alignItems: 'center',
-  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 32, alignItems: 'center', width: '100%', gap: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.3, shadowRadius: 32, elevation: 20 },
+  modalIconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: `${colors.primary}15`, justifyContent: 'center', alignItems: 'center' },
   modalTitle: { fontSize: 24, fontWeight: '900', color: '#131811', textAlign: 'center' },
   modalBody: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
-  modalRegisterBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: colors.primary, paddingHorizontal: 36, paddingVertical: 16,
-    borderRadius: 9999, width: '100%', justifyContent: 'center',
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35, shadowRadius: 12, elevation: 10,
-  },
+  modalRegisterBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.primary, paddingHorizontal: 36, paddingVertical: 16, borderRadius: 9999, width: '100%', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
   modalRegisterBtnText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
   modalDismissBtn: { paddingVertical: 8 },
   modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },

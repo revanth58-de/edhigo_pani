@@ -26,6 +26,8 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST'],
   },
+  pingTimeout: 30000,   // 30s — wait longer before declaring client gone
+  pingInterval: 10000,  // 10s — ping every 10s to detect real disconnects faster
 });
 
 // ─── Middleware ───

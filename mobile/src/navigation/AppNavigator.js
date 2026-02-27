@@ -141,6 +141,9 @@ const AppNavigator = () => {
       <NavigationContainer>
         {!isAuthenticated ? (
           <AuthNavigator />
+        ) : !user?.role ? (
+          // Authenticated but no role yet (just completed OTP) → go pick a role
+          <AuthNavigator />
         ) : user?.role === 'worker' ? (
           <WorkerNavigator />
         ) : user?.role === 'leader' ? (

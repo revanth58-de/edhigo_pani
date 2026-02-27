@@ -1,7 +1,4 @@
-import { API_BASE_URL } from '../config/api.config';
-
-// The socket URL should be the base URL without the /api suffix
-const SOCKET_URL = API_BASE_URL.replace('/api', '');
+import { SOCKET_BASE_URL } from '../config/api.config';
 
 let io = null;
 try {
@@ -12,9 +9,11 @@ try {
 
 class SocketService {
     socket = null;
+    _connectionFailed = false; // Suppress repeated errors after max attempts
 
     connect() {
         if (this.socket?.connected || !io) return;
+        if (this._connectionFailed) return; // Already gave up — don't spam
 
         // Disconnect any stale socket before reconnecting
         if (this.socket) {
@@ -22,17 +21,18 @@ class SocketService {
             this.socket = null;
         }
 
-        console.log(`📡 Connecting to Socket.io at: ${SOCKET_URL}`);
+        console.log(`📡 Connecting to Socket.io at: ${SOCKET_BASE_URL}`);
 
-        this.socket = io(SOCKET_URL, {
+        this.socket = io(SOCKET_BASE_URL, {
             transports: ['websocket', 'polling'],
             autoConnect: true,
             reconnection: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 2000,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 3000,
         });
 
         this.socket.on('connect', () => {
+            this._connectionFailed = false;
             console.log('✅ Connected to Socket.io server');
         });
 
@@ -41,14 +41,21 @@ class SocketService {
         });
 
         this.socket.on('connect_error', (error) => {
-            console.error(`⚠️ Socket connection error: ${error.message}`);
+            // Only log first error — avoid flooding the console
+            if (!this._connectionFailed) {
+                console.warn(`⚠️ Socket unavailable (phone may not be on same WiFi as server): ${error.message}`);
+            }
         });
 
-        this.socket.on('reconnect_attempt', (attempt) => {
-            console.log(`🔄 Socket reconnection attempt #${attempt}`);
+        this.socket.on('reconnect_failed', () => {
+            this._connectionFailed = true;
+            console.warn('ℹ️ Socket.io gave up reconnecting. Real-time features disabled. Restart app when on same WiFi as server.');
+            this.socket.disconnect();
+            this.socket = null;
         });
 
         this.socket.on('reconnect', () => {
+            this._connectionFailed = false;
             console.log('✅ Socket reconnected successfully');
         });
     }
@@ -58,10 +65,11 @@ class SocketService {
             this.socket.disconnect();
             this.socket = null;
         }
+        this._connectionFailed = false;
     }
 
     joinJobRoom(jobId) {
-        if (this.socket) {
+        if (this.socket?.connected) {
             this.socket.emit('job:join', jobId);
             console.log(`📡 Joined room: job:${jobId}`);
         }
@@ -86,13 +94,13 @@ class SocketService {
     }
 
     emitLocation(data) {
-        if (this.socket) {
+        if (this.socket?.connected) {
             this.socket.emit('location:update', data);
         }
     }
 
     joinUserRoom(userId) {
-        if (this.socket) {
+        if (this.socket?.connected) {
             this.socket.emit('user:join', userId);
             console.log(`📡 Joined room: user:${userId}`);
         }
@@ -114,3 +122,4 @@ class SocketService {
 }
 
 export const socketService = new SocketService();
+

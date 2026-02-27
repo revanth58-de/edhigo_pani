@@ -21,6 +21,7 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { jobAPI } from '../../services/api';
+import { socketService } from '../../services/socketService';
 
 const WorkerHomeScreen = ({ navigation, route }) => {
   const { user, logout, isVoiceEnabled } = useAuthStore();
@@ -34,7 +35,39 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     fetchNearbyJobs();
-  }, []);
+
+    // Join personal socket room so backend can send targeted job offers
+    if (user?.id) {
+      socketService.connect();
+      socketService.joinUserRoom(user.id);
+    }
+
+    // Listen for new matched job offers from the backend
+    const handleNewOffer = (offer) => {
+      const distanceText = offer.distanceLabel || 'Nearby';
+      Alert.alert(
+        '🌾 New Job Offer!',
+        `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
+        [
+          { text: 'Ignore', style: 'cancel' },
+          {
+            text: 'View Offer',
+            onPress: () => navigation.navigate('JobOffer', { job: offer }),
+          },
+        ]
+      );
+    };
+
+    if (socketService.socket) {
+      socketService.socket.on('job:new-offer', handleNewOffer);
+    }
+
+    return () => {
+      if (socketService.socket) {
+        socketService.socket.off('job:new-offer', handleNewOffer);
+      }
+    };
+  }, [user?.id]);
 
   const fetchNearbyJobs = async () => {
     try {

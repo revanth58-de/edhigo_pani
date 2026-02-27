@@ -40,35 +40,24 @@ const submitRating = async (req, res, next) => {
       return res.status(404).json({ error: 'Recipient user not found' });
     }
 
-    // Create rating
-    const rating = await prisma.rating.create({
-      data: {
-        jobId,
-        fromUserId,
-        toUserId,
-        emoji,
-        stars: stars || null,
-      },
-    });
-
-    // Update recipient's rating average and count
-    const allRatings = await prisma.rating.findMany({
-      where: { toUserId },
-    });
+    // Use a transaction so the average always includes the just-submitted rating
+    const [rating, allRatings] = await prisma.$transaction([
+      prisma.rating.create({
+        data: { jobId, fromUserId, toUserId, emoji, stars: stars || null },
+      }),
+      prisma.rating.findMany({ where: { toUserId } }),
+    ]);
 
     // Calculate new average (emoji to number: happy=5, neutral=3, sad=1)
     const emojiToNumber = { happy: 5, neutral: 3, sad: 1 };
     const totalScore = allRatings.reduce((sum, r) => {
       return sum + (r.stars || emojiToNumber[r.emoji]);
-    }, 0);
-    const avgRating = totalScore / allRatings.length;
+    }, 0) + (rating.stars || emojiToNumber[rating.emoji]); // include new rating
+    const avgRating = totalScore / (allRatings.length + 1);
 
     await prisma.user.update({
       where: { id: toUserId },
-      data: {
-        ratingAvg: avgRating,
-        ratingCount: allRatings.length,
-      },
+      data: { ratingAvg: avgRating, ratingCount: allRatings.length + 1 },
     });
 
     console.log('✅ Rating submitted successfully:', { 

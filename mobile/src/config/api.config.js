@@ -7,31 +7,44 @@ import { Platform } from 'react-native';
 
 // IMPORTANT: Update this IP address with your PC's local IP
 // To find your IP: Run `ipconfig` in PowerShell and look for "IPv4 Address"
-const LOCAL_IP = '192.168.1.102';
+const LOCAL_IP = '192.168.1.108';
+
+// Tunnel URL for REST API calls (works on any network, not just same WiFi).
+// Run: npx localtunnel --port 5000  → paste the URL here (no trailing slash)
+// Set to null to always use LOCAL_IP instead.
+const TUNNEL_URL = null; // Phone is on same WiFi — use local IP directly (faster, no tunnel errors)
 
 /**
- * Auto-detect the best API URL based on the platform:
- * - Web browser: uses localhost directly
- * - Android / iOS (physical device or emulator): uses local network IP
- *   (10.0.2.2 only works in Android emulator, NOT on physical phones)
+ * REST API URL:
+ * - Web: localhost
+ * - Mobile + tunnel active: HTTPS tunnel URL (any network)
+ * - Mobile, no tunnel: local network IP (same WiFi required)
  */
 const getApiUrl = () => {
-  if (Platform.OS === 'web') {
-    return 'http://localhost:5000/api';
-  }
-  // Android + iOS physical devices & simulators all use the local network IP
+  if (Platform.OS === 'web') return 'http://localhost:5000/api';
+  if (TUNNEL_URL) return `${TUNNEL_URL}/api`;
   return `http://${LOCAL_IP}:5000/api`;
 };
 
-export const API_BASE_URL = getApiUrl();
+/**
+ * Socket.IO URL:
+ * ALWAYS uses the local IP directly — tunnels (localtunnel/ngrok) cannot
+ * reliably relay WebSocket or long-polling connections. The phone must be
+ * on the same WiFi as the PC for real-time features to work.
+ */
+const getSocketUrl = () => {
+  if (Platform.OS === 'web') return 'http://localhost:5000';
+  return `http://${LOCAL_IP}:5000`;
+};
 
-// Export config for debugging
+export const API_BASE_URL = getApiUrl();
+export const SOCKET_BASE_URL = getSocketUrl();
+
 export const API_CONFIG_INFO = {
   platform: Platform.OS,
-  url: API_BASE_URL,
+  apiUrl: API_BASE_URL,
+  socketUrl: SOCKET_BASE_URL,
   localIP: LOCAL_IP,
 };
 
-// Log the configuration on startup (helpful for debugging)
 console.log('🌐 API Configuration:', API_CONFIG_INFO);
-

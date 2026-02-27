@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 
 const LoginScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
+  const [cursorPos, setCursorPos] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
   const sendOTP = useAuthStore((state) => state.sendOTP);
@@ -25,12 +26,18 @@ const LoginScreen = ({ navigation }) => {
 
   const handleNumberPress = (num) => {
     if (phone.length < 10) {
-      setPhone(phone + num);
+      const newPhone = phone.slice(0, cursorPos) + num + phone.slice(cursorPos);
+      setPhone(newPhone);
+      setCursorPos(cursorPos + 1);
     }
   };
 
   const handleBackspace = () => {
-    setPhone(phone.slice(0, -1));
+    if (cursorPos > 0) {
+      const newPhone = phone.slice(0, cursorPos - 1) + phone.slice(cursorPos);
+      setPhone(newPhone);
+      setCursorPos(cursorPos - 1);
+    }
   };
 
   const handleContinue = async () => {
@@ -122,9 +129,30 @@ const LoginScreen = ({ navigation }) => {
               <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
               <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
             </View>
-            <Text style={[styles.phoneDisplay, phone.length === 0 && { color: '#9CA3AF' }]}>
-              {phone.length === 0 ? '0000 000000' : formatPhone(phone)}
-            </Text>
+
+            <View style={styles.phoneDisplayRow}>
+              {phone.length === 0 ? (
+                <Text style={[styles.phoneDisplay, { color: '#9CA3AF' }]}>0000 000000</Text>
+              ) : (
+                phone.split('').map((char, index) => (
+                  <React.Fragment key={index}>
+                    {index === cursorPos && <View style={styles.activeCursor} />}
+                    {index === 4 && <View style={{ width: 12 }} />}
+                    <TouchableOpacity onPress={() => setCursorPos(index)}>
+                      <Text style={[styles.phoneDisplay, cursorPos === index && styles.activeChar]}>
+                        {char}
+                      </Text>
+                    </TouchableOpacity>
+                  </React.Fragment>
+                ))
+              )}
+              {phone.length > 0 && cursorPos === phone.length && (
+                <View style={styles.activeCursor} />
+              )}
+              {phone.length > 0 && (
+                <TouchableOpacity style={styles.ghostTap} onPress={() => setCursorPos(phone.length)} />
+              )}
+            </View>
             <View style={styles.displayUnderline} />
           </View>
 
@@ -194,10 +222,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  displaySection: { paddingHorizontal: 24, paddingTop: 220, paddingBottom: 24, alignItems: 'center' },
+  displaySection: { paddingHorizontal: 24, paddingTop: 320, paddingBottom: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   label: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
-  phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 4, paddingVertical: 16 },
+  phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 2, paddingVertical: 16 },
+  phoneDisplayRow: { flexDirection: 'row', alignItems: 'center', minHeight: 80 },
+  activeCursor: { width: 3, height: 40, backgroundColor: colors.primary, borderRadius: 2 },
+  activeChar: { color: colors.primary },
+  ghostTap: { position: 'absolute', right: -20, width: 40, height: 80 },
   displayUnderline: { width: '100%', height: 2, backgroundColor: `${colors.primary}4D` },
   keypadContainer: { padding: 16 },
   keypad: { gap: 12 },

@@ -251,18 +251,27 @@ const RegisterScreen = ({ navigation }) => {
                                         key={role.key}
                                         style={[
                                             styles.roleCard,
-                                            isSelected && { borderColor: role.color, backgroundColor: `${role.color}15` },
+                                            isSelected && { borderColor: role.color, backgroundColor: `${role.color}08` },
                                         ]}
                                         onPress={() => setSelectedRole(role.key)}
                                     >
-                                        <View style={[styles.roleIconCircle, { backgroundColor: `${role.color}20` }]}>
-                                            <MaterialIcons name={role.icon} size={32} color={role.color} />
+                                        <View style={[
+                                            styles.roleIconCircle,
+                                            { backgroundColor: isSelected ? role.color : `${role.color}15` }
+                                        ]}>
+                                            <MaterialIcons
+                                                name={role.icon}
+                                                size={32}
+                                                color={isSelected ? '#FFFFFF' : role.color}
+                                            />
                                         </View>
                                         <Text style={[styles.roleLabel, isSelected && { color: role.color, fontWeight: 'bold' }]}>
                                             {roleLabel}
                                         </Text>
                                         {isSelected && (
-                                            <MaterialIcons name="check-circle" size={20} color={role.color} style={styles.roleCheck} />
+                                            <View style={[styles.roleCheckBadge, { backgroundColor: role.color }]}>
+                                                <MaterialIcons name="check" size={12} color="#FFFFFF" />
+                                            </View>
                                         )}
                                     </TouchableOpacity>
                                 );
@@ -303,7 +312,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.backgroundLight },
     content: { padding: 16 },
 
-    header: { alignItems: 'center', paddingTop: 220, paddingBottom: 24, position: 'relative' },
+    header: { alignItems: 'center', paddingTop: 120, paddingBottom: 24, position: 'relative' },
     backBtn: { position: 'absolute', top: 20, left: 0, padding: 8 },
     logoCircle: {
         width: 80, height: 80, borderRadius: 40,
@@ -337,7 +346,13 @@ const styles = StyleSheet.create({
     },
     roleIconCircle: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
     roleLabel: { fontSize: 12, color: '#6f8961', textAlign: 'center' },
-    roleCheck: { position: 'absolute', top: 8, right: 8 },
+    roleCheckBadge: {
+        position: 'absolute', top: -8, right: -8,
+        width: 24, height: 24, borderRadius: 12,
+        justifyContent: 'center', alignItems: 'center',
+        borderWidth: 2, borderColor: '#FFFFFF',
+        elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4,
+    },
 
     continueBtn: {
         flexDirection: 'row', height: 58, backgroundColor: colors.primary,

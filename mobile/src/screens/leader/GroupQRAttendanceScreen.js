@@ -8,14 +8,13 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
-  const { job, groupName, memberCount } = route.params;
+  const { job, groupName, memberCount } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [hasPermission, setHasPermission] = useState(null);
@@ -26,12 +25,10 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-    safeSpeech(t('voice.groupAttendanceScan'), { language: getSpeechLang(language) });
   }, []);
 
   const handleBarCodeScanned = ({ data }) => {
     setScanned(true);
-    safeSpeech(t('voice.attendanceRecorded'), { language: getSpeechLang(language) });
     navigation.navigate('GroupAttendanceConfirmed', { job, groupName, memberCount });
   };
 
@@ -54,14 +51,14 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
             barCodeTypes: ['qr'],
           }}
         />
-        
+
         <View style={styles.overlay}>
           <View style={styles.scanFrame} />
         </View>
 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Scan QR Code</Text>
-          <Text style={styles.headerSubtitle}>Group: {groupName}</Text>
+          <Text style={styles.headerSubtitle}>Group: {groupName || 'Guest'}</Text>
         </View>
 
         <View style={styles.footer}>
@@ -73,6 +70,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
           </View>
         </View>
       </View>
+      <BottomNavBar role="leader" activeTab="ShowQR" />
     </View>
   );
 };

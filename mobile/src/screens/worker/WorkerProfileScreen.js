@@ -8,32 +8,89 @@ import {
   StatusBar,
   ScrollView,
   Image,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
-import { Alert, Platform } from 'react-native';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import BottomNavBar from '../../components/BottomNavBar';
 
-const WorkerProfileScreen = ({ navigation }) => {
-  const { user, logout, isVoiceEnabled } = useAuthStore();
-  const language = useAuthStore((state) => state.language) || 'en';
-  const [isAvailable, setIsAvailable] = useState(true);
-  const { t } = useTranslation();
+const AVATAR_OPTIONS = [
+  { key: 'agriculture', icon: 'agriculture' },
+  { key: 'person', icon: 'person' },
+  { key: 'eco', icon: 'eco' },
+  { key: 'grass', icon: 'grass' },
+];
 
-  const handleVoiceGuidance = () => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('voice.profileInfo'), { language: getSpeechLang(language) });
+const WorkerProfileScreen = ({ navigation }) => {
+  const { user, logout, updateUser } = useAuthStore();
+  const { t } = useTranslation();
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+
+  // Editable state
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editVillage, setEditVillage] = useState(user?.village || '');
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
+  const [editSkills, setEditSkills] = useState(
+    typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'])
+  );
+
+  const ALL_SKILLS = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving', 'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning'];
+
+  const toggleSkill = (skill) => {
+    if (editSkills.includes(skill)) {
+      setEditSkills(editSkills.filter(s => s !== skill));
+    } else {
+      setEditSkills([...editSkills, skill]);
+    }
+  };
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Reset values if Cancelling
+      setEditVillage(user?.village || '');
+      setSelectedAvatar(user?.avatarIcon || 'person');
+      const currentSkills = typeof user?.skills === 'string'
+        ? JSON.parse(user.skills)
+        : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']);
+      setEditSkills(currentSkills);
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: editName,
+        village: editVillage,
+        skills: JSON.stringify(editSkills),
+        avatarIcon: selectedAvatar,
+      };
+
+      // Real update
+      await updateUser(payload);
+
+      setIsEditing(false);
+      setIsSaving(false);
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (error) {
+      setIsSaving(false);
+      Alert.alert('Error', 'Failed to update profile.');
     }
   };
 
   const stats = [
-    { label: t('worker.jobsDone'), value: '24', icon: 'work' },
-    { label: t('worker.rating'), value: '4.8', icon: 'star' },
-    { label: t('worker.earnings'), value: '₹12,000', icon: 'payments' },
+    { label: 'Jobs Done', value: '24', icon: 'work' },
+    { label: 'Rating', value: '4.8', icon: 'star' },
+    { label: 'Earnings', value: '₹12,000', icon: 'payments' },
   ];
 
   const skills = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'];
@@ -48,9 +105,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('nav.profile')}</Text>
-        <TouchableOpacity onPress={handleVoiceGuidance}>
-          <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
-        </TouchableOpacity>
+        <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -58,25 +113,75 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <MaterialIcons name="person" size={60} color={colors.primary} />
+              <MaterialIcons
+                name={isEditing ? selectedAvatar : (user?.avatarIcon || 'person')}
+                size={60}
+                color={colors.primary}
+              />
             </View>
-            <TouchableOpacity style={styles.editAvatarButton}>
+            <TouchableOpacity
+              style={styles.editAvatarButton}
+              onPress={() => setShowAvatarPicker(!showAvatarPicker)}
+            >
               <MaterialIcons name="camera-alt" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{user?.name || 'Worker Name'}</Text>
+          {showAvatarPicker && (
+            <View style={styles.avatarPicker}>
+              <Text style={styles.avatarPickerTitle}>Choose Profile Icon</Text>
+              <View style={styles.avatarPickerRow}>
+                {AVATAR_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[
+                      styles.avatarOption,
+                      (isEditing ? selectedAvatar : (user?.avatarIcon || 'person')) === opt.icon && styles.avatarOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedAvatar(opt.icon);
+                      setShowAvatarPicker(false);
+                    }}
+                  >
+                    <MaterialIcons
+                      name={opt.icon}
+                      size={24}
+                      color={(isEditing ? selectedAvatar : (user?.avatarIcon || 'person')) === opt.icon ? '#FFFFFF' : colors.primary}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {isEditing ? (
+            <TextInput
+              style={styles.nameInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Your Name"
+              placeholderTextColor="#9CA3AF"
+            />
+          ) : (
+            <Text style={styles.name}>{user?.name || t('common.worker')}</Text>
+          )}
+
           <Text style={styles.phone}>{user?.phone || '+91 9876543210'}</Text>
 
-          {/* Status Toggle */}
-          <View style={styles.statusContainer}>
-            <View style={[styles.statusBadge, isAvailable && styles.statusBadgeActive]}>
-              <View style={[styles.statusDot, isAvailable && styles.statusDotActive]} />
-              <Text style={[styles.statusText, isAvailable && styles.statusTextActive]}>
-                {isAvailable ? 'Available' : 'Offline'}
-              </Text>
+          {/* Status Toggle (only in view mode for simplicity) */}
+          {!isEditing && (
+            <View style={styles.statusContainer}>
+              <TouchableOpacity
+                style={[styles.statusBadge, isAvailable && styles.statusBadgeActive]}
+                onPress={() => setIsAvailable(!isAvailable)}
+              >
+                <View style={[styles.statusDot, isAvailable && styles.statusDotActive]} />
+                <Text style={[styles.statusText, isAvailable && styles.statusTextActive]}>
+                  {isAvailable ? 'Available' : 'Offline'}
+                </Text>
+              </TouchableOpacity>
             </View>
-          </View>
+          )}
         </View>
 
         {/* Stats Grid */}
@@ -90,40 +195,99 @@ const WorkerProfileScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {/* Village Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="location-on" size={24} color={colors.primary} />
+            <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
+          </View>
+          {isEditing ? (
+            <TextInput
+              style={styles.villageInput}
+              value={editVillage}
+              onChangeText={setEditVillage}
+              placeholder="Village Name"
+              placeholderTextColor="#9CA3AF"
+            />
+          ) : (
+            <Text style={styles.sectionValue}>{user?.village || 'Add your village in Edit Profile'}</Text>
+          )}
+        </View>
+
         {/* Skills Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <MaterialIcons name="construction" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>{t('worker.skills')}</Text>
+            <Text style={styles.sectionTitle}>Skills</Text>
           </View>
           <View style={styles.skillsContainer}>
-            {skills.map((skill, index) => (
-              <View key={index} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill}</Text>
-              </View>
-            ))}
+            {isEditing ? (
+              ALL_SKILLS.map((skill, index) => {
+                const isSelected = editSkills.includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.skillChip, isSelected && styles.skillChipSelected]}
+                    onPress={() => toggleSkill(skill)}
+                  >
+                    <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
+                    {isSelected && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              (typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || editSkills)).map((skill, index) => (
+                <View key={index} style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill}</Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 
-        {/* Village Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="location-on" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
-          </View>
-          <Text style={styles.sectionValue}>{user?.village || 'Gachibowli, Hyderabad'}</Text>
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialIcons name="edit" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>{t('profile.editProfile')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialIcons name="history" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>{t('worker.workHistory')}</Text>
-          </TouchableOpacity>
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={handleEditToggle}
+                disabled={isSaving}
+              >
+                <MaterialIcons name="close" size={24} color="#9CA3AF" />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <MaterialIcons name="check" size={24} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.actionButton} onPress={handleEditToggle}>
+                <MaterialIcons name="edit" size={24} color={colors.primary} />
+                <Text style={styles.actionButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
+              >
+                <MaterialIcons name="history" size={24} color={colors.primary} />
+                <Text style={styles.actionButtonText}>Work History</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Logout Button */}
@@ -131,7 +295,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           style={styles.logoutButton}
           onPress={() => {
             if (Platform.OS === 'web') {
-              if (window.confirm('Are you sure you want to logout?')) {
+              if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
                 logout();
               }
             } else {
@@ -151,7 +315,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           }}
         >
           <MaterialIcons name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
+          <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -173,7 +337,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
-    paddingTop: 48,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     backgroundColor: colors.primary,
   },
   headerTitle: {
@@ -232,6 +396,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#131811',
     marginBottom: 4,
+  },
+  nameInput: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#131811',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+    width: '80%',
+  },
+  villageInput: {
+    fontSize: 16,
+    color: '#131811',
+    borderBottomWidth: 1,
+    borderBottomColor: `${colors.primary}66`,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 4,
+    width: '100%',
   },
   phone: {
     fontSize: 16,
@@ -338,10 +524,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: `${colors.primary}33`,
   },
+  skillChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   skillText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#131811',
+  },
+  skillTextSelected: {
+    color: '#FFFFFF',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -366,32 +562,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
   },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-    paddingBottom: 32,
-    paddingHorizontal: 32,
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
-  navItem: {
-    alignItems: 'center',
-    gap: 4,
+  saveButtonText: {
+    color: '#FFFFFF',
   },
-  navText: {
-    fontSize: 10,
+  cancelButton: {
+    borderColor: '#9CA3AF',
+  },
+  cancelButtonText: {
+    color: '#9CA3AF',
     fontWeight: 'bold',
-    color: '#6f8961',
-    textTransform: 'uppercase',
-  },
-  navTextActive: {
-    color: colors.primary,
   },
   logoutButton: {
     flexDirection: 'row',
@@ -410,6 +593,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#EF4444',
+  },
+  avatarPicker: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    width: '100%',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: `${colors.primary}33`,
+  },
+  avatarPickerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+    marginBottom: 12,
+  },
+  avatarPickerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  avatarOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${colors.primary}1A`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: `${colors.primary}33`,
+  },
+  avatarOptionSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
 });
 

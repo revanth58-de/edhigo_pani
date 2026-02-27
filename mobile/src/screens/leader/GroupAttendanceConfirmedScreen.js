@@ -8,11 +8,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupAttendanceConfirmedScreen = ({ navigation, route }) => {
   const { job, groupName, memberCount } = route.params;
@@ -20,7 +18,6 @@ const GroupAttendanceConfirmedScreen = ({ navigation, route }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('voice.groupAttendanceConfirmed'), { language: getSpeechLang(language) });
   }, []);
 
   return (
@@ -57,10 +54,6 @@ const GroupAttendanceConfirmedScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.voiceHint}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceText}>Work has started for your group</Text>
-        </View>
       </View>
 
       <View style={styles.footer}>

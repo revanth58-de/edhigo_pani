@@ -11,12 +11,10 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
@@ -28,9 +26,6 @@ const SelectWorkersScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 
-  const handleVoiceGuidance = () => {
-    safeSpeech(t('voice.chooseWorkers'), { language: getSpeechLang(language) });
-  };
 
   const handleIncrement = () => {
     setWorkersNeeded(workersNeeded + 1);
@@ -85,7 +80,6 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       if (response.success) {
         // response.data is the full response body: { success, message, data: jobObj }
         const jobObj = response.data.data || response.data;
-        safeSpeech(t('voice.findingWorkers'), { language: getSpeechLang(language) });
         navigation.navigate('RequestSent', {
           job: { ...jobObj, workersNeeded, payPerDay: 500 },
         });
@@ -108,12 +102,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
           <MaterialIcons name="arrow-back-ios" size={28} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.topBarTitle}>{t('selectWorkers.title')}</Text>
-        <TouchableOpacity
-          style={styles.voiceButton}
-          onPress={handleVoiceGuidance}
-        >
-          <MaterialIcons name="volume-up" size={28} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 48 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>

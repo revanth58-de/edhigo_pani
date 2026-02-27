@@ -7,13 +7,12 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { CameraView, requestCameraPermissionsAsync } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { attendanceService } from '../../services/api/attendanceService';
 import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
@@ -27,11 +26,14 @@ const QRScannerScreen = ({ navigation, route }) => {
   const [flashOn, setFlashOn] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    const checkPermission = async () => {
       const { status } = await requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-      safeSpeech(t('voice.scanQRPrompt'), { language: getSpeechLang(language) });
-    })();
+    };
+
+    // Slight delay to allow navigator transition to finish
+    const timer = setTimeout(checkPermission, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {
@@ -58,7 +60,6 @@ const QRScannerScreen = ({ navigation, route }) => {
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        safeSpeech(isCheckOut ? t('voice.workCompleted') : t('voice.attendanceMarked'), { language: getSpeechLang(language) });
         navigation.replace(isCheckOut ? 'PaymentConfirmed' : 'AttendanceConfirmed', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to process attendance');
@@ -72,10 +73,29 @@ const QRScannerScreen = ({ navigation, route }) => {
   };
 
   if (hasPermission === null) {
-    return <View style={styles.container}><Text>Requesting camera permission...</Text></View>;
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.permissionText}>Requesting camera permission...</Text>
+      </View>
+    );
   }
   if (hasPermission === false) {
-    return <View style={styles.container}><Text>No access to camera</Text></View>;
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <MaterialIcons name="camera-alt" size={64} color="#9CA3AF" />
+        <Text style={styles.permissionText}>No access to camera</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={async () => {
+            const { status } = await requestCameraPermissionsAsync();
+            setHasPermission(status === 'granted');
+          }}
+        >
+          <Text style={styles.retryButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
@@ -130,14 +150,6 @@ const QRScannerScreen = ({ navigation, route }) => {
 
         {/* Bottom Controls */}
         <View style={styles.controls}>
-          {/* Voice Guidance Card */}
-          <View style={styles.voiceCard}>
-            <View style={styles.voiceRow}>
-              <MaterialIcons name="record-voice-over" size={20} color={colors.primary} />
-              <Text style={styles.voiceText}>Automatic Voice Active</Text>
-            </View>
-            <Text style={styles.voiceSubtext}>"कृपया अपना कैमरा क्यूआर कोड की ओर रखें"</Text>
-          </View>
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
@@ -163,6 +175,7 @@ const QRScannerScreen = ({ navigation, route }) => {
           </View>
         </View>
       </CameraView>
+      <BottomNavBar role="worker" activeTab="ShowQR" />
     </View>
   );
 };
@@ -171,6 +184,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000000',
+  },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  permissionText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   camera: {
     flex: 1,

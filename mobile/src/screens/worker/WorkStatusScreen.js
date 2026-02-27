@@ -9,10 +9,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import useAuthStore from '../../store/authStore';
 
 const WorkStatusScreen = ({ navigation, route }) => {
@@ -23,8 +21,7 @@ const WorkStatusScreen = ({ navigation, route }) => {
   const [isOnBreak, setIsOnBreak] = useState(false);
 
   useEffect(() => {
-    safeSpeech(t('voice.workInProgress'), { language: getSpeechLang(language) });
-    
+
     // Timer logic
     let seconds = 0;
     const interval = setInterval(() => {
@@ -42,11 +39,9 @@ const WorkStatusScreen = ({ navigation, route }) => {
 
   const handleBreak = () => {
     setIsOnBreak(!isOnBreak);
-    safeSpeech(isOnBreak ? t('voice.breakEnded') : t('voice.breakStarted'), { language: getSpeechLang(language) });
   };
 
   const handleEndWork = () => {
-    safeSpeech(t('voice.endingWork'), { language: getSpeechLang(language) });
     navigation.navigate('QRScanner', { job, type: 'out' });
   };
 
@@ -66,7 +61,7 @@ const WorkStatusScreen = ({ navigation, route }) => {
           <MaterialIcons name="schedule" size={48} color={colors.primary} />
           <Text style={styles.timerLabel}>Time Worked</Text>
           <Text style={styles.timerValue}>{elapsedTime}</Text>
-          
+
           {isOnBreak && (
             <View style={styles.breakBadge}>
               <MaterialIcons name="coffee" size={20} color="#FFFFFF" />
@@ -117,11 +112,6 @@ const WorkStatusScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Voice Guidance */}
-        <View style={styles.voiceCard}>
-          <MaterialIcons name="volume-up" size={24} color={colors.primary} />
-          <Text style={styles.voiceText}>Tap "End Work" when you're done</Text>
-        </View>
       </ScrollView>
 
       {/* End Work Button */}

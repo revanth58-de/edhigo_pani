@@ -8,19 +8,15 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const ArrivalAlertScreen = ({ navigation, route }) => {
   const { job } = route.params;
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('voice.workersArrived'), { language: getSpeechLang(language) });
   }, []);
 
   return (
@@ -49,10 +45,6 @@ const ArrivalAlertScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.voiceHint}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceText}>Show QR code for attendance</Text>
-        </View>
       </View>
 
       <View style={styles.footer}>
@@ -123,21 +115,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E5E7EB',
     marginVertical: 16,
-  },
-  voiceHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 32,
-    backgroundColor: `${colors.primary}0D`,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 9999,
-  },
-  voiceText: {
-    fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
   },
   footer: {
     padding: 16,

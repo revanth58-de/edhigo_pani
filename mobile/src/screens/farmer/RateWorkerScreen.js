@@ -11,28 +11,23 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { ratingService } from '../../services/api/ratingService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const RateWorkerScreen = ({ navigation, route }) => {
   const { job, worker } = route.params;
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    safeSpeech(t('voice.rateWorkerPrompt'), { language: getSpeechLang(language) });
   }, []);
 
   const handleRatingPress = (value) => {
     setRating(value);
-    safeSpeech(`${value} ${t('voice.starsSelected')}`, { language: getSpeechLang(language) });
   };
 
   const handleSubmit = async () => {
@@ -51,7 +46,6 @@ const RateWorkerScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        safeSpeech(t('voice.thankYouRating'), { language: getSpeechLang(language) });
         navigation.navigate('FarmerHome');
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');
@@ -127,11 +121,6 @@ const RateWorkerScreen = ({ navigation, route }) => {
           />
         </View>
 
-        {/* Voice Hint */}
-        <View style={styles.voiceHint}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceHintText}>Tap stars to rate the worker</Text>
-        </View>
       </ScrollView>
 
       {/* Submit Button */}
@@ -275,19 +264,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#131811',
     minHeight: 120,
-  },
-  voiceHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 24,
-    paddingHorizontal: 24,
-  },
-  voiceHintText: {
-    fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
   },
   footer: {
     position: 'absolute',

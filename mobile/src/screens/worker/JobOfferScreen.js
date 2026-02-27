@@ -10,11 +10,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { jobService } from '../../services/api/jobService';
 import { socketService } from '../../services/socketService';
 
@@ -22,13 +20,9 @@ const JobOfferScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const language = useAuthStore((state) => state.language) || 'en';
   const [loading, setLoading] = React.useState(false);
 
   useEffect(() => {
-    safeSpeech(t('voice.newJobOffer'), {
-      language: getSpeechLang(language),
-    });
 
     // Connect socket and join rooms for cancellation alerts
     socketService.connect();
@@ -67,9 +61,8 @@ const JobOfferScreen = ({ navigation, route }) => {
     setLoading(true);
     try {
       const response = await jobService.acceptJob(job.id, user.id);
-      
+
       if (response.success) {
-        safeSpeech(t('voice.jobAccepted'), { language: getSpeechLang(language) });
         navigation.navigate('Navigation', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to accept job');
@@ -83,7 +76,6 @@ const JobOfferScreen = ({ navigation, route }) => {
   };
 
   const handleReject = () => {
-    safeSpeech(t('voice.jobRejected'), { language: getSpeechLang(language) });
     navigation.goBack();
   };
 
@@ -129,11 +121,6 @@ const JobOfferScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Voice Guidance */}
-        <View style={styles.voiceGuidance}>
-          <MaterialIcons name="volume-up" size={24} color={colors.primary} />
-          <Text style={styles.voiceText}>Tap Accept or Reject below</Text>
-        </View>
       </View>
 
       {/* Action Buttons */}
@@ -262,21 +249,6 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#6f8961',
-  },
-  voiceGuidance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    backgroundColor: `${colors.primary}1A`,
-    padding: 16,
-    borderRadius: 16,
-    marginTop: 'auto',
-  },
-  voiceText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#131811',
   },
   actionsContainer: {
     flexDirection: 'row',

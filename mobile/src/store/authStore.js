@@ -51,7 +51,6 @@ const useAuthStore = create((set, get) => ({
   otp: null,
   phone: null,
   _hydrated: false,
-  isVoiceEnabled: true,
 
   // ── Rehydrate from AsyncStorage (called once on startup) ──
   rehydrate: async () => {
@@ -66,7 +65,6 @@ const useAuthStore = create((set, get) => ({
         isAuthenticated: saved.isAuthenticated ?? false,
         language: saved.language ?? 'te',
         phone: saved.phone ?? null,
-        isVoiceEnabled: saved.isVoiceEnabled ?? true,
         _hydrated: true,
       });
     } else {
@@ -78,15 +76,7 @@ const useAuthStore = create((set, get) => ({
   setLanguage: (language) => {
     set({ language });
     const s = get();
-    saveToStorage({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated, language, phone: s.phone, isVoiceEnabled: s.isVoiceEnabled });
-  },
-
-  toggleVoice: () => {
-    set((state) => {
-      const newVal = !state.isVoiceEnabled;
-      saveToStorage({ ...get(), isVoiceEnabled: newVal });
-      return { isVoiceEnabled: newVal };
-    });
+    saveToStorage({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated, language, phone: s.phone });
   },
 
   updateUser: (userData) => {

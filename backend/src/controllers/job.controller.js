@@ -365,62 +365,24 @@ const getMyJobs = async (req, res) => {
   }
 };
 
-// Cancel a job
+// Cancel/delete a job
 const cancelJob = async (req, res) => {
   try {
     const { id } = req.params;
+    // Check if job exists
+    const job = await prisma.job.findUnique({ where: { id } });
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    const existingJob = await prisma.job.findUnique({
+    // Update status to cancelled instead of deleting to keep history
+    await prisma.job.update({
       where: { id },
-      include: {
-        farmer: { select: { name: true } },
-        applications: {
-          where: { status: 'accepted' },
-          select: { workerId: true },
-        },
-      },
-    });
-    if (!existingJob) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
-    }
-
-    const job = await prisma.job.update({
-      where: { id },
-      data: { status: 'cancelled' },
+      data: { status: 'cancelled' }
     });
 
-    // Notify via Socket.io
-    const io = req.app.get('io');
-    if (io) {
-      const cancelPayload = {
-        jobId: id,
-        workType: existingJob.workType || 'job',
-        farmerName: existingJob.farmer?.name || 'Farmer',
-      };
-
-      // Notify everyone in the job room
-      io.to(`job:${id}`).emit('job:cancelled', cancelPayload);
-
-      // Also notify each accepted worker via their personal room
-      if (existingJob.applications && existingJob.applications.length > 0) {
-        existingJob.applications.forEach((app) => {
-          io.to(`user:${app.workerId}`).emit('worker:job_cancelled', cancelPayload);
-        });
-      }
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Job cancelled successfully',
-      data: job,
-    });
+    res.status(200).json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
     console.error('Cancel Job Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cancel job',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Failed to cancel job', error: error.message });
   }
 };
 
@@ -435,17 +397,17 @@ const getNearbyWorkers = async (req, res) => {
     const workers = await prisma.user.findMany({
       where: {
         role: 'worker',
-        status: { in: ['available', 'online'] },
-        latitude: { not: null },
-        longitude: { not: null },
+        // Optional: filter where latitude/longitude is not null
       },
       select: {
         id: true,
         name: true,
+        phone: true,
+        photoUrl: true,
+        ratingAvg: true,
         latitude: true,
         longitude: true,
         skills: true,
-        ratingAvg: true,
         village: true,
         status: true,
       },
@@ -470,15 +432,12 @@ const getNearbyWorkers = async (req, res) => {
     });
   } catch (error) {
     console.error('Get Nearby Workers Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch nearby workers',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch nearby workers', error: error.message });
   }
 };
 
 module.exports = {
+
   createJob,
   getJobs,
   getJobById,

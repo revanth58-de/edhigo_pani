@@ -10,99 +10,59 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
-  const { isVoiceEnabled } = useAuthStore();
+  const { user, language } = useAuthStore();
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
+
+  const [dots, setDots] = useState('');
   const [nearbyWorkers, setNearbyWorkers] = useState([]);
 
-  // Pulse animation refs
-  const pulse1 = useRef(new Animated.Value(0.3)).current;
-  const pulse2 = useRef(new Animated.Value(0.3)).current;
-  const pulse3 = useRef(new Animated.Value(0.3)).current;
-
-  // Generate simulated worker markers around the farm location
-  const generateSimulatedWorkers = () => {
-    const farmLat = job?.farmLatitude || 17.3850;
-    const farmLng = job?.farmLongitude || 78.4867;
-    const simulated = [];
-    const names = ['Ramesh', 'Suresh', 'Mahesh', 'Venkat', 'Raju'];
-    for (let i = 0; i < 5; i++) {
-      const offsetLat = (Math.random() - 0.5) * 0.03;  // ~1.5km radius
-      const offsetLng = (Math.random() - 0.5) * 0.03;
-      simulated.push({
-        id: `sim-${i}`,
-        latitude: farmLat + offsetLat,
-        longitude: farmLng + offsetLng,
-        type: 'worker',
-        active: true,
-        title: names[i],
-      });
-    }
-    return simulated;
-  };
-
-  // Fetch nearby workers from backend
-  const fetchNearbyWorkers = async () => {
-    try {
-      const response = await jobAPI.getNearbyWorkers();
-      const workers = response?.data?.data || [];
-      if (workers.length > 0) {
-        const markers = workers.map(w => ({
-          id: w.id,
-          latitude: w.latitude,
-          longitude: w.longitude,
-          type: 'worker',
-          active: true,
-          title: w.name || 'Worker',
-        }));
-        setNearbyWorkers(markers);
-      } else {
-        // If no real workers found, show simulated ones for visual feedback
-        setNearbyWorkers(generateSimulatedWorkers());
-      }
-    } catch (e) {
-      console.warn('Failed to fetch nearby workers, using simulated:', e.message);
-      setNearbyWorkers(generateSimulatedWorkers());
-    }
-  };
+  // Pulse Animations
+  const pulse1 = useRef(new Animated.Value(0)).current;
+  const pulse2 = useRef(new Animated.Value(0)).current;
+  const pulse3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('requestSent.findingMessage'), { language: getSpeechLang(language) });
-    }
-
-    // Staggered pulse animations
-    const createPulse = (anim, delay) => {
+    // Pulse animation logic
+    const createPulse = (value, delay) => {
       return Animated.loop(
         Animated.sequence([
           Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 1500, easing: Easing.ease, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.3, duration: 1500, easing: Easing.ease, useNativeDriver: true }),
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(value, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
         ])
       );
     };
 
     const p1 = createPulse(pulse1, 0);
-    const p2 = createPulse(pulse2, 500);
-    const p3 = createPulse(pulse3, 1000);
+    const p2 = createPulse(pulse2, 600);
+    const p3 = createPulse(pulse3, 1200);
 
     p1.start();
     p2.start();
     p3.start();
 
-    // Fetch nearby workers for map markers
-    fetchNearbyWorkers();
+    // Animated dots
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
 
     // Socket connection for real-time acceptance
     socketService.connect();
@@ -138,13 +98,11 @@ const RequestSentScreen = ({ navigation, route }) => {
       p2.stop();
       p3.stop();
       socketService.offJobAccepted();
+      socketService.offLocationUpdate();
     };
   }, [job?.id]);
 
   const handleCancel = () => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('requestSent.searchCancelled'), { language: getSpeechLang(language) });
-    }
     navigation.navigate('FarmerHome');
   };
 
@@ -162,7 +120,7 @@ const RequestSentScreen = ({ navigation, route }) => {
         <MapDashboard
           height="100%"
           userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
-          markers={nearbyWorkers}
+          markers={[]} // Pulse is already in IconContainer, let's keep it minimalist
         />
         <View style={styles.mapOverlay} />
       </View>
@@ -184,11 +142,6 @@ const RequestSentScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Voice Guidance Badge */}
-        <View style={styles.voiceBadge}>
-          <MaterialIcons name="volume-up" size={16} color={colors.primary} />
-          <Text style={styles.voiceBadgeText}>{t('requestSent.voiceGuidanceActive')}</Text>
-        </View>
       </View>
 
       {/* Job Info Card */}
@@ -336,21 +289,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 10,
-  },
-  voiceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: `${colors.primary}15`,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  voiceBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#131811',
-    letterSpacing: 0.5,
   },
   jobCard: {
     flexDirection: 'row',

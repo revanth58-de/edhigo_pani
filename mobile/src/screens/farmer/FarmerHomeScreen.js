@@ -12,11 +12,9 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
@@ -94,16 +92,14 @@ const AnimatedCard = ({ workType, onPress }) => {
 };
 
 const FarmerHomeScreen = ({ navigation }) => {
-  const { user, isVoiceEnabled } = useAuthStore();
+  const { user } = useAuthStore();
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [workers, setWorkers] = useState([]); // Real-time worker locations
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('voice.selectWorkType'), { language: getSpeechLang(language) });
-    }
+    // Voice guidance removed
 
     // Connect to sockets for real-time tracking
     socketService.connect();
@@ -134,12 +130,9 @@ const FarmerHomeScreen = ({ navigation }) => {
     return () => {
       // Clean up socket listeners if needed
     };
-  }, [isVoiceEnabled]);
+  }, []);
 
   const handleWorkTypeSelect = (workType) => {
-    if (isVoiceEnabled) {
-      safeSpeech(`${workType} ${t('voice.workTypeSelected')}`, { language: getSpeechLang(language) });
-    }
     navigation.navigate('SelectWorkers', { workType });
   };
 
@@ -215,10 +208,6 @@ const FarmerHomeScreen = ({ navigation }) => {
         {/* Headline */}
         <View style={styles.headlineContainer}>
           <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
-          <View style={styles.voiceBadge}>
-            <MaterialIcons name="record-voice-over" size={20} color={colors.primary} />
-            <Text style={styles.voiceBadgeText}>{t('farmerHome.selectWorkType')}</Text>
-          </View>
         </View>
 
         {/* Work Type Grid */}
@@ -330,20 +319,6 @@ const styles = StyleSheet.create({
     color: '#131811',
     textAlign: 'center',
     marginBottom: 8,
-  },
-  voiceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: `${colors.primary}1A`,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 9999,
-  },
-  voiceBadgeText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#6f8961',
   },
   grid: {
     flexDirection: 'row',

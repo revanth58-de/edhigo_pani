@@ -19,7 +19,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, borderRadius, shadows } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { speak } from '../../utils/voiceGuidance';
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +32,7 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
   // Minimum ₹50
   const totalMinutes = Math.floor((duration || 0) / 60);
   const calculatedAmount = Math.max(50, Math.ceil(totalMinutes * 0.83));
-  
+
   // QR Data Payload
   const qrPayload = JSON.stringify({
     type: 'attendance_out',
@@ -44,8 +43,6 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
   });
 
   useEffect(() => {
-    // Auto-speak instructions
-    speak('Work finished, please scan', language);
   }, []);
 
   const handleSimulateWorkerScan = () => {
@@ -53,8 +50,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
       'Worker Scanned!',
       'Simulating that the worker has successfully scanned this code.',
       [
-        { 
-          text: 'OK', 
+        {
+          text: 'OK',
           onPress: () => navigation.navigate('Payment', { worker, job, amount: calculatedAmount }) // Navigate to Payment
         }
       ]
@@ -74,22 +71,22 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Main QR Display */}
         <View style={styles.qrContainer}>
           <View style={styles.qrFrame}>
-             <QRCode
-               value={qrPayload}
-               size={width * 0.6}
-               color="black"
-               backgroundColor="white"
-             />
-             
-             {/* Corner Accents */}
-             <View style={styles.cornerTL} />
-             <View style={styles.cornerTR} />
-             <View style={styles.cornerBL} />
-             <View style={styles.cornerBR} />
+            <QRCode
+              value={qrPayload}
+              size={width * 0.6}
+              color="black"
+              backgroundColor="white"
+            />
+
+            {/* Corner Accents */}
+            <View style={styles.cornerTL} />
+            <View style={styles.cornerTR} />
+            <View style={styles.cornerBL} />
+            <View style={styles.cornerBR} />
           </View>
         </View>
 
@@ -106,18 +103,9 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
           <Text style={styles.englishText}>Work finished, please scan</Text>
         </View>
 
-        {/* Voice Button */}
-        <TouchableOpacity 
-          style={styles.voiceButton}
-          activeOpacity={0.8}
-          onPress={() => speak('Work finished, please scan', language)}
-        >
-          <MaterialIcons name="volume-up" size={28} color="#131811" />
-          <Text style={styles.voiceButtonText}>PLAY VOICE INSTRUCTIONS</Text>
-        </TouchableOpacity>
 
         {/* Dev Tool: Simulate Scan */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.simulateButton}
           onPress={handleSimulateWorkerScan}
         >
@@ -236,24 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-  },
-  voiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 32,
-    ...shadows.md,
-    width: '100%',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  voiceButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#131811',
   },
   simulateButton: {
     padding: 16,

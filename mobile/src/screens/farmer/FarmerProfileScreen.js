@@ -184,6 +184,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         animals: stringifyAnimals(editAnimals),
         skills: stringifyCrops(editCrops),       // reusing skills field for crops
         status: stringifyEquipment(editEquipment), // reusing status field for equipment (temp)
+        avatarIcon: selectedAvatar,
       };
       const response = await authAPI.updateProfile(payload);
       updateUser({
@@ -282,7 +283,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               placeholderTextColor="#9CA3AF"
             />
           ) : (
-            <Text style={styles.name}>{user?.name || '—'}</Text>
+            <Text style={styles.name}>{user?.name || t('common.farmer')}</Text>
           )}
 
           <Text style={styles.phone}>{user?.phone ? `+91 ${user.phone}` : '—'}</Text>
@@ -501,16 +502,26 @@ const FarmerProfileScreen = ({ navigation }) => {
           </View>
         ) : (
           <>
-            <TouchableOpacity style={styles.editButton} onPress={handleEditToggle}>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={handleEditToggle}
+            >
               <MaterialIcons name="edit" size={24} color="#FFFFFF" />
-              <Text style={styles.editButtonText}>{t('profile.editProfile')}</Text>
+              <Text style={styles.editButtonText}>Edit Profile</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('FarmerHistory')}
+            >
+              <MaterialIcons name="history" size={24} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary }]}>Work History</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.logoutButton}
               onPress={() => {
                 if (Platform.OS === 'web') {
-                  // Alert.alert doesn't work on web
-                  if (window.confirm('Are you sure you want to logout?')) {
+                  if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
                     logout();
                   }
                 } else {

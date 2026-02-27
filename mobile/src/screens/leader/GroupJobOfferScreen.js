@@ -10,11 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
   const { groupName, memberCount } = route.params;
@@ -29,11 +27,9 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-    safeSpeech(t('voice.groupJobOfferReceived'), { language: getSpeechLang(language) });
   }, []);
 
   const handleAccept = () => {
-    safeSpeech(t('voice.jobAccepted'), { language: getSpeechLang(language) });
     navigation.navigate('GroupQRAttendance', { job, groupName, memberCount });
   };
 
@@ -98,10 +94,6 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        <View style={styles.voiceHint}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceText}>Accept or reject this job offer</Text>
-        </View>
       </ScrollView>
 
       <View style={styles.footer}>

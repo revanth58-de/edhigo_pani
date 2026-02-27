@@ -8,11 +8,9 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const AttendanceConfirmedScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -20,8 +18,7 @@ const AttendanceConfirmedScreen = ({ navigation, route }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('voice.attendanceConfirmed'), { language: getSpeechLang(language) });
-    
+
     // Auto-navigate after 3 seconds
     const timer = setTimeout(() => {
       navigation.navigate('WorkStatus', { job });

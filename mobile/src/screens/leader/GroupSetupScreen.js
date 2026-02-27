@@ -11,11 +11,9 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupSetupScreen = ({ navigation }) => {
   const { t } = useTranslation();
@@ -28,7 +26,6 @@ const GroupSetupScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please enter a group name');
       return;
     }
-    safeSpeech(t('voice.groupCreated'), { language: getSpeechLang(language) });
     navigation.navigate('GroupJobOffer', { groupName, memberCount });
   };
 

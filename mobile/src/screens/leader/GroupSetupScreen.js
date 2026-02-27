@@ -14,20 +14,34 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import { groupAPI } from '../../services/api';
 
 const GroupSetupScreen = ({ navigation }) => {
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
   const [groupName, setGroupName] = useState('');
   const [memberCount, setMemberCount] = useState(5);
+  const [wageType, setWageType] = useState('per_day'); // 'per_day' | 'per_acre'
 
-  const handleCreateGroup = () => {
+  const handleContinue = async () => {
     if (!groupName) {
       Alert.alert('Error', 'Please enter a group name');
       return;
     }
-    navigation.navigate('GroupJobOffer', { groupName, memberCount });
+    try {
+      const res = await groupAPI.createGroup({
+        name: groupName,
+        memberCount: memberCount
+      });
+      navigation.navigate('ManageGroup', {
+        groupId: res.data.group.id,
+        groupName: groupName
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create group');
+    }
   };
+
+  const quickOptions = [5, 10, 15, 20];
 
   return (
     <View style={styles.container}>
@@ -44,7 +58,7 @@ const GroupSetupScreen = ({ navigation }) => {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         <View style={styles.inputCard}>
           <MaterialIcons name="groups" size={48} color={colors.primary} />
-          <Text style={styles.inputLabel}>{t('leader.groupName')}</Text>
+          <Text style={styles.inputLabel}>Group Name</Text>
           <TextInput
             style={styles.input}
             placeholder="Enter group name..."
@@ -55,13 +69,13 @@ const GroupSetupScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.counterCard}>
-          <Text style={styles.counterLabel}>{t('leader.members')}</Text>
+          <Text style={styles.counterLabel}>Member Count</Text>
           <View style={styles.counter}>
             <TouchableOpacity
               style={styles.counterButton}
-              onPress={() => setMemberCount(Math.max(2, memberCount - 1))}
+              onPress={() => setMemberCount(Math.max(1, memberCount - 1))}
             >
-              <MaterialIcons name="remove" size={32} color={colors.primary} />
+              <MaterialIcons name="remove" size={32} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.counterValue}>{memberCount}</Text>
             <TouchableOpacity
@@ -71,24 +85,63 @@ const GroupSetupScreen = ({ navigation }) => {
               <MaterialIcons name="add" size={32} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
+
+          <View style={styles.quickOptions}>
+            {quickOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt}
+                style={[styles.quickOption, memberCount === opt && styles.quickOptionActive]}
+                onPress={() => setMemberCount(opt)}
+              >
+                <Text style={[styles.quickOptionText, memberCount === opt && styles.quickOptionTextActive]}>
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <View style={styles.infoCard}>
-          <MaterialIcons name="info" size={24} color={colors.primary} />
-          <Text style={styles.infoText}>
-            You'll be able to add members after creating the group
-          </Text>
+        <View style={styles.wageCard}>
+          <Text style={styles.wageLabel}>Wage Type</Text>
+          <View style={styles.wageOptions}>
+            <TouchableOpacity
+              style={[styles.wageOption, wageType === 'per_day' && styles.wageOptionActive]}
+              onPress={() => setWageType('per_day')}
+            >
+              <MaterialIcons
+                name="payments"
+                size={24}
+                color={wageType === 'per_day' ? '#FFF' : colors.primary}
+              />
+              <Text style={[styles.wageOptionText, wageType === 'per_day' && styles.wageOptionTextActive]}>
+                💰 Per Day
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.wageOption, wageType === 'per_acre' && styles.wageOptionActive]}
+              onPress={() => setWageType('per_acre')}
+            >
+              <MaterialIcons
+                name="grass"
+                size={24}
+                color={wageType === 'per_acre' ? '#FFF' : colors.primary}
+              />
+              <Text style={[styles.wageOptionText, wageType === 'per_acre' && styles.wageOptionTextActive]}>
+                🌾 Per Acre
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.createButton}
-          onPress={handleCreateGroup}
+          onPress={handleContinue}
           activeOpacity={0.9}
         >
-          <Text style={styles.createButtonText}>{t('leader.createGroup').toUpperCase()}</Text>
-          <MaterialIcons name="arrow-forward" size={24} color={colors.backgroundDark} />
+          <Text style={styles.createButtonText}>CONFIRM</Text>
+          <MaterialIcons name="check-circle" size={24} color={colors.backgroundDark} />
         </TouchableOpacity>
       </View>
     </View>
@@ -110,7 +163,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: colors.backgroundDark,
   },
@@ -125,49 +178,40 @@ const styles = StyleSheet.create({
   inputCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    marginBottom: 20,
     elevation: 4,
   },
   inputLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#131811',
-    marginTop: 16,
-    marginBottom: 16,
+    color: '#374151',
+    marginTop: 12,
+    marginBottom: 12,
   },
   input: {
     width: '100%',
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 14,
     fontSize: 16,
-    color: '#131811',
-    borderWidth: 2,
-    borderColor: `${colors.primary}33`,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   counterCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    padding: 32,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    marginBottom: 20,
     elevation: 4,
   },
   counterLabel: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 24,
+    color: '#374151',
+    marginBottom: 16,
   },
   counter: {
     flexDirection: 'row',
@@ -175,33 +219,86 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   counterButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   counterValue: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: colors.primary,
-    minWidth: 80,
+    minWidth: 60,
     textAlign: 'center',
   },
-  infoCard: {
+  quickOptions: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 12,
+  },
+  quickOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 99,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  quickOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  quickOptionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+  quickOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  wageCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    elevation: 4,
+  },
+  wageLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  wageOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  wageOption: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: `${colors.primary}0D`,
-    padding: 16,
-    borderRadius: 16,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#6f8961',
-    lineHeight: 20,
+  wageOptionActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  wageOptionText: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  wageOptionTextActive: {
+    color: '#FFFFFF',
   },
   footer: {
     position: 'absolute',
@@ -214,21 +311,17 @@ const styles = StyleSheet.create({
   },
   createButton: {
     flexDirection: 'row',
-    height: 64,
+    height: 60,
     backgroundColor: colors.primary,
-    borderRadius: 9999,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
+    elevation: 8,
   },
   createButtonText: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: colors.backgroundDark,
   },
 });

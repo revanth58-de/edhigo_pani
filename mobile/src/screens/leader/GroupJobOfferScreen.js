@@ -1,4 +1,3 @@
-// Screen 27: Group Job Offer - Leader accepts job for group
 import React, { useEffect } from 'react';
 import {
   View,
@@ -13,29 +12,45 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import * as Speech from 'expo-speech';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
-  const { groupName, memberCount } = route.params;
+  const { groupId, jobData, workerCount } = route.params || {};
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
-  const job = {
+
+  // Example job data if none provided via route
+  const job = jobData || {
     workType: 'Harvesting',
-    payPerDay: 500,
-    totalPay: 500 * memberCount,
-    duration: '1 day',
-    farmAddress: 'Gachibowli, Hyderabad',
+    distance: '1.2 km',
+    workerCount: workerCount || 15,
+    pay: 500,
+    farmAddress: 'Mylavaram Road',
   };
 
   useEffect(() => {
+    playVoicePrompt();
   }, []);
 
+  const playVoicePrompt = () => {
+    const message = "Pani request vachindi"; // "Work request received" in Telugu would be better if needed, but following prompt exactly.
+    Speech.speak(message, { language: 'te' });
+  };
+
   const handleAccept = () => {
-    navigation.navigate('GroupQRAttendance', { job, groupName, memberCount });
+    navigation.navigate('GroupNavigation', { job, groupId });
   };
 
   const handleReject = () => {
-    Alert.alert('Job Rejected', 'Looking for more jobs...');
     navigation.goBack();
+  };
+
+  const getWorkIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'harvesting': return 'agriculture';
+      case 'sowing': return 'grass';
+      case 'irrigation': return 'water-drop';
+      default: return 'work';
+    }
   };
 
   return (
@@ -43,75 +58,57 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Group Job Offer</Text>
-        <Text style={styles.headerSubtitle}>గ్రూప్ ఉద్యోగం</Text>
+        <View style={styles.iconCircle}>
+          <MaterialIcons name={getWorkIcon(job.workType)} size={48} color={colors.primary} />
+        </View>
+        <Text style={styles.headerTitle}>{job.workType.toUpperCase()}</Text>
+        <Text style={styles.headerSubtitle}>{job.distance} Away</Text>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        <View style={styles.groupBadge}>
-          <MaterialIcons name="groups" size={32} color={colors.primary} />
-          <Text style={styles.groupName}>{groupName}</Text>
-          <Text style={styles.memberCount}>{memberCount} members</Text>
-        </View>
-
-        <View style={styles.jobCard}>
-          <View style={styles.jobRow}>
-            <MaterialIcons name="work" size={28} color={colors.primary} />
-            <View style={styles.jobInfo}>
-              <Text style={styles.jobLabel}>Work Type</Text>
-              <Text style={styles.jobValue}>{job.workType}</Text>
+      <View style={styles.content}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Workers Required</Text>
+            <View style={styles.statValueRow}>
+              <MaterialIcons name="groups" size={24} color={colors.primary} />
+              <Text style={styles.statValue}>{job.workerCount}</Text>
             </View>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.jobRow}>
-            <MaterialIcons name="payments" size={28} color={colors.primary} />
-            <View style={styles.jobInfo}>
-              <Text style={styles.jobLabel}>Total Pay</Text>
-              <Text style={styles.jobValue}>₹{job.totalPay}</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.jobRow}>
-            <MaterialIcons name="schedule" size={28} color={colors.primary} />
-            <View style={styles.jobInfo}>
-              <Text style={styles.jobLabel}>Duration</Text>
-              <Text style={styles.jobValue}>{job.duration}</Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.jobRow}>
-            <MaterialIcons name="location-on" size={28} color={colors.primary} />
-            <View style={styles.jobInfo}>
-              <Text style={styles.jobLabel}>Location</Text>
-              <Text style={styles.jobValue}>{job.farmAddress}</Text>
-            </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Wage Offer</Text>
+            <Text style={styles.statValue}>₹{job.pay}/day</Text>
           </View>
         </View>
 
-      </ScrollView>
+        <View style={styles.locationCard}>
+          <MaterialIcons name="location-on" size={24} color={colors.primary} />
+          <Text style={styles.locationText}>{job.farmAddress}</Text>
+        </View>
+
+        <View style={styles.voiceIndicator}>
+          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
+          <Text style={styles.voiceText}>"Pani request vachindi"</Text>
+        </View>
+      </View>
 
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.rejectButton}
           onPress={handleReject}
-          activeOpacity={0.9}
+          activeOpacity={0.8}
         >
-          <MaterialIcons name="close" size={24} color="#FFFFFF" />
-          <Text style={styles.rejectButtonText}>REJECT</Text>
+          <MaterialIcons name="close" size={32} color="#FFFFFF" />
+          <Text style={styles.buttonText}>REJECT</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.acceptButton}
           onPress={handleAccept}
-          activeOpacity={0.9}
+          activeOpacity={0.8}
         >
-          <MaterialIcons name="check" size={24} color={colors.backgroundDark} />
-          <Text style={styles.acceptButtonText}>ACCEPT</Text>
+          <MaterialIcons name="check" size={32} color={colors.backgroundDark} />
+          <Text style={styles.buttonText}>ACCEPT</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -119,160 +116,93 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundLight,
-  },
+  container: { flex: 1, backgroundColor: colors.backgroundLight },
   header: {
     backgroundColor: colors.primary,
-    paddingTop: 60,
+    paddingTop: 80,
     paddingBottom: 40,
-    paddingHorizontal: 24,
     alignItems: 'center',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: colors.backgroundDark,
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: colors.backgroundDark,
-    opacity: 0.8,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
-  groupBadge: {
-    backgroundColor: '#FFFFFF',
-    marginTop: -20,
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 24,
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-    marginBottom: 24,
-  },
-  groupName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginTop: 12,
-  },
-  memberCount: {
-    fontSize: 16,
-    color: '#6f8961',
-    marginTop: 4,
-  },
-  jobCard: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    borderRadius: 24,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    marginBottom: 16,
     elevation: 4,
   },
-  jobRow: {
+  headerTitle: { fontSize: 24, fontWeight: '900', color: colors.backgroundDark },
+  headerSubtitle: { fontSize: 16, color: colors.backgroundDark, opacity: 0.8 },
+  content: { flex: 1, padding: 20 },
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 20,
+    elevation: 4,
+    marginBottom: 20,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statLabel: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
+  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statValue: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+  statDivider: { width: 1, backgroundColor: '#E5E7EB', height: '100%' },
+  locationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    elevation: 2,
   },
-  jobInfo: {
-    flex: 1,
-  },
-  jobLabel: {
-    fontSize: 14,
-    color: '#6f8961',
-    marginBottom: 4,
-  },
-  jobValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E5E7EB',
-    marginVertical: 20,
-  },
-  voiceHint: {
+  locationText: { fontSize: 16, color: '#374151', flex: 1 },
+  voiceIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 32,
     gap: 8,
-    marginTop: 24,
-    marginHorizontal: 16,
-    backgroundColor: `${colors.primary}0D`,
-    padding: 16,
-    borderRadius: 16,
+    backgroundColor: `${colors.primary}1A`,
+    padding: 12,
+    borderRadius: 99,
+    alignSelf: 'center',
   },
-  voiceText: {
-    fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
-  },
+  voiceText: { color: colors.primary, fontWeight: 'bold' },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
-    gap: 12,
     padding: 16,
-    paddingBottom: 32,
-    backgroundColor: 'rgba(246, 248, 246, 0.95)',
+    paddingBottom: 40,
+    gap: 12,
+    backgroundColor: '#FFF'
   },
   rejectButton: {
     flex: 1,
-    flexDirection: 'row',
-    height: 64,
+    height: 70,
     backgroundColor: '#EF4444',
-    borderRadius: 9999,
-    justifyContent: 'center',
+    borderRadius: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  rejectButtonText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    elevation: 4,
   },
   acceptButton: {
     flex: 1,
-    flexDirection: 'row',
-    height: 64,
+    height: 70,
     backgroundColor: colors.primary,
-    borderRadius: 9999,
-    justifyContent: 'center',
+    borderRadius: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    elevation: 4,
   },
-  acceptButtonText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: colors.backgroundDark,
-  },
+  buttonText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
 });
 
 export default GroupJobOfferScreen;

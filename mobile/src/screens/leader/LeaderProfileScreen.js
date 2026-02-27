@@ -174,32 +174,6 @@ const LeaderProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Skills Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Skills / Specializations</Text>
-          <View style={styles.skillsWrap}>
-            {isEditing ? (
-              ALL_SKILLS.map((skill, i) => {
-                const isSelected = editSkills.includes(skill);
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    style={[styles.skillTag, isSelected && styles.skillTagSelected]}
-                    onPress={() => toggleSkill(skill)}
-                  >
-                    <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
-                  </TouchableOpacity>
-                );
-              })
-            ) : (
-              (typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || editSkills)).map((skill, i) => (
-                <View key={i} style={styles.skillTag}>
-                  <Text style={styles.skillText}>{skill}</Text>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
 
         {/* Action Buttons */}
         <View style={styles.actionsRow}>
@@ -226,8 +200,6 @@ const LeaderProfileScreen = ({ navigation }) => {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
 
-        {/* App version */}
-        <Text style={styles.version}>Edhigo Pani v1.0.0</Text>
       </ScrollView>
 
       <BottomNavBar role="leader" activeTab="Profile" />
@@ -319,11 +291,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 12, fontWeight: 'bold', color: '#6B7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   infoText: { fontSize: 15, color: '#374151', flex: 1 },
-  skillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skillTag: { backgroundColor: `${colors.primary}1A`, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: `${colors.primary}33` },
-  skillTagSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
-  skillText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
-  skillTextSelected: { color: '#FFF' },
   actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFF', borderRadius: 16, paddingVertical: 14, borderWidth: 2, borderColor: colors.primary },
   editBtnText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
@@ -348,7 +315,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   logoutText: { fontSize: 17, fontWeight: 'bold', color: '#FFF' },
-  version: { textAlign: 'center', fontSize: 12, color: '#9CA3AF', marginTop: 4 },
 });
 
 export default LeaderProfileScreen;

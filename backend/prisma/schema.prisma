@@ -151,6 +151,8 @@ model GroupMember {
   id        String    @id @default(uuid())
   groupId   String
   workerId  String
+  name      String?   // Leader-defined name
+  role      String?   // Leader-defined role (e.g., "Site Supervisor")
   status    String    @default("invited") // "invited" | "joined" | "checked_in" | "checked_out"
   joinedAt  DateTime?
   createdAt DateTime  @default(now())

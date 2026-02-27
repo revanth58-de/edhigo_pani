@@ -86,6 +86,10 @@ export const groupAPI = {
     getGroupJobs: (groupId) => apiClient.get(`/groups/${groupId}/jobs`),
     acceptGroupJob: (data) => apiClient.post('/groups/accept-job', data),
     addMember: (groupId, workerId) => apiClient.post(`/groups/${groupId}/members`, { workerId }),
+    addMemberByPhone: (groupId, data) => apiClient.post(`/groups/${groupId}/members/by-phone`, data),
+    removeMember: (groupId, workerId) => apiClient.delete(`/groups/${groupId}/members/${workerId}`),
+    updateMember: (groupId, workerId, data) => apiClient.patch(`/groups/${groupId}/members/${workerId}`, data),
+    updateGroupStatus: (groupId, status) => apiClient.patch(`/groups/${groupId}/status`, { status }),
 };
 
 // Interceptor to handle 401 Unauthorized errors (token expiration)

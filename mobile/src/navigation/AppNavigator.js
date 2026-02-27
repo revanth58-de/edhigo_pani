@@ -48,6 +48,12 @@ import GroupJobOfferScreen from '../screens/leader/GroupJobOfferScreen';
 import GroupQRAttendanceScreen from '../screens/leader/GroupQRAttendanceScreen';
 import GroupAttendanceConfirmedScreen from '../screens/leader/GroupAttendanceConfirmedScreen';
 import RateFarmerLeaderScreen from '../screens/leader/RateFarmerLeaderScreen';
+import GroupWorkStatusScreen from '../screens/leader/GroupWorkStatusScreen';
+import ManageGroupScreen from '../screens/leader/ManageGroupScreen';
+import AddMemberScreen from '../screens/leader/AddMemberScreen';
+import GroupMapScreen from '../screens/leader/GroupMapScreen';
+import GroupNavigationScreen from '../screens/leader/GroupNavigationScreen';
+import GroupCallScreen from '../screens/leader/GroupCallScreen';
 
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
@@ -113,6 +119,12 @@ const LeaderNavigator = () => (
     <Stack.Screen name="GroupQRAttendance" component={GroupQRAttendanceScreen} />
     <Stack.Screen name="GroupAttendanceConfirmed" component={GroupAttendanceConfirmedScreen} />
     <Stack.Screen name="RateFarmerLeader" component={RateFarmerLeaderScreen} />
+    <Stack.Screen name="GroupWorkStatus" component={GroupWorkStatusScreen} />
+    <Stack.Screen name="ManageGroup" component={ManageGroupScreen} />
+    <Stack.Screen name="AddMember" component={AddMemberScreen} />
+    <Stack.Screen name="GroupMap" component={GroupMapScreen} />
+    <Stack.Screen name="GroupNavigation" component={GroupNavigationScreen} />
+    <Stack.Screen name="GroupCall" component={GroupCallScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
   </Stack.Navigator>

@@ -169,9 +169,9 @@ const acceptGroupJob = async (req, res, next) => {
 const addMember = async (req, res, next) => {
   try {
     const { groupId } = req.params;
-    const { workerId } = req.body;
+    const { workerId, name, role } = req.body;
 
-    console.log('➕ Add Member:', { groupId, workerId });
+    console.log('➕ Add Member:', { groupId, workerId, name, role });
 
     if (!workerId) {
       return res.status(400).json({ error: 'Worker ID is required' });
@@ -202,7 +202,9 @@ const addMember = async (req, res, next) => {
       data: {
         groupId,
         workerId,
-        status: 'invited',
+        name: name || worker.name,
+        role: role || 'Member',
+        status: 'joined',
       },
     });
 
@@ -218,4 +220,132 @@ const addMember = async (req, res, next) => {
   }
 };
 
-module.exports = { createGroup, getGroupDetails, getGroupJobs, acceptGroupJob, addMember };
+// POST /api/groups/:groupId/members/by-phone - Add member by phone
+const addMemberByPhone = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { phone, name, role } = req.body;
+
+    console.log('📱 Add Member By Phone:', { groupId, phone, name, role });
+
+    if (!phone) {
+      return res.status(400).json({ error: 'Phone number is required' });
+    }
+
+    // Find or create user
+    let user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      // Create a placeholder user
+      user = await prisma.user.create({
+        data: {
+          phone,
+          name: name || 'Group Member',
+          role: 'worker',
+          status: 'offline',
+        },
+      });
+    }
+
+    // Check if group exists and user is leader
+    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.leaderId !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+
+    // Check if already a member
+    const existing = await prisma.groupMember.findFirst({
+      where: { groupId, workerId: user.id },
+    });
+    if (existing) {
+      return res.status(400).json({ error: 'User is already in this group' });
+    }
+
+    const member = await prisma.groupMember.create({
+      data: {
+        groupId,
+        workerId: user.id,
+        name: name || user.name,
+        role: role || 'Member',
+        status: 'joined',
+      },
+    });
+
+    res.status(201).json({ message: 'Member added', member });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/groups/:groupId/members/:workerId - Update member metadata
+const updateMember = async (req, res, next) => {
+  try {
+    const { groupId, workerId } = req.params;
+    const { name, role } = req.body;
+
+    // Verify user is leader
+    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.leaderId !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+
+    await prisma.groupMember.updateMany({
+      where: { groupId, workerId },
+      data: { name, role },
+    });
+
+    res.json({ message: 'Member updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/groups/:groupId/members/:workerId - Remove member
+const removeMember = async (req, res, next) => {
+  try {
+    const { groupId, workerId } = req.params;
+
+    console.log('➖ Remove Member:', { groupId, workerId });
+
+    // Verify user is leader
+    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.leaderId !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+
+    await prisma.groupMember.deleteMany({
+      where: { groupId, workerId },
+    });
+
+    res.json({ message: 'Member removed successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/groups/:groupId/status - Update group status (e.g., to 'available')
+const updateGroupStatus = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { status } = req.body;
+
+    console.log('🔄 Update Group Status:', { groupId, status });
+
+    const group = await prisma.group.update({
+      where: { id: groupId },
+      data: { status },
+    });
+
+    res.json({ message: 'Status updated', group });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  createGroup,
+  getGroupDetails,
+  getGroupJobs,
+  acceptGroupJob,
+  addMember,
+  addMemberByPhone,
+  updateMember,
+  removeMember,
+  updateGroupStatus
+};

@@ -7,8 +7,24 @@ const apiClient = axios.create({
         'Content-Type': 'application/json',
         'bypass-tunnel-reminder': 'true', // Required for localtunnel to skip interstitial page
     },
-    timeout: 15000,
+    timeout: 30000, // 30s — localtunnel warmup can be slow on first request
 });
+
+// Auto-retry once on tunnel transient errors (408 timeout, 503 unavailable)
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const status = error.response?.status;
+        if ((status === 408 || status === 503) && !error.config._tunnelRetried) {
+            error.config._tunnelRetried = true;
+            console.warn(`⚠️ Tunnel returned ${status}, retrying in 2s...`);
+            await sleep(2000);
+            return apiClient(error.config);
+        }
+        return Promise.reject(error);
+    }
+);
 
 // Set auth token for authenticated requests
 export const setAuthToken = (token) => {

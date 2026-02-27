@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
+const { matchWorkers } = require('../services/matchWorkers');
 
 // Create a new job
 const createJob = async (req, res) => {
@@ -34,6 +34,41 @@ const createJob = async (req, res) => {
       },
     });
 
+    // ── Smart Worker Matching ─────────────────────────────────────────
+    // Find available workers near the farm that have matching skills.
+    // Only those workers receive the socket notification — not everyone.
+    const io = req.app.get('io');
+    if (io) {
+      try {
+        const matchedWorkers = await matchWorkers({
+          workType,
+          workerType,
+          farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
+          farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
+        });
+
+        console.log(`🎯 Job ${job.id}: matched ${matchedWorkers.length} workers for workType="${workType}"`);
+
+        // Emit to each matched worker's personal room (they join it on connect)
+        matchedWorkers.forEach((worker) => {
+          io.to(`user:${worker.id}`).emit('job:new-offer', {
+            jobId: job.id,
+            workType: job.workType,
+            payPerDay: job.payPerDay,
+            farmAddress: job.farmAddress,
+            distanceKm: worker.distanceKm,                        // real distance
+            distanceLabel: worker.distanceKm != null
+              ? `${worker.distanceKm} km away`
+              : 'Nearby',
+            workersNeeded: job.workersNeeded,
+          });
+        });
+      } catch (matchErr) {
+        // Matching errors should not fail the job creation
+        console.error('⚠️ Worker matching error (job still created):', matchErr.message);
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Job created successfully',
@@ -48,6 +83,7 @@ const createJob = async (req, res) => {
     });
   }
 };
+
 
 // Get all jobs (with optional filters)
 const getJobs = async (req, res) => {
@@ -167,6 +203,15 @@ const updateJobStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    // Authorization: only the farmer who owns the job can update its status
+    const existingJob = await prisma.job.findUnique({ where: { id } });
+    if (!existingJob) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    if (existingJob.farmerId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to update this job' });
+    }
+
     const job = await prisma.job.update({
       where: { id },
       data: { status },
@@ -239,13 +284,13 @@ const acceptJob = async (req, res) => {
       },
     });
 
-    await prisma.jobApplication.create({
-      data: {
-        jobId: id,
-        workerId,
-        status: 'accepted'
-      }
-    });
+    // Guard against duplicate applications (e.g. from network retries)
+    const existingApp = await prisma.jobApplication.findFirst({ where: { jobId: id, workerId } });
+    if (!existingApp) {
+      await prisma.jobApplication.create({
+        data: { jobId: id, workerId, status: 'accepted' }
+      });
+    }
 
     // Fetch worker details to include in the notification
     const workerDetails = await prisma.user.findUnique({
@@ -341,11 +386,14 @@ const cancelJob = async (req, res) => {
   }
 };
 
-// Get nearby workers
+// Get nearby available workers (for farmer map display) — with real distances
 const getNearbyWorkers = async (req, res) => {
   try {
-    // In a real app, this would use geospatial queries
-    // For now, we return all active workers
+    const { haversineKm, MAX_DISTANCE_KM } = require('../services/matchWorkers');
+    const { lat, lng } = req.query; // farmer's current location
+    const farmerLat = lat ? parseFloat(lat) : null;
+    const farmerLng = lng ? parseFloat(lng) : null;
+
     const workers = await prisma.user.findMany({
       where: {
         role: 'worker',
@@ -359,12 +407,28 @@ const getNearbyWorkers = async (req, res) => {
         ratingAvg: true,
         latitude: true,
         longitude: true,
-      }
+        skills: true,
+        village: true,
+        status: true,
+      },
+      take: 100,
     });
+
+    // Enrich with real distance and filter by radius if farmer location provided
+    const enriched = workers
+      .map((w) => {
+        const distanceKm =
+          farmerLat != null && farmerLng != null
+            ? Math.round(haversineKm(farmerLat, farmerLng, w.latitude, w.longitude) * 10) / 10
+            : null;
+        return { ...w, distanceKm };
+      })
+      .filter((w) => w.distanceKm == null || w.distanceKm <= MAX_DISTANCE_KM)
+      .sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
 
     res.status(200).json({
       success: true,
-      data: workers
+      data: enriched,
     });
   } catch (error) {
     console.error('Get Nearby Workers Error:', error);
@@ -383,3 +447,4 @@ module.exports = {
   getMyJobs,
   getNearbyWorkers,
 };
+

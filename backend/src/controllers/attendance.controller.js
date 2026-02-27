@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
 
 // Worker Check-In
 const checkIn = async (req, res) => {
@@ -11,6 +10,11 @@ const checkIn = async (req, res) => {
       checkInLatitude,
       checkInLongitude
     } = req.body;
+
+    // Ownership check — a worker can only check in for themselves
+    if (req.user.id !== workerId) {
+      return res.status(403).json({ success: false, message: 'Cannot check in for another worker' });
+    }
 
     // Validate if worker is already checked in for this job
     const existing = await prisma.attendance.findFirst({
@@ -112,9 +116,9 @@ const checkOut = async (req, res) => {
     const end = new Date(attendance.checkOut);
     const hours = (end - start) / (1000 * 60 * 60);
 
-    // Update with hours
+    // Update with hours — use targetId (the resolved, guaranteed ID)
     await prisma.attendance.update({
-      where: { id: attendanceId },
+      where: { id: targetId },
       data: { hoursWorked: hours }
     });
 

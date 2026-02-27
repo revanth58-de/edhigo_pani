@@ -72,10 +72,11 @@ const makePayment = async (req, res, next) => {
   }
 };
 
-// GET /api/payments/history/:userId - Get payment history for a user
+// GET /api/payments/history/:userId - Get payment history for the authenticated user
 const getPaymentHistory = async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    // Always use the authenticated user's own ID — never trust userId from params (IDOR fix)
+    const userId = req.user.id;
 
     // Get payments where user is farmer or worker
     const payments = await prisma.payment.findMany({

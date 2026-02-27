@@ -138,17 +138,22 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer key={isAuthenticated ? 'auth' : 'guest'}>
-      {!isAuthenticated ? (
-        <AuthNavigator />
-      ) : user?.role === 'worker' ? (
-        <WorkerNavigator />
-      ) : user?.role === 'leader' ? (
-        <LeaderNavigator />
-      ) : (
-        <FarmerNavigator />
-      )}
-    </NavigationContainer>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
+      <NavigationContainer>
+        {!isAuthenticated ? (
+          <AuthNavigator />
+        ) : !user?.role ? (
+          // Authenticated but no role yet (just completed OTP) → go pick a role
+          <AuthNavigator />
+        ) : user?.role === 'worker' ? (
+          <WorkerNavigator />
+        ) : user?.role === 'leader' ? (
+          <LeaderNavigator />
+        ) : (
+          <FarmerNavigator />
+        )}
+      </NavigationContainer>
+    </SafeAreaView>
   );
 };
 

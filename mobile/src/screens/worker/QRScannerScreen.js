@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { CameraView, requestCameraPermissionsAsync } from 'expo-camera';
+import { CameraView, Camera } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { attendanceService } from '../../services/api/attendanceService';
@@ -27,7 +27,7 @@ const QRScannerScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     const checkPermission = async () => {
-      const { status } = await requestCameraPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     };
 
@@ -88,7 +88,7 @@ const QRScannerScreen = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.retryButton}
           onPress={async () => {
-            const { status } = await requestCameraPermissionsAsync();
+            const { status } = await Camera.requestCameraPermissionsAsync();
             setHasPermission(status === 'granted');
           }}
         >

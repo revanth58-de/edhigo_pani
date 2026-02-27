@@ -12,21 +12,25 @@ import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
+import { useSpeech } from '../../hooks/useSpeech';
 
 const LanguageSelectionScreen = ({ navigation }) => {
   const setLanguage = useAuthStore((state) => state.setLanguage);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
+  const { speak } = useSpeech();
 
   useEffect(() => {
   }, []);
 
   const handleLanguageSelect = async (lang, text) => {
     setLanguage(lang);
-    // Small delay for voice feedback
+    // Speak the selection aloud for voice feedback
+    speak(text);
+    // Small delay so voice starts before navigating
     setTimeout(() => {
       navigation.replace('Register');
-    }, 500);
+    }, 800);
   };
 
 

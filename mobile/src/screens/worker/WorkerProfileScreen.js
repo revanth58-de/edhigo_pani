@@ -14,7 +14,6 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -28,12 +27,46 @@ const AVATAR_OPTIONS = [
 ];
 
 const WorkerProfileScreen = ({ navigation }) => {
-  const { user, logout, isVoiceEnabled } = useAuthStore();
+  const { user, logout, updateUser } = useAuthStore();
+  const { t } = useTranslation();
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
-  const handleVoiceGuidance = () => {
-    if (isVoiceEnabled) {
-      Speech.speak('Your profile information', { language: 'en' });
+  // Editable state
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editVillage, setEditVillage] = useState(user?.village || '');
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      // Reset values if Cancelling
+      setEditName(user?.name || '');
+      setEditVillage(user?.village || '');
+      setSelectedAvatar(user?.avatarIcon || 'person');
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Simulating API save for profile
+      setTimeout(() => {
+        updateUser({
+          ...user,
+          name: editName,
+          village: editVillage,
+          avatarIcon: selectedAvatar,
+        });
+        setIsEditing(false);
+        setIsSaving(false);
+        Alert.alert('Success', 'Profile updated successfully!');
+      }, 1000);
+    } catch (error) {
+      setIsSaving(false);
+      Alert.alert('Error', 'Failed to update profile.');
     }
   };
 
@@ -190,14 +223,46 @@ const WorkerProfileScreen = ({ navigation }) => {
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialIcons name="edit" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <MaterialIcons name="history" size={24} color={colors.primary} />
-            <Text style={styles.actionButtonText}>Work History</Text>
-          </TouchableOpacity>
+          {isEditing ? (
+            <>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.cancelButton]}
+                onPress={handleEditToggle}
+                disabled={isSaving}
+              >
+                <MaterialIcons name="close" size={24} color="#9CA3AF" />
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.saveButton]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <MaterialIcons name="check" size={24} color="#FFFFFF" />
+                    <Text style={styles.saveButtonText}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={styles.actionButton} onPress={handleEditToggle}>
+                <MaterialIcons name="edit" size={24} color={colors.primary} />
+                <Text style={styles.actionButtonText}>Edit Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
+              >
+                <MaterialIcons name="history" size={24} color={colors.primary} />
+                <Text style={styles.actionButtonText}>Work History</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Logout Button */}

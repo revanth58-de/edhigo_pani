@@ -20,8 +20,53 @@ const LeaderProfileScreen = ({ navigation }) => {
   // Use explicit selectors to avoid stale closures in Zustand
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const updateUser = useAuthStore((state) => state.updateUser);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
+
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [editName, setEditName] = React.useState(user?.name || '');
+  const [editVillage, setEditVillage] = React.useState(user?.village || '');
+  const [editSkills, setEditSkills] = React.useState(
+    typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || [])
+  );
+
+  const ALL_SKILLS = ['Team Management', 'Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving', 'Logistics', 'Quality Control'];
+
+  const toggleSkill = (skill) => {
+    if (editSkills.includes(skill)) {
+      setEditSkills(editSkills.filter(s => s !== skill));
+    } else {
+      setEditSkills([...editSkills, skill]);
+    }
+  };
+
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setEditName(user?.name || '');
+      setEditVillage(user?.village || '');
+      setEditSkills(typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || []));
+    }
+    setIsEditing(!isEditing);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateUser({
+        name: editName,
+        village: editVillage,
+        skills: JSON.stringify(editSkills),
+      });
+      setIsEditing(false);
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update profile.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleLogout = () => {
     if (Platform.OS === 'web') {
@@ -77,14 +122,30 @@ const LeaderProfileScreen = ({ navigation }) => {
               <Text style={styles.leaderBadgeText}>LEADER</Text>
             </View>
           </View>
-          <Text style={styles.name}>{user?.name || 'Leader'}</Text>
-          <Text style={styles.phone}>{user?.phone || ''}</Text>
-          {user?.village && (
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={16} color={colors.primary} />
-              <Text style={styles.location}>{user.village}</Text>
-            </View>
+          {isEditing ? (
+            <TextInput
+              style={styles.nameInput}
+              value={editName}
+              onChangeText={setEditName}
+              placeholder="Name"
+            />
+          ) : (
+            <Text style={styles.name}>{user?.name || 'Leader'}</Text>
           )}
+          <Text style={styles.phone}>{user?.phone || ''}</Text>
+          <View style={styles.locationRow}>
+            <MaterialIcons name="location-on" size={16} color={colors.primary} />
+            {isEditing ? (
+              <TextInput
+                style={styles.villageInput}
+                value={editVillage}
+                onChangeText={setEditVillage}
+                placeholder="Village"
+              />
+            ) : (
+              <Text style={styles.location}>{user?.village || 'Location not set'}</Text>
+            )}
+          </View>
         </View>
 
         {/* Stats */}
@@ -100,7 +161,7 @@ const LeaderProfileScreen = ({ navigation }) => {
 
         {/* Info Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Details</Text>
+          <Text style={styles.sectionTitle}>Account Info</Text>
           <View style={styles.infoRow}>
             <MaterialIcons name="phone" size={20} color={colors.primary} />
             <Text style={styles.infoText}>{user?.phone || 'Not set'}</Text>
@@ -111,28 +172,53 @@ const LeaderProfileScreen = ({ navigation }) => {
               {user?.language === 'te' ? 'Telugu' : user?.language === 'hi' ? 'Hindi' : 'English'}
             </Text>
           </View>
-          <View style={styles.infoRow}>
-            <MaterialIcons name="badge" size={20} color={colors.primary} />
-            <Text style={styles.infoText}>Role: Group Leader</Text>
-          </View>
         </View>
 
-        {/* Skills */}
-        {user?.skills && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Skills</Text>
-            <View style={styles.skillsWrap}>
-              {(typeof user.skills === 'string'
-                ? JSON.parse(user.skills)
-                : user.skills
-              ).map((skill, i) => (
+        {/* Skills Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Skills / Specializations</Text>
+          <View style={styles.skillsWrap}>
+            {isEditing ? (
+              ALL_SKILLS.map((skill, i) => {
+                const isSelected = editSkills.includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={[styles.skillTag, isSelected && styles.skillTagSelected]}
+                    onPress={() => toggleSkill(skill)}
+                  >
+                    <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              (typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || editSkills)).map((skill, i) => (
                 <View key={i} style={styles.skillTag}>
                   <Text style={styles.skillText}>{skill}</Text>
                 </View>
-              ))}
-            </View>
+              ))
+            )}
           </View>
-        )}
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionsRow}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity style={styles.cancelBtn} onPress={handleEditToggle} disabled={isSaving}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={isSaving}>
+                {isSaving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+              </TouchableOpacity>
+            </>
+          ) : (
+            <TouchableOpacity style={styles.editBtn} onPress={handleEditToggle}>
+              <MaterialIcons name="edit" size={20} color={colors.primary} />
+              <Text style={styles.editBtnText}>Edit Profile</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
@@ -201,6 +287,8 @@ const styles = StyleSheet.create({
   phone: { fontSize: 15, color: '#6f8961', marginBottom: 8 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   location: { fontSize: 14, color: '#6f8961' },
+  nameInput: { fontSize: 20, fontWeight: 'bold', color: '#131811', borderBottomWidth: 1, borderBottomColor: colors.primary, marginBottom: 4, textAlign: 'center', width: '100%' },
+  villageInput: { fontSize: 14, color: '#131811', borderBottomWidth: 1, borderBottomColor: colors.primary, textAlign: 'center', minWidth: 100 },
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   statCard: {
     flex: 1,
@@ -228,12 +316,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#131811', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
+  sectionTitle: { fontSize: 12, fontWeight: 'bold', color: '#6B7280', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   infoText: { fontSize: 15, color: '#374151', flex: 1 },
   skillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  skillTag: { backgroundColor: `${colors.primary}1A`, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  skillTag: { backgroundColor: `${colors.primary}1A`, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: `${colors.primary}33` },
+  skillTagSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   skillText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
+  skillTextSelected: { color: '#FFF' },
+  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFF', borderRadius: 16, paddingVertical: 14, borderWidth: 2, borderColor: colors.primary },
+  editBtnText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+  saveBtn: { flex: 2, backgroundColor: colors.primary, borderRadius: 16, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  saveBtnText: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  cancelBtn: { flex: 1, backgroundColor: '#F3F4F6', borderRadius: 16, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  cancelBtnText: { fontSize: 16, fontWeight: 'bold', color: '#6B7280' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',

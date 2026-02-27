@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  displaySection: { paddingHorizontal: 24, paddingTop: 120, paddingBottom: 24, alignItems: 'center' },
+  displaySection: { paddingHorizontal: 24, paddingTop: 220, paddingBottom: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   label: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
   phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 4, paddingVertical: 16 },

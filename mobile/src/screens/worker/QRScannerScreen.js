@@ -26,10 +26,14 @@ const QRScannerScreen = ({ navigation, route }) => {
   const [flashOn, setFlashOn] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    const checkPermission = async () => {
       const { status } = await requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
-    })();
+    };
+
+    // Slight delay to allow navigator transition to finish
+    const timer = setTimeout(checkPermission, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleBarCodeScanned = async ({ type, data }) => {

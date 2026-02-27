@@ -20,6 +20,62 @@ import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { jobAPI } from '../../services/api';
 
+const STATUS_META = {
+  pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
+  accepted: { label: 'Accepted', color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
+  in_progress: { label: 'In Progress', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
+  completed: { label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
+  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
+};
+
+const WORK_ICONS = {
+  Sowing: 'grass',
+  Harvesting: 'agriculture',
+  Irrigation: 'water-drop',
+  Labour: 'engineering',
+  Tractor: 'agriculture',
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+const JobCard = ({ job }) => {
+  const status = STATUS_META[job.status] || STATUS_META.completed; // Default to completed for history
+  const workIcon = WORK_ICONS[job.workType] || 'work';
+
+  return (
+    <View style={historyStyles.card}>
+      <View style={historyStyles.cardHeader}>
+        <View style={[historyStyles.workIconCircle, { backgroundColor: `${colors.primary}15` }]}>
+          <MaterialIcons name={workIcon} size={28} color={colors.primary} />
+        </View>
+        <View style={historyStyles.cardHeaderText}>
+          <Text style={historyStyles.workType}>{job.workType || 'Farm Work'}</Text>
+          <Text style={historyStyles.jobDate}>{formatDate(job.createdAt)}</Text>
+        </View>
+        <View style={[historyStyles.statusBadge, { backgroundColor: status.bg }]}>
+          <MaterialIcons name={status.icon} size={14} color={status.color} />
+          <Text style={[historyStyles.statusText, { color: status.color }]}>{status.label}</Text>
+        </View>
+      </View>
+
+      <View style={historyStyles.cardDetails}>
+        <View style={historyStyles.detailRow}>
+          <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
+          <Text style={historyStyles.detailText}>{job.village || 'Location'}</Text>
+        </View>
+        <View style={historyStyles.detailRow}>
+          <MaterialIcons name="currency-rupee" size={16} color="#9CA3AF" />
+          <Text style={historyStyles.detailText}>₹{job.wagePerDay || job.payPerDay || '500'}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 const WorkerHomeScreen = ({ navigation, route }) => {
   const { user, logout } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
@@ -214,23 +270,22 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
       {/* History Overlay */}
       {activeTab === 'history' && (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#fff', zIndex: 100 }]}>
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#F9FAFB', zIndex: 100 }]}>
           <TopBar title="Work History" showBack navigation={navigation} onHelp={() => navigation.setParams({ tab: 'home' })} />
-          <ScrollView contentContainerStyle={{ padding: 20 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Recent Jobs</Text>
-            <View style={{ gap: 12 }}>
-              {[1, 2, 3].map(i => (
-                <View key={i} style={{ padding: 16, backgroundColor: '#F9FAFB', borderRadius: 12, borderLeftWidth: 4, borderLeftColor: colors.primary, marginBottom: 12 }}>
-                  <Text style={{ fontWeight: 'bold' }}>Harvesting - Feb {25 - i}, 2026</Text>
-                  <Text style={{ color: '#64748B' }}>₹500 • Completed</Text>
-                </View>
-              ))}
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+            <View style={historyStyles.summaryRow}>
+              <Text style={historyStyles.summaryText}>Your recent work history</Text>
             </View>
+
+            <JobCard job={{ workType: 'Harvesting', createdAt: new Date().toISOString(), status: 'completed', village: 'Gachibowli', payPerDay: 500 }} />
+            <JobCard job={{ workType: 'Sowing', createdAt: new Date(Date.now() - 86400000).toISOString(), status: 'completed', village: 'Kondapur', payPerDay: 450 }} />
+            <JobCard job={{ workType: 'Irrigation', createdAt: new Date(Date.now() - 172800000).toISOString(), status: 'completed', village: 'Madhapur', payPerDay: 400 }} />
+
             <TouchableOpacity
-              style={{ padding: 16, backgroundColor: colors.primary, borderRadius: 12, alignItems: 'center', marginTop: 20 }}
+              style={historyStyles.closeBtn}
               onPress={() => navigation.setParams({ tab: 'home' })}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close History</Text>
+              <Text style={historyStyles.closeBtnText}>Back to Dashboard</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -422,6 +477,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#EF4444',
   },
+});
+
+const historyStyles = StyleSheet.create({
+  summaryRow: { marginBottom: 16 },
+  summaryText: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  workIconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  cardHeaderText: { flex: 1 },
+  workType: { fontSize: 16, fontWeight: '700', color: '#131811' },
+  jobDate: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
+  statusText: { fontSize: 11, fontWeight: '700' },
+  cardDetails: { gap: 6 },
+  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  detailText: { fontSize: 13, color: '#6B7280' },
+  closeBtn: {
+    marginTop: 24,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  closeBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default WorkerHomeScreen;

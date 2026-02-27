@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.backgroundLight },
     content: { padding: 16 },
 
-    header: { alignItems: 'center', paddingTop: 120, paddingBottom: 24, position: 'relative' },
+    header: { alignItems: 'center', paddingTop: 220, paddingBottom: 24, position: 'relative' },
     backBtn: { position: 'absolute', top: 20, left: 0, padding: 8 },
     logoCircle: {
         width: 80, height: 80, borderRadius: 40,

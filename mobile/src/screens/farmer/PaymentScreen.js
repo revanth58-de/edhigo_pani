@@ -11,18 +11,15 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
 import { paymentService } from '../../services/api/paymentService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { job, workers } = route.params;
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'cash' or 'upi'
   const [loading, setLoading] = useState(false);
 
@@ -30,12 +27,8 @@ const PaymentScreen = ({ navigation, route }) => {
   const upiId = 'farmer@upi';
 
   React.useEffect(() => {
-    safeSpeech(t('voice.payAmount'), { language: getSpeechLang(language) });
   }, []);
 
-  const handleVoiceGuidance = () => {
-    safeSpeech(t('voice.payAmount'), { language: getSpeechLang(language) });
-  };
 
   const handlePayment = async () => {
     setLoading(true);
@@ -47,7 +40,6 @@ const PaymentScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        safeSpeech(t('voice.paymentSuccess'), { language: getSpeechLang(language) });
         navigation.navigate('RateWorker', { job, workers });
       } else {
         Alert.alert('Error', response.message || 'Payment failed');
@@ -70,22 +62,10 @@ const PaymentScreen = ({ navigation, route }) => {
           <MaterialIcons name="arrow-back" size={28} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Payment</Text>
-        <TouchableOpacity
-          style={styles.voiceButton}
-          onPress={handleVoiceGuidance}
-        >
-          <MaterialIcons name="record-voice-over" size={28} color={colors.primary} />
-        </TouchableOpacity>
+        <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Voice Guidance Banner */}
-        <View style={styles.voiceBanner}>
-          <MaterialIcons name="volume-up" size={24} color={colors.primary} />
-          <Text style={styles.voiceBannerText}>
-            "Dabbulu pay cheyyandi" (Please pay the amount)
-          </Text>
-        </View>
 
         {/* Amount Display */}
         <View style={styles.amountSection}>
@@ -216,36 +196,11 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-  voiceButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${colors.primary}33`,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingBottom: 200,
-  },
-  voiceBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: `${colors.primary}1A`,
-    borderWidth: 1,
-    borderColor: `${colors.primary}33`,
-    borderRadius: 24,
-    padding: 16,
-    margin: 16,
-  },
-  voiceBannerText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#131811',
-    flex: 1,
   },
   amountSection: {
     marginTop: 32,

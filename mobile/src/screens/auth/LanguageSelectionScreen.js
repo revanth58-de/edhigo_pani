@@ -9,11 +9,9 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LanguageSelectionScreen = ({ navigation }) => {
   const setLanguage = useAuthStore((state) => state.setLanguage);
@@ -21,11 +19,9 @@ const LanguageSelectionScreen = ({ navigation }) => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    safeSpeech(t('voice.chooseLanguage'), { language: getSpeechLang(language) });
   }, []);
 
   const handleLanguageSelect = async (lang, text) => {
-    safeSpeech(text, { language: lang });
     setLanguage(lang);
     // Small delay for voice feedback
     setTimeout(() => {
@@ -33,11 +29,6 @@ const LanguageSelectionScreen = ({ navigation }) => {
     }, 500);
   };
 
-  const handleVoiceGuidance = () => {
-    safeSpeech(t('voice.chooseLanguageHelp'), {
-      language: getSpeechLang(language),
-    });
-  };
 
   const languages = [
     {

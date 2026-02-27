@@ -17,7 +17,6 @@ import { Camera } from 'expo-camera';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, borderRadius, shadows } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { speak } from '../../utils/voiceGuidance';
 import useAuthStore from '../../store/authStore';
 
 const { width, height } = Dimensions.get('window');
@@ -37,9 +36,6 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-
-    // Auto-speak instructions
-    speak('Please scan worker QR code', language);
   }, []);
 
   const handleBarCodeScanned = ({ type, data }) => {
@@ -101,14 +97,6 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.overlayBottom}>
-            {/* Voice Help Card */}
-            <View style={styles.voiceCard}>
-              <View style={styles.voiceRow}>
-                <MaterialIcons name="record-voice-over" size={20} color={colors.primary} />
-                <Text style={styles.voiceStatus}>Automatic Voice Active</Text>
-              </View>
-              <Text style={styles.voiceText}>"Please scan worker's QR code"</Text>
-            </View>
 
             {/* Controls */}
             <View style={styles.controlsRow}>
@@ -198,31 +186,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 40,
     paddingTop: 20,
-  },
-  voiceCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    width: '80%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  voiceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  voiceStatus: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  voiceText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 14,
-    fontStyle: 'italic',
   },
   controlsRow: {
     flexDirection: 'row',

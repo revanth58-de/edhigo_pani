@@ -10,12 +10,10 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { authService } from '../../services/api/authService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const RoleSelectionScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
@@ -24,24 +22,17 @@ const RoleSelectionScreen = ({ navigation }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('auth.selectRole'), { language: getSpeechLang(language) });
   }, []);
 
-  const handleVoiceGuidance = () => {
-    safeSpeech(t('voice.selectRole'), {
-      language: getSpeechLang(language),
-    });
-  };
 
   const handleRoleSelect = async (role, roleName) => {
     try {
       const response = await authService.setRole(role);
-      
+
       if (response.success) {
         // Update user role in store
         updateUser({ ...response.data, role });
-        safeSpeech(`${roleName} ${t('voice.roleSelected')}`, { language: getSpeechLang(language) });
-        
+
         // Navigation is handled by AppNavigator based on user.role
         // Just wait for state update to trigger automatic navigation
         setTimeout(() => {
@@ -84,13 +75,7 @@ const RoleSelectionScreen = ({ navigation }) => {
 
       {/* Top App Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.voiceButton}
-          onPress={handleVoiceGuidance}
-          activeOpacity={0.8}
-        >
-          <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
-        </TouchableOpacity>
+        <View style={{ width: 56 }} />
         <Text style={styles.topBarTitle}>{t('auth.selectRole')}</Text>
         <TouchableOpacity style={styles.helpButton}>
           <MaterialIcons name="help" size={28} color="#131811" />
@@ -156,19 +141,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  voiceButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
   topBarTitle: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -202,7 +174,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    },
+  },
   cardsContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,

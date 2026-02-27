@@ -14,14 +14,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const LeaderProfileScreen = ({ navigation }) => {
   // Use explicit selectors to avoid stale closures in Zustand
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
-  const isVoiceEnabled = useAuthStore((state) => state.isVoiceEnabled);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
 
@@ -47,13 +45,6 @@ const LeaderProfileScreen = ({ navigation }) => {
     }
   };
 
-  const handleVoice = () => {
-    if (isVoiceEnabled) {
-      safeSpeech(`Leader profile. Name: ${user?.name || 'Leader'}. Phone: ${user?.phone || ''}`, {
-        language: getSpeechLang(language),
-      });
-    }
-  };
 
   const stats = [
     { label: 'Groups Led', value: '3', icon: 'groups' },
@@ -71,9 +62,7 @@ const LeaderProfileScreen = ({ navigation }) => {
           <MaterialIcons name="arrow-back" size={28} color={colors.backgroundDark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('nav.profile')}</Text>
-        <TouchableOpacity onPress={handleVoice}>
-          <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
-        </TouchableOpacity>
+        <View style={{ width: 28 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>

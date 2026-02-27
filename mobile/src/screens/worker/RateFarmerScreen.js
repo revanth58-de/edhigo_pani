@@ -10,12 +10,10 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { ratingService } from '../../services/api/ratingService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const RateFarmerScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -27,7 +25,6 @@ const RateFarmerScreen = ({ navigation, route }) => {
 
   const handleRatingPress = (value) => {
     setRating(value);
-    safeSpeech(`${value} ${t('voice.starsSelected')}`, { language: getSpeechLang(language) });
   };
 
   const handleSubmit = async () => {
@@ -45,7 +42,6 @@ const RateFarmerScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        safeSpeech(t('voice.thankYouRating'), { language: getSpeechLang(language) });
         navigation.navigate('WorkerHome');
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');

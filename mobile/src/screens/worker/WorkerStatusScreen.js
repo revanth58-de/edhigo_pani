@@ -15,7 +15,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors, shadows, borderRadius } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { speak } from '../../utils/voiceGuidance';
 
 const STATUS_OPTIONS = [
   {
@@ -50,7 +49,6 @@ const WorkerStatusScreen = ({ navigation }) => {
   const [currentStatus, setCurrentStatus] = useState('working'); // Default to working after attendance
 
   useEffect(() => {
-    speak('Meeru pani chestunnaru', language); // "You are working" (approx)
   }, []);
 
   const handleStatusChange = (statusKey) => {
@@ -58,7 +56,7 @@ const WorkerStatusScreen = ({ navigation }) => {
     // Use optional chaining just in case
     const statusObj = STATUS_OPTIONS.find(s => s.key === statusKey);
     if (statusObj) {
-        speak(`Status changed to ${statusObj.subtitle}`, language);
+      // Voice guidance removed
     }
   };
 
@@ -112,9 +110,9 @@ const WorkerStatusScreen = ({ navigation }) => {
             </TouchableOpacity>
           );
         })}
-        
+
         {/* Finish Job Button (Simulation) */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.finishBtn}
           onPress={() => navigation.navigate('RateFarmer')}
         >
@@ -123,11 +121,7 @@ const WorkerStatusScreen = ({ navigation }) => {
         </TouchableOpacity>
 
       </ScrollView>
-      
-      {/* Floating Voice Home */}
-      <TouchableOpacity style={styles.voiceFloat}>
-        <MaterialIcons name="volume-up" size={32} color="#131811" />
-      </TouchableOpacity>
+
 
       {/* Bottom Nav */}
       <View style={styles.bottomNav}>
@@ -139,7 +133,7 @@ const WorkerStatusScreen = ({ navigation }) => {
           <MaterialIcons name="history" size={28} color="#9ca3af" />
           <Text style={styles.navText}>History</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.navItem}
           onPress={() => navigation.navigate('WorkerProfile')}
         >
@@ -255,20 +249,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     letterSpacing: 1,
-  },
-  voiceFloat: {
-    position: 'absolute',
-    bottom: 100,
-    right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.white,
-    ...shadows.lg,
   },
   bottomNav: {
     position: 'absolute',

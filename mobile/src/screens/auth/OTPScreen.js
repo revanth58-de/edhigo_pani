@@ -11,12 +11,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import { authService } from '../../services/api/authService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const OTPScreen = ({ navigation, route }) => {
   const { phone, otp: receivedOTP, name, village, role, fromRegister } = route.params;
@@ -27,7 +25,6 @@ const OTPScreen = ({ navigation, route }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('auth.enterOTP'), { language: getSpeechLang(language) });
 
     // Display the OTP to the user
     if (receivedOTP) {
@@ -67,7 +64,6 @@ const OTPScreen = ({ navigation, route }) => {
         ? { name, village, role }
         : {};
       await verifyOTPAction(phone, otpToVerify, registrationData);
-      safeSpeech(t('voice.otpVerified'), { language: getSpeechLang(language) });
     } catch (error) {
       console.error('Verify OTP Error:', error);
       Alert.alert('Error', 'Invalid OTP. Please try again.');
@@ -82,7 +78,6 @@ const OTPScreen = ({ navigation, route }) => {
       const response = await authService.sendOTP(phone);
       if (response.success) {
         Alert.alert('Success', 'OTP sent successfully');
-        safeSpeech(t('voice.newOtpSent'), { language: getSpeechLang(language) });
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to resend OTP');

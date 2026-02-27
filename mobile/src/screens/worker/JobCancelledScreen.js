@@ -13,12 +13,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const JobCancelledScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
-  const { isVoiceEnabled } = useAuthStore();
   const language = useAuthStore((state) => state.language) || 'en';
 
   // Animations
@@ -27,14 +25,6 @@ const JobCancelledScreen = ({ navigation, route }) => {
   const slideAnim = useRef(new Animated.Value(40)).current;
 
   useEffect(() => {
-    // Voice guidance
-    if (isVoiceEnabled) {
-      safeSpeech(
-        t('voice.jobCancelledByFarmer') || 'The farmer has cancelled this job',
-        { language: getSpeechLang(language) }
-      );
-    }
-
     // Entrance animations
     Animated.sequence([
       Animated.spring(scaleAnim, {
@@ -146,15 +136,6 @@ const JobCancelledScreen = ({ navigation, route }) => {
           )}
         </Animated.View>
 
-        {/* Voice Guidance */}
-        <Animated.View
-          style={[styles.voiceHint, { opacity: fadeAnim }]}
-        >
-          <MaterialIcons name="volume-up" size={20} color="#EF4444" />
-          <Text style={styles.voiceText}>
-            You can search for new jobs
-          </Text>
-        </Animated.View>
       </View>
 
       {/* Go Home Button */}

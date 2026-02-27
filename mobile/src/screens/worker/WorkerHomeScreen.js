@@ -12,18 +12,16 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { jobAPI } from '../../services/api';
 
 const WorkerHomeScreen = ({ navigation, route }) => {
-  const { user, logout, isVoiceEnabled } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [isOnline, setIsOnline] = useState(true);
   const [searching, setSearching] = useState(false);
   const { t } = useTranslation();
@@ -88,11 +86,11 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const handleHelp = () => {
     const phoneNumber = '+911800123456';
     if (Platform.OS === 'web') {
-      window.alert('📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.');
+      window.alert('📞 Support: +91 1800-123-456');
     } else {
       Alert.alert(
         'Help / సహాయం',
-        '📞 Support: +91 1800-123-456\n\nVoice guidance is available on every screen.',
+        '📞 Support: +91 1800-123-456',
         [{ text: 'OK' }]
       );
     }

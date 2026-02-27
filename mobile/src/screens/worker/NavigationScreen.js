@@ -10,11 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
@@ -23,13 +21,11 @@ const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const language = useAuthStore((state) => state.language) || 'en';
   const [distance, setDistance] = useState('2.5 km');
   const [eta, setETA] = useState('15 min');
   const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
-    safeSpeech(t('voice.navigateToFarm'), { language: getSpeechLang(language) });
 
     // Connect socket
     socketService.connect();
@@ -106,7 +102,6 @@ const NavigationScreen = ({ navigation, route }) => {
   };
 
   const handleCall = () => {
-    safeSpeech(t('voice.callingFarmer'), { language: getSpeechLang(language) });
     const phoneNumber = `tel:${job?.farmer?.phone || job?.farmerPhone || 'unknown'}`;
     Linking.openURL(phoneNumber);
   };
@@ -173,11 +168,6 @@ const NavigationScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Voice Guidance */}
-        <View style={styles.voiceGuidance}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceText}>Follow the directions</Text>
-        </View>
       </View>
 
       {/* Arrival Button */}
@@ -318,17 +308,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-  },
-  voiceGuidance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  voiceText: {
-    fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
   },
   footer: {
     position: 'absolute',

@@ -16,7 +16,6 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, borderRadius, shadows } from '../../theme/colors';
 import useAuthStore from '../../store/authStore';
-import { speak } from '../../utils/voiceGuidance';
 
 const LANGUAGES = [
   {
@@ -57,13 +56,6 @@ const LanguageScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundLight} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* Voice Guidance Header */}
-        <View style={styles.voiceHeader}>
-          <TouchableOpacity style={styles.voiceButton} activeOpacity={0.7} onPress={() => speak('Language', language)}>
-            <MaterialIcons name="volume-up" size={64} color={colors.primary} />
-            <Text style={styles.voiceLabel}>Listen to instructions</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Headline */}
         <View style={styles.headlineContainer}>
@@ -127,26 +119,6 @@ const styles = StyleSheet.create({
     padding: 16,
   },
 
-  // Voice header
-  voiceHeader: {
-    alignItems: 'center',
-    paddingTop: 40,
-    paddingBottom: 24,
-  },
-  voiceButton: {
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.primaryLight,
-    padding: 24,
-    borderRadius: borderRadius.full,
-    borderWidth: 4,
-    borderColor: colors.primary,
-  },
-  voiceLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
 
   // Headline
   headlineContainer: {

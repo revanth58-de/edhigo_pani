@@ -8,11 +8,9 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
-import * as Speech from 'expo-speech';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
   const { job, groupName, memberCount } = route.params;
@@ -26,12 +24,10 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
-    safeSpeech(t('voice.groupAttendanceScan'), { language: getSpeechLang(language) });
   }, []);
 
   const handleBarCodeScanned = ({ data }) => {
     setScanned(true);
-    safeSpeech(t('voice.attendanceRecorded'), { language: getSpeechLang(language) });
     navigation.navigate('GroupAttendanceConfirmed', { job, groupName, memberCount });
   };
 
@@ -54,7 +50,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
             barCodeTypes: ['qr'],
           }}
         />
-        
+
         <View style={styles.overlay}>
           <View style={styles.scanFrame} />
         </View>

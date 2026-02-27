@@ -10,21 +10,54 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
+  const { user, language } = useAuthStore();
+  const { t } = useTranslation();
+
   const [dots, setDots] = useState('');
+  const [nearbyWorkers, setNearbyWorkers] = useState([]);
+
+  // Pulse Animations
+  const pulse1 = useRef(new Animated.Value(0)).current;
+  const pulse2 = useRef(new Animated.Value(0)).current;
+  const pulse3 = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Speech.speak('Finding workers for you. Please wait.', { language: 'en' });
+    // Pulse animation logic
+    const createPulse = (value, delay) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(value, {
+            toValue: 1,
+            duration: 2000,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(value, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+
+    const p1 = createPulse(pulse1, 0);
+    const p2 = createPulse(pulse2, 600);
+    const p3 = createPulse(pulse3, 1200);
+
+    p1.start();
+    p2.start();
+    p3.start();
 
     // Animated dots
     const interval = setInterval(() => {
@@ -65,13 +98,11 @@ const RequestSentScreen = ({ navigation, route }) => {
       p2.stop();
       p3.stop();
       socketService.offJobAccepted();
+      socketService.offLocationUpdate();
     };
   }, [job?.id]);
 
   const handleCancel = () => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('requestSent.searchCancelled'), { language: getSpeechLang(language) });
-    }
     navigation.navigate('FarmerHome');
   };
 
@@ -111,11 +142,6 @@ const RequestSentScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Voice Guidance Badge */}
-        <View style={styles.voiceBadge}>
-          <MaterialIcons name="volume-up" size={16} color={colors.primary} />
-          <Text style={styles.voiceBadgeText}>{t('requestSent.voiceGuidanceActive')}</Text>
-        </View>
       </View>
 
       {/* Job Info Card */}
@@ -263,21 +289,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 12,
     elevation: 10,
-  },
-  voiceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: `${colors.primary}15`,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  voiceBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#131811',
-    letterSpacing: 0.5,
   },
   jobCard: {
     flexDirection: 'row',

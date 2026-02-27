@@ -9,22 +9,18 @@ import {
   StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { colors } from '../../theme/colors';
 
 const SplashScreen = ({ navigation }) => {
-  const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
   const spinAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    // Voice guidance
-    safeSpeech(t('voice.chooseLanguage'), { language: getSpeechLang(language) });
+    // Voice guidance removed
 
     // Fade in animation
     Animated.timing(fadeAnim, {
@@ -102,19 +98,10 @@ const SplashScreen = ({ navigation }) => {
 
       {/* Bottom Voice Guidance Section */}
       <View style={styles.bottomSection}>
-        {/* Waveform Bars */}
-        <View style={styles.waveformContainer}>
-          <View style={[styles.waveBar, { height: 16 }]} />
-          <View style={[styles.waveBar, { height: 32 }]} />
-          <View style={[styles.waveBar, { height: 24 }]} />
-          <View style={[styles.waveBar, { height: 40 }]} />
-          <View style={[styles.waveBar, { height: 20 }]} />
-        </View>
 
         {/* Voice Button */}
         <View style={styles.voiceButton}>
-          <MaterialIcons name="volume-up" size={28} color={colors.backgroundDark} />
-          <Text style={styles.voiceText}>App start avutondi</Text>
+          <Text style={styles.voiceText}>Farmer-Worker Connect</Text>
         </View>
 
         {/* Branding */}
@@ -195,17 +182,6 @@ const styles = StyleSheet.create({
     maxWidth: 384,
     alignItems: 'center',
     gap: 24,
-  },
-  waveformContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 40,
-  },
-  waveBar: {
-    width: 4,
-    backgroundColor: colors.primary,
-    borderRadius: 9999,
   },
   voiceButton: {
     flexDirection: 'row',

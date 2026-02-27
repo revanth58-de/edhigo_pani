@@ -8,12 +8,10 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
@@ -25,7 +23,6 @@ const QRAttendanceScreen = ({ navigation, route }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(type === 'in' ? t('voice.scanCheckIn') : t('voice.scanCheckOut'), { language: getSpeechLang(language) });
 
     socketService.connect();
     if (job?.id) {
@@ -38,7 +35,6 @@ const QRAttendanceScreen = ({ navigation, route }) => {
       // data coming from backend includes jobId and workerId
       if (data.jobId === job?.id || !data.jobId) {
         console.log(`✅ Attendance ${type} successful for job ${job?.id}:`, data);
-        safeSpeech(t('voice.attendanceSuccess'), { language: getSpeechLang(language) });
 
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
@@ -109,13 +105,6 @@ const QRAttendanceScreen = ({ navigation, route }) => {
           </Text>
         </View>
 
-        {/* Voice Hint */}
-        <View style={styles.voiceHint}>
-          <MaterialIcons name="volume-up" size={20} color={colors.primary} />
-          <Text style={styles.voiceText}>
-            Each worker should scan this code
-          </Text>
-        </View>
 
         {/* Job Info */}
         {job && (

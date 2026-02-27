@@ -9,11 +9,9 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import BottomNavBar from '../../components/BottomNavBar';
 import { jobService } from '../../services/api/jobService';
 
@@ -21,16 +19,12 @@ const { width } = Dimensions.get('window');
 
 const LiveMapDiscoveryScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
-  const { isVoiceEnabled } = useAuthStore();
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
   const [nearbyCount, setNearbyCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('discovery.tapGreenButton'), { language: getSpeechLang(language) });
-    }
     fetchNearbyWorkers();
   }, []);
 
@@ -92,9 +86,6 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
 
         {/* Floating Action Buttons */}
         <View style={styles.floatingButtons}>
-          <TouchableOpacity style={styles.micButton}>
-            <MaterialIcons name="mic" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.phoneButton}>
             <MaterialIcons name="phone" size={24} color={colors.primary} />
           </TouchableOpacity>
@@ -214,19 +205,6 @@ const styles = StyleSheet.create({
     bottom: 16,
     right: 16,
     gap: 12,
-  },
-  micButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#7C3AED',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#7C3AED',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   phoneButton: {
     width: 48,

@@ -1,4 +1,5 @@
 // Complete App Navigation Structure - All 32 Screens Wired
+// Re-bundle trigger
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';

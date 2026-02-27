@@ -11,11 +11,9 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 import { socketService } from '../../services/socketService';
 import { jobService } from '../../services/api/jobService';
 import MapDashboard from '../../components/MapDashboard';
@@ -23,7 +21,6 @@ import BottomNavBar from '../../components/BottomNavBar';
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
   const { job } = route.params;
-  const { isVoiceEnabled } = useAuthStore();
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
@@ -34,9 +31,6 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   const [workerLocation, setWorkerLocation] = useState(null);
 
   useEffect(() => {
-    if (isVoiceEnabled) {
-      safeSpeech(t('requestAccepted.requestAcceptedMsg'), { language: getSpeechLang(language) });
-    }
 
     // Try to get worker details from job acceptance data
     if (job?.workerId) {
@@ -137,9 +131,6 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
               if (job?.id) {
                 await jobService.cancelJob(job.id);
               }
-              if (isVoiceEnabled) {
-                safeSpeech(t('requestAccepted.requestCancelled'), { language: getSpeechLang(language) });
-              }
               navigation.navigate('FarmerHome');
             } catch (error) {
               console.error('Cancel error:', error);
@@ -191,9 +182,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('requestAccepted.title')}</Text>
-        <TouchableOpacity>
-          <MaterialIcons name="volume-up" size={24} color="#131811" />
-        </TouchableOpacity>
+        <View style={{ width: 24 }} />
       </View>
 
       {/* Map Area with Status Overlay */}

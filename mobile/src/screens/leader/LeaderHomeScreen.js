@@ -9,13 +9,11 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
-import { getSpeechLang, safeSpeech } from '../../utils/voiceGuidance';
 
 const LeaderHomeScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
@@ -23,7 +21,6 @@ const LeaderHomeScreen = ({ navigation }) => {
   const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-    safeSpeech(t('voice.leaderHome'), { language: getSpeechLang(language) });
   }, []);
 
   return (
@@ -41,11 +38,6 @@ const LeaderHomeScreen = ({ navigation }) => {
           <Text style={styles.welcomeSubtitle}>{t('worker.readyToEarn')}</Text>
         </View>
 
-        {/* Voice Prompt */}
-        <View style={styles.voicePrompt}>
-          <MaterialIcons name="volume-up" size={32} color={colors.primary} />
-          <Text style={styles.voicePromptText}>గ్రూప్ start చేయండి</Text>
-        </View>
 
         {/* Main Action - Start Group */}
         <TouchableOpacity

@@ -171,6 +171,7 @@ const QRScannerScreen = ({ navigation, route }) => {
           </View>
         </View>
       </CameraView>
+      <BottomNavBar role="worker" activeTab="ShowQR" />
     </View>
   );
 };

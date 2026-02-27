@@ -25,8 +25,7 @@ const LeaderProfileScreen = ({ navigation }) => {
 
   const handleLogout = () => {
     if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-undef
-      if (window.confirm('Are you sure you want to logout?')) {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
         logout();
       }
     } else {

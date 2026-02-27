@@ -140,7 +140,7 @@ const OTPScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        <View style={{ flex: 1 }} />
+        <View style={{ height: 16 }} />
 
         {/* Custom Numeric Keypad */}
         <View style={styles.keypadContainer}>
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  otpInputSection: { paddingHorizontal: 24, paddingVertical: 24, alignItems: 'center' },
+  otpInputSection: { paddingHorizontal: 24, paddingTop: 120, paddingBottom: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
   label: { fontSize: 12, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },
   otpBoxRow: {

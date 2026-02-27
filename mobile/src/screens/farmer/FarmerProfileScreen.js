@@ -521,8 +521,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               style={styles.logoutButton}
               onPress={() => {
                 if (Platform.OS === 'web') {
-                  // Alert.alert doesn't work on web
-                  if (window.confirm('Are you sure you want to logout?')) {
+                  if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
                     logout();
                   }
                 } else {

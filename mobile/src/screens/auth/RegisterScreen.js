@@ -303,17 +303,17 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.backgroundLight },
     content: { padding: 16 },
 
-    header: { alignItems: 'center', paddingTop: 32, paddingBottom: 24, position: 'relative' },
-    backBtn: { position: 'absolute', top: 32, left: 0, padding: 8 },
+    header: { alignItems: 'center', paddingTop: 120, paddingBottom: 24, position: 'relative' },
+    backBtn: { position: 'absolute', top: 20, left: 0, padding: 8 },
     logoCircle: {
-        width: 96, height: 96, borderRadius: 48,
+        width: 80, height: 80, borderRadius: 40,
         backgroundColor: `${colors.primary}1A`, borderWidth: 3, borderColor: colors.primary,
-        justifyContent: 'center', alignItems: 'center', marginBottom: 16,
+        justifyContent: 'center', alignItems: 'center', marginBottom: 12,
     },
-    title: { fontSize: 32, fontWeight: 'bold', color: '#131811', textAlign: 'center', marginBottom: 6 },
-    subtitle: { fontSize: 16, color: '#6f8961', textAlign: 'center' },
+    title: { fontSize: 28, fontWeight: 'bold', color: '#131811', textAlign: 'center', marginBottom: 4 },
+    subtitle: { fontSize: 14, color: '#6f8961', textAlign: 'center' },
 
-    form: { gap: 20, marginTop: 8 },
+    form: { gap: 16, marginTop: 24 },
     fieldGroup: { gap: 8 },
     label: { fontSize: 15, fontWeight: '600', color: '#131811' },
     inputRow: {

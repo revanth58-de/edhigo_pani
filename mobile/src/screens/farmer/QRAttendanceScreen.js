@@ -117,7 +117,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <BottomNavBar role="farmer" activeTab="Discovery" />
+      <BottomNavBar role="farmer" activeTab="ShowQR" />
     </View>
   );
 };

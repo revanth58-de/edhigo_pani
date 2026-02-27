@@ -38,13 +38,29 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [editName, setEditName] = useState(user?.name || '');
   const [editVillage, setEditVillage] = useState(user?.village || '');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
+  const [editSkills, setEditSkills] = useState(
+    typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'])
+  );
+
+  const ALL_SKILLS = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving', 'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning'];
+
+  const toggleSkill = (skill) => {
+    if (editSkills.includes(skill)) {
+      setEditSkills(editSkills.filter(s => s !== skill));
+    } else {
+      setEditSkills([...editSkills, skill]);
+    }
+  };
 
   const handleEditToggle = () => {
     if (isEditing) {
       // Reset values if Cancelling
-      setEditName(user?.name || '');
       setEditVillage(user?.village || '');
       setSelectedAvatar(user?.avatarIcon || 'person');
+      const currentSkills = typeof user?.skills === 'string'
+        ? JSON.parse(user.skills)
+        : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']);
+      setEditSkills(currentSkills);
     }
     setIsEditing(!isEditing);
   };
@@ -52,18 +68,19 @@ const WorkerProfileScreen = ({ navigation }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Simulating API save for profile
-      setTimeout(() => {
-        updateUser({
-          ...user,
-          name: editName,
-          village: editVillage,
-          avatarIcon: selectedAvatar,
-        });
-        setIsEditing(false);
-        setIsSaving(false);
-        Alert.alert('Success', 'Profile updated successfully!');
-      }, 1000);
+      const payload = {
+        name: editName,
+        village: editVillage,
+        skills: JSON.stringify(editSkills),
+        avatarIcon: selectedAvatar,
+      };
+
+      // Real update
+      await updateUser(payload);
+
+      setIsEditing(false);
+      setIsSaving(false);
+      Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       setIsSaving(false);
       Alert.alert('Error', 'Failed to update profile.');
@@ -204,22 +221,30 @@ const WorkerProfileScreen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>Skills</Text>
           </View>
           <View style={styles.skillsContainer}>
-            {skills.map((skill, index) => (
-              <View key={index} style={styles.skillChip}>
-                <Text style={styles.skillText}>{skill}</Text>
-              </View>
-            ))}
+            {isEditing ? (
+              ALL_SKILLS.map((skill, index) => {
+                const isSelected = editSkills.includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.skillChip, isSelected && styles.skillChipSelected]}
+                    onPress={() => toggleSkill(skill)}
+                  >
+                    <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
+                    {isSelected && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              (typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || editSkills)).map((skill, index) => (
+                <View key={index} style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill}</Text>
+                </View>
+              ))
+            )}
           </View>
         </View>
 
-        {/* Village Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="location-on" size={24} color="#131811" />
-            <Text style={styles.sectionTitle}>Village</Text>
-          </View>
-          <Text style={styles.sectionValue}>{user?.village || 'Gachibowli, Hyderabad'}</Text>
-        </View>
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
@@ -270,7 +295,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           style={styles.logoutButton}
           onPress={() => {
             if (Platform.OS === 'web') {
-              if (window.confirm('Are you sure you want to logout?')) {
+              if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
                 logout();
               }
             } else {
@@ -499,10 +524,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: `${colors.primary}33`,
   },
+  skillChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   skillText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#131811',
+  },
+  skillTextSelected: {
+    color: '#FFFFFF',
   },
   actionsContainer: {
     flexDirection: 'row',

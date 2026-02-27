@@ -187,8 +187,8 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
-            if (global.window && global.window.confirm) {
-              if (window.confirm('Are you sure you want to logout?')) {
+            if (Platform.OS === 'web') {
+              if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
                 logout();
               }
             } else {
@@ -214,7 +214,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
       {/* History Overlay */}
       {activeTab === 'history' && (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#fff', zIndex: 100, paddingTop: 60 }]}>
+        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#fff', zIndex: 100 }]}>
           <TopBar title="Work History" showBack navigation={navigation} onHelp={() => navigation.setParams({ tab: 'home' })} />
           <ScrollView contentContainerStyle={{ padding: 20 }}>
             <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Recent Jobs</Text>

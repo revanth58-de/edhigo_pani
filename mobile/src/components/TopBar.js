@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'ios' ? 52 : 40, // Increased top padding for mobile status bar visibility
+    paddingTop: Platform.OS === 'ios' ? 52 : 48, // Standardized top padding for mobile status bar visibility
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',

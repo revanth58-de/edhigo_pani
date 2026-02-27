@@ -69,6 +69,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
           </View>
         </View>
       </View>
+      <BottomNavBar role="leader" activeTab="ShowQR" />
     </View>
   );
 };

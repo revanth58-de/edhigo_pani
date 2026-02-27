@@ -11,9 +11,10 @@ import { Camera } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
-  const { job, groupName, memberCount } = route.params;
+  const { job, groupName, memberCount } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [hasPermission, setHasPermission] = useState(null);
@@ -57,7 +58,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
 
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Scan QR Code</Text>
-          <Text style={styles.headerSubtitle}>Group: {groupName}</Text>
+          <Text style={styles.headerSubtitle}>Group: {groupName || 'Guest'}</Text>
         </View>
 
         <View style={styles.footer}>

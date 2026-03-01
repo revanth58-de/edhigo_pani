@@ -75,35 +75,49 @@ class SocketService {
         }
     }
 
-    onJobAccepted(callback) {
-        if (this.socket) {
-            this.socket.on('job:accepted', callback);
-        }
-    }
-
-    offJobAccepted() {
-        if (this.socket) {
-            this.socket.off('job:accepted');
-        }
-    }
-
-    onLocationUpdate(callback) {
-        if (this.socket) {
-            this.socket.on('location:broadcast', callback);
-        }
-    }
-
-    emitLocation(data) {
-        if (this.socket?.connected) {
-            this.socket.emit('location:update', data);
-        }
-    }
-
     joinUserRoom(userId) {
         if (this.socket?.connected) {
             this.socket.emit('user:join', userId);
             console.log(`📡 Joined room: user:${userId}`);
         }
+    }
+
+    // ── Farmer Notifications ─────────────────────────────────────────
+
+    onJobAccepted(callback) {
+        if (this.socket) this.socket.on('job:accepted', callback);
+    }
+
+    offJobAccepted() {
+        if (this.socket) this.socket.off('job:accepted');
+    }
+
+    onJobWithdrawn(callback) {
+        if (this.socket) this.socket.on('job:withdrawn', callback);
+    }
+
+    offJobWithdrawn() {
+        if (this.socket) this.socket.off('job:withdrawn');
+    }
+
+    // ── Worker Notifications ─────────────────────────────────────────
+
+    // job:taken → fired when another worker accepts a job (remove from feed)
+    onJobTaken(callback) {
+        if (this.socket) this.socket.on('job:taken', callback);
+    }
+
+    offJobTaken() {
+        if (this.socket) this.socket.off('job:taken');
+    }
+
+    // job:new-offer → new job available (or job re-opened after withdrawal)
+    onNewOffer(callback) {
+        if (this.socket) this.socket.on('job:new-offer', callback);
+    }
+
+    offNewOffer() {
+        if (this.socket) this.socket.off('job:new-offer');
     }
 
     onJobCancelled(callback) {
@@ -119,7 +133,18 @@ class SocketService {
             this.socket.off('worker:job_cancelled');
         }
     }
+
+    // ── Location ─────────────────────────────────────────────────────
+
+    onLocationUpdate(callback) {
+        if (this.socket) this.socket.on('location:broadcast', callback);
+    }
+
+    emitLocation(data) {
+        if (this.socket?.connected) {
+            this.socket.emit('location:update', data);
+        }
+    }
 }
 
 export const socketService = new SocketService();
-

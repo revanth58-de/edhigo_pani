@@ -21,8 +21,11 @@ router.get('/:id', authenticate, jobController.getJobById);
 // Update job status
 router.put('/:id/status', authenticate, jobController.updateJobStatus);
 
-// Accept job
+// Accept job (atomic — race condition safe)
 router.post('/:id/accept', authenticate, jobController.acceptJob);
+
+// Withdraw from an accepted job (Radio System — revert + re-notify)
+router.post('/:id/withdraw', authenticate, jobController.withdrawJob);
 
 // Cancel/delete a job
 router.delete('/:id', authenticate, jobController.cancelJob);

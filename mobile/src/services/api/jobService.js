@@ -44,16 +44,35 @@ export const jobService = {
     }
   },
 
-  // Accept a job (worker/leader)
+  // Accept a job (atomic — race condition safe)
   acceptJob: async (jobId, workerId) => {
     try {
       const response = await jobAPI.acceptJob(jobId, workerId);
       return { success: true, data: response.data };
     } catch (error) {
+      const errData = error.response?.data;
+      // Surface alreadyTaken flag so the screen can show the right alert
+      if (errData?.alreadyTaken) {
+        return { success: false, alreadyTaken: true, message: errData.message };
+      }
       console.error('Accept Job Error:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to accept job',
+        message: errData?.message || 'Failed to accept job',
+      };
+    }
+  },
+
+  // Withdraw from an accepted job (Radio System — re-opens for others)
+  withdrawJob: async (jobId) => {
+    try {
+      const response = await jobAPI.withdrawJob(jobId);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Withdraw Job Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to withdraw from job',
       };
     }
   },

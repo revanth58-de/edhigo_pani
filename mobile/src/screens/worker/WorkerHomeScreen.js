@@ -1,5 +1,5 @@
 // Screen 17: Worker Home - Fixed and Refactored
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -83,9 +83,37 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const [searching, setSearching] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
-  const [jobs, setJobs] = useState([]);
+  // Store jobs as id-keyed map for O(1) removal when job:taken fires
+  const [jobsMap, setJobsMap] = useState({});
   const [userLocation, setUserLocation] = useState(null);
   const activeTab = route.params?.tab || 'home';
+  const navigationRef = useRef(navigation);
+
+  // Derived array for MapDashboard
+  const jobs = Object.values(jobsMap);
+
+  const fetchNearbyJobs = useCallback(async () => {
+    try {
+      const response = await jobAPI.getJobs({ status: 'pending' });
+      const jobList = response?.data?.data || [];
+      const newMap = {};
+      jobList.forEach(j => {
+        newMap[j.id] = {
+          id: j.id,
+          latitude: j.farmLatitude || 17.3850,
+          longitude: j.farmLongitude || 78.4867,
+          type: 'job',
+          title: j.workType || 'Farm Job',
+          workType: j.workType,
+          payPerDay: j.payPerDay,
+          farmAddress: j.farmAddress,
+        };
+      });
+      setJobsMap(newMap);
+    } catch (e) {
+      console.warn('Failed to fetch jobs for map');
+    }
+  }, []);
 
   useEffect(() => {
     fetchNearbyJobs();
@@ -96,49 +124,57 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       socketService.joinUserRoom(user.id);
     }
 
-    // Listen for new matched job offers from the backend
+    // ── Real-time: job taken by another worker → remove from feed ───
+    const handleJobTaken = ({ jobId }) => {
+      setJobsMap(prev => {
+        const updated = { ...prev };
+        delete updated[jobId];
+        return updated;
+      });
+    };
+
+    // ── Real-time: new job offer or re-opened job → add to feed ──────
     const handleNewOffer = (offer) => {
       const distanceText = offer.distanceLabel || 'Nearby';
+
+      // Add/restore the job in the map feed immediately
+      setJobsMap(prev => ({
+        ...prev,
+        [offer.jobId]: {
+          id: offer.jobId,
+          latitude: 17.3850, // will update if server sends coords
+          longitude: 78.4867,
+          type: 'job',
+          title: offer.workType || 'Farm Job',
+          workType: offer.workType,
+          payPerDay: offer.payPerDay,
+          farmAddress: offer.farmAddress,
+        },
+      }));
+
+      // Show alert to prompt worker
+      const label = offer.reOpened ? '🔄 Job Available Again!' : '🌾 New Job Offer!';
       Alert.alert(
-        '🌾 New Job Offer!',
+        label,
         `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
         [
           { text: 'Ignore', style: 'cancel' },
           {
             text: 'View Offer',
-            onPress: () => navigation.navigate('JobOffer', { job: offer }),
+            onPress: () => navigationRef.current.navigate('JobOffer', { job: { ...offer, id: offer.jobId } }),
           },
         ]
       );
     };
 
-    if (socketService.socket) {
-      socketService.socket.on('job:new-offer', handleNewOffer);
-    }
+    socketService.onJobTaken(handleJobTaken);
+    socketService.onNewOffer(handleNewOffer);
 
     return () => {
-      if (socketService.socket) {
-        socketService.socket.off('job:new-offer', handleNewOffer);
-      }
+      socketService.offJobTaken();
+      socketService.offNewOffer();
     };
-  }, [user?.id]);
-
-  const fetchNearbyJobs = async () => {
-    try {
-      const response = await jobAPI.getJobs({ status: 'pending' });
-      const jobList = response?.data?.data || [];
-      const markers = jobList.map(j => ({
-        id: j.id,
-        latitude: j.farmLatitude || 17.3850,
-        longitude: j.farmLongitude || 78.4867,
-        type: 'job',
-        title: j.workType || 'Farm Job'
-      }));
-      setJobs(markers);
-    } catch (e) {
-      console.warn('Failed to fetch jobs for map');
-    }
-  };
+  }, [user?.id, fetchNearbyJobs]);
 
   useEffect(() => {
     // Voice guidance removed

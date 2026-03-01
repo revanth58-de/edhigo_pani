@@ -33,6 +33,17 @@ const JobOfferScreen = ({ navigation, route }) => {
       socketService.joinJobRoom(job.id);
     }
 
+    // If another worker accepts this job while we are viewing it, warn immediately
+    socketService.onJobTaken(({ jobId }) => {
+      if (jobId === job?.id) {
+        Alert.alert(
+          '⚡ Job Taken',
+          'Another worker just accepted this job. It is no longer available.',
+          [{ text: 'Go Back', onPress: () => navigation.goBack() }]
+        );
+      }
+    });
+
     // Listen for job cancellation by farmer
     socketService.onJobCancelled((data) => {
       if (data.jobId === job?.id) {
@@ -48,6 +59,7 @@ const JobOfferScreen = ({ navigation, route }) => {
     });
 
     return () => {
+      socketService.offJobTaken();
       socketService.offJobCancelled();
     };
   }, []);
@@ -64,12 +76,28 @@ const JobOfferScreen = ({ navigation, route }) => {
 
       if (response.success) {
         navigation.navigate('Navigation', { job });
+      } else if (response.alreadyTaken) {
+        // Race condition — another worker was faster
+        Alert.alert(
+          '⚡ Already Taken',
+          'Another worker accepted this job just before you. Keep looking!',
+          [{ text: 'Back to Feed', onPress: () => navigation.goBack() }]
+        );
       } else {
         Alert.alert('Error', response.message || 'Failed to accept job');
       }
     } catch (error) {
-      console.error('Accept Job Error:', error);
-      Alert.alert('Error', 'Failed to accept job. Please try again.');
+      const errData = error?.response?.data;
+      if (errData?.alreadyTaken) {
+        Alert.alert(
+          '⚡ Already Taken',
+          'Another worker accepted this job just before you. Keep looking!',
+          [{ text: 'Back to Feed', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        console.error('Accept Job Error:', error);
+        Alert.alert('Error', 'Failed to accept job. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

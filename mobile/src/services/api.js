@@ -53,9 +53,11 @@ export const jobAPI = {
     getJob: (jobId) => apiClient.get(`/jobs/${jobId}`),
     updateStatus: (jobId, status) => apiClient.put(`/jobs/${jobId}/status`, { status }),
     acceptJob: (jobId, workerId) => apiClient.post(`/jobs/${jobId}/accept`, { workerId }),
+    withdrawJob: (jobId) => apiClient.post(`/jobs/${jobId}/withdraw`),  // Radio System
     cancelJob: (jobId) => apiClient.delete(`/jobs/${jobId}`),
     getNearbyWorkers: () => apiClient.get('/jobs/nearby-workers'),
 };
+
 
 // ─── Attendance API ───
 export const attendanceAPI = {

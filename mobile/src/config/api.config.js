@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 
 // IMPORTANT: Update this IP address with your PC's local IP
 // To find your IP: Run `ipconfig` in PowerShell and look for "IPv4 Address"
-const LOCAL_IP = '10.123.63.30';
+const LOCAL_IP = '10.123.62.5';
 
 // Tunnel URL for REST API calls (works on any network, not just same WiFi).
 // Run: npx localtunnel --port 5000  → paste the URL here (no trailing slash)

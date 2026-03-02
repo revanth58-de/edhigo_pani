@@ -1,4 +1,4 @@
-// Screen 24: Worker Profile - Exact match to worker-profile.html
+// Screen 24: Worker Profile - Skills Add+ & Experience Level system
 import React, { useState } from 'react';
 import {
   View,
@@ -7,7 +7,6 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  Image,
   TextInput,
   ActivityIndicator,
   Alert,
@@ -26,6 +25,24 @@ const AVATAR_OPTIONS = [
   { key: 'grass', icon: 'grass' },
 ];
 
+const ALL_SKILLS = [
+  'Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving',
+  'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning',
+];
+
+// ── Years of experience ──────────────────────────────────────────────────────
+function getYearsExp(createdAt, jobsDone = 0) {
+  if (createdAt) {
+    const yrs = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365);
+    if (yrs >= 1) return `${Math.floor(yrs)} yr${Math.floor(yrs) > 1 ? 's' : ''}`;
+    const months = Math.floor(yrs * 12);
+    return months < 1 ? '< 1 mo' : `${months} mo`;
+  }
+  const yrs = Math.floor(jobsDone / 10);
+  return yrs < 1 ? '< 1 yr' : `${yrs} yr${yrs > 1 ? 's' : ''}`;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser } = useAuthStore();
   const { t } = useTranslation();
@@ -39,10 +56,14 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [editVillage, setEditVillage] = useState(user?.village || '');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
   const [editSkills, setEditSkills] = useState(
-    typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'])
+    typeof user?.skills === 'string'
+      ? JSON.parse(user.skills)
+      : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'])
   );
 
-  const ALL_SKILLS = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving', 'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning'];
+  // Custom skill add state (available in both view & edit modes)
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customSkillText, setCustomSkillText] = useState('');
 
   const toggleSkill = (skill) => {
     if (editSkills.includes(skill)) {
@@ -52,15 +73,30 @@ const WorkerProfileScreen = ({ navigation }) => {
     }
   };
 
+  const handleAddCustomSkill = () => {
+    const trimmed = customSkillText.trim();
+    if (!trimmed) return;
+    if (!editSkills.includes(trimmed)) {
+      setEditSkills(prev => [...prev, trimmed]);
+    }
+    setCustomSkillText('');
+    setShowCustomInput(false);
+  };
+
+  const handleRemoveSkill = (skill) => {
+    setEditSkills(prev => prev.filter(s => s !== skill));
+  };
+
   const handleEditToggle = () => {
     if (isEditing) {
-      // Reset values if Cancelling
       setEditVillage(user?.village || '');
       setSelectedAvatar(user?.avatarIcon || 'person');
       const currentSkills = typeof user?.skills === 'string'
         ? JSON.parse(user.skills)
         : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']);
       setEditSkills(currentSkills);
+      setShowCustomInput(false);
+      setCustomSkillText('');
     }
     setIsEditing(!isEditing);
   };
@@ -74,10 +110,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         skills: JSON.stringify(editSkills),
         avatarIcon: selectedAvatar,
       };
-
-      // Real update
       await updateUser(payload);
-
       setIsEditing(false);
       setIsSaving(false);
       Alert.alert('Success', 'Profile updated successfully!');
@@ -87,13 +120,13 @@ const WorkerProfileScreen = ({ navigation }) => {
     }
   };
 
-  const stats = [
-    { label: 'Jobs Done', value: '24', icon: 'work' },
-    { label: 'Rating', value: '4.8', icon: 'star' },
-    { label: 'Earnings', value: '₹12,000', icon: 'payments' },
-  ];
+  // Stats
+  const jobsDone = user?.jobsDone ?? 24;
+  const yearsExp = getYearsExp(user?.createdAt, jobsDone);
 
-  const skills = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'];
+  const currentSkills = typeof user?.skills === 'string'
+    ? JSON.parse(user.skills)
+    : (user?.skills || editSkills);
 
   return (
     <View style={styles.container}>
@@ -109,6 +142,7 @@ const WorkerProfileScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+
         {/* Profile Card */}
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
@@ -168,7 +202,6 @@ const WorkerProfileScreen = ({ navigation }) => {
 
           <Text style={styles.phone}>{user?.phone || '+91 9876543210'}</Text>
 
-          {/* Status Toggle (only in view mode for simplicity) */}
           {!isEditing && (
             <View style={styles.statusContainer}>
               <TouchableOpacity
@@ -184,15 +217,26 @@ const WorkerProfileScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Stats Grid */}
+        {/* Stats Grid — 3rd card is Experience Level (replaces Earnings) */}
         <View style={styles.statsGrid}>
-          {stats.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <MaterialIcons name={stat.icon} size={32} color={colors.primary} />
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
+          <View style={styles.statCard}>
+            <MaterialIcons name="work" size={32} color={colors.primary} />
+            <Text style={styles.statValue}>{String(jobsDone)}</Text>
+            <Text style={styles.statLabel}>Jobs Done</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <MaterialIcons name="star" size={32} color={colors.primary} />
+            <Text style={styles.statValue}>{user?.rating ? String(user.rating) : '4.8'}</Text>
+            <Text style={styles.statLabel}>Rating</Text>
+          </View>
+
+          {/* Experience card */}
+          <View style={styles.statCard}>
+            <MaterialIcons name="workspace-premium" size={32} color={colors.primary} />
+            <Text style={styles.statValue}>{yearsExp}</Text>
+            <Text style={styles.statLabel}>Experience</Text>
+          </View>
         </View>
 
         {/* Village Section */}
@@ -214,37 +258,84 @@ const WorkerProfileScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Skills Section */}
+        {/* ── Skills Section ────────────────────────────────────────────── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <MaterialIcons name="construction" size={24} color="#131811" />
+            <MaterialIcons name="construction" size={24} color={colors.primary} />
             <Text style={styles.sectionTitle}>Skills</Text>
+            {/* Add+ button always visible */}
+            <TouchableOpacity
+              style={styles.addSkillBtn}
+              onPress={() => setShowCustomInput(v => !v)}
+            >
+              <MaterialIcons name="add" size={16} color="#FFFFFF" />
+              <Text style={styles.addSkillBtnText}>Add</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Custom skill inline input */}
+          {showCustomInput && (
+            <View style={styles.customInputRow}>
+              <TextInput
+                style={styles.customInput}
+                value={customSkillText}
+                onChangeText={setCustomSkillText}
+                placeholder="Type a skill…"
+                placeholderTextColor="#9CA3AF"
+                autoFocus
+                onSubmitEditing={handleAddCustomSkill}
+                returnKeyType="done"
+              />
+              <TouchableOpacity style={styles.customInputAdd} onPress={handleAddCustomSkill}>
+                <MaterialIcons name="check" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.customInputCancel}
+                onPress={() => { setShowCustomInput(false); setCustomSkillText(''); }}
+              >
+                <MaterialIcons name="close" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.skillsContainer}>
             {isEditing ? (
-              ALL_SKILLS.map((skill, index) => {
-                const isSelected = editSkills.includes(skill);
-                return (
+              <>
+                {/* Predefined toggles */}
+                {ALL_SKILLS.map((skill, index) => {
+                  const isSelected = editSkills.includes(skill);
+                  return (
+                    <TouchableOpacity
+                      key={`pre-${index}`}
+                      style={[styles.skillChip, isSelected && styles.skillChipSelected]}
+                      onPress={() => toggleSkill(skill)}
+                    >
+                      <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
+                      {isSelected && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
+                    </TouchableOpacity>
+                  );
+                })}
+                {/* Custom skills (those not in predefined list) */}
+                {editSkills.filter(s => !ALL_SKILLS.includes(s)).map((skill, index) => (
                   <TouchableOpacity
-                    key={index}
-                    style={[styles.skillChip, isSelected && styles.skillChipSelected]}
-                    onPress={() => toggleSkill(skill)}
+                    key={`custom-${index}`}
+                    style={[styles.skillChip, styles.skillChipCustom]}
+                    onPress={() => handleRemoveSkill(skill)}
                   >
-                    <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
-                    {isSelected && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
+                    <Text style={[styles.skillText, styles.skillTextSelected]}>{skill}</Text>
+                    <MaterialIcons name="close" size={14} color="#FFFFFF" />
                   </TouchableOpacity>
-                );
-              })
+                ))}
+              </>
             ) : (
-              (typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || editSkills)).map((skill, index) => (
-                <View key={index} style={styles.skillChip}>
-                  <Text style={styles.skillText}>{skill}</Text>
+              currentSkills.map((skill, index) => (
+                <View key={index} style={[styles.skillChip, ALL_SKILLS.includes(skill) ? {} : styles.skillChipCustom]}>
+                  <Text style={[styles.skillText, !ALL_SKILLS.includes(skill) && styles.skillTextSelected]}>{skill}</Text>
                 </View>
               ))
             )}
           </View>
         </View>
-
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
@@ -299,18 +390,10 @@ const WorkerProfileScreen = ({ navigation }) => {
                 logout();
               }
             } else {
-              Alert.alert(
-                'Logout',
-                'Are you sure you want to logout?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Logout',
-                    style: 'destructive',
-                    onPress: () => logout(),
-                  },
-                ]
-              );
+              Alert.alert('Logout', 'Are you sure you want to logout?', [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Logout', style: 'destructive', onPress: () => logout() },
+              ]);
             }
           }}
         >
@@ -345,12 +428,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.backgroundDark,
   },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
+  content: { flex: 1 },
+  contentContainer: { paddingBottom: 120 },
+
+  // Profile card
   profileCard: {
     backgroundColor: '#FFFFFF',
     marginTop: -30,
@@ -409,24 +490,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '80%',
   },
-  villageInput: {
-    fontSize: 16,
-    color: '#131811',
-    borderBottomWidth: 1,
-    borderBottomColor: `${colors.primary}66`,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginTop: 4,
-    width: '100%',
-  },
   phone: {
     fontSize: 16,
     color: '#6f8961',
     marginBottom: 16,
   },
-  statusContainer: {
-    marginTop: 8,
-  },
+  statusContainer: { marginTop: 8 },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -436,31 +505,29 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: '#F3F4F6',
   },
-  statusBadgeActive: {
-    backgroundColor: `${colors.primary}33`,
-  },
+  statusBadgeActive: { backgroundColor: `${colors.primary}33` },
   statusDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
     backgroundColor: '#9CA3AF',
   },
-  statusDotActive: {
-    backgroundColor: colors.primary,
-  },
+  statusDotActive: { backgroundColor: colors.primary },
   statusText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#6f8961',
   },
-  statusTextActive: {
-    color: '#131811',
-  },
+  statusTextActive: { color: '#131811' },
+
+
+
+  // Stats grid
   statsGrid: {
     flexDirection: 'row',
     gap: 12,
     paddingHorizontal: 16,
-    marginTop: 24,
+    marginTop: 16,
   },
   statCard: {
     flex: 1,
@@ -476,14 +543,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#131811',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#6f8961',
+    textAlign: 'center',
   },
+
+  // Sections
   section: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
@@ -499,10 +569,11 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     marginBottom: 16,
   },
   sectionTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
     color: '#131811',
@@ -511,6 +582,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6f8961',
   },
+  villageInput: {
+    fontSize: 16,
+    color: '#131811',
+    borderBottomWidth: 1,
+    borderBottomColor: `${colors.primary}66`,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 4,
+    width: '100%',
+  },
+
+  // Add skill button
+  addSkillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 99,
+  },
+  addSkillBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Custom skill inline input
+  customInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: `${colors.primary}33`,
+  },
+  customInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#131811',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  customInputAdd: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  customInputCancel: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Skills chips
   skillsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -518,18 +653,22 @@ const styles = StyleSheet.create({
   },
   skillChip: {
     backgroundColor: `${colors.primary}1A`,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 9999,
     borderWidth: 1,
     borderColor: `${colors.primary}33`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   skillChipSelected: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  },
+  skillChipCustom: {
+    backgroundColor: '#6366F1',
+    borderColor: '#4F46E5',
   },
   skillText: {
     fontSize: 14,
@@ -539,6 +678,8 @@ const styles = StyleSheet.create({
   skillTextSelected: {
     color: '#FFFFFF',
   },
+
+  // Actions
   actionsContainer: {
     flexDirection: 'row',
     gap: 12,
@@ -566,16 +707,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  saveButtonText: {
-    color: '#FFFFFF',
-  },
-  cancelButton: {
-    borderColor: '#9CA3AF',
-  },
-  cancelButtonText: {
-    color: '#9CA3AF',
-    fontWeight: 'bold',
-  },
+  saveButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
+  cancelButton: { borderColor: '#9CA3AF' },
+  cancelButtonText: { color: '#9CA3AF', fontWeight: 'bold' },
+
+  // Logout
   logoutButton: {
     flexDirection: 'row',
     height: 52,
@@ -594,6 +730,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#EF4444',
   },
+
+  // Avatar picker
   avatarPicker: {
     backgroundColor: '#F9FAFB',
     borderRadius: 16,

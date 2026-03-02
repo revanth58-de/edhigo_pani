@@ -44,7 +44,7 @@ const formatDate = (dateStr) => {
 };
 
 const JobCard = ({ job }) => {
-  const status = STATUS_META[job.status] || STATUS_META.completed; // Default to completed for history
+  const status = STATUS_META[job.status] || STATUS_META.pending;
   const workIcon = WORK_ICONS[job.workType] || 'work';
 
   return (
@@ -88,6 +88,10 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const [userLocation, setUserLocation] = useState(null);
   const activeTab = route.params?.tab || 'home';
   const navigationRef = useRef(navigation);
+
+  // History state
+  const [historyJobs, setHistoryJobs] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Derived array for MapDashboard
   const jobs = Object.values(jobsMap);
@@ -175,6 +179,25 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       socketService.offNewOffer();
     };
   }, [user?.id, fetchNearbyJobs]);
+
+  // Fetch real job history whenever history tab opens
+  useEffect(() => {
+    if (activeTab !== 'history') return;
+    const fetchHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const res = await jobAPI.getJobs({ workerId: user?.id });
+        const all = res?.data?.data || [];
+        // Only show jobs this worker is part of, sorted newest first
+        setHistoryJobs(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      } catch (e) {
+        console.warn('Failed to fetch work history', e);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [activeTab, user?.id]);
 
   useEffect(() => {
     // Voice guidance removed
@@ -340,15 +363,29 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       {/* History Overlay */}
       {activeTab === 'history' && (
         <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#F9FAFB', zIndex: 100 }]}>
-          <TopBar title="Work History" showBack navigation={navigation} onHelp={() => navigation.setParams({ tab: 'home' })} />
+          <TopBar
+            title="Work History"
+            showBack
+            navigation={navigation}
+            onHelp={() => navigation.setParams({ tab: 'home' })}
+            onBack={() => navigation.setParams({ tab: 'home' })}
+          />
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
             <View style={historyStyles.summaryRow}>
               <Text style={historyStyles.summaryText}>Your recent work history</Text>
             </View>
 
-            <JobCard job={{ workType: 'Harvesting', createdAt: new Date().toISOString(), status: 'completed', village: 'Gachibowli', payPerDay: 500 }} />
-            <JobCard job={{ workType: 'Sowing', createdAt: new Date(Date.now() - 86400000).toISOString(), status: 'completed', village: 'Kondapur', payPerDay: 450 }} />
-            <JobCard job={{ workType: 'Irrigation', createdAt: new Date(Date.now() - 172800000).toISOString(), status: 'completed', village: 'Madhapur', payPerDay: 400 }} />
+            {historyLoading ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+            ) : historyJobs.length === 0 ? (
+              <View style={historyStyles.emptyState}>
+                <MaterialIcons name="history" size={56} color="#D1D5DB" />
+                <Text style={historyStyles.emptyText}>No work history yet</Text>
+                <Text style={historyStyles.emptySubText}>Jobs you complete will appear here</Text>
+              </View>
+            ) : (
+              historyJobs.map((job) => <JobCard key={job.id} job={job} />)
+            )}
 
             <TouchableOpacity
               style={historyStyles.closeBtn}
@@ -585,6 +622,14 @@ const historyStyles = StyleSheet.create({
     elevation: 6,
   },
   closeBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 12,
+  },
+  emptyText: { fontSize: 18, fontWeight: '700', color: '#9CA3AF' },
+  emptySubText: { fontSize: 14, color: '#D1D5DB' },
 });
 
 export default WorkerHomeScreen;

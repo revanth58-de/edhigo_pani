@@ -5,7 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
 
-const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
+const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp, onBack }) => {
   const { t } = useTranslation();
 
   const handleHelp = () => {
@@ -27,12 +27,20 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp }) => {
     }
   };
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else if (navigation?.canGoBack?.()) {
+      navigation.goBack();
+    }
+  };
+
   return (
     <View style={styles.topBar}>
       {showBack && navigation ? (
         <TouchableOpacity
           style={styles.iconButton}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
         >
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>

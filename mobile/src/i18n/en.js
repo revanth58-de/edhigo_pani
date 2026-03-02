@@ -35,6 +35,7 @@ export default {
     profile: 'PROFILE',
     home: 'HOME',
     jobs: 'JOBS',
+    group: 'GROUP',
   },
 
   // ─── Auth Screens ───

@@ -13,7 +13,6 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
-import BottomNavBar from '../../components/BottomNavBar';
 
 const AddMemberScreen = ({ navigation, route }) => {
     const { groupId } = route.params;
@@ -175,8 +174,6 @@ const AddMemberScreen = ({ navigation, route }) => {
                     </View>
                 </View>
             </ScrollView>
-
-            <BottomNavBar role="leader" activeTab="Group" />
         </View>
     );
 };

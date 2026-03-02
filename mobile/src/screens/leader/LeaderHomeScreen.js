@@ -100,29 +100,37 @@ const LeaderHomeScreen = ({ navigation, route }) => {
         </View>
 
 
-        {/* Main Action - Start Group */}
-        <TouchableOpacity
-          style={styles.startGroupButton}
-          onPress={() => navigation.navigate('GroupSetup')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.startGroupIcon}>
-            <MaterialIcons name="group-add" size={64} color={colors.backgroundDark} />
-          </View>
-          <Text style={styles.startGroupText}>{t('leader.createGroup').toUpperCase()}</Text>
-          <Text style={styles.startGroupSubtext}>Tap to create a group and find work</Text>
-        </TouchableOpacity>
+        {/* Main Action - Create / Manage Group */}
+        <View style={styles.groupActionsRow}>
+          <TouchableOpacity
+            style={[styles.groupActionBtn, { flex: 1.4 }]}
+            onPress={() => navigation.navigate('GroupSetup')}
+            activeOpacity={0.9}
+          >
+            <MaterialIcons name="group-add" size={36} color={colors.backgroundDark} />
+            <Text style={styles.groupActionText}>CREATE{'\n'}GROUP</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.groupActionBtn, styles.groupActionBtnOutline, { flex: 1 }]}
+            onPress={() => navigation.navigate('ManageGroup', { groupId: null, groupName: 'My Group' })}
+            activeOpacity={0.9}
+          >
+            <MaterialIcons name="manage-accounts" size={36} color={colors.primary} />
+            <Text style={[styles.groupActionText, { color: colors.primary }]}>MY{'\n'}GROUP</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <MaterialIcons name="groups" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{user?.groupsLed ?? 0}</Text>
             <Text style={styles.statLabel}>Active Groups</Text>
           </View>
           <View style={styles.statCard}>
             <MaterialIcons name="work" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{user?.jobsDone ?? 0}</Text>
             <Text style={styles.statLabel}>Jobs Done</Text>
           </View>
         </View>
@@ -249,32 +257,38 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#131811',
   },
-  startGroupButton: {
+  groupActionsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 24,
+  },
+  groupActionBtn: {
     backgroundColor: colors.primary,
-    borderRadius: 32,
-    padding: 40,
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
-    marginTop: 32,
+    justifyContent: 'center',
+    gap: 10,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 16,
   },
-  startGroupIcon: {
-    marginBottom: 16,
+  groupActionBtnOutline: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: colors.primary,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    elevation: 4,
   },
-  startGroupText: {
-    fontSize: 28,
+  groupActionText: {
+    fontSize: 16,
     fontWeight: '900',
     color: colors.backgroundDark,
-    marginBottom: 8,
-  },
-  startGroupSubtext: {
-    fontSize: 14,
-    color: colors.backgroundDark,
-    opacity: 0.8,
     textAlign: 'center',
+    lineHeight: 20,
   },
   statsContainer: {
     flexDirection: 'row',

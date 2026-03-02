@@ -9,6 +9,8 @@ import {
   ScrollView,
   Alert,
   Platform,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
@@ -17,17 +19,25 @@ import { colors } from '../../theme/colors';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const LeaderProfileScreen = ({ navigation }) => {
-  // Use explicit selectors to avoid stale closures in Zustand
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const setLanguage = useAuthStore((state) => state.setLanguage);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
 
+  const LANGUAGES = [
+    { code: 'en', label: '🇬🇧 English' },
+    { code: 'te', label: '🇮🇳 Telugu' },
+    { code: 'hi', label: '🇮🇳 Hindi' },
+  ];
+
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
+  const [showLangDropdown, setShowLangDropdown] = React.useState(false);
   const [editName, setEditName] = React.useState(user?.name || '');
   const [editVillage, setEditVillage] = React.useState(user?.village || '');
+  const [editLanguage, setEditLanguage] = React.useState(language);
   const [editSkills, setEditSkills] = React.useState(
     typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || [])
   );
@@ -46,7 +56,9 @@ const LeaderProfileScreen = ({ navigation }) => {
     if (isEditing) {
       setEditName(user?.name || '');
       setEditVillage(user?.village || '');
+      setEditLanguage(language);
       setEditSkills(typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || []));
+      setShowLangDropdown(false);
     }
     setIsEditing(!isEditing);
   };
@@ -58,8 +70,11 @@ const LeaderProfileScreen = ({ navigation }) => {
         name: editName,
         village: editVillage,
         skills: JSON.stringify(editSkills),
+        language: editLanguage,
       });
+      if (setLanguage) setLanguage(editLanguage);
       setIsEditing(false);
+      setShowLangDropdown(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       Alert.alert('Error', 'Failed to update profile.');
@@ -166,11 +181,53 @@ const LeaderProfileScreen = ({ navigation }) => {
             <MaterialIcons name="phone" size={20} color={colors.primary} />
             <Text style={styles.infoText}>{user?.phone || 'Not set'}</Text>
           </View>
-          <View style={styles.infoRow}>
-            <MaterialIcons name="language" size={20} color={colors.primary} />
-            <Text style={styles.infoText}>
-              {user?.language === 'te' ? 'Telugu' : user?.language === 'hi' ? 'Hindi' : 'English'}
-            </Text>
+
+          {/* Language row */}
+          <View style={[styles.infoRow, { flexDirection: 'column', alignItems: 'flex-start', gap: 8 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <MaterialIcons name="language" size={20} color={colors.primary} />
+              {isEditing ? (
+                <TouchableOpacity
+                  style={styles.langSelector}
+                  onPress={() => setShowLangDropdown(v => !v)}
+                >
+                  <Text style={styles.langSelectorText}>
+                    {LANGUAGES.find(l => l.code === editLanguage)?.label || '🇬🇧 English'}
+                  </Text>
+                  <MaterialIcons
+                    name={showLangDropdown ? 'keyboard-arrow-up' : 'keyboard-arrow-down'}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </TouchableOpacity>
+              ) : (
+                <Text style={styles.infoText}>
+                  {language === 'te' ? '🇮🇳 Telugu' : language === 'hi' ? '🇮🇳 Hindi' : '🇬🇧 English'}
+                </Text>
+              )}
+            </View>
+            {isEditing && showLangDropdown && (
+              <View style={styles.langDropdown}>
+                {LANGUAGES.map(lang => (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[
+                      styles.langOption,
+                      editLanguage === lang.code && styles.langOptionSelected,
+                    ]}
+                    onPress={() => { setEditLanguage(lang.code); setShowLangDropdown(false); }}
+                  >
+                    <Text style={[
+                      styles.langOptionText,
+                      editLanguage === lang.code && styles.langOptionTextSelected,
+                    ]}>{lang.label}</Text>
+                    {editLanguage === lang.code && (
+                      <MaterialIcons name="check" size={16} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
@@ -214,7 +271,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     backgroundColor: colors.primary,
   },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.backgroundDark, flex: 1, textAlign: 'center' },
@@ -315,6 +373,45 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   logoutText: { fontSize: 17, fontWeight: 'bold', color: '#FFF' },
+
+  // Language dropdown
+  langSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: `${colors.primary}15`,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: `${colors.primary}44`,
+  },
+  langSelectorText: { fontSize: 15, color: colors.primary, fontWeight: '600' },
+  langDropdown: {
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  langOptionSelected: { backgroundColor: `${colors.primary}10` },
+  langOptionText: { fontSize: 15, color: '#374151' },
+  langOptionTextSelected: { color: colors.primary, fontWeight: '700' },
 });
 
 export default LeaderProfileScreen;

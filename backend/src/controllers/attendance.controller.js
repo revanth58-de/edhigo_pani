@@ -130,6 +130,17 @@ const checkOut = async (req, res) => {
   try {
     const { attendanceId, jobId, workerId, qrCodeOut, checkOutLatitude, checkOutLongitude } = req.body;
 
+    // Validate required fields before any QR or DB checks
+    if (!qrCodeOut) {
+      return res.status(400).json({ success: false, message: 'QR code is required for check-out' });
+    }
+    if (!jobId) {
+      return res.status(400).json({ success: false, message: 'Job ID is required for check-out' });
+    }
+    if (checkOutLatitude == null || checkOutLongitude == null) {
+      return res.status(400).json({ success: false, message: 'Location is required for check-out' });
+    }
+
     let targetId = attendanceId;
     if (!targetId && jobId && workerId) {
       const activeRecord = await prisma.attendance.findFirst({
@@ -151,6 +162,8 @@ const checkOut = async (req, res) => {
 
     // 2. Geo-fence Check
     const job = await prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
     const distance = getDistance(
       parseFloat(checkOutLatitude),
       parseFloat(checkOutLongitude),
@@ -165,25 +178,24 @@ const checkOut = async (req, res) => {
       });
     }
 
-    // 3. Update Record
+    // 3. Fetch check-in time to compute hours before update
+    const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
+    if (!existing) return res.status(404).json({ success: false, message: 'Attendance record not found' });
+
+    const checkOutTime = new Date();
+    const hoursWorked = (checkOutTime - new Date(existing.checkIn)) / (1000 * 60 * 60);
+
+    // 4. Single update with all fields including hoursWorked
     const attendance = await prisma.attendance.update({
       where: { id: targetId },
       data: {
         qrCodeOut,
-        checkOut: new Date(),
-        checkOutLatitude: parseFloat(checkOutLatitude || 0),
-        checkOutLongitude: parseFloat(checkOutLongitude || 0),
+        checkOut: checkOutTime,
+        checkOutLatitude: parseFloat(checkOutLatitude),
+        checkOutLongitude: parseFloat(checkOutLongitude),
+        hoursWorked,
       },
       include: { job: true }
-    });
-
-    const start = new Date(attendance.checkIn);
-    const end = new Date(attendance.checkOut);
-    const hours = (end - start) / (1000 * 60 * 60);
-
-    await prisma.attendance.update({
-      where: { id: targetId },
-      data: { hoursWorked: hours }
     });
 
     await prisma.user.update({
@@ -197,14 +209,14 @@ const checkOut = async (req, res) => {
         attendanceId: attendance.id,
         workerId: attendance.workerId,
         timestamp: attendance.checkOut,
-        hoursWorked: hours
+        hoursWorked
       });
     }
 
     res.status(200).json({
       success: true,
       message: 'Checked out successfully',
-      data: { ...attendance, hoursWorked: hours }
+      data: { ...attendance, hoursWorked }
     });
 
   } catch (error) {

@@ -91,7 +91,8 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true });
     try {
       const response = await authAPI.sendOTP(phone);
-      set({ phone, otp: response.data.otp, isLoading: false });
+      // NOTE: OTP is NOT stored in state for security — it goes via SMS only
+      set({ phone, isLoading: false });
       return response.data;
     } catch (error) {
       set({ isLoading: false });
@@ -147,7 +148,7 @@ const useAuthStore = create((set, get) => ({
   logout: () => {
     setAuthToken(null);
     clearStorage();
-    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, otp: null, phone: null });
+    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, phone: null, _hydrated: true });
   },
 }));
 

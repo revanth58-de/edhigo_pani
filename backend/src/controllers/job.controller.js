@@ -76,11 +76,7 @@ const createJob = async (req, res) => {
     });
   } catch (error) {
     console.error('Create Job Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create job',
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -133,11 +129,7 @@ const getJobs = async (req, res) => {
     });
   } catch (error) {
     console.error('Get Jobs Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch jobs',
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -472,9 +464,13 @@ const getMyJobs = async (req, res) => {
 const cancelJob = async (req, res) => {
   try {
     const { id } = req.params;
-    // Check if job exists
     const job = await prisma.job.findUnique({ where: { id } });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
+    // Only the farmer who created the job can cancel it
+    if (job.farmerId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to cancel this job' });
+    }
 
     const io = req.app.get('io');
 
@@ -496,7 +492,7 @@ const cancelJob = async (req, res) => {
     res.status(200).json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
     console.error('Cancel Job Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to cancel job', error: error.message });
+    next(error);
   }
 };
 

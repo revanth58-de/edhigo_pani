@@ -10,22 +10,6 @@ const apiClient = axios.create({
     timeout: 30000, // 30s — localtunnel warmup can be slow on first request
 });
 
-// Auto-retry once on tunnel transient errors (408 timeout, 503 unavailable)
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-apiClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const status = error.response?.status;
-        if ((status === 408 || status === 503) && !error.config._tunnelRetried) {
-            error.config._tunnelRetried = true;
-            console.warn(`⚠️ Tunnel returned ${status}, retrying in 2s...`);
-            await sleep(2000);
-            return apiClient(error.config);
-        }
-        return Promise.reject(error);
-    }
-);
-
 // Set auth token for authenticated requests
 export const setAuthToken = (token) => {
     if (token) {
@@ -34,6 +18,63 @@ export const setAuthToken = (token) => {
         delete apiClient.defaults.headers.common['Authorization'];
     }
 };
+
+// ── Single unified response interceptor ────────────────────────────────────
+//   1. Auto-retry once on tunnel transient errors (408, 503)
+//   2. Auto-refresh access token on 401 and retry the original request
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+apiClient.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const status = error.response?.status;
+        const originalRequest = error.config;
+
+        // ── Tunnel retry ──────────────────────────────────────────────────
+        if ((status === 408 || status === 503) && !originalRequest._tunnelRetried) {
+            originalRequest._tunnelRetried = true;
+            console.warn(`⚠️ Tunnel returned ${status}, retrying in 2s...`);
+            await sleep(2000);
+            return apiClient(originalRequest);
+        }
+
+        // ── Token refresh on 401 ──────────────────────────────────────────
+        if (
+            status === 401 &&
+            !originalRequest._retry &&
+            !originalRequest.url?.includes('/auth/')
+        ) {
+            originalRequest._retry = true;
+            try {
+                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+                const raw = await AsyncStorage.getItem('edhigo_auth');
+                const saved = raw ? JSON.parse(raw) : null;
+
+                if (saved?.refreshToken) {
+                    const resp = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+                        refreshToken: saved.refreshToken,
+                    });
+
+                    const { accessToken } = resp.data;
+                    setAuthToken(accessToken);
+                    originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+
+                    // Persist the new token so the next cold-start picks it up
+                    const updated = { ...saved, accessToken };
+                    await AsyncStorage.setItem('edhigo_auth', JSON.stringify(updated));
+
+                    return apiClient(originalRequest);
+                }
+            } catch (refreshError) {
+                console.error('Token refresh failed — user must re-login:', refreshError);
+                // Clear stored auth so the nav guard redirects to login
+                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+                await AsyncStorage.removeItem('edhigo_auth');
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 // ─── Auth API ───
 export const authAPI = {
@@ -93,51 +134,5 @@ export const groupAPI = {
     updateMember: (groupId, workerId, data) => apiClient.patch(`/groups/${groupId}/members/${workerId}`, data),
     updateGroupStatus: (groupId, status) => apiClient.patch(`/groups/${groupId}/status`, { status }),
 };
-
-// Interceptor to handle 401 Unauthorized errors (token expiration)
-apiClient.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        const originalRequest = error.config;
-
-        // If error is 401 and it's not a retry or a login/refresh request
-        if (
-            error.response?.status === 401 &&
-            !originalRequest._retry &&
-            !originalRequest.url.includes('/auth/')
-        ) {
-            originalRequest._retry = true;
-
-            try {
-                // We need to import the store dynamically to avoid circular dependency
-                // Alternatively, we can read from AsyncStorage directly
-                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-                const raw = await AsyncStorage.getItem('edhigo_auth');
-                const saved = raw ? JSON.parse(raw) : null;
-
-                if (saved?.refreshToken) {
-                    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-                        refreshToken: saved.refreshToken
-                    });
-
-                    const { accessToken } = response.data;
-
-                    // Update header and retry
-                    setAuthToken(accessToken);
-                    originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-
-                    // Also need to update the store (this is tricky with circular deps)
-                    // We'll let the user re-login if this fails, or find a better way to sync
-
-                    return apiClient(originalRequest);
-                }
-            } catch (refreshError) {
-                // If refresh fails, clear auth (handled by the app state usually)
-                console.error('Token refresh failed:', refreshError);
-            }
-        }
-        return Promise.reject(error);
-    }
-);
 
 export default apiClient;

@@ -76,7 +76,7 @@ const submitRating = async (req, res, next) => {
       },
       recipientStats: {
         ratingAvg: avgRating,
-        ratingCount: allRatings.length,
+        ratingCount: allRatings.length + 1, // +1 to include the just-submitted rating
       },
     });
   } catch (error) {

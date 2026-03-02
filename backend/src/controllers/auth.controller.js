@@ -29,6 +29,12 @@ const sendOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Phone number is required' });
     }
 
+    // Validate 10-digit Indian mobile number
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ error: 'Invalid phone number. Must be a valid 10-digit Indian mobile number.' });
+    }
+
     // Check if this phone is already a fully registered user
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const isExistingUser = !!(existingUser?.name && existingUser?.role);
@@ -48,10 +54,10 @@ const sendOTP = async (req, res, next) => {
     console.log('✅ OTP saved. isExistingUser:', isExistingUser);
 
     res.json({
-      message: 'OTP generated successfully',
-      otp: otp,
-      isExistingUser,           // <-- frontend can use this to detect existing users
-      expiresIn: config.otpExpiryMinutes * 60,
+      message: 'OTP sent successfully',
+      isExistingUser,
+      // NOTE: OTP is NOT returned here — it is sent via SMS in production.
+      // In development, read it from the server console logs.
     });
   } catch (error) {
     console.error('💥 Send OTP Error:', error);
@@ -85,17 +91,15 @@ const verifyOTP = async (req, res, next) => {
       otpExpiresAt: user.otpExpiresAt
     });
 
-    if (user.otp !== otp) {
-      console.log('❌ OTP Mismatch:', { stored: user.otp, received: otp });
-      return res.status(401).json({
-        error: 'Invalid OTP',
-        debug: { expected: user.otp, received: otp } // For development only
-      });
+    // Check expiry FIRST — an expired OTP should never be matchable
+    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+      console.log('❌ OTP Expired:', { expiresAt: user.otpExpiresAt, now: new Date() });
+      return res.status(401).json({ error: 'OTP expired. Please request a new one.' });
     }
 
-    if (user.otpExpiresAt < new Date()) {
-      console.log('❌ OTP Expired:', { expiresAt: user.otpExpiresAt, now: new Date() });
-      return res.status(401).json({ error: 'OTP expired' });
+    if (user.otp !== otp) {
+      console.log('❌ OTP Mismatch for user:', user.id);
+      return res.status(401).json({ error: 'Invalid OTP' });
     }
 
     // Clear OTP and optionally save registration data in one update

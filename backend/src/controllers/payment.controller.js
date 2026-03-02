@@ -40,7 +40,8 @@ const makePayment = async (req, res, next) => {
 
     // Create payment records for each worker
     const payments = [];
-    const perWorkerAmount = amount / attendances.length;
+    const rawPerWorker = amount / attendances.length;
+    const perWorkerAmount = Math.round(rawPerWorker * 100) / 100; // round to 2 decimal places
 
     for (const att of attendances) {
       const payment = await prisma.payment.create({
@@ -132,6 +133,12 @@ const getPaymentDetails = async (req, res, next) => {
 
     if (!payment) {
       return res.status(404).json({ error: 'Payment not found' });
+    }
+
+    // Authorization: only the farmer or worker involved can view this payment
+    const userId = req.user.id;
+    if (payment.farmerId !== userId && payment.workerId !== userId) {
+      return res.status(403).json({ error: 'Not authorized to view this payment' });
     }
 
     res.json({ payment });

@@ -69,6 +69,9 @@ model Job {
   ratings      Rating[]
   applications JobApplication[]
 
+  @@index([status])           // Filter by status on every worker feed load
+  @@index([farmerId])         // Farmer's own jobs list
+  @@index([workerType, status]) // Match group vs individual jobs
   @@map("jobs")
 }
 
@@ -91,6 +94,9 @@ model Attendance {
   job    Job  @relation(fields: [jobId], references: [id])
   worker User @relation(fields: [workerId], references: [id])
 
+  @@unique([jobId, workerId])   // Prevent double check-in for same worker/job
+  @@index([jobId])              // Fetch all attendances for a job
+  @@index([workerId])           // Fetch a worker's attendance history
   @@map("attendances")
 }
 
@@ -128,6 +134,8 @@ model Rating {
   fromUser User @relation("RaterRatings", fields: [fromUserId], references: [id])
   toUser   User @relation("RateeRatings", fields: [toUserId], references: [id])
 
+  @@unique([jobId, fromUserId, toUserId])  // Prevent rating the same person twice per job
+  @@index([toUserId])                      // Profile and leaderboard queries
   @@map("ratings")
 }
 
@@ -177,5 +185,8 @@ model JobApplication {
   job    Job  @relation(fields: [jobId], references: [id])
   worker User @relation(fields: [workerId], references: [id])
 
+  @@unique([jobId, workerId])  // Prevent duplicate applications
+  @@index([workerId])          // Worker's application history
+  @@index([jobId])             // All applicants for a job
   @@map("job_applications")
 }

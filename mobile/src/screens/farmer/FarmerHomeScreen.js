@@ -119,16 +119,8 @@ const FarmerHomeScreen = ({ navigation }) => {
       });
     });
 
-    // Mock initial workers if none detected (for demo/rapido feel)
-    setTimeout(() => {
-      setWorkers([
-        { id: 'mock-1', latitude: 17.3850, longitude: 78.4867, type: 'worker', active: true },
-        { id: 'mock-2', latitude: 17.3900, longitude: 78.4900, type: 'worker', active: true },
-      ]);
-    }, 1000);
-
     return () => {
-      // Clean up socket listeners if needed
+      socketService.offLocationUpdate();
     };
   }, []);
 

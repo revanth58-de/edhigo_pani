@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiter');
 const {
   sendOTP,
   verifyOTP,
@@ -11,10 +12,11 @@ const {
   updateProfile,
 } = require('../controllers/auth.controller');
 
-// Public routes
-router.post('/send-otp', sendOTP);
-router.post('/verify-otp', verifyOTP);
-router.post('/refresh', refreshToken);
+// Public routes — strict rate limit to prevent OTP spam & brute-force
+router.post('/send-otp', authLimiter, sendOTP);
+router.post('/verify-otp', authLimiter, verifyOTP);
+router.post('/refresh', authLimiter, refreshToken);
+
 
 // Protected routes (require JWT)
 router.post('/set-role', authenticate, setRole);

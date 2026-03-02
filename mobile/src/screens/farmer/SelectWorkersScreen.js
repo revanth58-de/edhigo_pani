@@ -23,12 +23,13 @@ const SelectWorkersScreen = ({ navigation, route }) => {
   const [workerType, setWorkerType] = useState('group'); // 'individual' or 'group'
   const [workersNeeded, setWorkersNeeded] = useState(10);
   const [payPerDay, setPayPerDay] = useState('500');
+  const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 
 
   const handleIncrement = () => {
-    setWorkersNeeded(workersNeeded + 1);
+    if (workersNeeded < 200) setWorkersNeeded(workersNeeded + 1);
   };
 
   const handleDecrement = () => {
@@ -47,6 +48,13 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       return;
     }
 
+    const parsedPay = parseInt(payPerDay, 10);
+    if (!parsedPay || parsedPay < 100 || parsedPay > 5000) {
+      Alert.alert('Invalid Amount', 'Pay per day must be between ₹100 and ₹5000.');
+      return;
+    }
+
+    setLoading(true);
     try {
       let latitude = user.latitude;
       let longitude = user.longitude;
@@ -69,7 +77,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
         workType: workType.toLowerCase(),
         workerType,
         workersNeeded,
-        payPerDay: 500, // Default, could be made configurable
+        payPerDay: parsedPay,
         farmAddress: user.village || 'Hyderabad',
         farmLatitude: latitude || 17.385044,
         farmLongitude: longitude || 78.486671,
@@ -78,10 +86,9 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       const response = await jobService.createJob(jobData);
 
       if (response.success) {
-        // response.data is the full response body: { success, message, data: jobObj }
         const jobObj = response.data.data || response.data;
         navigation.navigate('RequestSent', {
-          job: { ...jobObj, workersNeeded, payPerDay: 500 },
+          job: { ...jobObj, workersNeeded, payPerDay: parsedPay },
         });
       } else {
         Alert.alert('Error', response.message || 'Failed to create job');
@@ -89,6 +96,8 @@ const SelectWorkersScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Create Job Error:', error);
       Alert.alert('Error', 'Failed to create job. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -233,12 +242,19 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       {/* Find Workers Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.findButton}
+          style={[styles.findButton, loading && { opacity: 0.7 }]}
           onPress={handleFindWorkers}
+          disabled={loading}
           activeOpacity={0.9}
         >
-          <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>
-          <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
+          {loading ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>
+              <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>

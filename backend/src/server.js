@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { apiLimiter, uploadLimiter } = require('./middleware/rateLimiter');
 const { Server } = require('socket.io');
 const config = require('./config/env');
 const { errorHandler, logger } = require('./middleware/errorHandler');
@@ -15,6 +15,7 @@ const attendanceRoutes = require('./routes/attendance.routes');
 const ratingsRoutes = require('./routes/ratings.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const groupRoutes = require('./routes/group.routes');
+const uploadRoutes = require('./routes/upload.routes');
 
 // Initialize Express
 const app = express();
@@ -48,13 +49,9 @@ app.use(helmet({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100,
-  message: { error: 'Too many requests, please try again later' },
-});
-app.use('/api/', limiter);
+// ─── Rate Limiting ───
+// General fallback: 60 req/min. Auth routes have stricter limits applied in auth.routes.js.
+app.use('/api/', apiLimiter);
 
 // ─── Routes ───
 app.use('/api/auth', authRoutes);
@@ -63,6 +60,7 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/ratings', ratingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/upload', uploadLimiter, uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

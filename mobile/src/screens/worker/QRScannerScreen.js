@@ -47,12 +47,13 @@ const QRScannerScreen = ({ navigation, route }) => {
       const { coords } = await Location.getCurrentPositionAsync({});
       const user = useAuthStore.getState().user;
 
+      // Backend expects qrCodeIn for check-in and qrCodeOut for check-out
       const payload = {
         jobId: qrInfo.jobId || job?.id,
         workerId: user?.id,
-        qrData: data,
         [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
         [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+        [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: data,
       };
 
       const response = await (isCheckOut
@@ -60,14 +61,16 @@ const QRScannerScreen = ({ navigation, route }) => {
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        navigation.replace(isCheckOut ? 'PaymentConfirmed' : 'AttendanceConfirmed', { job });
+        // Check-out → go to WorkStatus (which shows payment button)
+        // Check-in → go to AttendanceConfirmed
+        navigation.replace(isCheckOut ? 'WorkStatus' : 'AttendanceConfirmed', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to process attendance');
         setScanned(false);
       }
     } catch (error) {
       console.error('QR Scan Error:', error);
-      Alert.alert('Error', 'Invalid QR code or processing error.');
+      Alert.alert('Error', 'Invalid QR code or processing error. Make sure you are at the farm location.');
       setScanned(false);
     }
   };
@@ -106,6 +109,7 @@ const QRScannerScreen = ({ navigation, route }) => {
       <CameraView
         style={styles.camera}
         facing="back"
+        enableTorch={flashOn}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
       >
         {/* Dark Overlay */}

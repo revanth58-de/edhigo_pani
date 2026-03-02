@@ -1,5 +1,5 @@
 // Screen 15: Payment - Exact match to payment-farmer.html
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,8 +23,12 @@ const PaymentScreen = ({ navigation, route }) => {
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'cash' or 'upi'
   const [loading, setLoading] = useState(false);
 
+  const { user } = useAuthStore();
   const totalAmount = job?.payPerDay || 500;
-  const upiId = 'farmer@upi';
+  // Use farmer's UPI ID from profile, fallback to phone-based UPI
+  const upiId = user?.upiId || `${user?.phone || 'farmer'}@upi`;
+  // Stable transaction ID per screen session — useMemo prevents re-render regeneration
+  const transactionId = useMemo(() => `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`, []);
 
   React.useEffect(() => {
   }, []);
@@ -132,7 +136,7 @@ const PaymentScreen = ({ navigation, route }) => {
                 size={256}
               />
             </View>
-            <Text style={styles.transactionId}>Transaction ID: TXN893240{Math.floor(Math.random() * 100)}</Text>
+            <Text style={styles.transactionId}>Transaction ID: {transactionId}</Text>
           </View>
         )}
       </ScrollView>

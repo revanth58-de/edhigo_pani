@@ -140,6 +140,10 @@ class SocketService {
         if (this.socket) this.socket.on('location:broadcast', callback);
     }
 
+    offLocationUpdate() {
+        if (this.socket) this.socket.off('location:broadcast');
+    }
+
     emitLocation(data) {
         if (this.socket?.connected) {
             this.socket.emit('location:update', data);

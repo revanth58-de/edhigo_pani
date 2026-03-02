@@ -148,21 +148,18 @@ const acceptGroupJob = async (req, res, next) => {
       return res.status(403).json({ error: 'Only the group leader can accept jobs' });
     }
 
-    // Verify job exists and is available
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
-
-    if (job.status !== 'pending') {
-      return res.status(400).json({ error: 'Job is no longer available' });
-    }
-
-    // Update job status
-    const updatedJob = await prisma.job.update({
-      where: { id: jobId },
+    // Atomic update — only succeeds if the job is still 'pending' (race condition safe)
+    const { count } = await prisma.job.updateMany({
+      where: { id: jobId, status: 'pending' },
       data: { status: 'matched' },
     });
+
+    if (count === 0) {
+      // Either job doesn't exist or it was already taken
+      const existingJob = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+      if (!existingJob) return res.status(404).json({ error: 'Job not found' });
+      return res.status(409).json({ error: 'Job is no longer available', alreadyTaken: true });
+    }
 
     // Create job application for the group
     await prisma.jobApplication.create({
@@ -173,6 +170,8 @@ const acceptGroupJob = async (req, res, next) => {
         status: 'accepted',
       },
     });
+
+    const updatedJob = await prisma.job.findUnique({ where: { id: jobId } });
 
     console.log('✅ Group accepted job:', { groupId, jobId });
 
@@ -198,10 +197,13 @@ const addMember = async (req, res, next) => {
       return res.status(400).json({ error: 'Worker ID is required' });
     }
 
-    // Verify group exists
+    // Verify group exists and caller is the leader
     const group = await prisma.group.findUnique({ where: { id: groupId } });
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
+    }
+    if (group.leaderId !== req.user.id) {
+      return res.status(403).json({ error: 'Only the group leader can add members' });
     }
 
     // Verify worker exists
@@ -347,6 +349,16 @@ const updateGroupStatus = async (req, res, next) => {
     const { status } = req.body;
 
     console.log('🔄 Update Group Status:', { groupId, status });
+
+    // Verify group exists and caller is the leader
+    const existing = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!existing) return res.status(404).json({ error: 'Group not found' });
+    if (existing.leaderId !== req.user.id) return res.status(403).json({ error: 'Not authorized to update this group' });
+
+    const validStatuses = ['forming', 'available', 'working', 'inactive'];
+    if (!status || !validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+    }
 
     const group = await prisma.group.update({
       where: { id: groupId },

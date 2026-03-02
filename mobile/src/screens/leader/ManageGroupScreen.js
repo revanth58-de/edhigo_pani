@@ -81,10 +81,18 @@ const ManageGroupScreen = ({ navigation, route }) => {
     const fetchMembers = async (gid) => {
         try {
             const res = await groupAPI.getGroupDetails(gid);
-            const memberList =
+            const rawMembers =
                 res?.data?.group?.members ||
                 res?.data?.members ||
                 [];
+            // Flatten nested worker data so display is simple
+            const memberList = rawMembers.map(m => ({
+                id: m.id,
+                workerId: m.workerId || m.worker?.id,
+                name: m.name || m.worker?.name || 'Member',
+                phone: m.worker?.phone || m.phone || '',
+                role: m.role || 'Member',
+            }));
             setMembers(memberList);
         } catch (error) {
             console.error('Fetch Group Error:', error);

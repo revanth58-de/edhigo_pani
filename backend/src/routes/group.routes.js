@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const {
+  getMyGroups,
   createGroup,
   getGroupDetails,
   getGroupJobs,
@@ -15,6 +16,7 @@ const {
 
 // All group routes require authentication
 router.post('/', authenticate, createGroup);
+router.get('/my-groups', authenticate, getMyGroups);  // must be before /:groupId
 router.get('/:groupId', authenticate, getGroupDetails);
 router.get('/:groupId/jobs', authenticate, getGroupJobs);
 router.post('/accept-job', authenticate, acceptGroupJob);

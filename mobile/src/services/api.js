@@ -84,6 +84,7 @@ export const ratingAPI = {
 // ─── Group API ───
 export const groupAPI = {
     createGroup: (data) => apiClient.post('/groups', data),
+    getMyGroups: () => apiClient.get('/groups/my-groups'),
     getGroupDetails: (groupId) => apiClient.get(`/groups/${groupId}`),
     getGroupJobs: (groupId) => apiClient.get(`/groups/${groupId}/jobs`),
     acceptGroupJob: (data) => apiClient.post('/groups/accept-job', data),

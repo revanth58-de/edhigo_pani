@@ -1,5 +1,26 @@
 const prisma = require('../config/database');
 
+// GET /api/groups/my-groups - Get all groups led by current user
+const getMyGroups = async (req, res, next) => {
+  try {
+    const leaderId = req.user.id;
+    const groups = await prisma.group.findMany({
+      where: { leaderId },
+      include: {
+        members: {
+          include: {
+            worker: { select: { id: true, name: true, phone: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ groups });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // POST /api/groups - Create a group
 const createGroup = async (req, res, next) => {
   try {
@@ -339,6 +360,7 @@ const updateGroupStatus = async (req, res, next) => {
 };
 
 module.exports = {
+  getMyGroups,
   createGroup,
   getGroupDetails,
   getGroupJobs,

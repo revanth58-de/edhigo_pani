@@ -10,21 +10,21 @@ const submitRating = async (req, res, next) => {
 
     // Validation
     if (!jobId || !toUserId || !emoji) {
-      return res.status(400).json({ 
-        error: 'Job ID, recipient user ID, and emoji are required' 
+      return res.status(400).json({
+        error: 'Job ID, recipient user ID, and emoji are required'
       });
     }
 
     const validEmojis = ['happy', 'neutral', 'sad'];
     if (!validEmojis.includes(emoji)) {
-      return res.status(400).json({ 
-        error: `Invalid emoji. Must be one of: ${validEmojis.join(', ')}` 
+      return res.status(400).json({
+        error: `Invalid emoji. Must be one of: ${validEmojis.join(', ')}`
       });
     }
 
     if (stars && (stars < 1 || stars > 5)) {
-      return res.status(400).json({ 
-        error: 'Stars must be between 1 and 5' 
+      return res.status(400).json({
+        error: 'Stars must be between 1 and 5'
       });
     }
 
@@ -40,30 +40,30 @@ const submitRating = async (req, res, next) => {
       return res.status(404).json({ error: 'Recipient user not found' });
     }
 
-    // Use a transaction so the average always includes the just-submitted rating
-    const [rating, allRatings] = await prisma.$transaction([
-      prisma.rating.create({
-        data: { jobId, fromUserId, toUserId, emoji, stars: stars || null },
-      }),
-      prisma.rating.findMany({ where: { toUserId } }),
-    ]);
+    // Use a transaction to create the rating, then recalculate average from all ratings
+    const rating = await prisma.rating.create({
+      data: { jobId, fromUserId, toUserId, emoji, stars: stars || null },
+    });
 
-    // Calculate new average (emoji to number: happy=5, neutral=3, sad=1)
+    // Fetch ALL ratings AFTER insert (so the new one is included in the list)
+    const allRatings = await prisma.rating.findMany({ where: { toUserId } });
+
+    // Calculate new average from all ratings (emoji-to-number: happy=5, neutral=3, sad=1)
     const emojiToNumber = { happy: 5, neutral: 3, sad: 1 };
     const totalScore = allRatings.reduce((sum, r) => {
       return sum + (r.stars || emojiToNumber[r.emoji]);
-    }, 0) + (rating.stars || emojiToNumber[rating.emoji]); // include new rating
-    const avgRating = totalScore / (allRatings.length + 1);
+    }, 0);
+    const avgRating = totalScore / allRatings.length;
 
     await prisma.user.update({
       where: { id: toUserId },
-      data: { ratingAvg: avgRating, ratingCount: allRatings.length + 1 },
+      data: { ratingAvg: avgRating, ratingCount: allRatings.length },
     });
 
-    console.log('✅ Rating submitted successfully:', { 
+    console.log('✅ Rating submitted successfully:', {
       ratingId: rating.id,
       newAverage: avgRating.toFixed(2),
-      totalRatings: allRatings.length 
+      totalRatings: allRatings.length
     });
 
     res.json({
@@ -76,7 +76,7 @@ const submitRating = async (req, res, next) => {
       },
       recipientStats: {
         ratingAvg: avgRating,
-        ratingCount: allRatings.length + 1, // +1 to include the just-submitted rating
+        ratingCount: allRatings.length,
       },
     });
   } catch (error) {

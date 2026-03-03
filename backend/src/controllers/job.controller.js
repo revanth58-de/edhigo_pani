@@ -2,7 +2,7 @@ const prisma = require('../config/database'); // shared singleton — avoids con
 const { matchWorkers } = require('../services/matchWorkers');
 
 // Create a new job
-const createJob = async (req, res) => {
+const createJob = async (req, res, next) => {
   try {
     const {
       workType,
@@ -82,14 +82,18 @@ const createJob = async (req, res) => {
 
 
 // Get all jobs (with optional filters)
-const getJobs = async (req, res) => {
+const getJobs = async (req, res, next) => {
   try {
-    const { status, farmerId, id } = req.query;
+    const { status, farmerId, id, workerId } = req.query;
 
     const where = {};
     if (id) where.id = id;
     if (status) where.status = status;
     if (farmerId) where.farmerId = farmerId;
+    // Worker history: filter jobs where the worker has an application
+    if (workerId) {
+      where.applications = { some: { workerId } };
+    }
 
     const jobs = await prisma.job.findMany({
       where,
@@ -461,7 +465,7 @@ const getMyJobs = async (req, res) => {
 };
 
 // Cancel/delete a job
-const cancelJob = async (req, res) => {
+const cancelJob = async (req, res, next) => {
   try {
     const { id } = req.params;
     const job = await prisma.job.findUnique({ where: { id } });

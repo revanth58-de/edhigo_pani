@@ -36,7 +36,7 @@ const validateQR = (qrString, jobId) => {
 };
 
 // Worker Check-In
-const checkIn = async (req, res) => {
+const checkIn = async (req, res, next) => {
   try {
     const {
       jobId,
@@ -55,7 +55,14 @@ const checkIn = async (req, res) => {
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    // 3. Geo-fence Check (100m)
+    // 3. Geo-fence Check (100m) — only possible when farm has coordinates
+    if (job.farmLatitude == null || job.farmLongitude == null) {
+      return res.status(400).json({
+        success: false,
+        message: 'This job has no farm location set. Check-in is not possible without a farm location.'
+      });
+    }
+
     const distance = getDistance(
       parseFloat(checkInLatitude),
       parseFloat(checkInLongitude),
@@ -126,7 +133,7 @@ const checkIn = async (req, res) => {
 };
 
 // Worker Check-Out
-const checkOut = async (req, res) => {
+const checkOut = async (req, res, next) => {
   try {
     const { attendanceId, jobId, workerId, qrCodeOut, checkOutLatitude, checkOutLongitude } = req.body;
 

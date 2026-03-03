@@ -19,6 +19,7 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { socketService } from '../../services/socketService';
+import { Alert } from 'react-native';
 
 const AnimatedCard = ({ workType, onPress }) => {
   const hoverAnim = React.useRef(new Animated.Value(0)).current;
@@ -99,13 +100,28 @@ const FarmerHomeScreen = ({ navigation }) => {
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    // Voice guidance removed
-
-    // Connect to sockets for real-time tracking
+    // Connect and join farmer's personal room to receive job:accepted events
     socketService.connect();
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
+
+    // Real-time: notify farmer when a worker accepts their job
+    const handleJobAccepted = (data) => {
+      Alert.alert(
+        '🌾 Job Accepted!',
+        `${data.workerName || 'A worker'} accepted your job.\n📞 ${data.workerPhone || ''}`,
+        [
+          { text: 'View Jobs', onPress: () => navigation.navigate('RequestAccepted', { jobId: data.jobId, worker: data }) },
+          { text: 'OK', style: 'cancel' },
+        ]
+      );
+    };
+
+    socketService.onJobAccepted(handleJobAccepted);
 
     // Listen for workers' location broadcasts
-    socketService.onLocationUpdate((data) => {
+    const handleLocation = (data) => {
       console.log('📍 Worker Location Update Received:', data);
       setWorkers(prev => {
         const filtered = prev.filter(w => w.id !== data.userId);
@@ -117,12 +133,15 @@ const FarmerHomeScreen = ({ navigation }) => {
           active: true
         }];
       });
-    });
+    };
+
+    socketService.onLocationUpdate(handleLocation);
 
     return () => {
-      socketService.offLocationUpdate();
+      socketService.offJobAccepted(handleJobAccepted);
+      socketService.offLocationUpdate(handleLocation);
     };
-  }, []);
+  }, [user?.id]);
 
   const handleWorkTypeSelect = (workType) => {
     navigation.navigate('SelectWorkers', { workType });

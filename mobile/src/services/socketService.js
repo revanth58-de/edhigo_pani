@@ -10,6 +10,7 @@ try {
 class SocketService {
     socket = null;
     _connectionFailed = false; // Suppress repeated errors after max attempts
+    _pendingRooms = []; // Queue rooms to join once socket connects
 
     connect() {
         if (this.socket?.connected || !io) return;
@@ -34,6 +35,14 @@ class SocketService {
         this.socket.on('connect', () => {
             this._connectionFailed = false;
             console.log('✅ Connected to Socket.io server');
+            // Flush any rooms that were requested before connection was ready
+            if (this._pendingRooms.length > 0) {
+                this._pendingRooms.forEach(({ event, id }) => {
+                    this.socket.emit(event, id);
+                    console.log(`📡 (deferred) emitted ${event}:${id}`);
+                });
+                this._pendingRooms = [];
+            }
         });
 
         this.socket.on('disconnect', (reason) => {
@@ -66,12 +75,16 @@ class SocketService {
             this.socket = null;
         }
         this._connectionFailed = false;
+        this._pendingRooms = [];
     }
 
     joinJobRoom(jobId) {
         if (this.socket?.connected) {
             this.socket.emit('job:join', jobId);
             console.log(`📡 Joined room: job:${jobId}`);
+        } else {
+            // Queue for when connection is ready
+            this._pendingRooms.push({ event: 'job:join', id: jobId });
         }
     }
 
@@ -79,6 +92,9 @@ class SocketService {
         if (this.socket?.connected) {
             this.socket.emit('user:join', userId);
             console.log(`📡 Joined room: user:${userId}`);
+        } else {
+            // Queue for when connection is ready
+            this._pendingRooms.push({ event: 'user:join', id: userId });
         }
     }
 
@@ -88,16 +104,22 @@ class SocketService {
         if (this.socket) this.socket.on('job:accepted', callback);
     }
 
-    offJobAccepted() {
-        if (this.socket) this.socket.off('job:accepted');
+    offJobAccepted(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('job:accepted', callback);
+            else this.socket.off('job:accepted');
+        }
     }
 
     onJobWithdrawn(callback) {
         if (this.socket) this.socket.on('job:withdrawn', callback);
     }
 
-    offJobWithdrawn() {
-        if (this.socket) this.socket.off('job:withdrawn');
+    offJobWithdrawn(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('job:withdrawn', callback);
+            else this.socket.off('job:withdrawn');
+        }
     }
 
     // ── Worker Notifications ─────────────────────────────────────────
@@ -107,8 +129,12 @@ class SocketService {
         if (this.socket) this.socket.on('job:taken', callback);
     }
 
-    offJobTaken() {
-        if (this.socket) this.socket.off('job:taken');
+    offJobTaken(callback) {
+        if (this.socket) {
+            // Pass the specific callback so only this screen's listener is removed
+            if (callback) this.socket.off('job:taken', callback);
+            else this.socket.off('job:taken');
+        }
     }
 
     // job:new-offer → new job available (or job re-opened after withdrawal)
@@ -116,8 +142,11 @@ class SocketService {
         if (this.socket) this.socket.on('job:new-offer', callback);
     }
 
-    offNewOffer() {
-        if (this.socket) this.socket.off('job:new-offer');
+    offNewOffer(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('job:new-offer', callback);
+            else this.socket.off('job:new-offer');
+        }
     }
 
     onJobCancelled(callback) {
@@ -127,10 +156,15 @@ class SocketService {
         }
     }
 
-    offJobCancelled() {
+    offJobCancelled(callback) {
         if (this.socket) {
-            this.socket.off('job:cancelled');
-            this.socket.off('worker:job_cancelled');
+            if (callback) {
+                this.socket.off('job:cancelled', callback);
+                this.socket.off('worker:job_cancelled', callback);
+            } else {
+                this.socket.off('job:cancelled');
+                this.socket.off('worker:job_cancelled');
+            }
         }
     }
 
@@ -140,8 +174,11 @@ class SocketService {
         if (this.socket) this.socket.on('location:broadcast', callback);
     }
 
-    offLocationUpdate() {
-        if (this.socket) this.socket.off('location:broadcast');
+    offLocationUpdate(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('location:broadcast', callback);
+            else this.socket.off('location:broadcast');
+        }
     }
 
     emitLocation(data) {

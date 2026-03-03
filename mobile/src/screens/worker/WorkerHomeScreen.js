@@ -18,7 +18,7 @@ import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
-import { jobAPI } from '../../services/api';
+import { jobAPI, authAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 
 const STATUS_META = {
@@ -66,7 +66,7 @@ const JobCard = ({ job }) => {
       <View style={historyStyles.cardDetails}>
         <View style={historyStyles.detailRow}>
           <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText}>{job.village || 'Location'}</Text>
+          <Text style={historyStyles.detailText}>{job.farmAddress || 'Location'}</Text>
         </View>
         <View style={historyStyles.detailRow}>
           <MaterialIcons name="currency-rupee" size={16} color="#9CA3AF" />
@@ -186,9 +186,9 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     const fetchHistory = async () => {
       setHistoryLoading(true);
       try {
+        // Use workerId filter (now supported by backend) to fetch jobs this worker applied to
         const res = await jobAPI.getJobs({ workerId: user?.id });
         const all = res?.data?.data || [];
-        // Only show jobs this worker is part of, sorted newest first
         setHistoryJobs(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       } catch (e) {
         console.warn('Failed to fetch work history', e);
@@ -226,9 +226,14 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     }
   };
 
-  const toggleOnlineStatus = (value) => {
+  const toggleOnlineStatus = async (value) => {
     setIsOnline(value);
-    // Voice guidance removed
+    // Persist status to backend so matchWorkers sees the correct availability
+    try {
+      await authAPI.updateProfile({ status: value ? 'available' : 'offline' });
+    } catch (e) {
+      console.warn('Failed to update worker status:', e);
+    }
   };
 
   const handleHelp = () => {

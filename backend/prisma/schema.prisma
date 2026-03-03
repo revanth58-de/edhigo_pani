@@ -72,6 +72,8 @@ model Job {
   @@index([status])           // Filter by status on every worker feed load
   @@index([farmerId])         // Farmer's own jobs list
   @@index([workerType, status]) // Match group vs individual jobs
+  @@index([farmerId, status])   // Farmer dashboard: my active/pending jobs
+  @@index([createdAt])          // History feed ordering
   @@map("jobs")
 }
 
@@ -117,6 +119,7 @@ model Payment {
   farmer User @relation("FarmerPayments", fields: [farmerId], references: [id])
   worker User @relation("WorkerPayments", fields: [workerId], references: [id])
 
+  @@index([farmerId, workerId])  // Payment history for farmer or worker
   @@map("payments")
 }
 

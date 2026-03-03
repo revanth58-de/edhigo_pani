@@ -22,10 +22,15 @@ const makePayment = async (req, res, next) => {
       });
     }
 
-    // Check if job exists
+    // Check if job exists and verify ownership
     const job = await prisma.job.findUnique({ where: { id: jobId } });
     if (!job) {
       return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Security: only the farmer who owns this job can make payments for it
+    if (job.farmerId !== farmerId) {
+      return res.status(403).json({ error: 'Not authorized to make payment for this job' });
     }
 
     // Find worker(s) for this job via attendance records

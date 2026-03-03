@@ -125,11 +125,11 @@ const JobOfferScreen = ({ navigation, route }) => {
             <MaterialIcons name="agriculture" size={40} color={colors.primary} />
           </View>
           <View style={styles.farmerInfo}>
-            <Text style={styles.farmerName}>{job?.farmerName || 'Farmer'}</Text>
+            <Text style={styles.farmerName}>{job?.farmer?.name || job?.farmerName || 'Farmer'}</Text>
             <View style={styles.locationRow}>
               <MaterialIcons name="location-on" size={18} color="#6f8961" />
               <Text style={styles.location}>
-                {job?.location || 'Location'} • {job?.distance || 'Nearby'}
+                {job?.farmAddress || job?.location || 'Location'} • {job?.distanceLabel || job?.distance || 'Nearby'}
               </Text>
             </View>
           </View>

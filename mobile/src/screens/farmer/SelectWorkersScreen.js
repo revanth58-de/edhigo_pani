@@ -9,6 +9,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { jobService } from '../../services/api/jobService';

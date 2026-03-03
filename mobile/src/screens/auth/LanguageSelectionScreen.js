@@ -29,7 +29,7 @@ const LanguageSelectionScreen = ({ navigation }) => {
     speak(text);
     // Small delay so voice starts before navigating
     setTimeout(() => {
-      navigation.replace('Register');
+      navigation.replace('Login');
     }, 800);
   };
 

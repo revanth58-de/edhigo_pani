@@ -88,8 +88,8 @@ const LoginScreen = ({ navigation }) => {
         visible={showNotRegisteredModal}
         onRequestClose={() => setShowNotRegisteredModal(false)}
       >
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
             <View style={styles.modalIconWrap}>
               <MaterialIcons name="person-add" size={52} color={colors.primary} />
             </View>
@@ -113,8 +113,8 @@ const LoginScreen = ({ navigation }) => {
             >
               <Text style={styles.modalDismiss}>Dismiss</Text>
             </TouchableOpacity>
-          </div>
-        </div>
+          </View>
+        </View>
       </Modal>
 
       <View style={styles.container}>
@@ -210,6 +210,13 @@ const LoginScreen = ({ navigation }) => {
                   </>
                 )}
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.registerLink}
+                onPress={() => navigation.navigate('Register')}
+              >
+                <Text style={styles.registerLinkText}>New user? </Text>
+                <Text style={[styles.registerLinkText, { color: colors.primary, fontWeight: 'bold' }]}>Register here</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -258,6 +265,9 @@ const styles = StyleSheet.create({
   modalRegisterBtnText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
   modalDismissBtn: { paddingVertical: 8 },
   modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },
+
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
+  registerLinkText: { fontSize: 15, color: '#6f8961' },
 });
 
 export default LoginScreen;

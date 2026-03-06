@@ -27,6 +27,7 @@ model User {
   latitude    Float?
   longitude   Float?
   status      String   @default("offline") // "available" | "working" | "on_break" | "offline"
+  pushToken   String?  // Expo push notification token
   otp         String?
   otpExpiresAt DateTime?
   createdAt   DateTime @default(now())

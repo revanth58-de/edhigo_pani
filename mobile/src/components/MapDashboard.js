@@ -22,6 +22,27 @@ if (Platform.OS === 'web') {
 }
 
 const DEFAULT_CENTER = [78.4867, 17.3850]; // Hyderabad
+
+// Guard against NaN/null coordinates that crash MapLibre
+const isValidCoord = (lat, lng) =>
+    lat != null && lng != null &&
+    !isNaN(lat) && !isNaN(lng) &&
+    isFinite(lat) && isFinite(lng);
+
+const safeCenter = (loc) => {
+    if (!loc) return DEFAULT_CENTER;
+    // userLocation can be [lng, lat] array or {latitude, longitude} object
+    if (Array.isArray(loc)) {
+        const [lng, lat] = loc;
+        return isValidCoord(lat, lng) ? loc : DEFAULT_CENTER;
+    }
+    if (loc.longitude != null && loc.latitude != null) {
+        return isValidCoord(loc.latitude, loc.longitude)
+            ? [loc.longitude, loc.latitude]
+            : DEFAULT_CENTER;
+    }
+    return DEFAULT_CENTER;
+};
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const MAP_CSS_URL = 'https://unpkg.com/maplibre-gl@5.19.0/dist/maplibre-gl.css';
 
@@ -53,7 +74,7 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
                 mapInstance.current = new MapCtor({
                     container: mapContainer.current,
                     style: MAP_STYLE,
-                    center: userLocation || DEFAULT_CENTER,
+                    center: safeCenter(userLocation),
                     zoom: 12,
                 });
 
@@ -87,8 +108,8 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
             }
         });
 
-        // Add/Update markers
-        markers.forEach(marker => {
+        // Add/Update markers — skip any with invalid coordinates
+        markers.filter(m => isValidCoord(m.latitude, m.longitude)).forEach(marker => {
             if (markersRef.current[marker.id]) {
                 markersRef.current[marker.id].setLngLat([marker.longitude, marker.latitude]);
             } else {
@@ -147,7 +168,8 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
     // Handle User Location (Web)
     useEffect(() => {
         if (Platform.OS === 'web' && mapInstance.current && userLocation) {
-            mapInstance.current.flyTo({ center: userLocation, zoom: 14 });
+            const center = safeCenter(userLocation);
+            mapInstance.current.flyTo({ center, zoom: 14 });
         }
     }, [userLocation]);
 
@@ -174,14 +196,17 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
             const map = new maplibregl.Map({
               container: 'map',
               style: '${MAP_STYLE}',
-              center: [${(userLocation || DEFAULT_CENTER)[0]}, ${(userLocation || DEFAULT_CENTER)[1]}],
+              center: [${safeCenter(userLocation)[0]}, ${safeCenter(userLocation)[1]}],
               zoom: 12
             });
 
             const markers = {};
 
+            function isValidCoord(lat, lng) {
+              return lat != null && lng != null && !isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng);
+            }
             function updateMarkers(newMarkers) {
-              newMarkers.forEach(m => {
+              newMarkers.filter(m => isValidCoord(m.latitude, m.longitude)).forEach(m => {
                 if (markers[m.id]) {
                   markers[m.id].setLngLat([m.longitude, m.latitude]);
                 } else {

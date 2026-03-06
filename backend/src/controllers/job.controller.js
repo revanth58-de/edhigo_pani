@@ -1,5 +1,6 @@
 const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
 const { matchWorkers } = require('../services/matchWorkers');
+const { notifyWorkersNewJob, notifyFarmerJobAccepted } = require('../services/pushNotification');
 
 // Create a new job
 const createJob = async (req, res, next) => {
@@ -56,13 +57,18 @@ const createJob = async (req, res, next) => {
             workType: job.workType,
             payPerDay: job.payPerDay,
             farmAddress: job.farmAddress,
-            distanceKm: worker.distanceKm,                        // real distance
+            farmLatitude: job.farmLatitude,
+            farmLongitude: job.farmLongitude,
+            distanceKm: worker.distanceKm,
             distanceLabel: worker.distanceKm != null
               ? `${worker.distanceKm} km away`
               : 'Nearby',
             workersNeeded: job.workersNeeded,
           });
         });
+
+        // 📲 Send push notification to matched workers (even if app is closed)
+        await notifyWorkersNewJob(matchedWorkers, job);
       } catch (matchErr) {
         // Matching errors should not fail the job creation
         console.error('⚠️ Worker matching error (job still created):', matchErr.message);
@@ -303,6 +309,17 @@ const acceptJob = async (req, res) => {
       },
     });
 
+    // Fetch farmer's push token for notification
+    const farmerFull = await prisma.user.findUnique({
+      where: { id: job.farmer.id },
+      select: { pushToken: true },
+    });
+
+    // 📲 Push to farmer even if app is closed
+    if (farmerFull?.pushToken) {
+      await notifyFarmerJobAccepted(farmerFull.pushToken, workerDetails, job);
+    }
+
     const io = req.app.get('io');
     if (io) {
       // 1️⃣ Notify farmer that their job was accepted (personal room)
@@ -407,12 +424,14 @@ const withdrawJob = async (req, res) => {
             workType: fullJob.workType,
             payPerDay: fullJob.payPerDay,
             farmAddress: fullJob.farmAddress,
+            farmLatitude: fullJob.farmLatitude,
+            farmLongitude: fullJob.farmLongitude,
             distanceKm: worker.distanceKm,
             distanceLabel: worker.distanceKm != null
               ? `${worker.distanceKm} km away`
               : 'Nearby',
             workersNeeded: fullJob.workersNeeded,
-            reOpened: true, // hint for UI
+            reOpened: true,
           });
         });
 

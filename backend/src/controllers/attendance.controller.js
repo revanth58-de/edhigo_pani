@@ -47,7 +47,7 @@ const checkIn = async (req, res, next) => {
     } = req.body;
 
     // 1. Basic Validation
-    if (req.user.id !== workerId) {
+    if (req.user?.id !== workerId) {
       return res.status(403).json({ success: false, message: 'Cannot check in for another worker' });
     }
 

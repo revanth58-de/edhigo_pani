@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
 const config = require('../config/env');
+const { sendOTPSms } = require('../services/smsService');
 
 // Generate a 4-digit OTP
 const generateOTP = () => {
@@ -53,11 +54,17 @@ const sendOTP = async (req, res, next) => {
 
     console.log('✅ OTP saved. isExistingUser:', isExistingUser);
 
+    // Send real SMS via Fast2SMS
+    const smsSent = await sendOTPSms(phone, otp);
+    if (!smsSent) {
+      console.warn('⚠️  SMS failed — OTP for dev:', otp);
+    }
+
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      // NOTE: OTP is NOT returned here — it is sent via SMS in production.
-      // In development, read it from the server console logs.
+      // Expose OTP only in development so testing is easy without SMS
+      ...(config.nodeEnv === 'development' && { devOtp: otp }),
     });
   } catch (error) {
     console.error('💥 Send OTP Error:', error);
@@ -253,7 +260,7 @@ const refreshToken = async (req, res, next) => {
 // PUT /api/auth/profile
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, village, photoUrl, landAcres, animals, skills, status } = req.body;
+    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude } = req.body;
 
     const dataToUpdate = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -263,6 +270,9 @@ const updateProfile = async (req, res, next) => {
     if (animals !== undefined) dataToUpdate.animals = animals;
     if (skills !== undefined) dataToUpdate.skills = skills;
     if (status !== undefined) dataToUpdate.status = status;
+    if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
+    if (latitude !== undefined) dataToUpdate.latitude = parseFloat(latitude);
+    if (longitude !== undefined) dataToUpdate.longitude = parseFloat(longitude);
 
     const user = await prisma.user.update({
       where: { id: req.user.id },

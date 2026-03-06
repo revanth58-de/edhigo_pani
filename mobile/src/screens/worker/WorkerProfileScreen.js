@@ -377,6 +377,13 @@ const WorkerProfileScreen = ({ navigation }) => {
                 <MaterialIcons name="history" size={24} color={colors.primary} />
                 <Text style={styles.actionButtonText}>Work History</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('WorkerPaymentHistory')}
+              >
+                <MaterialIcons name="account-balance-wallet" size={24} color={colors.primary} />
+                <Text style={styles.actionButtonText}>Payments</Text>
+              </TouchableOpacity>
             </>
           )}
         </View>

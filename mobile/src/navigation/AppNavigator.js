@@ -1,12 +1,16 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+import Constants from 'expo-constants';
+import { authAPI } from '../services/api';
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -39,6 +43,7 @@ import WorkStatusScreen from '../screens/worker/WorkStatusScreen';
 import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
+import WorkerPaymentHistoryScreen from '../screens/worker/WorkerPaymentHistoryScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -104,6 +109,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
+    <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
   </Stack.Navigator>
@@ -140,6 +146,47 @@ const AppNavigator = () => {
   useEffect(() => {
     rehydrate();
   }, []);
+
+  // ── Register push notification token after login ──────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    const registerPush = async () => {
+      try {
+        if (!Device.isDevice) return; // Skip in emulator
+
+        // Push notifications don't work in Expo Go (SDK 53+) — skip gracefully
+        // They will work once you build a development build or production APK
+        const isExpoGo = Constants.appOwnership === 'expo';
+        if (isExpoGo) {
+          console.log('ℹ️ Push notifications not supported in Expo Go — skipping token registration');
+          return;
+        }
+
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== 'granted') {
+          console.warn('Push notification permission not granted');
+          return;
+        }
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+        const tokenData = await Notifications.getExpoPushTokenAsync(
+          projectId ? { projectId } : {}
+        );
+        const token = tokenData.data;
+        console.log('📲 Expo Push Token:', token);
+        await authAPI.updateProfile({ pushToken: token });
+      } catch (err) {
+        console.warn('Push token registration failed (non-fatal):', err.message);
+      }
+    };
+
+    registerPush();
+  }, [isAuthenticated, user?.id]);
 
   if (!hydrated) {
     return (

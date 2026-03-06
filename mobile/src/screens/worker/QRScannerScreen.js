@@ -16,6 +16,7 @@ import { useTranslation } from '../../i18n';
 import { attendanceService } from '../../services/api/attendanceService';
 import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const QRScannerScreen = ({ navigation, route }) => {
   const { job, role = 'worker' } = route.params || {};

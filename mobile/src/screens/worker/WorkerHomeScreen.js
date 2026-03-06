@@ -20,6 +20,7 @@ import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
 import { jobAPI, authAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
+import * as Location from 'expo-location';
 
 const STATUS_META = {
   pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
@@ -122,6 +123,26 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   useEffect(() => {
     fetchNearbyJobs();
 
+    // ── Save real GPS location to backend for accurate job matching ────
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setUserLocation(loc.coords);
+          // Save to backend so matchWorkers uses real coordinates
+          await authAPI.updateProfile({
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            status: 'available',
+          });
+          console.log('📍 Worker GPS saved:', loc.coords.latitude, loc.coords.longitude);
+        }
+      } catch (gpsErr) {
+        console.warn('GPS save failed (non-fatal):', gpsErr.message);
+      }
+    })();
+
     // Join personal socket room so backend can send targeted job offers
     if (user?.id) {
       socketService.connect();
@@ -141,18 +162,24 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     const handleNewOffer = (offer) => {
       const distanceText = offer.distanceLabel || 'Nearby';
 
+      // Use actual farm coordinates from the offer; fall back to Hyderabad
+      const farmLat = offer.farmLatitude ?? offer.latitude ?? 17.3850;
+      const farmLng = offer.farmLongitude ?? offer.longitude ?? 78.4867;
+
       // Add/restore the job in the map feed immediately
       setJobsMap(prev => ({
         ...prev,
         [offer.jobId]: {
           id: offer.jobId,
-          latitude: 17.3850, // will update if server sends coords
-          longitude: 78.4867,
+          latitude: farmLat,
+          longitude: farmLng,
           type: 'job',
           title: offer.workType || 'Farm Job',
           workType: offer.workType,
           payPerDay: offer.payPerDay,
           farmAddress: offer.farmAddress,
+          farmLatitude: farmLat,
+          farmLongitude: farmLng,
         },
       }));
 

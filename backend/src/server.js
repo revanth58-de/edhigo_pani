@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const { apiLimiter, uploadLimiter } = require('./middleware/rateLimiter');
@@ -16,6 +17,7 @@ const ratingsRoutes = require('./routes/ratings.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const groupRoutes = require('./routes/group.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Initialize Express
 const app = express();
@@ -61,6 +63,10 @@ app.use('/api/ratings', ratingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/upload', uploadLimiter, uploadRoutes);
+app.use('/api/admin', adminRoutes);
+
+// Serve admin dashboard static files
+app.use('/admin', express.static(path.join(__dirname, '../../frontend/admin')));
 
 // Health check
 app.get('/health', (req, res) => {

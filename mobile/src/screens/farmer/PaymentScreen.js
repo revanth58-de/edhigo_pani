@@ -9,6 +9,8 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
@@ -137,6 +139,32 @@ const PaymentScreen = ({ navigation, route }) => {
               />
             </View>
             <Text style={styles.transactionId}>Transaction ID: {transactionId}</Text>
+
+            {/* UPI Deeplink button — opens GPay/PhonePe/any UPI app directly */}
+            <TouchableOpacity
+              style={styles.upiDeeplinkButton}
+              onPress={async () => {
+                const upiUrl = `upi://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=FarmWork&cu=INR`;
+                const canOpen = await Linking.canOpenURL(upiUrl);
+                if (canOpen) {
+                  Linking.openURL(upiUrl);
+                } else {
+                  // Fallback: try intent URL for Android, or show instructions
+                  if (Platform.OS === 'android') {
+                    Linking.openURL(`intent://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=FarmWork&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`);
+                  } else {
+                    Alert.alert(
+                      'Open UPI App',
+                      'Please open GPay, PhonePe or any UPI app and pay to:\n\n' +
+                      `UPI ID: ${upiId}\nAmount: ₹${totalAmount}`,
+                      [{ text: 'OK' }]
+                    );
+                  }
+                }
+              }}
+            >
+              <Text style={styles.upiDeeplinkText}>💳 Open UPI App to Pay</Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
@@ -280,6 +308,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginTop: 16,
+  },
+  upiDeeplinkButton: {
+    marginTop: 16,
+    backgroundColor: '#131811',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 9999,
+    alignItems: 'center',
+  },
+  upiDeeplinkText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   footer: {
     position: 'absolute',

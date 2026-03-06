@@ -22,19 +22,16 @@ const JobOfferScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = React.useState(false);
 
+  // Store the job:taken callback so we can remove it BEFORE we accept
+  const jobTakenHandlerRef = React.useRef(null);
+
   useEffect(() => {
-
-    // Connect socket and join rooms for cancellation alerts
     socketService.connect();
-    if (user?.id) {
-      socketService.joinUserRoom(user.id);
-    }
-    if (job?.id) {
-      socketService.joinJobRoom(job.id);
-    }
+    if (user?.id) socketService.joinUserRoom(user.id);
+    if (job?.id) socketService.joinJobRoom(job.id);
 
-    // If another worker accepts this job while we are viewing it, warn immediately
-    socketService.onJobTaken(({ jobId }) => {
+    // If ANOTHER worker accepts while we're viewing → warn and exit
+    const handleJobTaken = ({ jobId }) => {
       if (jobId === job?.id) {
         Alert.alert(
           '⚡ Job Taken',
@@ -42,27 +39,25 @@ const JobOfferScreen = ({ navigation, route }) => {
           [{ text: 'Go Back', onPress: () => navigation.goBack() }]
         );
       }
-    });
+    };
+    jobTakenHandlerRef.current = handleJobTaken;
+    socketService.onJobTaken(handleJobTaken);
 
     // Listen for job cancellation by farmer
     socketService.onJobCancelled((data) => {
       if (data.jobId === job?.id) {
-        console.log('❌ Job cancelled by farmer while viewing offer:', data);
         navigation.replace('JobCancelled', {
-          job: {
-            ...job,
-            farmerName: data.farmerName,
-            workType: data.workType,
-          },
+          job: { ...job, farmerName: data.farmerName, workType: data.workType },
         });
       }
     });
 
     return () => {
-      socketService.offJobTaken();
+      socketService.offJobTaken(jobTakenHandlerRef.current);
       socketService.offJobCancelled();
     };
   }, []);
+
 
   const handleAccept = async () => {
     if (!user?.id || !job?.id) {
@@ -71,13 +66,19 @@ const JobOfferScreen = ({ navigation, route }) => {
     }
 
     setLoading(true);
+
+    // ⚠️ CRITICAL: Remove the job:taken listener BEFORE accepting.
+    // When we accept, the backend broadcasts job:taken to everyone including us.
+    // If the listener is still active, it fires and shows "Another worker accepted it"
+    // on our own screen — a false positive. Detach it first, then accept.
+    socketService.offJobTaken(jobTakenHandlerRef.current);
+    jobTakenHandlerRef.current = null;
+
     try {
       const response = await jobService.acceptJob(job.id, user.id);
-
       if (response.success) {
         navigation.navigate('Navigation', { job });
       } else if (response.alreadyTaken) {
-        // Race condition — another worker was faster
         Alert.alert(
           '⚡ Already Taken',
           'Another worker accepted this job just before you. Keep looking!',
@@ -95,13 +96,13 @@ const JobOfferScreen = ({ navigation, route }) => {
           [{ text: 'Back to Feed', onPress: () => navigation.goBack() }]
         );
       } else {
-        console.error('Accept Job Error:', error);
         Alert.alert('Error', 'Failed to accept job. Please try again.');
       }
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleReject = () => {
     navigation.goBack();

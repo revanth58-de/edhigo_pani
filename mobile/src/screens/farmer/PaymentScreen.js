@@ -1,5 +1,4 @@
-// Screen 15: Payment - Exact match to payment-farmer.html
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +17,7 @@ import { paymentService } from '../../services/api/paymentService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import * as Speech from 'expo-speech';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { job, workers } = route.params;
@@ -25,15 +25,29 @@ const PaymentScreen = ({ navigation, route }) => {
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'cash' or 'upi'
   const [loading, setLoading] = useState(false);
 
-  const { user } = useAuthStore();
-  const totalAmount = job?.payPerDay || 500;
+  const { user, language } = useAuthStore();
+  const workerCount = workers?.length || String(job?.workersNeeded || 1);
+  const totalAmount = (job?.payPerDay || 500) * workerCount;
   // Use farmer's UPI ID from profile, fallback to phone-based UPI
   const upiId = user?.upiId || `${user?.phone || 'farmer'}@upi`;
   // Stable transaction ID per screen session — useMemo prevents re-render regeneration
   const transactionId = useMemo(() => `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
   }, []);
+
+  const handleVoiceGuidance = () => {
+    const textToSpeak = language === 'te'
+      ? 'దయచేసి పనివారికి డబ్బులు చెల్లించండి.'
+      : language === 'hi'
+        ? 'कृपया मजदूरों को भुगतान करें।'
+        : 'Please pay the amount to the workers.';
+
+    Speech.speak(textToSpeak, { language: language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN' });
+  };
 
 
   const handlePayment = async () => {
@@ -64,14 +78,29 @@ const PaymentScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back" size={28} color="#131811" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Payment</Text>
-        <View style={{ width: 28 }} />
+        <Text style={styles.headerTitle}>{t('payment.title') || 'Payment'}</Text>
+        <TouchableOpacity onPress={handleVoiceGuidance} style={styles.voiceIcon}>
+          <MaterialIcons name="record-voice-over" size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Voice Guidance Banner */}
+        <TouchableOpacity
+          style={styles.voiceBanner}
+          onPress={handleVoiceGuidance}
+          activeOpacity={0.8}
+        >
+          <View style={styles.voiceIconContainer}>
+            <MaterialIcons name="volume-up" size={24} color={colors.primary} />
+          </View>
+          <Text style={styles.voiceBannerText}>
+            "Dabbulu pay cheyyandi" (Please pay the amount)
+          </Text>
+        </TouchableOpacity>
 
         {/* Amount Display */}
         <View style={styles.amountSection}>
@@ -227,6 +256,52 @@ const styles = StyleSheet.create({
     color: '#131811',
     flex: 1,
     textAlign: 'center',
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  voiceIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${colors.primary}33`,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}1A`,
+    borderWidth: 1,
+    borderColor: `${colors.primary}33`,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    gap: 12,
+  },
+  voiceIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  voiceBannerText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#131811',
+    lineHeight: 20,
   },
   content: {
     flex: 1,

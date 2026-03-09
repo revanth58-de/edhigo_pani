@@ -1,16 +1,26 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator, Platform } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import React, { useEffect, useState } from 'react';
+import { View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
+import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { authAPI } from '../services/api';
+
+// Ensure foreground notifications show a visual UI banner
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -63,6 +73,9 @@ import GroupCallScreen from '../screens/leader/GroupCallScreen';
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
 import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
+
+// Global Overlays
+import NotificationOverlay from '../components/NotificationOverlay';
 
 const Stack = createNativeStackNavigator();
 
@@ -142,6 +155,9 @@ const AppNavigator = () => {
   const user = useAuthStore((state) => state.user);
   const hydrated = useAuthStore((state) => state._hydrated);
   const rehydrate = useAuthStore((state) => state.rehydrate);
+  
+  const navigationRef = useNavigationContainerRef();
+  const [canGoBack, setCanGoBack] = useState(false);
 
   useEffect(() => {
     rehydrate();
@@ -197,8 +213,13 @@ const AppNavigator = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top']}>
-      <NavigationContainer>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['left', 'right', 'bottom']}>
+      <NavigationContainer 
+        ref={navigationRef} 
+        onStateChange={() => {
+          setCanGoBack(navigationRef.canGoBack());
+        }}
+      >
         {!isAuthenticated ? (
           <AuthNavigator />
         ) : !user?.role ? (
@@ -212,6 +233,8 @@ const AppNavigator = () => {
           <FarmerNavigator />
         )}
       </NavigationContainer>
+
+      <NotificationOverlay />
     </SafeAreaView>
   );
 };

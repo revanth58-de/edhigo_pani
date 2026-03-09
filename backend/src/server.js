@@ -38,7 +38,7 @@ const io = new Server(server, {
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'bypass-tunnel-reminder'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'bypass-tunnel-reminder', 'x-admin-secret'],
 }));
 
 // Explicit preflight handler for all routes (ensures tunnel proxies don't strip headers)
@@ -66,7 +66,7 @@ app.use('/api/upload', uploadLimiter, uploadRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Serve admin dashboard static files
-app.use('/admin', express.static(path.join(__dirname, '../../frontend/admin')));
+app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -105,10 +105,27 @@ io.on('connection', (socket) => {
   });
 
   // Worker arrives at farm
-  socket.on('job:arrival', (data) => {
+  socket.on('job:arrival', async (data) => {
     const { jobId, workerId } = data;
     logger.info(`🏁 Worker ${workerId} arrived for job:${jobId}`);
     io.to(`job:${jobId}`).emit('job:arrival', { workerId });
+
+    try {
+      const prisma = require('./config/database');
+      const { notifyFarmerWorkerArrived } = require('./services/pushNotification');
+
+      const job = await prisma.job.findUnique({
+        where: { id: jobId },
+        include: { farmer: { select: { pushToken: true } } }
+      });
+      const worker = await prisma.user.findUnique({ where: { id: workerId }, select: { name: true } });
+
+      if (job?.farmer?.pushToken) {
+        await notifyFarmerWorkerArrived(job.farmer.pushToken, worker, job);
+      }
+    } catch (err) {
+      logger.error(`Error sending arrival push notification: ${err.message}`);
+    }
   });
 
   socket.on('disconnect', () => {

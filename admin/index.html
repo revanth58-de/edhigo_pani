@@ -434,8 +434,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-      // ─── Config ───
-      const API = "http://localhost:5000/api/admin";
+      const API = "http://127.0.0.1:5000/api/admin";
       let SECRET = "";
       let currentPanel = "overview";
       let editingUserId = null;
@@ -465,7 +464,7 @@
           loadOverview();
         } catch (e) {
           document.getElementById("login-error").textContent =
-            "Cannot connect to server (localhost:5000). Is the backend running?";
+            "Cannot connect to the backend API. Is the server running?";
           document.getElementById("login-btn").textContent = "Sign In";
         }
       }

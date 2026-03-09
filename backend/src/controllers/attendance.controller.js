@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { notifyFarmerAttendanceIn, notifyFarmerAttendanceOut } = require('../services/pushNotification');
 
 // Helper: Calculate distance in meters between two points
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -17,21 +18,21 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Helper: Validate QR Code (Format: jobId|timestamp)
+// Helper: Validate QR Code (JSON payload: { jobId, type, timestamp })
 const validateQR = (qrString, jobId) => {
   try {
-    const [qrJobId, timestamp] = qrString.split('|');
-    if (qrJobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
+    const qrData = JSON.parse(qrString);
+    if (qrData.jobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
 
-    const qrTime = parseInt(timestamp);
+    const qrTime = parseInt(qrData.timestamp);
     const now = Date.now();
     const expiry = 35000; // 35 seconds (30s specified + 5s buffer for network)
 
     if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired' };
 
-    return { valid: true };
+    return { valid: true, type: qrData.type };
   } catch (error) {
-    return { valid: false, message: 'Invalid QR format' };
+    return { valid: false, message: 'Invalid QR format. Expected JSON.' };
   }
 };
 
@@ -52,7 +53,10 @@ const checkIn = async (req, res, next) => {
     }
 
     // 2. Job & Location Validation
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    const job = await prisma.job.findUnique({ 
+      where: { id: jobId },
+      include: { farmer: { select: { pushToken: true } } }
+    });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
     // 3. Geo-fence Check (100m) — only possible when farm has coordinates
@@ -124,6 +128,11 @@ const checkIn = async (req, res, next) => {
       });
     }
 
+    // 📲 Push Notification to Farmer
+    if (job?.farmer?.pushToken) {
+      await notifyFarmerAttendanceIn(job.farmer.pushToken, attendance.worker, job);
+    }
+
     res.status(201).json({ success: true, data: attendance });
 
   } catch (error) {
@@ -168,7 +177,10 @@ const checkOut = async (req, res, next) => {
     }
 
     // 2. Geo-fence Check
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    const job = await prisma.job.findUnique({ 
+      where: { id: jobId },
+      include: { farmer: { select: { pushToken: true } } }
+    });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
     const distance = getDistance(
@@ -202,7 +214,10 @@ const checkOut = async (req, res, next) => {
         checkOutLongitude: parseFloat(checkOutLongitude),
         hoursWorked,
       },
-      include: { job: true }
+      include: { 
+        job: true,
+        worker: { select: { name: true } }
+      }
     });
 
     await prisma.user.update({
@@ -218,6 +233,11 @@ const checkOut = async (req, res, next) => {
         timestamp: attendance.checkOut,
         hoursWorked
       });
+    }
+
+    // 📲 Push Notification to Farmer
+    if (job?.farmer?.pushToken) {
+      await notifyFarmerAttendanceOut(job.farmer.pushToken, attendance.worker, job, hoursWorked);
     }
 
     res.status(200).json({

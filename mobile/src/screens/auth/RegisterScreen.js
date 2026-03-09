@@ -60,6 +60,12 @@ const LABELS = {
         phonePlaceholder: '10-digit number',
         village: 'Village / District',
         villagePlaceholder: 'Your village name',
+        age: 'Age',
+        agePlaceholder: 'Enter your age',
+        gender: 'Gender',
+        genderMale: 'Male',
+        genderFemale: 'Female',
+        genderOther: 'Other',
         role: 'Who are you?',
         farmer: 'Farmer',
         worker: 'Worker',
@@ -67,6 +73,7 @@ const LABELS = {
         continue: 'Continue',
         required: 'All fields are required',
         phoneError: 'Enter a valid 10-digit number',
+        ageError: 'You must be at least 18 years old to register',
     },
 };
 
@@ -74,6 +81,12 @@ const ROLES = [
     { key: 'farmer', icon: 'agriculture', color: '#4CAF50' },
     { key: 'worker', icon: 'construction', color: '#FF9800' },
     { key: 'leader', icon: 'groups', color: '#2196F3' },
+];
+
+const GENDERS = [
+    { key: 'male', icon: 'male', labelKey: 'genderMale' },
+    { key: 'female', icon: 'female', labelKey: 'genderFemale' },
+    { key: 'other', icon: 'transgender', labelKey: 'genderOther' },
 ];
 
 const RegisterScreen = ({ navigation }) => {
@@ -86,16 +99,24 @@ const RegisterScreen = ({ navigation }) => {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [village, setVillage] = useState('');
+    const [age, setAge] = useState('');
+    const [gender, setGender] = useState('');
     const [selectedRole, setSelectedRole] = useState('');
     const [showExistsModal, setShowExistsModal] = useState(false);
 
     const handleContinue = async () => {
-        if (!name.trim() || !phone.trim() || !village.trim() || !selectedRole) {
+        if (!name.trim() || !phone.trim() || !village.trim() || !selectedRole || !age.trim() || !gender) {
             Alert.alert('⚠️', L.required);
             return;
         }
         if (!/^\d{10}$/.test(phone.trim())) {
             Alert.alert('⚠️', L.phoneError);
+            return;
+        }
+
+        const ageNum = parseInt(age.trim(), 10);
+        if (isNaN(ageNum) || ageNum < 18) {
+            Alert.alert('⚠️', L.ageError || 'You must be at least 18 years old to register');
             return;
         }
 
@@ -112,6 +133,8 @@ const RegisterScreen = ({ navigation }) => {
                 phone: phone.trim(),
                 name: name.trim(),
                 village: village.trim(),
+                age: ageNum.toString(),
+                gender: gender,
                 role: selectedRole,
                 fromRegister: true,
                 otp: result?.otp,
@@ -236,6 +259,70 @@ const RegisterScreen = ({ navigation }) => {
                                 placeholderTextColor="#9CA3AF"
                                 underlineColorAndroid="transparent"
                             />
+                        </View>
+                    </View>
+
+                    {/* Age */}
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>
+                            <MaterialIcons name="cake" size={16} color={colors.primary} /> {L.age || 'Age'}
+                        </Text>
+                        <View style={styles.inputRow}>
+                            <MaterialIcons name="calendar-today" size={22} color="#9CA3AF" style={styles.inputIcon} />
+                            <TextInput
+                                style={styles.input}
+                                value={age}
+                                onChangeText={setAge}
+                                placeholder={L.agePlaceholder || 'Enter your age (18+)'}
+                                placeholderTextColor="#9CA3AF"
+                                keyboardType="number-pad"
+                                maxLength={3}
+                                underlineColorAndroid="transparent"
+                            />
+                        </View>
+                        {!!age && parseInt(age, 10) < 18 && (
+                           <Text style={{color: '#EF4444', fontSize: 12, marginTop: 4}}>{L.ageError || 'You must be at least 18'}</Text>
+                        )}
+                    </View>
+
+                    {/* Gender Selection */}
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>{L.gender || 'Gender'}</Text>
+                        <View style={styles.roleRow}>
+                            {GENDERS.map((gndr) => {
+                                const isSelected = gender === gndr.key;
+                                const genderLabel = L[gndr.labelKey] || gndr.key;
+                                return (
+                                    <TouchableOpacity
+                                        key={gndr.key}
+                                        style={[
+                                            styles.roleCard,
+                                            isSelected && { borderColor: colors.primary, backgroundColor: `${colors.primary}08` },
+                                            { padding: 10 }
+                                        ]}
+                                        onPress={() => setGender(gndr.key)}
+                                    >
+                                        <View style={[
+                                            styles.roleIconCircle,
+                                            { width: 44, height: 44, borderRadius: 22, backgroundColor: isSelected ? colors.primary : `${colors.primary}15` }
+                                        ]}>
+                                            <MaterialIcons
+                                                name={gndr.icon}
+                                                size={24}
+                                                color={isSelected ? '#FFFFFF' : colors.primary}
+                                            />
+                                        </View>
+                                        <Text style={[styles.roleLabel, isSelected && { color: colors.primary, fontWeight: 'bold' }]}>
+                                            {genderLabel}
+                                        </Text>
+                                        {isSelected && (
+                                            <View style={[styles.roleCheckBadge, { backgroundColor: colors.primary }]}>
+                                                <MaterialIcons name="check" size={12} color="#FFFFFF" />
+                                            </View>
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     </View>
 

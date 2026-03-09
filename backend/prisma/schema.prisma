@@ -18,6 +18,8 @@ model User {
   role        String?  // "farmer" | "worker" | "leader"
   language    String   @default("te") // "te" | "hi" | "en"
   village     String?
+  age         Int?     // Age of the user (must be >= 18 for workers)
+  gender      String?  // "male" | "female" | "other"
   photoUrl    String?
   landAcres   Float?
   animals     String?  // JSON string: { cow: 2, buffalo: 1, hen: 10 }

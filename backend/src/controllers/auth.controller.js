@@ -75,7 +75,7 @@ const sendOTP = async (req, res, next) => {
 // POST /api/auth/verify-otp
 const verifyOTP = async (req, res, next) => {
   try {
-    const { phone, otp, name, village, role } = req.body;
+    const { phone, otp, name, village, role, age, gender } = req.body;
 
     console.log('🔐 OTP Verification Request:', { phone, otp });
 
@@ -118,6 +118,8 @@ const verifyOTP = async (req, res, next) => {
         ...(name && { name }),
         ...(village && { village }),
         ...(role && ['farmer', 'worker', 'leader'].includes(role) && { role }),
+        ...(age && { age: parseInt(age, 10) }),
+        ...(gender && { gender }),
       },
     });
 
@@ -133,6 +135,8 @@ const verifyOTP = async (req, res, next) => {
         name: updatedUser.name,
         role: updatedUser.role,
         village: updatedUser.village,
+        age: updatedUser.age,
+        gender: updatedUser.gender,
         language: updatedUser.language,
         photoUrl: updatedUser.photoUrl,
         landAcres: updatedUser.landAcres,

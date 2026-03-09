@@ -17,7 +17,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const OTPScreen = ({ navigation, route }) => {
-  const { phone, otp: receivedOTP, name, village, role, fromRegister } = route.params;
+  const { phone, otp: receivedOTP, name, village, role, age, gender, fromRegister } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
@@ -59,9 +59,9 @@ const OTPScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      // Pass registration data (name/village/role) only for new registrations
+      // Pass registration data (name/village/role/age/gender) only for new registrations
       const registrationData = fromRegister
-        ? { name, village, role }
+        ? { name, village, role, age, gender }
         : {};
       await verifyOTPAction(phone, otpToVerify, registrationData);
     } catch (error) {

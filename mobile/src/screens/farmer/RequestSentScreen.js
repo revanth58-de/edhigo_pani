@@ -8,6 +8,7 @@ import {
   StatusBar,
   Animated,
   Easing,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
@@ -66,6 +67,9 @@ const RequestSentScreen = ({ navigation, route }) => {
 
     // Socket connection for real-time acceptance
     socketService.connect();
+    if (user?.id) {
+      socketService.joinUserRoom(user.id);
+    }
     if (job?.id) {
       socketService.joinJobRoom(job.id);
     }
@@ -74,7 +78,18 @@ const RequestSentScreen = ({ navigation, route }) => {
     socketService.onJobAccepted((data) => {
       if (data.jobId === job?.id) {
         console.log('🎉 Job accepted real-time:', data);
-        navigation.replace('RequestAccepted', { job: { ...job, ...data } });
+        
+        // If the job needs multiple workers, wait until it's fully staffed
+        if (job?.workersNeeded > 1 && !data.isFullyStaffed) {
+          // Just flash a toast/alert but don't redirect yet
+          Alert.alert(
+            `Worker Found!`,
+            `${data.workerName || 'A worker'} has accepted. Waiting for more workers to complete the request.`
+          );
+        } else {
+          // All workers found (or it only needed 1)
+          navigation.replace('RequestAccepted', { job: { ...job, ...data } });
+        }
       } else {
         console.log('📡 Received job:accepted for different job, ignoring:', data.jobId);
       }
@@ -103,7 +118,29 @@ const RequestSentScreen = ({ navigation, route }) => {
   }, [job?.id]);
 
   const handleCancel = () => {
-    navigation.navigate('FarmerHome');
+    Alert.alert(
+      t('requestSent.cancelSearch') || 'Cancel Search',
+      t('requestAccepted.cancelConfirm') || 'Are you sure you want to cancel this job request?',
+      [
+        { text: t('common.no') || 'No', style: 'cancel' },
+        {
+          text: t('requestAccepted.yesCancelIt') || 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (job?.id) {
+                await jobAPI.cancelJob(job.id);
+              }
+              navigation.navigate('FarmerHome');
+            } catch (error) {
+              console.error('Cancel Error:', error);
+              // Still navigate back so they aren't stuck, but the error might be 404/500
+              navigation.navigate('FarmerHome');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Capitalize the work type for display

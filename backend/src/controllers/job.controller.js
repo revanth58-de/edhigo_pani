@@ -1,6 +1,11 @@
 const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
 const { matchWorkers } = require('../services/matchWorkers');
-const { notifyWorkersNewJob, notifyFarmerJobAccepted } = require('../services/pushNotification');
+const { 
+  notifyWorkersNewJob, 
+  notifyFarmerJobAccepted,
+  notifyFarmerJobWithdrawn,
+  notifyWorkerJobCancelled
+} = require('../services/pushNotification');
 
 // Create a new job
 const createJob = async (req, res, next) => {
@@ -250,69 +255,80 @@ const updateJobStatus = async (req, res) => {
 const acceptJob = async (req, res) => {
   try {
     const { id } = req.params;
-    const workerId = req.user?.id; // always from auth token — not body
+    const workerId = req.user?.id;
 
     if (!workerId) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
-    // ── Atomic update: only succeeds if job is still 'pending' ──────
-    // We use updateMany which returns a count of updated rows.
-    // If count === 0, another worker already accepted it.
-    const { count } = await prisma.job.updateMany({
-      where: { id, status: 'pending' },
-      data: { status: 'accepted' },
-    });
+    // Wrap the acceptance logic in a transaction to prevent race conditions
+    const { job, workerDetails, farmerFull, isNowFull } = await prisma.$transaction(async (tx) => {
+      const currentJob = await tx.job.findUnique({
+        where: { id },
+        include: {
+          farmer: { select: { id: true, name: true, phone: true } },
+        },
+      });
 
-    if (count === 0) {
-      // Either job doesn't exist or it was already taken
-      const existingJob = await prisma.job.findUnique({ where: { id }, select: { status: true } });
-      if (!existingJob) {
-        return res.status(404).json({ success: false, message: 'Job not found' });
+      if (!currentJob || currentJob.status !== 'pending') {
+        throw new Error('JOB_UNAVAILABLE');
       }
-      return res.status(409).json({
-        success: false,
-        alreadyTaken: true,
-        message: 'Job already taken by another worker',
+
+      // Ensure this worker hasn't already accepted
+      const existingApp = await tx.jobApplication.findFirst({
+        where: { jobId: id, workerId },
       });
-    }
+      
+      if (existingApp?.status === 'accepted') {
+        throw new Error('ALREADY_ACCEPTED');
+      }
 
-    // ── Guard against duplicate applications (e.g. network retries) ─
-    const existingApp = await prisma.jobApplication.findFirst({ where: { jobId: id, workerId } });
-    if (!existingApp) {
-      await prisma.jobApplication.create({
-        data: { jobId: id, workerId, status: 'accepted' },
+      // Count currently accepted workers for this job
+      const acceptedCount = await tx.jobApplication.count({
+        where: { jobId: id, status: 'accepted' },
       });
-    }
 
-    // Fetch the final job state (with farmer info for notification)
-    const job = await prisma.job.findUnique({
-      where: { id },
-      include: {
-        farmer: { select: { id: true, name: true, phone: true } },
-      },
-    });
+      if (acceptedCount >= currentJob.workersNeeded) {
+        throw new Error('JOB_FULL');
+      }
 
-    // Fetch worker details for the farmer notification
-    const workerDetails = await prisma.user.findUnique({
-      where: { id: workerId },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        photoUrl: true,
-        ratingAvg: true,
-        skills: true,
-        village: true,
-        latitude: true,
-        longitude: true,
-      },
-    });
+      // Accept this worker
+      if (!existingApp) {
+        await tx.jobApplication.create({
+          data: { jobId: id, workerId, status: 'accepted' },
+        });
+      } else {
+        await tx.jobApplication.update({
+          where: { id: existingApp.id },
+          data: { status: 'accepted' },
+        });
+      }
 
-    // Fetch farmer's push token for notification
-    const farmerFull = await prisma.user.findUnique({
-      where: { id: job.farmer.id },
-      select: { pushToken: true },
+      const isNowFull = (acceptedCount + 1) >= currentJob.workersNeeded;
+
+      // Close job *only* if required workers are fulfilled
+      if (isNowFull) {
+        await tx.job.update({
+          where: { id },
+          data: { status: 'accepted' },
+        });
+      }
+
+      const workerDetails = await tx.user.findUnique({
+        where: { id: workerId },
+        select: {
+          id: true, name: true, phone: true, photoUrl: true,
+          ratingAvg: true, skills: true, village: true,
+          latitude: true, longitude: true,
+        },
+      });
+
+      const farmerFull = await tx.user.findUnique({
+        where: { id: currentJob.farmer.id },
+        select: { pushToken: true },
+      });
+
+      return { job: currentJob, workerDetails, farmerFull, isNowFull };
     });
 
     // 📲 Push to farmer even if app is closed
@@ -322,7 +338,7 @@ const acceptJob = async (req, res) => {
 
     const io = req.app.get('io');
     if (io) {
-      // 1️⃣ Notify farmer that their job was accepted (personal room)
+      // 1️⃣ Notify farmer that a worker was accepted (personal room)
       io.to(`user:${job.farmer.id}`).emit('job:accepted', {
         jobId: id,
         workerId,
@@ -332,22 +348,41 @@ const acceptJob = async (req, res) => {
         workerRating: workerDetails?.ratingAvg || 0,
         workerSkills: workerDetails?.skills || null,
         workerVillage: workerDetails?.village || null,
+        isFullyStaffed: isNowFull,
       });
 
-      // 2️⃣ Broadcast to EVERYONE so workers drop it from their feed instantly
-      io.emit('job:taken', { jobId: id });
-
-      console.log(`📡 Broadcast job:taken for job ${id}`);
+      // 2️⃣ Broadcast globally ONLY IF the job is fully staffed
+      if (isNowFull) {
+        io.emit('job:taken', { jobId: id });
+        console.log(`📡 Broadcast job:taken for job ${id} (Full)`);
+      }
     }
 
     res.status(200).json({
       success: true,
       message: 'Job accepted successfully',
+      isFullyStaffed: isNowFull,
       data: { ...job, worker: workerDetails },
     });
 
   } catch (error) {
     console.error('Accept Job Error:', error);
+
+    if (error.message === 'JOB_UNAVAILABLE' || error.message === 'JOB_FULL') {
+      return res.status(409).json({
+        success: false,
+        alreadyTaken: true,
+        message: 'Job already taken or fully staffed.',
+      });
+    }
+
+    if (error.message === 'ALREADY_ACCEPTED') {
+      return res.status(400).json({
+        success: false,
+        message: 'You have already accepted this job.',
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to accept job',
@@ -404,6 +439,12 @@ const withdrawJob = async (req, res) => {
           workerId,
           message: 'The worker has cancelled. Job is now open again.',
         });
+      }
+
+      // 📲 Push to farmer
+      const farmerPushToken = fullJob?.farmer?.pushToken;
+      if (farmerPushToken) {
+        await notifyFarmerJobWithdrawn(farmerPushToken, fullJob);
       }
 
       // 2️⃣ Re-run smart matching and re-notify matched workers (Radio System)
@@ -510,6 +551,16 @@ const cancelJob = async (req, res, next) => {
         jobId: id,
         workType: job.workType,
       });
+    }
+
+    // 📲 Push to all workers who applied (they might be waiting or already accepted)
+    const applications = await prisma.jobApplication.findMany({
+      where: { jobId: id, status: 'accepted' },
+      include: { worker: { select: { pushToken: true } } }
+    });
+    const workerPushTokens = applications.map(app => app.worker.pushToken).filter(Boolean);
+    if (workerPushTokens.length > 0) {
+      await notifyWorkerJobCancelled(workerPushTokens, job);
     }
 
     res.status(200).json({ success: true, message: 'Job cancelled successfully' });

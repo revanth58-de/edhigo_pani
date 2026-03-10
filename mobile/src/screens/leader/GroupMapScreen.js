@@ -39,7 +39,7 @@ const GroupMapScreen = ({ navigation, route }) => {
 
         // Watch location
         Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
+            { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 1 },
             (newLoc) => {
                 setLocation(newLoc.coords);
                 // Sync with backend/socket if needed

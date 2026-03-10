@@ -49,7 +49,9 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
 
   const generateQR = async () => {
     try {
-      const loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation
+      });
       const timestamp = Date.now();
       // Secure format: groupId|timestamp|lat|lon|signature(mocked)
       const value = `SECURE_ATTENDANCE|${groupId}|${timestamp}|${loc.coords.latitude}|${loc.coords.longitude}|${type}`;

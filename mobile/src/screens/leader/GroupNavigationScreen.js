@@ -18,7 +18,7 @@ const GroupNavigationScreen = ({ navigation, route }) => {
 
     useEffect(() => {
         Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.High, distanceInterval: 10 },
+            { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 1 },
             (loc) => {
                 // Simple mock countdown for distance
                 setDistanceRemaining(prev => Math.max(0, prev - 50));

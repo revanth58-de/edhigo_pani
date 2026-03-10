@@ -64,7 +64,9 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.BestForNavigation
+          });
           latitude = loc.coords.latitude;
           longitude = loc.coords.longitude;
         }

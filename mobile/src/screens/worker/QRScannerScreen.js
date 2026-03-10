@@ -45,7 +45,9 @@ const QRScannerScreen = ({ navigation, route }) => {
       const qrInfo = JSON.parse(data);
       const isCheckOut = qrInfo.type === 'out';
 
-      const { coords } = await Location.getCurrentPositionAsync({});
+      const { coords } = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation
+      });
       const user = useAuthStore.getState().user;
 
       // Backend expects qrCodeIn for check-in and qrCodeOut for check-out

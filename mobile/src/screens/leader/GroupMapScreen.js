@@ -32,7 +32,9 @@ const GroupMapScreen = ({ navigation, route }) => {
             return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.BestForNavigation
+        });
         setLocation(loc.coords);
 
         // Watch location

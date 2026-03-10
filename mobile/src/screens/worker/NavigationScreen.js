@@ -59,7 +59,7 @@ const NavigationScreen = ({ navigation, route }) => {
       if (status !== 'granted') return;
 
       locationSubscription = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 10 },
+        { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 1 },
         (location) => {
           const { latitude, longitude } = location.coords;
           setCurrentLocation([longitude, latitude]);

@@ -128,7 +128,9 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const loc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.BestForNavigation
+          });
           setUserLocation(loc.coords);
           // Save to backend so matchWorkers uses real coordinates
           await authAPI.updateProfile({

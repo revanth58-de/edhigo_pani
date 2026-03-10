@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import * as Notifications from 'expo-notifications';
+// import * as Notifications from 'expo-notifications';
 import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
 import useAuthStore from '../store/authStore';
+
+// Stubbing out expo-notifications for Expo Go compatibility in SDK 53
+const Notifications = {
+  addNotificationReceivedListener: () => ({ remove: () => {} }),
+  addNotificationResponseReceivedListener: () => ({ remove: () => {} }),
+};
 
 const NotificationOverlay = () => {
   const user = useAuthStore(state => state.user);
@@ -96,13 +102,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: colors.text,
+    color: '#111827',
     textAlign: 'center',
     marginBottom: 12,
   },
   body: {
     fontSize: 16,
-    color: colors.textLight,
+    color: '#6B7280',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,

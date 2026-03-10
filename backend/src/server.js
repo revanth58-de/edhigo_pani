@@ -18,6 +18,8 @@ const paymentRoutes = require('./routes/payment.routes');
 const groupRoutes = require('./routes/group.routes');
 const uploadRoutes = require('./routes/upload.routes');
 const adminRoutes = require('./routes/admin.routes');
+const workerRoutes = require('./routes/worker.routes');
+const chatRoutes = require('./routes/chat.routes');
 
 // Initialize Express
 const app = express();
@@ -64,6 +66,8 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/upload', uploadLimiter, uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/chats', chatRoutes);
 
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
@@ -102,6 +106,42 @@ io.on('connection', (socket) => {
   socket.on('user:join', (userId) => {
     socket.join(`user:${userId}`);
     logger.info(`Socket ${socket.id} joined user:${userId}`);
+  });
+
+  // ─── Group Chat ───
+  socket.on('group:join', (groupId) => {
+    socket.join(`group:${groupId}`);
+    logger.info(`Socket ${socket.id} joined group:${groupId}`);
+  });
+
+  socket.on('group:message', async (data) => {
+    // Expected args: groupId, content, token
+    const { groupId, content, token } = data;
+    try {
+      const jwt = require('jsonwebtoken');
+      const prisma = require('./config/database');
+      
+      if (!token) throw new Error('No auth token provided for message');
+      
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const senderId = decoded.userId;
+      
+      const message = await prisma.groupMessage.create({
+        data: {
+          content,
+          group: { connect: { id: groupId } },
+          sender: { connect: { id: senderId } }
+        },
+        include: {
+          sender: { select: { id: true, name: true, photoUrl: true, role: true } }
+        }
+      });
+
+      // Broadcast to everyone in the room
+      io.to(`group:${groupId}`).emit('group:message', message);
+    } catch (err) {
+      logger.error(`Error saving/sending group message: ${err.message}`);
+    }
   });
 
   // Worker arrives at farm

@@ -98,6 +98,42 @@ class SocketService {
         }
     }
 
+    // ── Group Chat ───────────────────────────────────────────────────
+
+    joinGroupRoom(groupId) {
+        if (this.socket?.connected) {
+            this.socket.emit('group:join', groupId);
+            console.log(`📡 Joined room: group:${groupId}`);
+        } else {
+            this._pendingRooms.push({ event: 'group:join', id: groupId });
+        }
+    }
+
+    onGroupMessage(callback) {
+        if (this.socket) this.socket.on('group:message', callback);
+    }
+
+    offGroupMessage(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('group:message', callback);
+            else this.socket.off('group:message');
+        }
+    }
+
+    emitGroupMessage(data) {
+        if (this.socket?.connected) {
+            import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+                AsyncStorage.getItem('edhigo_auth').then(raw => {
+                     let token = null;
+                     if (raw) {
+                         try { token = JSON.parse(raw).accessToken; } catch(e) {}
+                     }
+                     this.socket.emit('group:message', { ...data, token });
+                });
+            });
+        }
+    }
+
     // ── Farmer Notifications ─────────────────────────────────────────
 
     onJobAccepted(callback) {

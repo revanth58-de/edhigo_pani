@@ -57,9 +57,9 @@ const useAuthStore = create((set, get) => ({
     const saved = await loadAuthFromStorage();
     if (saved) {
       if (saved.accessToken) setAuthToken(saved.accessToken);
-      const user = mapServerUser(saved.user);
+      const mappedUser = mapServerUser(saved.user);
       set({
-        user: user ?? null,
+        user: mappedUser ?? null,
         accessToken: saved.accessToken ?? null,
         refreshToken: saved.refreshToken ?? null,
         isAuthenticated: saved.isAuthenticated ?? false,
@@ -67,6 +67,10 @@ const useAuthStore = create((set, get) => ({
         phone: saved.phone ?? null,
         _hydrated: true,
       });
+
+      if (saved.isAuthenticated) {
+        import('../services/socketService').then(s => s.socketService.connect());
+      }
     } else {
       set({ _hydrated: true });
     }
@@ -113,6 +117,9 @@ const useAuthStore = create((set, get) => ({
       set({ user: mappedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false, otp: null });
       saveToStorage({ user: mappedUser, accessToken, refreshToken, isAuthenticated: true, language: get().language, phone });
 
+      // Connect socket after auth
+      import('../services/socketService').then(s => s.socketService.connect());
+
       // Sync full profile from server in background
       try {
         const meResponse = await authAPI.getMe();
@@ -149,6 +156,7 @@ const useAuthStore = create((set, get) => ({
     setAuthToken(null);
     clearStorage();
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, phone: null, _hydrated: true });
+    import('../services/socketService').then(s => s.socketService.disconnect());
   },
 }));
 

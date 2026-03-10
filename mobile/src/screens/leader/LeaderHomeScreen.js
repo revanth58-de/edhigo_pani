@@ -113,11 +113,11 @@ const LeaderHomeScreen = ({ navigation, route }) => {
 
           <TouchableOpacity
             style={[styles.groupActionBtn, styles.groupActionBtnOutline, { flex: 1 }]}
-            onPress={() => navigation.navigate('ManageGroup', { groupId: null, groupName: 'My Group' })}
+            onPress={() => navigation.navigate('Groups')}
             activeOpacity={0.9}
           >
-            <MaterialIcons name="manage-accounts" size={36} color={colors.primary} />
-            <Text style={[styles.groupActionText, { color: colors.primary }]}>MY{'\n'}GROUP</Text>
+            <MaterialIcons name="groups" size={36} color={colors.primary} />
+            <Text style={[styles.groupActionText, { color: colors.primary }]}>MY{'\n'}GROUPS</Text>
           </TouchableOpacity>
         </View>
 

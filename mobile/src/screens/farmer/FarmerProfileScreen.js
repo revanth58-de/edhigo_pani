@@ -63,6 +63,7 @@ const AVATAR_OPTIONS = [
 // ─── Helpers ───
 const parseAnimals = (str) => {
   if (!str) return {};
+  if (typeof str === 'object' && !Array.isArray(str)) return str;
   try { return JSON.parse(str); } catch { return {}; }
 };
 const stringifyAnimals = (obj) =>
@@ -70,13 +71,21 @@ const stringifyAnimals = (obj) =>
 
 const parseCrops = (str) => {
   if (!str) return [];
-  try { return JSON.parse(str); } catch { return str.split(',').map(s => s.trim()); }
+  if (Array.isArray(str)) return str;
+  if (typeof str === 'string') {
+    try { return JSON.parse(str); } catch { return str.split(',').map(s => s.trim()); }
+  }
+  return [];
 };
 const stringifyCrops = (arr) => JSON.stringify(arr);
 
 const parseEquipment = (str) => {
   if (!str) return [];
-  try { return JSON.parse(str); } catch { return str.split(',').map(s => s.trim()); }
+  if (Array.isArray(str)) return str;
+  if (typeof str === 'string') {
+    try { return JSON.parse(str); } catch { return str.split(',').map(s => s.trim()); }
+  }
+  return [];
 };
 const stringifyEquipment = (arr) => JSON.stringify(arr);
 

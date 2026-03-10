@@ -3,13 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // ──────────── MODELS ────────────
-// Note: SQLite doesn't support enums, so we use String fields.
-// Valid values are documented in comments.
 
 model User {
   id          String   @id @default(uuid())
@@ -22,8 +20,8 @@ model User {
   gender      String?  // "male" | "female" | "other"
   photoUrl    String?
   landAcres   Float?
-  animals     String?  // JSON string: { cow: 2, buffalo: 1, hen: 10 }
-  skills      String?  // JSON string: ["plowing", "seeding"]
+  animals     Json?    // { cow: 2, buffalo: 1, hen: 10 }
+  skills      Json?    // ["plowing", "seeding"]
   ratingAvg   Float    @default(0)
   ratingCount Int      @default(0)
   latitude    Float?
@@ -46,8 +44,23 @@ model User {
   groupMemberships GroupMember[]
   applications     JobApplication[]
   groupMessages    GroupMessage[]
+  refreshTokens    RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model Job {

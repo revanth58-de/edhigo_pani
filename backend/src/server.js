@@ -181,9 +181,11 @@ setIO(io);
 app.use(errorHandler);
 
 // ─── Start Server ───
-server.listen(config.port, '0.0.0.0', () => {
-  logger.info(`🚀 FarmConnect server running on port ${config.port} (bound to 0.0.0.0)`);
-  logger.info(`📡 Environment: ${config.nodeEnv}`);
-});
+if (require.main === module) {
+  server.listen(config.port, '0.0.0.0', () => {
+    logger.info(`🚀 FarmConnect server running on port ${config.port} (bound to 0.0.0.0)`);
+    logger.info(`📡 Environment: ${config.nodeEnv}`);
+  });
+}
 
 module.exports = { app, server, io };

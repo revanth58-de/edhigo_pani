@@ -101,9 +101,13 @@ const getJobs = async (req, res, next) => {
     if (id) where.id = id;
     if (status) where.status = status;
     if (farmerId) where.farmerId = farmerId;
-    // Worker history: filter jobs where the worker has an application
+    // Worker history: filter jobs where the worker has an individual application 
+    // OR where they are part of a group that has an application
     if (workerId) {
-      where.applications = { some: { workerId } };
+      where.OR = [
+        { applications: { some: { workerId } } },
+        { applications: { some: { group: { members: { some: { workerId } } } } } }
+      ];
     }
 
     const jobs = await prisma.job.findMany({

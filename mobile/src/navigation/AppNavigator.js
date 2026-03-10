@@ -8,10 +8,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { authAPI } from '../services/api';
+
+// import * as Notifications from 'expo-notifications';
+// Stubbing out expo-notifications for Expo Go compatibility in SDK 53
+const Notifications = {
+  setNotificationHandler: () => {},
+  getPermissionsAsync: async () => ({ status: 'undetermined' }),
+  requestPermissionsAsync: async () => ({ status: 'undetermined' }),
+  getExpoPushTokenAsync: async () => ({ data: 'dummy-token' }),
+};
 
 // Ensure foreground notifications show a visual UI banner
 Notifications.setNotificationHandler({
@@ -69,6 +77,8 @@ import AddMemberScreen from '../screens/leader/AddMemberScreen';
 import GroupMapScreen from '../screens/leader/GroupMapScreen';
 import GroupNavigationScreen from '../screens/leader/GroupNavigationScreen';
 import GroupCallScreen from '../screens/leader/GroupCallScreen';
+import GroupsScreen from '../screens/leader/GroupsScreen';
+import GroupDetailScreen from '../screens/leader/GroupDetailScreen';
 
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
@@ -140,6 +150,8 @@ const LeaderNavigator = () => (
     <Stack.Screen name="RateFarmerLeader" component={RateFarmerLeaderScreen} />
     <Stack.Screen name="GroupWorkStatus" component={GroupWorkStatusScreen} />
     <Stack.Screen name="ManageGroup" component={ManageGroupScreen} />
+    <Stack.Screen name="Groups" component={GroupsScreen} />
+    <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="AddMember" component={AddMemberScreen} />
     <Stack.Screen name="GroupMap" component={GroupMapScreen} />
     <Stack.Screen name="GroupNavigation" component={GroupNavigationScreen} />

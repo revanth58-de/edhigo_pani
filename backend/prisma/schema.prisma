@@ -45,6 +45,7 @@ model User {
   groupsLed        Group[]
   groupMemberships GroupMember[]
   applications     JobApplication[]
+  groupMessages    GroupMessage[]
 
   @@map("users")
 }
@@ -146,19 +147,38 @@ model Rating {
 }
 
 model Group {
-  id        String   @id @default(uuid())
-  leaderId  String
-  name      String?
-  qrCode    String?
-  status    String   @default("forming") // "forming" | "active" | "completed"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  leaderId    String
+  name        String?
+  type        String?  // "General" | "Seasonal" | "Specialized"
+  description String?
+  photoUrl    String?
+  qrCode      String?
+  status      String   @default("forming") // "forming" | "active" | "completed"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
-  leader  User          @relation(fields: [leaderId], references: [id])
-  members GroupMember[]
+  leader   User           @relation(fields: [leaderId], references: [id])
+  members  GroupMember[]
+  messages GroupMessage[]
 
   @@map("groups")
+}
+
+model GroupMessage {
+  id        String   @id @default(uuid())
+  groupId   String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  group  Group @relation(fields: [groupId], references: [id])
+  sender User  @relation(fields: [senderId], references: [id])
+
+  @@index([groupId, createdAt]) // Optimize fetching historical chat
+  @@map("group_messages")
 }
 
 model GroupMember {

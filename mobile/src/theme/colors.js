@@ -1,30 +1,34 @@
-// FarmConnect Design System — extracted from HTML mocks
-// Primary: #5bec13, Background Light: #f6f8f6, Background Dark: #162210
+// FarmConnect Design System — updated based on new UI screens
+// Primary: #2D6A4F, Secondary: #ECAE40, Background: #F5EFEB
 
 export const colors = {
-  primary:         '#5bec13',
-  primaryDark:     '#49be0f',
-  primaryLight:    'rgba(91, 236, 19, 0.1)',
-  primaryMedium:   'rgba(91, 236, 19, 0.2)',
+  primary:         '#2D6A4F', // Dark green used for headers, buttons, active icons
+  primaryDark:     '#1B4332',
+  primaryLight:    '#E7F0EB', // Light green background for tags e.g. 'QUICK TASK'
+  primaryMedium:   'rgba(45, 106, 79, 0.2)',
 
-  backgroundLight: '#f6f8f6',
+  secondary:       '#ECAE40', // Yellow/orange used for 'Active Jobs' card and badges
+  secondaryLight:  '#FDF4E6',
+
+  backgroundLight: '#F5EFEB', // Warm beige/off-white background
   backgroundDark:  '#162210',
 
   white:           '#ffffff',
-  black:           '#131811',
+  black:           '#111814',
 
-  textPrimary:     '#131811',
-  textSecondary:   '#6f8961',
-  textMuted:       '#9ca88f',
+  textPrimary:     '#1C2A20', // Dark text for headings
+  textSecondary:   '#6B7280', // Gray for subtext
+  textMuted:       '#9CA3AF',
 
-  gray50:          '#f2f4f0',
-  gray100:         '#e5e7eb',
-  gray400:         '#9ca3af',
-  gray500:         '#6b7280',
+  gray50:          '#F3F4F6',
+  gray100:         '#E5E7EB',
+  gray400:         '#9CA3AF',
+  gray500:         '#6B7280',
 
-  statusWorking:   '#FF4D4D',
-  statusBreak:     '#FFD700',
-  statusOnline:    '#5bec13',
+  // Custom Status
+  statusWorking:   '#ECAE40', 
+  statusBreak:     '#EF4444', 
+  statusOnline:    '#2D6A4F', 
 
   error:           '#ef4444',
   success:         '#22c55e',
@@ -32,7 +36,7 @@ export const colors = {
 };
 
 export const fonts = {
-  regular:  'System',  // Will use Lexend when loaded
+  regular:  'System',
   medium:   'System',
   bold:     'System',
   black:    'System',
@@ -78,9 +82,9 @@ export const shadows = {
     elevation: 8,
   },
   primary: {
-    shadowColor: '#5bec13',
+    shadowColor: '#2D6A4F',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 20,
     elevation: 10,
   },

@@ -24,10 +24,10 @@ const getMyGroups = async (req, res, next) => {
 // POST /api/groups - Create a group
 const createGroup = async (req, res, next) => {
   try {
-    const { name, memberCount } = req.body;
+    const { name, type, description, photoUrl, memberCount } = req.body;
     const leaderId = req.user.id; // From JWT token
 
-    console.log('👥 Create Group:', { leaderId, name, memberCount });
+    console.log('👥 Create Group:', { leaderId, name, type, memberCount });
 
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
@@ -37,6 +37,9 @@ const createGroup = async (req, res, next) => {
       data: {
         leaderId,
         name,
+        type,
+        description,
+        photoUrl,
         status: 'forming',
       },
     });

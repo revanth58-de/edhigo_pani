@@ -35,13 +35,6 @@ const ManageGroupScreen = ({ navigation, route }) => {
     const [editName, setEditName] = useState('');
     const [editRole, setEditRole] = useState('');
     const [updating, setUpdating] = useState(false);
-    const [adding, setAdding] = useState(false);
-
-    // Dialpad state
-    const [memberName, setMemberName] = useState('');
-    const [phone, setPhone] = useState('');
-    const [cursorPos, setCursorPos] = useState(0);
-    const [addingMember, setAddingMember] = useState(false);
 
     useEffect(() => {
         initGroup();
@@ -101,56 +94,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
         }
     };
 
-    // ── Dialpad handlers ───────────────────────────────────────────
-    const handleNumberPress = (num) => {
-        if (phone.length < 10) {
-            const newPhone = phone.slice(0, cursorPos) + num + phone.slice(cursorPos);
-            setPhone(newPhone);
-            setCursorPos(cursorPos + 1);
-        }
-    };
-
-    const handleBackspace = () => {
-        if (cursorPos > 0) {
-            const newPhone = phone.slice(0, cursorPos - 1) + phone.slice(cursorPos);
-            setPhone(newPhone);
-            setCursorPos(cursorPos - 1);
-        }
-    };
-
-    const handleAddMember = async () => {
-        if (!memberName.trim()) {
-            Alert.alert('Name Required', 'Please enter the worker\'s name.');
-            return;
-        }
-        if (phone.length !== 10) {
-            Alert.alert('Invalid Number', 'Please enter a 10-digit phone number.');
-            return;
-        }
-        if (!resolvedGroupId) {
-            Alert.alert('Error', 'No group selected. Please create a group first.');
-            return;
-        }
-        setAddingMember(true);
-        try {
-            await groupAPI.addMemberByPhone(resolvedGroupId, {
-                phone,
-                name: memberName.trim(),
-                status: 'joined',
-            });
-            Alert.alert('Success', `${memberName.trim()} added to group!`);
-            setPhone('');
-            setCursorPos(0);
-            setMemberName('');
-            setAdding(false);
-            fetchMembers(resolvedGroupId);
-        } catch (error) {
-            Alert.alert('Error', error.response?.data?.error || 'Failed to add member');
-        } finally {
-            setAddingMember(false);
-        }
-    };
-    // ──────────────────────────────────────────────────────────────
+    // Removed dialpad handlers as AddMemberScreen handles member addition
 
     const removeMember = async (workerId) => {
         Alert.alert('Remove Member', 'Are you sure?', [
@@ -195,7 +139,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
             return;
         }
         try {
-            await groupAPI.updateGroupStatus(resolvedGroupId, 'active');
+            await groupAPI.updateGroupStatus(resolvedGroupId, 'available');
             navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length });
         } catch {
             Alert.alert('Error', 'Failed to start group session');
@@ -220,156 +164,55 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
             </View>
 
-            {adding ? (
-                /* ── Inline dialpad ────────────────────────────────────────── */
-                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-
-                    {/* Name input above dialpad */}
-                    <View style={styles.nameSection}>
-                        <View style={styles.nameLabelRow}>
-                            <MaterialIcons name="person" size={20} color={colors.primary} />
-                            <Text style={styles.nameLabel}>WORKER NAME</Text>
-                        </View>
-                        <TextInput
-                            style={styles.nameInput}
-                            value={memberName}
-                            onChangeText={setMemberName}
-                            placeholder="Enter full name..."
-                            placeholderTextColor="#9CA3AF"
-                            autoFocus
-                        />
+            {/* ── Member list ───────────────────────────────────────────── */}
+            <>
+                <View style={styles.titleSection}>
+                    <Text style={styles.sectionTitle}>Group Members</Text>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{members.length} Active</Text>
                     </View>
+                </View>
 
-                    {/* Phone display */}
-                    <View style={styles.displaySection}>
-                        <View style={styles.labelRow}>
-                            <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
-                            <Text style={styles.label}>WORKER PHONE NUMBER</Text>
+                <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 220 }}>
+                    {loading ? (
+                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                    ) : members.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <MaterialIcons name="groups" size={80} color="#E5E7EB" />
+                            <Text style={styles.emptyText}>No members yet</Text>
+                            <Text style={styles.emptySubText}>Tap ADD MEMBER to get started</Text>
                         </View>
-                        <View style={styles.phoneDisplayRow}>
-                            {phone.length === 0 ? (
-                                <Text style={[styles.phoneDisplay, { color: '#9CA3AF' }]}>0000 000000</Text>
-                            ) : (
-                                phone.split('').map((char, index) => (
-                                    <React.Fragment key={index}>
-                                        {index === cursorPos && <View style={styles.activeCursor} />}
-                                        {index === 4 && <View style={{ width: 12 }} />}
-                                        <TouchableOpacity onPress={() => setCursorPos(index)}>
-                                            <Text style={[styles.phoneDisplay, cursorPos === index && styles.activeChar]}>
-                                                {char}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </React.Fragment>
-                                ))
-                            )}
-                            {phone.length > 0 && cursorPos === phone.length && <View style={styles.activeCursor} />}
-                            {phone.length > 0 && (
-                                <TouchableOpacity style={styles.ghostTap} onPress={() => setCursorPos(phone.length)} />
-                            )}
-                        </View>
-                        <View style={styles.displayUnderline} />
-                    </View>
-
-                    {/* Keypad */}
-                    <View style={styles.keypadContainer}>
-                        <View style={styles.keypad}>
-                            {KEYPAD_ROWS.map((row, rowIndex) => (
-                                <View key={rowIndex} style={styles.keypadRow}>
-                                    {row.map((key, keyIndex) => {
-                                        if (key === null) return <View key={keyIndex} style={styles.keypadKey} />;
-                                        if (key === 'backspace') {
-                                            return (
-                                                <TouchableOpacity key={keyIndex} style={[styles.keypadKey, styles.keypadKeyActive]} onPress={handleBackspace} activeOpacity={0.7}>
-                                                    <MaterialIcons name="backspace" size={36} color="#EF4444" />
-                                                </TouchableOpacity>
-                                            );
-                                        }
-                                        return (
-                                            <TouchableOpacity key={keyIndex} style={[styles.keypadKey, styles.keypadKeyActive]} onPress={() => handleNumberPress(key)} activeOpacity={0.7}>
-                                                <Text style={styles.keypadKeyText}>{key}</Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
-                            ))}
-                        </View>
-
-                        <View style={styles.dialpadButtons}>
-                            <TouchableOpacity
-                                style={styles.cancelDialBtn}
-                                onPress={() => { setAdding(false); setPhone(''); setCursorPos(0); setMemberName(''); }}
-                            >
-                                <Text style={styles.cancelDialBtnText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.addBtn, (phone.length !== 10 || !memberName.trim()) && styles.addBtnDisabled]}
-                                onPress={handleAddMember}
-                                disabled={addingMember || phone.length !== 10 || !memberName.trim()}
-                                activeOpacity={0.9}
-                            >
-                                {addingMember ? (
-                                    <ActivityIndicator color={colors.backgroundDark} />
-                                ) : (
-                                    <>
-                                        <MaterialIcons name="person-add" size={22} color={colors.backgroundDark} />
-                                        <Text style={styles.addBtnText}>Add to Group</Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </ScrollView>
-            ) : (
-                /* ── Member list ───────────────────────────────────────────── */
-                <>
-                    <View style={styles.titleSection}>
-                        <Text style={styles.sectionTitle}>Group Members</Text>
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{members.length} Active</Text>
-                        </View>
-                    </View>
-
-                    <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 220 }}>
-                        {loading ? (
-                            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
-                        ) : members.length === 0 ? (
-                            <View style={styles.emptyState}>
-                                <MaterialIcons name="groups" size={80} color="#E5E7EB" />
-                                <Text style={styles.emptyText}>No members yet</Text>
-                                <Text style={styles.emptySubText}>Tap ADD MEMBER to get started</Text>
+                    ) : (
+                        members.map((item) => (
+                            <View key={item.id || item.workerId} style={styles.memberCard}>
+                                <TouchableOpacity style={styles.memberInfo} onPress={() => { setEditingMember(item); setEditName(item.name || ''); setEditRole(item.role || ''); }}>
+                                    <Image
+                                        source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=random` }}
+                                        style={styles.avatar}
+                                    />
+                                    <View>
+                                        <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
+                                        <Text style={styles.memberRole}>{item.phone || item.role || 'Member'}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => removeMember(item.workerId)}>
+                                    <MaterialIcons name="delete-outline" size={24} color="#EF4444" />
+                                </TouchableOpacity>
                             </View>
-                        ) : (
-                            members.map((item) => (
-                                <View key={item.id || item.workerId} style={styles.memberCard}>
-                                    <TouchableOpacity style={styles.memberInfo} onPress={() => { setEditingMember(item); setEditName(item.name || ''); setEditRole(item.role || ''); }}>
-                                        <Image
-                                            source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=random` }}
-                                            style={styles.avatar}
-                                        />
-                                        <View>
-                                            <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
-                                            <Text style={styles.memberRole}>{item.phone || item.role || 'Member'}</Text>
-                                        </View>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => removeMember(item.workerId)}>
-                                        <MaterialIcons name="delete-outline" size={24} color="#EF4444" />
-                                    </TouchableOpacity>
-                                </View>
-                            ))
-                        )}
-                    </ScrollView>
+                        ))
+                    )}
+                </ScrollView>
 
-                    <View style={styles.footer}>
-                        <TouchableOpacity style={styles.addButton} onPress={() => setAdding(true)}>
-                            <MaterialIcons name="person-add" size={24} color="#111827" />
-                            <Text style={styles.addButtonText}>ADD MEMBER</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.goLiveButton} onPress={handleGoLive} disabled={!resolvedGroupId}>
-                            <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length})</Text>
-                        </TouchableOpacity>
-                    </View>
-                </>
-            )}
+                <View style={styles.footer}>
+                    <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddMember', { groupId: resolvedGroupId, groupName: routeGroupName })}>
+                        <MaterialIcons name="person-add" size={24} color="#111827" />
+                        <Text style={styles.addButtonText}>ADD MEMBER</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.goLiveButton} onPress={handleGoLive} disabled={!resolvedGroupId}>
+                        <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length})</Text>
+                    </TouchableOpacity>
+                </View>
+            </>
 
             {/* Edit member modal */}
             <Modal visible={!!editingMember} animationType="slide" transparent>

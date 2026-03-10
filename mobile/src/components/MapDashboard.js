@@ -78,6 +78,7 @@ const AnimatedPulseMarker = ({ marker, onPress }) => {
             coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
             onPress={() => onPress && onPress(marker)}
             anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false} // Prevents lag/crashing when using custom views inside a Marker
         >
             <View style={styles.markerContainer}>
                 {marker.active && (
@@ -159,6 +160,8 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
 const styles = StyleSheet.create({
     container: {
         width: '100%',
+        flex: 1, // Ensures wrapper takes available space
+        minHeight: 300,
         backgroundColor: '#fff',
         borderRadius: 16,
         overflow: 'hidden',

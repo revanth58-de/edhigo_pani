@@ -8,14 +8,28 @@ const generateOTP = () => {
   return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
-// Generate JWT tokens
-const generateTokens = (userId) => {
+// Generate JWT tokens and save refresh token to DB
+const generateTokens = async (userId) => {
   const accessToken = jwt.sign({ userId }, config.jwtSecret, {
     expiresIn: config.jwtExpiresIn,
   });
   const refreshToken = jwt.sign({ userId }, config.jwtRefreshSecret, {
     expiresIn: config.jwtRefreshExpiresIn,
   });
+
+  // Calculate expiry for DB
+  const decoded = jwt.decode(refreshToken);
+  const expiresAt = new Date(decoded.exp * 1000);
+
+  // Save to DB
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId,
+      expiresAt,
+    },
+  });
+
   return { accessToken, refreshToken };
 };
 
@@ -90,22 +104,12 @@ const verifyOTP = async (req, res, next) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('📱 User found:', {
-      id: user.id,
-      phone: user.phone,
-      storedOTP: user.otp,
-      receivedOTP: otp,
-      otpExpiresAt: user.otpExpiresAt
-    });
-
     // Check expiry FIRST — an expired OTP should never be matchable
     if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-      console.log('❌ OTP Expired:', { expiresAt: user.otpExpiresAt, now: new Date() });
       return res.status(401).json({ error: 'OTP expired. Please request a new one.' });
     }
 
     if (user.otp !== otp) {
-      console.log('❌ OTP Mismatch for user:', user.id);
       return res.status(401).json({ error: 'Invalid OTP' });
     }
 
@@ -123,9 +127,7 @@ const verifyOTP = async (req, res, next) => {
       },
     });
 
-    const tokens = generateTokens(user.id);
-
-    console.log('✅ OTP Verified Successfully for user:', user.id);
+    const tokens = await generateTokens(user.id);
 
     res.json({
       message: 'OTP verified successfully',
@@ -238,26 +240,59 @@ const getMe = async (req, res, next) => {
   }
 };
 
-// POST /api/auth/refresh
+// POST /api/auth/refresh (with Rotation)
 const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken: oldToken } = req.body;
 
-    if (!refreshToken) {
+    if (!oldToken) {
       return res.status(400).json({ error: 'Refresh token is required' });
     }
 
-    const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret);
-    const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+    // 1. Find token in DB
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token: oldToken },
+      include: { user: true },
+    });
 
-    if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+    // 2. Token reuse detection (Security Rotation)
+    // If token exists but is already revoked, it means someone is reusing it.
+    // In this case, we revoke ALL tokens for this user for security.
+    if (!storedToken || storedToken.revoked) {
+      if (storedToken) {
+        await prisma.refreshToken.updateMany({
+          where: { userId: storedToken.userId },
+          data: { revoked: true },
+        });
+      }
+      return res.status(401).json({ error: 'Invalid or reused refresh token. Please login again.' });
     }
 
-    const tokens = generateTokens(user.id);
+    // 3. Verify JWT
+    let decoded;
+    try {
+      decoded = jwt.verify(oldToken, config.jwtRefreshSecret);
+    } catch (err) {
+      // If token is invalid/expired, mark it as revoked
+      await prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { revoked: true },
+      });
+      return res.status(401).json({ error: 'Refresh token expired or invalid' });
+    }
+
+    // 4. Revoke the old token (one-time use)
+    await prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { revoked: true },
+    });
+
+    // 5. Issue new tokens
+    const tokens = await generateTokens(storedToken.userId);
     res.json(tokens);
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid refresh token' });
+    console.error('💥 Refresh Token Error:', error);
+    return res.status(401).json({ error: 'Authentication failed' });
   }
 };
 

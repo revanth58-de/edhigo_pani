@@ -12,14 +12,7 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { authAPI } from '../services/api';
 
-// import * as Notifications from 'expo-notifications';
-// Stubbing out expo-notifications for Expo Go compatibility in SDK 53
-const Notifications = {
-  setNotificationHandler: () => {},
-  getPermissionsAsync: async () => ({ status: 'undetermined' }),
-  requestPermissionsAsync: async () => ({ status: 'undetermined' }),
-  getExpoPushTokenAsync: async () => ({ data: 'dummy-token' }),
-};
+import * as Notifications from 'expo-notifications';
 
 // Ensure foreground notifications show a visual UI banner
 Notifications.setNotificationHandler({

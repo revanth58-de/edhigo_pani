@@ -12,6 +12,8 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import GlassCard from '../../components/GlassCard';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -279,8 +281,12 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient 
+      colors={['#FDFBF7', colors.backgroundLight]} 
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Top Bar */}
       <TopBar title={t('worker.workerHome')} navigation={navigation} />
@@ -295,10 +301,12 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             onMarkerPress={(job) => navigation.navigate('JobOffer', { job })}
           />
           <View style={styles.mapOverlay}>
-            <View style={[styles.onlineStatusBadge, { backgroundColor: isOnline ? colors.primary : '#9CA3AF' }]}>
-              <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#fff' : '#666' }]} />
-              <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
-            </View>
+            <GlassCard intensity={80} tint="dark" style={styles.glassBadge} noShadow>
+              <View style={[styles.onlineStatusBadge, { backgroundColor: isOnline ? colors.primary : '#9CA3AF' }]}>
+                <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#fff' : '#666' }]} />
+                <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
+              </View>
+            </GlassCard>
           </View>
         </View>
 
@@ -315,34 +323,41 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         {/* Massive START WORK Button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.startButton, (!isOnline || searching) && { opacity: 0.7 }]}
+            style={[styles.startBtnTouchable, (!isOnline || searching) && { opacity: 0.7 }]}
             activeOpacity={0.9}
             onPress={handleStartWork}
             disabled={!isOnline || searching}
           >
-            {searching ? (
-              <>
-                <ActivityIndicator color={colors.backgroundDark} size="large" />
-                <Text
-                  style={styles.startButtonText}
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                >
-                  {t('worker.searching')}
-                </Text>
-              </>
-            ) : (
-              <>
-                <MaterialIcons name="play-arrow" size={72} color={colors.backgroundDark} />
-                <Text
-                  style={styles.startButtonText}
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                >
-                  {t('worker.startWork')}
-                </Text>
-              </>
-            )}
+            <LinearGradient
+               colors={isOnline && !searching ? colors.primaryGradient : ['#9CA3AF', '#6B7280']}
+               start={{ x: 0, y: 0 }}
+               end={{ x: 1, y: 1 }}
+               style={styles.startButton}
+            >
+              {searching ? (
+                <>
+                  <ActivityIndicator color={colors.white} size="large" />
+                  <Text
+                    style={[styles.startButtonText, { color: colors.white }]}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {t('worker.searching')}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <MaterialIcons name="play-arrow" size={72} color={colors.white} />
+                  <Text
+                    style={[styles.startButtonText, { color: colors.white }]}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
+                  >
+                    {t('worker.startWork')}
+                  </Text>
+                </>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -433,7 +448,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
       {/* Bottom Navigation */}
       <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -551,7 +566,6 @@ const styles = StyleSheet.create({
     width: 256,
     height: 256,
     borderRadius: 128,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.primary,
@@ -561,6 +575,12 @@ const styles = StyleSheet.create({
     elevation: 20,
     borderWidth: 8,
     borderColor: '#FFFFFF',
+  },
+  startBtnTouchable: {
+    borderRadius: 128,
+  },
+  glassBadge: {
+    borderRadius: 9999,
   },
   startButtonText: {
     fontSize: 28,

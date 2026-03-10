@@ -12,16 +12,19 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
+import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
 import { Alert } from 'react-native';
 
 const AnimatedCard = ({ workType, onPress }) => {
+  // ... (keep existing AnimatedCard implementation intact, just change styling below)
   const hoverAnim = React.useRef(new Animated.Value(0)).current;
 
   const handleMouseEnter = () => {
@@ -55,39 +58,33 @@ const AnimatedCard = ({ workType, onPress }) => {
     outputRange: ['#0F172A', '#FFFFFF'],
   });
 
-  const subtextColor = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#64748B', '#162210'], // Darker green/black for contrast on bright primary
-  });
-
   return (
     <TouchableOpacity
-      style={styles.workTypeCard}
+      style={styles.workTypeWrapper}
       activeOpacity={0.9}
       onPress={() => onPress(workType.name)}
       onMouseEnter={Platform.OS === 'web' ? handleMouseEnter : undefined}
       onMouseLeave={Platform.OS === 'web' ? handleMouseLeave : undefined}
     >
-      {/* Absolute Background Animation */}
-      <Animated.View
-        style={[
-          styles.hoverBackground,
-          { transform: [{ translateY }] }
-        ]}
-      />
-
-      <View style={styles.imageHeader}>
-        <Animated.Image
-          source={{ uri: workType.image }}
-          style={[styles.cardImage, { transform: [{ scale }] }]}
+      <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
+        <Animated.View
+          style={[
+            styles.hoverBackground,
+            { transform: [{ translateY }] }
+          ]}
         />
-      </View>
-
-      <View style={styles.cardContent}>
-        <Animated.Text style={[styles.workTypeName, { color: textColor }]} numberOfLines={1}>
-          {workType.name}
-        </Animated.Text>
-      </View>
+        <View style={styles.imageHeader}>
+          <Animated.Image
+            source={{ uri: workType.image }}
+            style={[styles.cardImage, { transform: [{ scale }] }]}
+          />
+        </View>
+        <View style={styles.cardContent}>
+          <Animated.Text style={[styles.workTypeName, { color: textColor }]} numberOfLines={1}>
+            {workType.name}
+          </Animated.Text>
+        </View>
+      </GlassCard>
     </TouchableOpacity>
   );
 };
@@ -100,13 +97,11 @@ const FarmerHomeScreen = ({ navigation }) => {
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
-    // Connect and join farmer's personal room to receive job:accepted events
     socketService.connect();
     if (user?.id) {
       socketService.joinUserRoom(user.id);
     }
 
-    // Real-time: notify farmer when a worker accepts their job
     const handleJobAccepted = (data) => {
       Alert.alert(
         '🌾 Job Accepted!',
@@ -120,9 +115,7 @@ const FarmerHomeScreen = ({ navigation }) => {
 
     socketService.onJobAccepted(handleJobAccepted);
 
-    // Listen for workers' location broadcasts
     const handleLocation = (data) => {
-      console.log('📍 Worker Location Update Received:', data);
       setWorkers(prev => {
         const filtered = prev.filter(w => w.id !== data.userId);
         return [...filtered, {
@@ -152,76 +145,70 @@ const FarmerHomeScreen = ({ navigation }) => {
       id: 'sowing',
       name: t('farmerHome.sowing'),
       image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop',
-      color: '#FFA500',
-      bgColor: '#FFF5E6',
-      description: ''
     },
     {
       id: 'harvesting',
       name: t('farmerHome.harvesting'),
       image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
-      color: '#FFD700',
-      bgColor: '#FFFBF0',
-      description: ''
     },
     {
       id: 'irrigation',
       name: t('farmerHome.irrigation'),
       image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop',
-      color: '#4A90E2',
-      bgColor: '#E3F2FD',
-      description: ''
     },
     {
       id: 'labour',
       name: t('farmerHome.labour'),
       image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop',
-      color: '#EF4444',
-      bgColor: '#FEE2E2',
-      description: ''
     },
     {
       id: 'tractor',
       name: t('farmerHome.tractor'),
       image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
-      color: '#10B981',
-      bgColor: '#D1FAE5',
-      description: ''
     },
   ];
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient 
+      colors={['#FDFBF7', colors.backgroundLight]} 
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for translucent status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
-      {/* Top App Bar with Help icon */}
       <TopBar title={t('farmerHome.selectWorkType')} navigation={navigation} />
 
-      {/* Main Content */}
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Rapido-style Map Dashboard */}
-        <View style={styles.mapWrap}>
-          <MapDashboard
-            markers={workers}
-            userLocation={userLocation}
-            height={320}
-            onMarkerPress={(m) => console.log('Marker pressed:', m)}
-          />
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        
+        {/* Dynamic Map Dashboard wrapped with styling for premium look */}
+        <View style={styles.mapContainer}>
+          <View style={styles.mapWrap}>
+            <MapDashboard
+              markers={workers}
+              userLocation={userLocation}
+              height={320}
+              onMarkerPress={(m) => console.log('Marker pressed:', m)}
+            />
+          </View>
+          
           <View style={styles.mapOverlay}>
-            <View style={styles.activeBadge}>
-              <View style={styles.pulseDot} />
-              <Text style={styles.activeLabel}>{workers.length} Workers Online</Text>
-            </View>
+            <GlassCard intensity={80} tint="light" style={styles.glassBadge} noShadow>
+              <View style={styles.activeBadge}>
+                <View style={[styles.pulseDot, workers.length === 0 && { backgroundColor: colors.warning }]} />
+                <Text style={styles.activeLabel}>
+                  {workers.length} {workers.length === 1 ? 'Worker' : 'Workers'} Online
+                </Text>
+              </View>
+            </GlassCard>
           </View>
         </View>
 
-
-        {/* Headline */}
         <View style={styles.headlineContainer}>
           <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
         </View>
 
-        {/* Work Type Grid */}
         <View style={styles.grid}>
           {workTypes.map((workType) => (
             <AnimatedCard
@@ -233,11 +220,11 @@ const FarmerHomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <BottomNavBar role="farmer" activeTab="Discovery" />
-    </View>
+    </LinearGradient>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -338,14 +325,15 @@ const styles = StyleSheet.create({
     gap: 12,
     justifyContent: 'space-between',
   },
-  workTypeCard: {
+  workTypeWrapper: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    marginBottom: 12,
+  },
+  workTypeGlassCard: {
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    marginBottom: 12,
+    borderColor: colors.glassBorder,
     position: 'relative',
   },
   hoverBackground: {

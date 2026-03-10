@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import GlassCard from '../../components/GlassCard';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
@@ -155,19 +157,25 @@ const JobOfferScreen = ({ navigation, route }) => {
       {/* Action Buttons */}
       <View style={styles.actionsContainer}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.acceptButton]}
+          style={styles.acceptButtonWrap}
           onPress={handleAccept}
           disabled={loading}
           activeOpacity={0.9}
         >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <MaterialIcons name="check-circle" size={48} color="#FFFFFF" />
-              <Text style={styles.acceptButtonText}>ACCEPT</Text>
-            </>
-          )}
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={[styles.actionButton, styles.acceptButton]}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialIcons name="check-circle" size={48} color="#FFFFFF" />
+                <Text style={styles.acceptButtonText}>ACCEPT</Text>
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -298,8 +306,20 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 16,
   },
+  acceptButtonWrap: {
+    flex: 1,
+    borderRadius: 24,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 16,
+  },
   acceptButton: {
-    backgroundColor: colors.primary,
+    width: '100%',
+    height: '100%',
+    shadowColor: 'transparent',
+    elevation: 0,
   },
   acceptButtonText: {
     fontSize: 20,

@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -105,8 +106,14 @@ const SelectWorkersScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient 
+      colors={['#FDFBF7', colors.backgroundLight]} 
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for translucent status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Top Bar */}
       <View style={styles.topBar}>
@@ -245,22 +252,28 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       {/* Find Workers Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.findButton, loading && { opacity: 0.7 }]}
+          style={[styles.findButtonWrap, loading && { opacity: 0.7 }]}
           onPress={handleFindWorkers}
           disabled={loading}
           activeOpacity={0.9}
         >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>
-              <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
-            </>
-          )}
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.findButton}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>
+                <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -470,18 +483,15 @@ const styles = StyleSheet.create({
     padding: 0, // Remove default padding
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: 16,
     paddingTop: 40,
-    backgroundColor: colors.backgroundLight,
+  },
+  findButtonWrap: {
+    borderRadius: 9999,
   },
   findButton: {
     flexDirection: 'row',
     height: 64,
-    backgroundColor: colors.primary,
     borderRadius: 9999,
     justifyContent: 'center',
     alignItems: 'center',

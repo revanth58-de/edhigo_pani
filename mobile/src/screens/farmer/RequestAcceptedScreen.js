@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -286,12 +287,18 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
         {/* Call Worker Button */}
         <TouchableOpacity
-          style={styles.callButton}
+          style={styles.callButtonWrap}
           onPress={handleCallWorker}
           activeOpacity={0.9}
         >
-          <MaterialIcons name="phone" size={24} color="#FFFFFF" />
-          <Text style={styles.callButtonText}>{t('requestAccepted.callWorker')}</Text>
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.callButton}
+          >
+            <MaterialIcons name="phone" size={24} color="#FFFFFF" />
+            <Text style={styles.callButtonText}>{t('requestAccepted.callWorker')}</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
         {/* Cancel Request */}
@@ -560,20 +567,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#131811',
   },
-  callButton: {
-    flexDirection: 'row',
-    height: 60,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
+  callButtonWrap: {
+    marginBottom: 12,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 10,
-    marginBottom: 12,
+    borderRadius: 16,
+  },
+  callButton: {
+    flexDirection: 'row',
+    height: 60,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
   },
   callButtonText: {
     fontSize: 18,

@@ -11,9 +11,11 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
 import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
@@ -149,8 +151,12 @@ const RequestSentScreen = ({ navigation, route }) => {
     : 'Labour';
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient 
+      colors={['#FDFBF7', colors.backgroundLight]} 
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Rapido-style Background Map with nearby workers */}
       <View style={styles.mapWrap}>
@@ -182,17 +188,19 @@ const RequestSentScreen = ({ navigation, route }) => {
       </View>
 
       {/* Job Info Card */}
-      <View style={styles.jobCard}>
-        <View style={styles.jobCardLeft}>
-          <MaterialIcons name="agriculture" size={24} color={colors.primary} />
-          <View>
-            <Text style={styles.jobCardWorkType}>{workTypeDisplay}</Text>
-            <Text style={styles.jobCardWorkers}>{job?.workersNeeded || 1} {t('requestSent.workersRequested')}</Text>
+      <View style={styles.jobCardOuter}>
+        <GlassCard intensity={80} tint="light" style={styles.jobCard}>
+          <View style={styles.jobCardLeft}>
+            <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+            <View>
+              <Text style={styles.jobCardWorkType}>{workTypeDisplay}</Text>
+              <Text style={styles.jobCardWorkers}>{job?.workersNeeded || 1} {t('requestSent.workersRequested')}</Text>
+            </View>
           </View>
-        </View>
-        <View style={styles.jobCardImagePlaceholder}>
-          <MaterialIcons name="grass" size={32} color={colors.primary} />
-        </View>
+          <View style={styles.jobCardImagePlaceholder}>
+            <MaterialIcons name="grass" size={32} color={colors.primary} />
+          </View>
+        </GlassCard>
       </View>
 
       {/* Cancel Button */}
@@ -203,7 +211,7 @@ const RequestSentScreen = ({ navigation, route }) => {
 
       {/* Estimated Wait */}
       <Text style={styles.waitText}>{t('requestSent.estimatedWait')}</Text>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -327,18 +335,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 10,
   },
+  jobCardOuter: {
+    marginHorizontal: 24,
+    marginBottom: 16,
+  },
   jobCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8F9FA',
-    marginHorizontal: 24,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 16,
   },
   jobCardLeft: {
     flexDirection: 'row',

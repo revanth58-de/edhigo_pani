@@ -1,7 +1,7 @@
 const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
 const { matchWorkers } = require('../services/matchWorkers');
-const { 
-  notifyWorkersNewJob, 
+const {
+  notifyWorkersNewJob,
   notifyFarmerJobAccepted,
   notifyFarmerJobWithdrawn,
   notifyWorkerJobCancelled
@@ -282,7 +282,7 @@ const acceptJob = async (req, res) => {
       const existingApp = await tx.jobApplication.findFirst({
         where: { jobId: id, workerId },
       });
-      
+
       if (existingApp?.status === 'accepted') {
         throw new Error('ALREADY_ACCEPTED');
       }

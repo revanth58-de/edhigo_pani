@@ -12,8 +12,11 @@ router.get('/', authenticate, jobController.getJobs);
 // Get jobs posted by the authenticated farmer (must be before /:id)
 router.get('/my-jobs', authenticate, jobController.getMyJobs);
 
-// Get jobs the authenticated worker has attended (history) — cleaner than workerId filter
+// Get jobs the authenticated worker has attended (history) — attendance-based
 router.get('/worker-history', authenticate, jobController.getWorkerHistory);
+
+// Get all jobs the worker applied for (via JobApplication) — includes accepted jobs
+router.get('/my-work', authenticate, jobController.getWorkerJobs);
 
 // Get nearby workers
 router.get('/nearby-workers', authenticate, jobController.getNearbyWorkers);

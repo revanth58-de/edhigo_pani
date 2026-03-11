@@ -368,14 +368,14 @@ const WorkerProfileScreen = ({ navigation }) => {
             <>
               <TouchableOpacity style={styles.actionButton} onPress={handleEditToggle}>
                 <MaterialIcons name="edit" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>Edit Profile</Text>
+                <Text style={styles.actionButtonText}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
               >
                 <MaterialIcons name="history" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>Work History</Text>
+                <Text style={styles.actionButtonText}>History</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}

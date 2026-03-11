@@ -217,12 +217,25 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     const fetchHistory = async () => {
       setHistoryLoading(true);
       try {
-        // Use dedicated worker-history endpoint (queries via attendance records)
-        const res = await jobAPI.getWorkerHistory();
+        // getMyJobs returns all jobs where this worker's application was accepted
+        // This includes accepted, in_progress, and completed — unlike getWorkerHistory
+        // which is attendance-based and misses purely accepted (not yet checked-in) jobs
+        const res = await jobAPI.getMyJobs();
         const all = res?.data?.data || [];
-        setHistoryJobs(all.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
+        setHistoryJobs(
+          all
+            .filter(j => ['accepted', 'in_progress', 'completed', 'cancelled'].includes(j.status))
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        );
       } catch (e) {
-        console.warn('Failed to fetch work history', e);
+        // Fallback: try the attendance-based endpoint
+        try {
+          const res2 = await jobAPI.getWorkerHistory();
+          const all2 = res2?.data?.data || [];
+          setHistoryJobs(all2.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
+        } catch (e2) {
+          console.warn('Failed to fetch work history', e2);
+        }
       } finally {
         setHistoryLoading(false);
       }
@@ -318,7 +331,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={{ height: 16 }} />
 
         {/* Massive START WORK Button */}
         <View style={styles.buttonContainer}>

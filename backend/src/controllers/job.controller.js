@@ -563,6 +563,41 @@ const getWorkerHistory = async (req, res) => {
   }
 };
 
+// GET /api/jobs/my-work — fetch all jobs the current worker has applied for / accepted
+const getWorkerJobs = async (req, res) => {
+  try {
+    const workerId = req.user?.id;
+    if (!workerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const applications = await prisma.jobApplication.findMany({
+      where: { workerId },
+      orderBy: { appliedAt: 'desc' },
+      include: {
+        job: {
+          include: {
+            farmer: {
+              select: { id: true, name: true, phone: true, photoUrl: true, ratingAvg: true, village: true }
+            }
+          }
+        }
+      }
+    });
+
+    const jobs = applications.map(app => ({
+      ...app.job,
+      applicationStatus: app.status,   // 'accepted' | 'pending' | 'rejected' | 'withdrawn'
+      appliedAt: app.appliedAt,
+    }));
+
+    res.status(200).json({ success: true, data: jobs });
+  } catch (error) {
+    console.error('Get Worker Jobs Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch worker jobs', error: error.message });
+  }
+};
+
 // Cancel/delete a job
 const cancelJob = async (req, res, next) => {
   try {
@@ -669,5 +704,6 @@ module.exports = {
   cancelJob,
   getMyJobs,
   getWorkerHistory,
+  getWorkerJobs,
   getNearbyWorkers,
 };

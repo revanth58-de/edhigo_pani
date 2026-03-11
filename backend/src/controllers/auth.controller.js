@@ -148,13 +148,21 @@ const verifyOTP = async (req, res, next) => {
         ratingCount: updatedUser.ratingCount,
         status: updatedUser.status,
       },
-      ...tokens,
-    });
+      ...tokens, C: \V6\edhigo_pani\mo…\services\api.js: 82 
+ POST http://10.123.0.248:5000/api/auth/verify-otp 500 (Internal Server Error)
+        C: \V6\edhigo_pani\mo…uth\OTPScreen.js: 68 Verify OTP Error: AxiosError: Request failed with status code 500
+    at async verifyOTP(C: \V6\edhigo_pani\mo…authStore.js: 110: 24)
+    at async verifyOTP(C: \V6\edhigo_pani\mo…h\OTPScreen.js: 66: 7)
 
-  } catch (error) {
-    console.error('💥 OTP Verification Error:', error);
-    next(error);
-  }
+  });
+
+} catch (error) {
+  console.error('💥 OTP Verification Error Detailed:');
+  console.error(error);
+  if (error.code) console.error('Prisma Error Code:', error.code);
+  if (error.meta) console.error('Prisma Error Meta:', error.meta);
+  next(error);
+}
 };
 
 // POST /api/auth/set-role

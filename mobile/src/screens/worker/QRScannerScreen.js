@@ -95,14 +95,50 @@ const QRScannerScreen = ({ navigation, route }) => {
     if (loading) return;
     setLoading(true);
     try {
-      const qrInfo = JSON.parse(data);
+      // ── Step 1: Parse QR JSON ─────────────────────────────────────────────
+      let qrInfo;
+      try {
+        qrInfo = JSON.parse(data);
+      } catch (_) {
+        Alert.alert(
+          'Invalid QR Code',
+          'This QR code is not a valid farm attendance code. Please scan the QR shown by the farmer.'
+        );
+        setScanned(false);
+        setLoading(false);
+        return;
+      }
+
+      // ── Step 2: Validate required fields ──────────────────────────────────
+      if (!qrInfo.jobId || !qrInfo.type) {
+        Alert.alert(
+          'Wrong QR Code',
+          'This QR code is missing job information. Please ask the farmer to show the correct QR code from their Check-In/Check-Out screen.'
+        );
+        setScanned(false);
+        setLoading(false);
+        return;
+      }
+
+      // ── Step 3: Optional — check QR isn't too old (15 minutes) ────────────
+      if (qrInfo.timestamp && Date.now() - qrInfo.timestamp > 15 * 60 * 1000) {
+        Alert.alert(
+          'QR Code Expired',
+          'This QR code is older than 15 minutes. Please ask the farmer to refresh it.'
+        );
+        setScanned(false);
+        setLoading(false);
+        return;
+      }
+
       const isCheckOut = qrInfo.type === 'out';
 
+      // ── Step 4: Get location ───────────────────────────────────────────────
       const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
       if (locStatus !== 'granted') {
         Alert.alert('Location Required', 'Please allow location access to mark attendance.');
-        setLoading(false);
         setScanned(false);
+        setLoading(false);
         return;
       }
 
@@ -112,30 +148,36 @@ const QRScannerScreen = ({ navigation, route }) => {
 
       const user = useAuthStore.getState().user;
       const payload = {
-        jobId: qrInfo.jobId || job?.id,
+        jobId: qrInfo.jobId,
         workerId: user?.id,
         [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
         [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
         [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: data,
       };
 
+      // ── Step 5: Submit attendance ─────────────────────────────────────────
       const response = await (isCheckOut
         ? attendanceService.checkOut(payload)
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', { job });
+        navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', {
+          job: { ...job, id: qrInfo.jobId },
+        });
       } else {
-        Alert.alert('Error', response.message || 'Failed to process attendance');
+        // Show the actual backend error — not "Invalid QR"
+        Alert.alert(
+          'Attendance Failed',
+          response.message || 'Could not mark attendance. Please try again.'
+        );
         setScanned(false);
         setLoading(false);
       }
     } catch (err) {
       console.error('QR Process Error:', err);
-      Alert.alert(
-        'Invalid QR Code',
-        'Could not read this QR code. Make sure it is the correct farm attendance QR and try again.'
-      );
+      // Network / unexpected error — show the actual error
+      const msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
+      Alert.alert('Error', msg);
       setScanned(false);
       setLoading(false);
     }

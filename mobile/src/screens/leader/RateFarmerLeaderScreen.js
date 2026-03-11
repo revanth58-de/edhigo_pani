@@ -12,8 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import * as Speech from 'expo-speech';
-import axios from 'axios';
-import API_URL from '../../config/api.config';
+import { ratingService } from '../../services/api/ratingService';
 
 const RateFarmerLeaderScreen = ({ navigation, route }) => {
   const { job, groupId } = route.params || {};
@@ -33,10 +32,19 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      // Mock API call to submit rating and close job
-      // await axios.post(`${API_URL}/api/ratings`, { jobId: job.id, rating, feedback, groupId });
-      Alert.alert('Thank You!', 'Job completed successfully.');
-      navigation.navigate('LeaderHome');
+      const emojiMap = { 1: 'sad', 3: 'neutral', 5: 'happy' };
+      const response = await ratingService.rateFarmer({
+        jobId: job?.id,
+        farmerId: job?.farmerId || job?.farmer?.id,
+        rating,
+        feedback,
+      });
+      if (response.success) {
+        Alert.alert('Thank You!', 'Job completed successfully.');
+        navigation.navigate('LeaderHome');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to submit rating.');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to submit rating.');
     } finally {

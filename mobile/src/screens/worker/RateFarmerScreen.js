@@ -37,6 +37,7 @@ const RateFarmerScreen = ({ navigation, route }) => {
     try {
       const response = await ratingService.rateFarmer({
         jobId: job.id,
+        farmerId: job.farmerId || job.farmer?.id,
         rating,
         feedback,
       });

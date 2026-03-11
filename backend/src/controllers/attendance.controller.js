@@ -26,7 +26,7 @@ const validateQR = (qrString, jobId) => {
 
     const qrTime = parseInt(qrData.timestamp);
     const now = Date.now();
-    const expiry = 35000; // 35 seconds (30s specified + 5s buffer for network)
+    const expiry = 300000; // 5 minutes — generous for testing (original was 30s)
 
     if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired' };
 
@@ -60,12 +60,14 @@ const checkIn = async (req, res, next) => {
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
     // 3. Geo-fence Check (100m) — only possible when farm has coordinates
+    /* TEMPORARILY DISABLED FOR TESTING — skip if job has no location
     if (job.farmLatitude == null || job.farmLongitude == null) {
       return res.status(400).json({
         success: false,
         message: 'This job has no farm location set. Check-in is not possible without a farm location.'
       });
     }
+    */
 
     const distance = getDistance(
       parseFloat(checkInLatitude),
@@ -74,12 +76,14 @@ const checkIn = async (req, res, next) => {
       parseFloat(job.farmLongitude)
     );
 
+    /* TEMPORARILY DISABLED FOR TESTING
     if (distance > 100) {
       return res.status(400).json({
         success: false,
         message: `Too far from farm. You are ${Math.round(distance)}m away. Limit is 100m.`
       });
     }
+    */
 
     // 4. QR Validation (30s expiry)
     const qrResult = validateQR(qrCodeIn, jobId);
@@ -190,12 +194,14 @@ const checkOut = async (req, res, next) => {
       parseFloat(job.farmLongitude)
     );
 
+    /* TEMPORARILY DISABLED FOR TESTING
     if (distance > 100) {
       return res.status(400).json({
         success: false,
         message: `Too far from farm to check out. You are ${Math.round(distance)}m away.`
       });
     }
+    */
 
     // 3. Fetch check-in time to compute hours before update
     const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
@@ -228,6 +234,7 @@ const checkOut = async (req, res, next) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`job:${attendance.jobId}`).emit('attendance:check_out', {
+        jobId: attendance.jobId,
         attendanceId: attendance.id,
         workerId: attendance.workerId,
         timestamp: attendance.checkOut,

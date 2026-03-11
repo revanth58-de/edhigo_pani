@@ -91,6 +91,7 @@ export const jobAPI = {
     createJob: (jobData) => apiClient.post('/jobs', jobData),
     getJobs: (filters) => apiClient.get('/jobs', { params: filters }),
     getMyJobs: () => apiClient.get('/jobs/my-jobs'),
+    getWorkerHistory: () => apiClient.get('/jobs/worker-history'),
     getJob: (jobId) => apiClient.get(`/jobs/${jobId}`),
     updateStatus: (jobId, status) => apiClient.put(`/jobs/${jobId}/status`, { status }),
     acceptJob: (jobId, workerId) => apiClient.post(`/jobs/${jobId}/accept`, { workerId }),

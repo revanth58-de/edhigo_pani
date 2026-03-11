@@ -217,10 +217,10 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     const fetchHistory = async () => {
       setHistoryLoading(true);
       try {
-        // Use workerId filter (now supported by backend) to fetch jobs this worker applied to
-        const res = await jobAPI.getJobs({ workerId: user?.id });
+        // Use dedicated worker-history endpoint (queries via attendance records)
+        const res = await jobAPI.getWorkerHistory();
         const all = res?.data?.data || [];
-        setHistoryJobs(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        setHistoryJobs(all.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
       } catch (e) {
         console.warn('Failed to fetch work history', e);
       } finally {

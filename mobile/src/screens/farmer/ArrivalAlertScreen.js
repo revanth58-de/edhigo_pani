@@ -17,6 +17,10 @@ const ArrivalAlertScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.replace('QRAttendance', { job, type: 'in' });
+    }, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   return (

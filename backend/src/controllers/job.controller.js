@@ -104,10 +104,7 @@ const getJobs = async (req, res, next) => {
     // Worker history: filter jobs where the worker has an individual application 
     // OR where they are part of a group that has an application
     if (workerId) {
-      where.OR = [
-        { applications: { some: { workerId } } },
-        { applications: { some: { group: { members: { some: { workerId } } } } } }
-      ];
+      where.applications = { some: { workerId } };
     }
 
     const jobs = await prisma.job.findMany({
@@ -528,6 +525,44 @@ const getMyJobs = async (req, res) => {
   }
 };
 
+// GET /api/jobs/worker-history — fetch jobs the current worker has attended
+const getWorkerHistory = async (req, res) => {
+  try {
+    const workerId = req.user?.id;
+    if (!workerId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    // Fetch via attendance records — avoids the complex workerId→application filter
+    const attendances = await prisma.attendance.findMany({
+      where: { workerId },
+      orderBy: { checkIn: 'desc' },
+      distinct: ['jobId'],
+      include: {
+        job: {
+          include: {
+            farmer: {
+              select: { id: true, name: true, phone: true, photoUrl: true, ratingAvg: true }
+            }
+          }
+        }
+      }
+    });
+
+    const jobs = attendances.map(a => ({
+      ...a.job,
+      checkIn: a.checkIn,
+      checkOut: a.checkOut,
+      hoursWorked: a.hoursWorked,
+    }));
+
+    res.status(200).json({ success: true, data: jobs });
+  } catch (error) {
+    console.error('Get Worker History Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch work history', error: error.message });
+  }
+};
+
 // Cancel/delete a job
 const cancelJob = async (req, res, next) => {
   try {
@@ -633,5 +668,6 @@ module.exports = {
   withdrawJob,
   cancelJob,
   getMyJobs,
+  getWorkerHistory,
   getNearbyWorkers,
 };

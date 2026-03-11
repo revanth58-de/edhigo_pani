@@ -148,7 +148,7 @@ io.on('connection', (socket) => {
   socket.on('job:arrival', async (data) => {
     const { jobId, workerId } = data;
     logger.info(`🏁 Worker ${workerId} arrived for job:${jobId}`);
-    io.to(`job:${jobId}`).emit('job:arrival', { workerId });
+    io.to(`job:${jobId}`).emit('job:arrival', { workerId, jobId });
 
     try {
       const prisma = require('./config/database');

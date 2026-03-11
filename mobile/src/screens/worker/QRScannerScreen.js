@@ -64,9 +64,9 @@ const QRScannerScreen = ({ navigation, route }) => {
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        // Check-out → go to WorkStatus (which shows payment button)
+        // Check-out → go to RateFarmer to complete the job
         // Check-in → go to AttendanceConfirmed
-        navigation.replace(isCheckOut ? 'WorkStatus' : 'AttendanceConfirmed', { job });
+        navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', { job });
       } else {
         Alert.alert('Error', response.message || 'Failed to process attendance');
         setScanned(false);

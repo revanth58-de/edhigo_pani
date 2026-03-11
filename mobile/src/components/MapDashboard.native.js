@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform, Text, TouchableOpacity, Animated, Easing } 
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 
 const DEFAULT_CENTER = {
     latitude: 17.3850,
@@ -106,16 +107,60 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
     const mapRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
+    // ── Auto-fetch device GPS when no userLocation is passed ──────────────
+    const [deviceLocation, setDeviceLocation] = useState(null);
+    const locationSubRef = useRef(null);
+
     useEffect(() => {
-        if (mapReady && mapRef.current && userLocation) {
-            const region = safeRegion(userLocation);
+        // Only auto-fetch if parent didn't provide a location
+        if (userLocation) return;
+        let cancelled = false;
+
+        const startWatching = async () => {
+            const { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted' || cancelled) return;
+
+            // Get initial position fast
+            try {
+                const pos = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
+                if (!cancelled) setDeviceLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+            } catch (_) {}
+
+            // Watch for live updates (every 5s or 10m movement)
+            locationSubRef.current = await Location.watchPositionAsync(
+                {
+                    accuracy: Location.Accuracy.Balanced,
+                    timeInterval: 5000,
+                    distanceInterval: 10,
+                },
+                (pos) => {
+                    if (!cancelled) setDeviceLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                }
+            );
+        };
+
+        startWatching();
+        return () => {
+            cancelled = true;
+            if (locationSubRef.current) locationSubRef.current.remove();
+        };
+    }, [userLocation]);
+
+    // Effective location: prop > device GPS > default
+    const effectiveLocation = userLocation || deviceLocation;
+
+    useEffect(() => {
+        if (mapReady && mapRef.current && effectiveLocation) {
+            const region = safeRegion(effectiveLocation);
             mapRef.current.animateToRegion(region, 1000);
         }
-    }, [userLocation, mapReady]);
+    }, [effectiveLocation, mapReady]);
 
     const handleCenterLocation = () => {
-        if (mapRef.current && userLocation) {
-            mapRef.current.animateToRegion(safeRegion(userLocation), 1000);
+        if (mapRef.current && effectiveLocation) {
+            mapRef.current.animateToRegion(safeRegion(effectiveLocation), 800);
         }
     };
 
@@ -131,7 +176,7 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
                 ref={mapRef}
                 style={StyleSheet.absoluteFillObject}
                 provider={PROVIDER_GOOGLE}
-                initialRegion={safeRegion(userLocation)}
+                initialRegion={safeRegion(effectiveLocation)}
                 showsUserLocation={true}
                 showsMyLocationButton={false}
                 showsCompass={false}

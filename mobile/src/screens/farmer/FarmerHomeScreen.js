@@ -103,14 +103,26 @@ const FarmerHomeScreen = ({ navigation }) => {
     }
 
     const handleJobAccepted = (data) => {
-      Alert.alert(
-        '🌾 Job Accepted!',
-        `${data.workerName || 'A worker'} accepted your job.\n📞 ${data.workerPhone || ''}`,
-        [
-          { text: 'View Jobs', onPress: () => navigation.navigate('RequestAccepted', { jobId: data.jobId, worker: data }) },
-          { text: 'OK', style: 'cancel' },
-        ]
-      );
+      if (data.isFullyStaffed) {
+        // All workers found — navigate to accepted screen
+        Alert.alert(
+          '🎉 All Workers Found!',
+          `Your job is fully staffed.\n${data.workerName || 'Workers'} and others have joined.`,
+          [
+            { text: 'View Details', onPress: () => navigation.navigate('RequestAccepted', { job: { id: data.jobId, ...data } }) },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      } else {
+        // Partial fill — just notify, don't navigate
+        const acceptedCount = data.acceptedCount || 1;
+        const needed = data.workersNeeded || '?';
+        Alert.alert(
+          `👷 Worker Joined (${acceptedCount}/${needed})`,
+          `${data.workerName || 'A worker'} accepted your job.\nWaiting for ${needed - acceptedCount} more worker${needed - acceptedCount !== 1 ? 's' : ''}.`,
+          [{ text: 'OK' }]
+        );
+      }
     };
 
     socketService.onJobAccepted(handleJobAccepted);

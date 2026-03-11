@@ -148,21 +148,16 @@ const verifyOTP = async (req, res, next) => {
         ratingCount: updatedUser.ratingCount,
         status: updatedUser.status,
       },
-      ...tokens, C: \V6\edhigo_pani\mo…\services\api.js: 82 
- POST http://10.123.0.248:5000/api/auth/verify-otp 500 (Internal Server Error)
-        C: \V6\edhigo_pani\mo…uth\OTPScreen.js: 68 Verify OTP Error: AxiosError: Request failed with status code 500
-    at async verifyOTP(C: \V6\edhigo_pani\mo…authStore.js: 110: 24)
-    at async verifyOTP(C: \V6\edhigo_pani\mo…h\OTPScreen.js: 66: 7)
+      ...tokens,
+    });
 
-  });
-
-} catch (error) {
-  console.error('💥 OTP Verification Error Detailed:');
-  console.error(error);
-  if (error.code) console.error('Prisma Error Code:', error.code);
-  if (error.meta) console.error('Prisma Error Meta:', error.meta);
-  next(error);
-}
+  } catch (error) {
+    console.error('💥 OTP Verification Error Detailed:');
+    console.error(error);
+    if (error.code) console.error('Prisma Error Code:', error.code);
+    if (error.meta) console.error('Prisma Error Meta:', error.meta);
+    next(error);
+  }
 };
 
 // POST /api/auth/set-role
@@ -307,7 +302,7 @@ const refreshToken = async (req, res, next) => {
 // PUT /api/auth/profile
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude } = req.body;
+    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon } = req.body;
 
     const dataToUpdate = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -320,6 +315,8 @@ const updateProfile = async (req, res, next) => {
     if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
     if (latitude !== undefined) dataToUpdate.latitude = parseFloat(latitude);
     if (longitude !== undefined) dataToUpdate.longitude = parseFloat(longitude);
+    if (experience !== undefined) dataToUpdate.experience = parseInt(experience, 10);
+    if (avatarIcon !== undefined) dataToUpdate.avatarIcon = avatarIcon;
 
     const user = await prisma.user.update({
       where: { id: req.user.id },

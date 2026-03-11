@@ -30,17 +30,6 @@ const ALL_SKILLS = [
   'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning',
 ];
 
-// ── Years of experience ──────────────────────────────────────────────────────
-function getYearsExp(createdAt, jobsDone = 0) {
-  if (createdAt) {
-    const yrs = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365);
-    if (yrs >= 1) return `${Math.floor(yrs)} yr${Math.floor(yrs) > 1 ? 's' : ''}`;
-    const months = Math.floor(yrs * 12);
-    return months < 1 ? '< 1 mo' : `${months} mo`;
-  }
-  const yrs = Math.floor(jobsDone / 10);
-  return yrs < 1 ? '< 1 yr' : `${yrs} yr${yrs > 1 ? 's' : ''}`;
-}
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WorkerProfileScreen = ({ navigation }) => {
@@ -54,6 +43,7 @@ const WorkerProfileScreen = ({ navigation }) => {
   // Editable state
   const [editName, setEditName] = useState(user?.name || '');
   const [editVillage, setEditVillage] = useState(user?.village || '');
+  const [editExperience, setEditExperience] = useState(String(user?.experience ?? ''));
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
   const [editSkills, setEditSkills] = useState(
     typeof user?.skills === 'string'
@@ -90,6 +80,7 @@ const WorkerProfileScreen = ({ navigation }) => {
   const handleEditToggle = () => {
     if (isEditing) {
       setEditVillage(user?.village || '');
+      setEditExperience(String(user?.experience ?? ''));
       setSelectedAvatar(user?.avatarIcon || 'person');
       const currentSkills = typeof user?.skills === 'string'
         ? JSON.parse(user.skills)
@@ -104,11 +95,13 @@ const WorkerProfileScreen = ({ navigation }) => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const expNum = parseInt(editExperience, 10);
       const payload = {
         name: editName,
         village: editVillage,
         skills: JSON.stringify(editSkills),
         avatarIcon: selectedAvatar,
+        ...(editExperience !== '' && !isNaN(expNum) && { experience: expNum }),
       };
       await updateUser(payload);
       setIsEditing(false);
@@ -120,9 +113,10 @@ const WorkerProfileScreen = ({ navigation }) => {
     }
   };
 
-  // Stats
-  const jobsDone = user?.jobsDone ?? 24;
-  const yearsExp = getYearsExp(user?.createdAt, jobsDone);
+  // Stats — from real backend data
+  const jobsDone = user?.ratingCount ?? 0;               // updated when farmer rates after each job
+  const ratingAvg = user?.ratingAvg ? user.ratingAvg.toFixed(1) : '—';
+  const experience = user?.experience != null ? `${user.experience} yr${user.experience !== 1 ? 's' : ''}` : '—';
 
   const currentSkills = typeof user?.skills === 'string'
     ? JSON.parse(user.skills)
@@ -217,7 +211,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* Stats Grid — 3rd card is Experience Level (replaces Earnings) */}
+        {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <MaterialIcons name="work" size={32} color={colors.primary} />
@@ -227,14 +221,26 @@ const WorkerProfileScreen = ({ navigation }) => {
 
           <View style={styles.statCard}>
             <MaterialIcons name="star" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>{user?.rating ? String(user.rating) : '4.8'}</Text>
+            <Text style={styles.statValue}>{ratingAvg}</Text>
             <Text style={styles.statLabel}>Rating</Text>
           </View>
 
-          {/* Experience card */}
+          {/* Experience card — editable */}
           <View style={styles.statCard}>
             <MaterialIcons name="workspace-premium" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>{yearsExp}</Text>
+            {isEditing ? (
+              <TextInput
+                style={styles.expInput}
+                value={editExperience}
+                onChangeText={setEditExperience}
+                keyboardType="number-pad"
+                placeholder="yrs"
+                placeholderTextColor="#9CA3AF"
+                maxLength={2}
+              />
+            ) : (
+              <Text style={styles.statValue}>{experience}</Text>
+            )}
             <Text style={styles.statLabel}>Experience</Text>
           </View>
         </View>
@@ -315,11 +321,11 @@ const WorkerProfileScreen = ({ navigation }) => {
                     </TouchableOpacity>
                   );
                 })}
-                {/* Custom skills (those not in predefined list) */}
+                {/* Custom skills — same selected (green) style, tap to remove */}
                 {editSkills.filter(s => !ALL_SKILLS.includes(s)).map((skill, index) => (
                   <TouchableOpacity
                     key={`custom-${index}`}
-                    style={[styles.skillChip, styles.skillChipCustom]}
+                    style={[styles.skillChip, styles.skillChipSelected]}
                     onPress={() => handleRemoveSkill(skill)}
                   >
                     <Text style={[styles.skillText, styles.skillTextSelected]}>{skill}</Text>
@@ -329,8 +335,8 @@ const WorkerProfileScreen = ({ navigation }) => {
               </>
             ) : (
               currentSkills.map((skill, index) => (
-                <View key={index} style={[styles.skillChip, ALL_SKILLS.includes(skill) ? {} : styles.skillChipCustom]}>
-                  <Text style={[styles.skillText, !ALL_SKILLS.includes(skill) && styles.skillTextSelected]}>{skill}</Text>
+                <View key={index} style={styles.skillChip}>
+                  <Text style={styles.skillText}>{skill}</Text>
                 </View>
               ))
             )}
@@ -673,9 +679,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
-  skillChipCustom: {
-    backgroundColor: '#6366F1',
-    borderColor: '#4F46E5',
+  expInput: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#131811',
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    textAlign: 'center',
+    minWidth: 48,
   },
   skillText: {
     fontSize: 14,

@@ -30,6 +30,8 @@ model User {
   pushToken   String?  // Expo push notification token
   otp         String?
   otpExpiresAt DateTime?
+  experience  Int?     // Years of farming experience (set by worker)
+  avatarIcon  String?  // Profile icon key e.g. 'person', 'agriculture'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

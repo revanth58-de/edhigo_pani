@@ -350,6 +350,8 @@ const acceptJob = async (req, res) => {
         workerSkills: workerDetails?.skills || null,
         workerVillage: workerDetails?.village || null,
         isFullyStaffed: isNowFull,
+        acceptedCount: acceptedCount + 1,          // how many have accepted so far
+        workersNeeded: job.workersNeeded,           // total slots
       });
 
       // 2️⃣ Broadcast globally ONLY IF the job is fully staffed

@@ -217,10 +217,9 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     const fetchHistory = async () => {
       setHistoryLoading(true);
       try {
-        // getMyJobs returns all jobs where this worker's application was accepted
-        // This includes accepted, in_progress, and completed — unlike getWorkerHistory
-        // which is attendance-based and misses purely accepted (not yet checked-in) jobs
-        const res = await jobAPI.getMyJobs();
+        // getWorkerJobs returns all jobs via JobApplication records (accepted, in_progress, completed)
+        // This is the correct source — includes accepted jobs even before check-in
+        const res = await jobAPI.getWorkerJobs();
         const all = res?.data?.data || [];
         setHistoryJobs(
           all
@@ -228,7 +227,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         );
       } catch (e) {
-        // Fallback: try the attendance-based endpoint
+        // Fallback: attendance-based endpoint
         try {
           const res2 = await jobAPI.getWorkerHistory();
           const all2 = res2?.data?.data || [];

@@ -69,8 +69,8 @@ const WorkerProfileScreen = ({ navigation }) => {
     if (!editSkills.includes(trimmed)) {
       setEditSkills(prev => [...prev, trimmed]);
     }
-    setCustomSkillText('');
-    setShowCustomInput(false);
+    setCustomSkillText('');  // clear but keep input open so user can add more
+    // keep showCustomInput = true so user can keep typing more skills
   };
 
   const handleRemoveSkill = (skill) => {
@@ -272,7 +272,21 @@ const WorkerProfileScreen = ({ navigation }) => {
             {/* Add+ button always visible */}
             <TouchableOpacity
               style={styles.addSkillBtn}
-              onPress={() => setShowCustomInput(v => !v)}
+              onPress={() => {
+                if (!isEditing) {
+                  // Auto-enter edit mode so the new skill can be saved
+                  setIsEditing(true);
+                  setEditName(user?.name || '');
+                  setEditVillage(user?.village || '');
+                  setEditExperience(String(user?.experience ?? ''));
+                  setSelectedAvatar(user?.avatarIcon || 'person');
+                  const sk = typeof user?.skills === 'string'
+                    ? JSON.parse(user.skills)
+                    : (user?.skills || []);
+                  setEditSkills(sk);
+                }
+                setShowCustomInput(v => !v);
+              }}
             >
               <MaterialIcons name="add" size={16} color="#FFFFFF" />
               <Text style={styles.addSkillBtnText}>Add</Text>

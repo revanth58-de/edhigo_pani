@@ -102,7 +102,7 @@ const AnimatedPulseMarker = ({ marker, onPress }) => {
 };
 
 
-const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress, role = 'farmer' }) => {
+const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress, role = 'farmer', fullScreen = false }) => {
     const mapRef = useRef(null);
     const [mapReady, setMapReady] = useState(false);
 
@@ -122,12 +122,11 @@ const MapDashboard = ({ markers = [], userLocation, height = 300, onMarkerPress,
     // Filter valid markers
     const validMarkers = markers.filter(m => isValidCoord(m.latitude, m.longitude));
 
-    // Platform.OS === 'web' is partially supported by react-native-maps via react-native-web-maps or similar,
-    // but usually, Expo handles this polyfill if configured.
-    // Assuming native mobile target for this migration.
-
     return (
-        <View style={[styles.container, { height }]}>
+        <View style={fullScreen
+          ? StyleSheet.absoluteFillObject
+          : [styles.container, { height }]}
+        >
             <MapView
                 ref={mapRef}
                 style={StyleSheet.absoluteFillObject}

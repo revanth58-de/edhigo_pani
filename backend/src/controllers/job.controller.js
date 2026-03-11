@@ -263,7 +263,7 @@ const acceptJob = async (req, res) => {
     }
 
     // Wrap the acceptance logic in a transaction to prevent race conditions
-    const { job, workerDetails, farmerFull, isNowFull } = await prisma.$transaction(async (tx) => {
+    const { job, workerDetails, farmerFull, isNowFull, acceptedCount } = await prisma.$transaction(async (tx) => {
       const currentJob = await tx.job.findUnique({
         where: { id },
         include: {
@@ -329,7 +329,7 @@ const acceptJob = async (req, res) => {
         select: { pushToken: true },
       });
 
-      return { job: currentJob, workerDetails, farmerFull, isNowFull };
+      return { job: currentJob, workerDetails, farmerFull, isNowFull, acceptedCount };
     });
 
     // 📲 Push to farmer even if app is closed

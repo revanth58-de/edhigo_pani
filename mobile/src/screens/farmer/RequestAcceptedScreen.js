@@ -1,14 +1,17 @@
-// Screen 10: Request Accepted - Worker details with map and CALL WORKER
-import React, { useEffect, useState } from 'react';
+// Screen 10: Request Accepted — Rapido-style full-screen map with bottom worker card
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Image,
   Linking,
   Alert,
+  Platform,
+  ScrollView,
+  Animated,
+  Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,61 +27,54 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   const { job } = route.params;
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
 
-  // Worker data from the job acceptance or fetched data
-  const [worker, setWorker] = useState(null);
-  const [eta, setEta] = useState('10m');
-  const [workerLocation, setWorkerLocation] = useState(null);
+  const [workers, setWorkers] = useState([]);   // all accepted workers
+  const [eta, setEta] = useState('~10 min');
+  const [workerLocations, setWorkerLocations] = useState([]);
+  const sheetAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Animate sheet up on mount
+  useEffect(() => {
+    Animated.spring(sheetAnim, { toValue: 1, tension: 60, friction: 8, useNativeDriver: true }).start();
+    // Pulse for the green verified dot
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.4, duration: 700, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, easing: Easing.in(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   useEffect(() => {
-
-    // Try to get worker details from job acceptance data
-    if (job?.workerId) {
-      // Worker data might come from the socket event
-      setWorker({
-        id: job.workerId,
-        name: job.workerName || 'Worker',
-        rating: job.workerRating || 0,
-        phone: job.workerPhone || null,
-        photoUrl: job.workerPhotoUrl || null,
-        skills: job.workerSkills || null,
-        distance: job.distance || null,
-      });
-    }
-
-    // Fetch full job details with worker info from backend
     fetchJobDetails();
 
-    // Socket: listen for arrival
     socketService.connect();
-    if (job?.id) {
-      socketService.joinJobRoom(job.id);
-    }
+    if (job?.id) socketService.joinJobRoom(job.id);
 
     socketService.socket?.on('job:arrival', (data) => {
-      if (data.jobId === job?.id) {
-        console.log('🏁 Workers have arrived at farm!');
-        navigation.navigate('ArrivalAlert', { job });
-      }
+      if (data.jobId === job?.id) navigation.navigate('ArrivalAlert', { job });
     });
 
-    // Listen for worker location updates
     socketService.onLocationUpdate((data) => {
-      if (data.workerId === job?.workerId || data.userId === job?.workerId || data.jobId === job?.id) {
+      if (data.jobId === job?.id || data.workerId) {
         if (data.eta) setEta(data.eta);
-        setWorkerLocation({
-          id: data.userId || data.workerId,
-          latitude: data.latitude,
-          longitude: data.longitude,
-          type: 'worker',
-          active: true
+        setWorkerLocations(prev => {
+          const filtered = prev.filter(w => w.id !== (data.userId || data.workerId));
+          return [...filtered, {
+            id: data.userId || data.workerId,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            type: 'worker',
+            active: true,
+          }];
         });
       }
     });
 
     return () => {
       socketService.socket?.off('job:arrival');
+      socketService.offLocationUpdate();
     };
   }, [job?.id]);
 
@@ -88,518 +84,377 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
       const response = await jobService.getJob(job.id);
       if (response.success && response.data?.data) {
         const jobData = response.data.data;
-        // If we have application data with worker details
-        if (jobData.applications?.length > 0) {
-          const accepted = jobData.applications.find(a => a.status === 'accepted');
-          if (accepted?.worker) {
-            setWorker({
-              id: accepted.worker.id || accepted.workerId,
-              name: accepted.worker.name || 'Worker',
-              rating: accepted.worker.ratingAvg || 0,
-              phone: accepted.worker.phone || null,
-              photoUrl: accepted.worker.photoUrl || null,
-              skills: accepted.worker.skills || null,
-              distance: accepted.distance || null,
-            });
-          }
-        }
+        const accepted = (jobData.applications || [])
+          .filter(a => a.status === 'accepted')
+          .map(a => ({
+            id: a.worker?.id || a.workerId,
+            name: a.worker?.name || 'Worker',
+            rating: a.worker?.ratingAvg || 0,
+            phone: a.worker?.phone || null,
+            skills: a.worker?.skills || null,
+            village: a.worker?.village || null,
+          }));
+        if (accepted.length > 0) setWorkers(accepted);
       }
-    } catch (error) {
-      console.log('Fetch Job Details Error:', error);
-    }
+    } catch (_) {}
   };
 
-  const handleCallWorker = () => {
-    const phone = worker?.phone;
+  const handleCallWorker = (phone) => {
     if (phone) {
       Linking.openURL(`tel:${phone}`);
     } else {
-      Alert.alert('Info', t('requestAccepted.phoneNotAvailable'));
+      Alert.alert('Info', 'Phone number not available yet.');
     }
   };
 
   const handleCancelRequest = () => {
     Alert.alert(
-      t('requestAccepted.cancelRequest'),
-      t('requestAccepted.cancelConfirm'),
+      'Cancel Job?',
+      'This will cancel the job and remove all workers. Are you sure?',
       [
-        { text: t('common.no'), style: 'cancel' },
+        { text: 'No', style: 'cancel' },
         {
-          text: t('requestAccepted.yesCancelIt'),
+          text: 'Yes, Cancel',
           style: 'destructive',
           onPress: async () => {
-            try {
-              if (job?.id) {
-                await jobService.cancelJob(job.id);
-              }
-              navigation.navigate('FarmerHome');
-            } catch (error) {
-              console.error('Cancel error:', error);
-              navigation.navigate('FarmerHome');
-            }
+            try { if (job?.id) await jobService.cancelJob(job.id); } catch (_) {}
+            navigation.navigate('FarmerHome');
           },
         },
       ]
     );
   };
 
-  // Display values from real data
-  const workerName = worker?.name || 'Worker';
-  const workerRating = worker?.rating ? worker.rating.toFixed(1) : '0.0';
-  const workerDistance = worker?.distance ? `${worker.distance.toFixed(1)} ${t('requestAccepted.kmAway')}` : t('requestAccepted.nearby');
-  const workersCount = job?.workersNeeded || 1;
   const payPerDay = job?.payPerDay || 500;
-  const workTypeDisplay = job?.workType
+  const workersNeeded = job?.workersNeeded || 1;
+  const workType = job?.workType
     ? job.workType.charAt(0).toUpperCase() + job.workType.slice(1)
     : 'Labour';
 
-  // Parse skills for display
-  let skillText = `${workTypeDisplay} ${t('requestAccepted.expert')}`;
-  if (worker?.skills) {
-    try {
-      const skillsArr = typeof worker.skills === 'string' ? JSON.parse(worker.skills) : worker.skills;
-      if (Array.isArray(skillsArr) && skillsArr.length > 0) {
-        skillText = skillsArr[0].charAt(0).toUpperCase() + skillsArr[0].slice(1) + ` ${t('requestAccepted.expert')}`;
-      }
-    } catch (e) { }
-  }
+  // Map markers: accepted workers' locations
+  const mapMarkers = workerLocations.length > 0
+    ? workerLocations
+    : workers.slice(0, 1).map(w => ({
+        id: w.id,
+        latitude: 17.3850 + (Math.random() - 0.5) * 0.01,
+        longitude: 78.4867 + (Math.random() - 0.5) * 0.01,
+        type: 'worker',
+        active: true,
+      }));
+
+  const sheetTranslateY = sheetAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [400, 0],
+  });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* Rapido-style Live Tracking Map */}
-      <View style={styles.mapWrap}>
-        <MapDashboard
-          height="100%"
-          userLocation={[job?.farmLongitude || 78.4867, job?.farmLatitude || 17.3850]}
-          markers={workerLocation ? [workerLocation] : []}
-        />
+      {/* ── Full-Screen Map ── */}
+      <MapDashboard
+        fullScreen
+        markers={mapMarkers}
+        userLocation={
+          job?.farmLatitude && job?.farmLongitude
+            ? { latitude: job.farmLatitude, longitude: job.farmLongitude }
+            : null
+        }
+      />
+
+      {/* ── Top Status Pill ── */}
+      <View style={styles.topPill}>
+        <Animated.View style={[styles.pillDot, { transform: [{ scale: pulseAnim }] }]} />
+        <Text style={styles.pillText}>
+          {workers.length > 0
+            ? `${workers.length}/${workersNeeded} Workers on the way`
+            : 'Workers confirmed'}
+        </Text>
       </View>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color="#131811" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('requestAccepted.title')}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      {/* ── Back Button ── */}
+      <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back" size={22} color="#131811" />
+      </TouchableOpacity>
 
-      {/* Map Area with Status Overlay */}
-      <View style={styles.mapArea}>
-        {/* Map placeholder */}
-        <View style={styles.mapPlaceholder}>
-          <MaterialIcons name="map" size={60} color="rgba(0,0,0,0.1)" />
-        </View>
+      {/* ── Animated Bottom Sheet ── */}
+      <Animated.View style={[styles.bottomSheet, { transform: [{ translateY: sheetTranslateY }] }]}>
+        <View style={styles.dragHandle} />
 
-        {/* Status Card Overlay */}
-        <View style={styles.statusOverlay}>
-          <View style={styles.statusCard}>
-            <View style={styles.statusIconWrap}>
-              <MaterialIcons name="directions-walk" size={20} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={styles.statusLabel}>STATUS</Text>
-              <Text style={styles.statusText}>Worker is on the way</Text>
-            </View>
+        {/* Header row */}
+        <View style={styles.headerRow}>
+          <View style={styles.jobIconWrap}>
+            <MaterialIcons name="agriculture" size={26} color={colors.primary} />
           </View>
-          {/* Zoom controls */}
-          <View style={styles.mapZoomControls}>
-            <TouchableOpacity style={styles.mapZoomBtn}>
-              <MaterialIcons name="add" size={20} color="#131811" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.mapZoomBtn}>
-              <MaterialIcons name="remove" size={20} color="#131811" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Worker Pin */}
-        <View style={styles.workerPin}>
-          <View style={styles.workerPinIcon}>
-            <MaterialIcons name="person" size={24} color={colors.primary} />
-          </View>
-          <View style={styles.workerPinLabel}>
-            <Text style={styles.workerPinText}>{workerName.split(' ')[0].toUpperCase()}</Text>
-          </View>
-        </View>
-
-        {/* Farm Pin */}
-        <View style={styles.farmPin}>
-          <View style={styles.farmPinIcon}>
-            <MaterialIcons name="home" size={20} color="#EF4444" />
-          </View>
-        </View>
-
-        {/* Location button */}
-        <TouchableOpacity style={styles.locationBtn}>
-          <MaterialIcons name="my-location" size={20} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Worker Details Card */}
-      <View style={styles.workerCard}>
-        {/* Worker Profile Row */}
-        <View style={styles.workerProfileRow}>
-          <View style={styles.workerAvatarWrap}>
-            {worker?.photoUrl ? (
-              <Image source={{ uri: worker.photoUrl }} style={styles.workerAvatar} />
-            ) : (
-              <View style={[styles.workerAvatar, styles.workerAvatarPlaceholder]}>
-                <MaterialIcons name="person" size={32} color="#9CA3AF" />
-              </View>
-            )}
-          </View>
-          <View style={styles.workerNameWrap}>
-            <View style={styles.nameRow}>
-              <Text style={styles.workerName}>{workerName}</Text>
-            </View>
-            <View style={styles.ratingRow}>
-              <MaterialIcons name="star" size={16} color="#F59E0B" />
-              <Text style={styles.ratingText}>{workerRating}</Text>
-              <Text style={styles.skillText}>{skillText}</Text>
-            </View>
+          <View style={styles.headerInfo}>
+            <Text style={styles.headerTitle}>{workType} Work</Text>
+            <Text style={styles.headerSub}>
+              {workers.length}/{workersNeeded} workers • ₹{payPerDay}/day
+            </Text>
           </View>
           <View style={styles.etaBadge}>
-            <MaterialIcons name="verified" size={18} color={colors.primary} />
-            <MaterialIcons name="schedule" size={18} color="#F59E0B" style={{ marginLeft: 4 }} />
+            <MaterialIcons name="schedule" size={14} color="#F59E0B" />
             <Text style={styles.etaText}>{eta}</Text>
-            <Text style={styles.etaLabel}>{t('requestAccepted.eta')}</Text>
           </View>
         </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <MaterialIcons name="straighten" size={24} color="#6B7280" />
-            <Text style={styles.statValue}>{workerDistance}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <MaterialIcons name="people" size={24} color="#6B7280" />
-            <Text style={styles.statValue}>{workersCount} Workers</Text>
-          </View>
-          <View style={styles.statItem}>
-            <MaterialIcons name="credit-card" size={24} color="#6B7280" />
-            <Text style={styles.statValue}>₹{payPerDay}{t('requestAccepted.perDay')}</Text>
-          </View>
-        </View>
+        <View style={styles.divider} />
 
-        {/* Call Worker Button */}
-        <TouchableOpacity
-          style={styles.callButtonWrap}
-          onPress={handleCallWorker}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={colors.primaryGradient}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.callButton}
+        {/* Workers list */}
+        {workers.length === 0 ? (
+          <View style={styles.noWorkerRow}>
+            <MaterialIcons name="people" size={24} color="#9CA3AF" />
+            <Text style={styles.noWorkerText}>Loading worker details…</Text>
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 180 }}>
+            {workers.map((w, idx) => (
+              <View key={w.id || idx} style={styles.workerRow}>
+                {/* Avatar */}
+                <View style={styles.workerAvatar}>
+                  <MaterialIcons name="person" size={22} color={colors.primary} />
+                </View>
+                {/* Info */}
+                <View style={styles.workerInfo}>
+                  <Text style={styles.workerName}>{w.name}</Text>
+                  <View style={styles.workerMeta}>
+                    <MaterialIcons name="star" size={12} color="#F59E0B" />
+                    <Text style={styles.workerRating}>{w.rating ? w.rating.toFixed(1) : '—'}</Text>
+                    {w.village ? <Text style={styles.workerVillage}> • {w.village}</Text> : null}
+                  </View>
+                </View>
+                {/* Call */}
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={() => handleCallWorker(w.phone)}
+                >
+                  <MaterialIcons name="phone" size={18} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        )}
+
+        <View style={styles.divider} />
+
+        {/* Action buttons */}
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelRequest}>
+            <MaterialIcons name="close" size={18} color="#EF4444" />
+            <Text style={styles.cancelText}>Cancel Job</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.callAllBtn}
+            onPress={() => {
+              const first = workers.find(w => w.phone);
+              if (first) handleCallWorker(first.phone);
+              else Alert.alert('Info', 'Worker phone numbers not available yet.');
+            }}
           >
-            <MaterialIcons name="phone" size={24} color="#FFFFFF" />
-            <Text style={styles.callButtonText}>{t('requestAccepted.callWorker')}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient colors={colors.primaryGradient} style={styles.callAllGrad}>
+              <MaterialIcons name="phone" size={18} color="#FFFFFF" />
+              <Text style={styles.callAllText}>Call Worker</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
 
-        {/* Cancel Request */}
-        <TouchableOpacity style={styles.cancelRequestBtn} onPress={handleCancelRequest}>
-          <Text style={styles.cancelRequestText}>{t('requestAccepted.cancelRequest')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Bottom Navigation */}
       <BottomNavBar role="farmer" activeTab="Discovery" />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  mapWrap: {
-    height: '35%',
-  },
-  header: {
+  container: { flex: 1 },
+
+  // Top pill
+  topPill: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 56,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    gap: 8,
+    backgroundColor: '#131811',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 10,
   },
-  headerTitle: {
-    fontSize: 18,
+  pillDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  pillText: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#131811',
+    color: '#FFFFFF',
   },
-  mapArea: {
-    flex: 1,
+
+  // Back button
+  backBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 56,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 10,
+  },
+
+  // Bottom sheet
+  bottomSheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#E5E7EB',
-    position: 'relative',
+    alignSelf: 'center',
+    marginBottom: 16,
   },
-  content: {
-    flex: 1,
+
+  // Header
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  jobIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: `${colors.primary}15`,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  statusOverlay: {
-    position: 'absolute',
-    top: 16,
-    left: 16,
-    right: 16,
+  headerInfo: { flex: 1 },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#131811' },
+  headerSub: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+  etaBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  statusCard: {
+  etaText: { fontSize: 13, fontWeight: '700', color: '#D97706' },
+
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 12 },
+
+  // No worker placeholder
+  noWorkerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#131811',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  statusIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: `${colors.primary}33`,
+    paddingVertical: 16,
     justifyContent: 'center',
+  },
+  noWorkerText: { fontSize: 14, color: '#9CA3AF' },
+
+  // Worker row
+  workerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
   },
-  statusLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.primary,
-    letterSpacing: 1,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 1,
-  },
-  mapZoomControls: {
-    gap: 4,
-  },
-  mapZoomBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  workerPin: {
-    position: 'absolute',
-    top: '35%',
-    left: '30%',
-    alignItems: 'center',
-  },
-  workerPinIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  workerAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: `${colors.primary}15`,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    borderColor: `${colors.primary}33`,
   },
-  workerPinLabel: {
-    backgroundColor: '#131811',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 4,
-  },
-  workerPinText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  farmPin: {
-    position: 'absolute',
-    top: '50%',
-    right: '30%',
-  },
-  farmPinIcon: {
+  workerInfo: { flex: 1 },
+  workerName: { fontSize: 15, fontWeight: '700', color: '#131811' },
+  workerMeta: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 },
+  workerRating: { fontSize: 12, fontWeight: '600', color: '#6B7280' },
+  workerVillage: { fontSize: 12, color: '#9CA3AF' },
+  callBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#EF4444',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  locationBtn: {
-    position: 'absolute',
-    bottom: 16,
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  workerCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 8,
-    marginTop: -16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  workerProfileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  workerAvatarWrap: {
-    marginRight: 12,
-  },
-  workerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  workerAvatarPlaceholder: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  workerNameWrap: {
-    flex: 1,
-  },
-  nameRow: {
+
+  // Actions
+  actionRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  workerName: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#131811',
-  },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    gap: 12,
     marginTop: 4,
   },
-  ratingText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#131811',
-  },
-  skillText: {
-    fontSize: 14,
-    color: '#6B7280',
-    marginLeft: 4,
-  },
-  etaBadge: {
-    alignItems: 'center',
-  },
-  etaText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.primary,
-    marginTop: 2,
-  },
-  etaLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    letterSpacing: 1,
-  },
-  statsRow: {
+  cancelBtn: {
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    marginBottom: 20,
-  },
-  statItem: {
     alignItems: 'center',
-    gap: 6,
-  },
-  statValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#131811',
-  },
-  callButtonWrap: {
-    marginBottom: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 10,
-    borderRadius: 16,
-  },
-  callButton: {
-    flexDirection: 'row',
-    height: 60,
-    borderRadius: 16,
     justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+  },
+  cancelText: { fontSize: 14, fontWeight: '700', color: '#EF4444' },
+  callAllBtn: {
+    flex: 2,
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  callAllGrad: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
   },
-  callButtonText: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  cancelRequestBtn: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    marginBottom: 4,
-  },
-  cancelRequestText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
-  },
+  callAllText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
 });
 
 export default RequestAcceptedScreen;

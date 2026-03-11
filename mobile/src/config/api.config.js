@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 
 // IMPORTANT: Update this IP address with your PC's local IP
 // To find your IP: Run `ipconfig` in PowerShell and look for "IPv4 Address"
-const LOCAL_IP = '192.168.1.104';
+const LOCAL_IP = '10.123.0.248';
 
 // Tunnel URL for REST API calls (works on any network, not just same WiFi).
 // Run: npx localtunnel --port 5000  → paste the URL here (no trailing slash)
@@ -21,8 +21,8 @@ const TUNNEL_URL = null; // Phone is on same WiFi — use local IP directly (fas
  * - Mobile, no tunnel: local network IP (same WiFi required)
  */
 const getApiUrl = () => {
-  if (Platform.OS === 'web') return 'http://127.0.0.1:5000/api';
   if (TUNNEL_URL) return `${TUNNEL_URL}/api`;
+  // Using absolute network IP even for web to avoid 127.0.0.1 connection refused errors on physical devices/emulators bridging web mode
   return `http://${LOCAL_IP}:5000/api`;
 };
 
@@ -33,7 +33,6 @@ const getApiUrl = () => {
  * on the same WiFi as the PC for real-time features to work.
  */
 const getSocketUrl = () => {
-  if (Platform.OS === 'web') return 'http://127.0.0.1:5000';
   return `http://${LOCAL_IP}:5000`;
 };
 

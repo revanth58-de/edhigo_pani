@@ -26,9 +26,9 @@ const validateQR = (qrString, jobId) => {
 
     const qrTime = parseInt(qrData.timestamp);
     const now = Date.now();
-    const expiry = 300000; // 5 minutes — generous for testing (original was 30s)
+    const expiry = 30 * 60 * 1000; // 30 minutes — enough time for worker to navigate to scanner
 
-    if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired' };
+    if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
 
     return { valid: true, type: qrData.type };
   } catch (error) {

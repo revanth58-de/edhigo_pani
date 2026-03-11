@@ -28,14 +28,14 @@ export default {
 
   // ─── Bottom Navigation ───
   nav: {
-    discovery: 'DISCOVERY',
-    history: 'HISTORY',
-    showQR: 'SHOW QR',
-    payments: 'PAYMENTS',
-    profile: 'PROFILE',
-    home: 'HOME',
-    jobs: 'JOBS',
-    group: 'GROUP',
+    discovery: 'Home',
+    history: 'History',
+    showQR: 'QR',
+    payments: 'Payments',
+    profile: 'Profile',
+    home: 'Home',
+    jobs: 'Jobs',
+    group: 'Group',
   },
 
   // ─── Auth Screens ───

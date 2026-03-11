@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Alert,
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import { socketService } from '../../services/socketService';
 
 const WorkInProgressScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -34,6 +36,27 @@ const WorkInProgressScreen = ({ navigation, route }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleEndWork = () => {
+    Alert.alert(
+      'End Work',
+      'Are you sure you want to end the work session? Workers will be prompted to scan the check-out QR.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'End Work',
+          style: 'destructive',
+          onPress: () => {
+            // Notify all workers in this job to open checkout QR scanner
+            socketService.socket?.emit('work:done', {
+              jobId: job?.id,
+              farmerId: job?.farmerId,
+            });
+            navigation.navigate('QRAttendance', { job, type: 'out' });
+          },
+        },
+      ]
+    );
+  };
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
@@ -77,7 +100,7 @@ const WorkInProgressScreen = ({ navigation, route }) => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.endButton}
-          onPress={() => navigation.navigate('QRAttendance', { job, type: 'out' })}
+          onPress={handleEndWork}
           activeOpacity={0.9}
         >
           <Text style={styles.endButtonText}>END WORK</Text>

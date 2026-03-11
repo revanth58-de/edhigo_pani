@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
   TextInput,
   Image,
   KeyboardAvoidingView,
@@ -137,26 +136,15 @@ const GroupDetailScreen = ({ route, navigation }) => {
     setNewMessage('');
   };
 
-  const handleAcceptJob = async (job) => {
+  const handleAcceptJob = async (jobId) => {
     try {
-      await groupAPI.acceptGroupJob({ groupId, jobId: job.id });
-      // Remove the accepted job from the list
-      setJobs(prev => prev.filter(j => j.id !== job.id));
-      // Navigate leader forward to the group navigation/map screen
-      navigation.navigate('GroupNavigation', {
-        groupId,
-        job: {
-          workType: job.workType,
-          distance: job.distance,
-          workerCount: job.workersNeeded,
-          pay: job.payPerDay,
-          farmAddress: job.farmAddress,
-          jobId: job.id,
-        },
-      });
+      await groupAPI.acceptGroupJob({ groupId, jobId });
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      // Just visually confirming for the user
+      alert('Job accepted successfully for the entire group!');
     } catch (error) {
       console.error('Failed to accept group job', error);
-      Alert.alert('Error', error.response?.data?.error || 'Failed to accept job');
+      alert(error.response?.data?.error || 'Failed to accept job');
     }
   };
 
@@ -173,7 +161,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
         <TouchableOpacity 
           style={styles.acceptBtn} 
           activeOpacity={0.8}
-          onPress={() => handleAcceptJob(item)}
+          onPress={() => handleAcceptJob(item.id)}
         >
           <Text style={styles.acceptBtnText}>ACCEPT FOR GROUP</Text>
         </TouchableOpacity>
@@ -212,16 +200,12 @@ const GroupDetailScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {user?.id === group?.leaderId ? (
-          <TouchableOpacity 
-            style={styles.iconBtn} 
-            onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
-          >
-            <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.iconBtn} />
-        )}
+        <TouchableOpacity 
+          style={styles.iconBtn} 
+          onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
+        >
+          <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
+        </TouchableOpacity>
       </View>
 
       {/* Tabs */}

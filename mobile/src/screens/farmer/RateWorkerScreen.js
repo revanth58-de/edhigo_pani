@@ -36,11 +36,21 @@ const RateWorkerScreen = ({ navigation, route }) => {
       return;
     }
 
+    const jobId = job?.id || job?.jobId;
+    const workerId = worker?.id || worker?.workerId;
+
+    if (!jobId || !workerId) {
+      console.warn('RateWorker: missing jobId or workerId', { job, worker });
+      Alert.alert('Error', 'Cannot submit rating — job or worker information is missing.');
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('📡 Submitting rating:', { jobId, workerId, rating });
       const response = await ratingService.rateWorker({
-        jobId: job.id,
-        workerId: worker?.id,
+        jobId,
+        workerId,
         rating,
         feedback,
       });

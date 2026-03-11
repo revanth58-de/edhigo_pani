@@ -1,32 +1,44 @@
 const prisma = require('../config/database');
 
-// POST /api/ratings - Submit a rating
 const submitRating = async (req, res, next) => {
   try {
-    const { jobId, toUserId, emoji, stars } = req.body;
-    const fromUserId = req.user.id; // From JWT token
+    // Accept both field naming conventions from different frontend versions
+    const {
+      jobId,
+      toUserId,   workerId,            // either field name for recipient
+      emoji,      rating: ratingNum,   // rename to avoid conflict with prisma.rating variable below
+      stars,      feedback,            // optional extras
+    } = req.body;
+    const fromUserId = req.user.id;
 
-    console.log('⭐ Rating Submission:', { fromUserId, toUserId, jobId, emoji, stars });
+    // Normalise recipient ID
+    const recipientId = toUserId || workerId;
+
+    // Normalise emoji: convert numeric rating → emoji if needed
+    const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';
+    const normalizedEmoji = emoji || (ratingNum ? starsToEmoji(Number(ratingNum)) : null);
+    const normalizedStars = stars || (ratingNum ? Number(ratingNum) : null);
+
+    console.log('⭐ Rating Submission:', { fromUserId, recipientId, jobId, normalizedEmoji, normalizedStars });
 
     // Validation
-    if (!jobId || !toUserId || !emoji) {
+    if (!jobId || !recipientId || !normalizedEmoji) {
       return res.status(400).json({
-        error: 'Job ID, recipient user ID, and emoji are required'
+        error: 'Job ID, recipient user ID, and a rating (emoji or stars) are required'
       });
     }
 
     const validEmojis = ['happy', 'neutral', 'sad'];
-    if (!validEmojis.includes(emoji)) {
+    if (!validEmojis.includes(normalizedEmoji)) {
       return res.status(400).json({
         error: `Invalid emoji. Must be one of: ${validEmojis.join(', ')}`
       });
     }
 
-    if (stars && (stars < 1 || stars > 5)) {
-      return res.status(400).json({
-        error: 'Stars must be between 1 and 5'
-      });
+    if (normalizedStars && (normalizedStars < 1 || normalizedStars > 5)) {
+      return res.status(400).json({ error: 'Stars must be between 1 and 5' });
     }
+
 
     // Check if job exists
     const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -35,7 +47,7 @@ const submitRating = async (req, res, next) => {
     }
 
     // Check if users exist
-    const toUser = await prisma.user.findUnique({ where: { id: toUserId } });
+    const toUser = await prisma.user.findUnique({ where: { id: recipientId } });
     if (!toUser) {
       return res.status(404).json({ error: 'Recipient user not found' });
     }

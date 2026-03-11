@@ -128,17 +128,14 @@ export const ratingAPI = {
 export const groupAPI = {
     createGroup: (data) => apiClient.post('/groups', data),
     getMyGroups: () => apiClient.get('/groups/my-groups'),
-    getMyMemberGroups: () => apiClient.get('/groups/my-member-groups'),
     getGroupDetails: (groupId) => apiClient.get(`/groups/${groupId}`),
     getGroupJobs: (groupId) => apiClient.get(`/groups/${groupId}/jobs`),
     acceptGroupJob: (data) => apiClient.post('/groups/accept-job', data),
     addMember: (groupId, data) => apiClient.post(`/groups/${groupId}/members`, data),
     addMemberByPhone: (groupId, data) => apiClient.post(`/groups/${groupId}/members/by-phone`, data),
-    respondToInvite: (groupId, memberId, response) => apiClient.post(`/groups/${groupId}/members/${memberId}/respond`, { response }),
     removeMember: (groupId, workerId) => apiClient.delete(`/groups/${groupId}/members/${workerId}`),
     updateMember: (groupId, workerId, data) => apiClient.patch(`/groups/${groupId}/members/${workerId}`, data),
     updateGroupStatus: (groupId, status) => apiClient.patch(`/groups/${groupId}/status`, { status }),
-    deleteGroup: (groupId) => apiClient.delete(`/groups/${groupId}`),
     getNearbyWorkers: () => apiClient.get('/workers/nearby'),
     getGroupMessages: (groupId) => apiClient.get(`/chats/${groupId}/messages`),
 };

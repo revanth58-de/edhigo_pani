@@ -1,7 +1,7 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,8 +10,7 @@ import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { authAPI, groupAPI } from '../services/api';
-import { socketService } from '../services/socketService';
+import { authAPI } from '../services/api';
 
 import * as Notifications from 'expo-notifications';
 
@@ -127,7 +126,6 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
-    <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
   </Stack.Navigator>
@@ -211,14 +209,14 @@ const AppNavigator = () => {
     registerPush();
   }, [isAuthenticated, user?.id]);
 
-  // ── Global socket: connect + listen for group invites ────────────────────
+  // \u2500\u2500 Global socket: connect + handle real-time notifications \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
 
     socketService.connect();
     socketService.joinUserRoom(user.id);
 
-    // Workers (and leaders who are also workers) receive group invites
+    // \u2500\u2500 Group invite (workers/leaders) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     const handleGroupInvite = (data) => {
       Alert.alert(
         '\ud83e\udd1d Group Invitation',
@@ -247,13 +245,36 @@ const AppNavigator = () => {
         { cancelable: false }
       );
     };
-
     socketService.onGroupInvite(handleGroupInvite);
+
+    // \u2500\u2500 Work done (farmer ended job) \u2192 workers open checkout QR \u2500\u2500\u2500\u2500
+    const handleWorkDone = (data) => {
+      if (user?.role === 'worker') {
+        Alert.alert(
+          '\ud83c\udf3e Work Completed!',
+          'The farmer has marked the work as done. Please scan the check-out QR code now.',
+          [
+            {
+              text: 'Scan Check-Out QR',
+              onPress: () => {
+                navigationRef.current?.navigate('QRScanner', {
+                  job: { id: data.jobId },
+                  autoCheckout: true,
+                });
+              },
+            },
+          ],
+          { cancelable: false }
+        );
+      }
+    };
+    if (socketService.socket) socketService.socket.on('work:done', handleWorkDone);
 
     return () => {
       socketService.offGroupInvite(handleGroupInvite);
+      if (socketService.socket) socketService.socket.off('work:done', handleWorkDone);
     };
-  }, [isAuthenticated, user?.id]);
+  }, [isAuthenticated, user?.id, user?.role]);
 
   if (!hydrated) {
     return (

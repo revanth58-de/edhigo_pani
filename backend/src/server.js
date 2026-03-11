@@ -171,6 +171,29 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     logger.info(`Socket disconnected: ${socket.id}`);
   });
+
+  // Farmer ends work — notify all workers to open checkout QR scanner
+  socket.on('work:done', async (data) => {
+    const { jobId } = data;
+    logger.info(`🏁 Farmer ended work for job:${jobId}`);
+
+    try {
+      const prisma = require('./config/database');
+      // Find all accepted workers for this job
+      const applications = await prisma.jobApplication.findMany({
+        where: { jobId, status: 'accepted' },
+        select: { workerId: true },
+      });
+
+      // Emit to each worker's personal room
+      applications.forEach(({ workerId }) => {
+        io.to(`user:${workerId}`).emit('work:done', { jobId });
+        logger.info(`📡 work:done → worker user:${workerId}`);
+      });
+    } catch (err) {
+      logger.error(`Error broadcasting work:done: ${err.message}`);
+    }
+  });
 });
 
 // Make io accessible to routes

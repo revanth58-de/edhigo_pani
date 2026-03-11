@@ -71,10 +71,7 @@ const AddMemberScreen = ({ navigation, route }) => {
       }
 
       if (successCount > 0) {
-        Alert.alert(
-          '📨 Invites Sent!',
-          `${successCount} invitation(s) sent. Workers will receive a notification to accept or reject joining "${groupName || 'the group'}".`
-        );
+        Alert.alert('Success', `Successfully added ${successCount} member(s) to ${groupName || 'the group'}.`);
         navigation.goBack();
       } else {
         Alert.alert('Error', 'Failed to add members. They might already be in the group.');

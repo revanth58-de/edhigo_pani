@@ -9,18 +9,24 @@ try {
 
 class SocketService {
     socket = null;
-    _connectionFailed = false; // Suppress repeated errors after max attempts
-    _pendingRooms = []; // Queue rooms to join once socket connects
+    _connectionFailed = false;
+    _pendingRooms = [];
+    _userId = null;            // Saved so we can re-join after reconnect
+    _persistentCallbacks = {}; // event → Set of callbacks that survive socket recreation
+
+    // Attach all stored persistent listeners to the current socket object
+    _attachPersistentListeners() {
+        if (!this.socket) return;
+        Object.entries(this._persistentCallbacks).forEach(([event, callbacks]) => {
+            callbacks.forEach(cb => {
+                this.socket.off(event, cb); // avoid duplicates
+                this.socket.on(event, cb);
+            });
+        });
+    }
 
     connect() {
-        if (this.socket?.connected || !io) return;
-        if (this._connectionFailed) return; // Already gave up — don't spam
-
-        // Disconnect any stale socket before reconnecting
-        if (this.socket) {
-            this.socket.disconnect();
-            this.socket = null;
-        }
+        if (this.socket || !io) return;
 
         console.log(`📡 Connecting to Socket.io at: ${SOCKET_BASE_URL}`);
 
@@ -28,44 +34,46 @@ class SocketService {
             transports: ['websocket', 'polling'],
             autoConnect: true,
             reconnection: true,
-            reconnectionAttempts: 5,
+            reconnectionAttempts: Infinity,
             reconnectionDelay: 3000,
+            reconnectionDelayMax: 10000,
         });
 
         this.socket.on('connect', () => {
             this._connectionFailed = false;
             console.log('✅ Connected to Socket.io server');
-            // Flush any rooms that were requested before connection was ready
-            if (this._pendingRooms.length > 0) {
-                this._pendingRooms.forEach(({ event, id }) => {
-                    this.socket.emit(event, id);
-                    console.log(`📡 (deferred) emitted ${event}:${id}`);
-                });
-                this._pendingRooms = [];
+
+            // Re-join user room (works on first connect and every reconnect)
+            if (this._userId) {
+                this.socket.emit('user:join', this._userId);
+                console.log(`📡 (Re-)joined user:${this._userId}`);
             }
+
+            // Flush rooms queued before connection
+            this._pendingRooms.forEach(({ event, id }) => {
+                this.socket.emit(event, id);
+                console.log(`📡 (deferred) emitted ${event}:${id}`);
+            });
+            this._pendingRooms = [];
+
+            // Re-attach persistent listeners (important after socket recreation)
+            this._attachPersistentListeners();
         });
 
         this.socket.on('disconnect', (reason) => {
-            console.log(`❌ Disconnected from Socket.io: ${reason}`);
+            console.log(`❌ Disconnected: ${reason}`);
         });
 
         this.socket.on('connect_error', (error) => {
-            // Only log first error — avoid flooding the console
             if (!this._connectionFailed) {
-                console.warn(`⚠️ Socket unavailable (phone may not be on same WiFi as server): ${error.message}`);
+                console.warn(`⚠️ Socket unavailable: ${error.message}`);
+                this._connectionFailed = true;
             }
-        });
-
-        this.socket.on('reconnect_failed', () => {
-            this._connectionFailed = true;
-            console.warn('ℹ️ Socket.io gave up reconnecting. Real-time features disabled. Restart app when on same WiFi as server.');
-            this.socket.disconnect();
-            this.socket = null;
         });
 
         this.socket.on('reconnect', () => {
             this._connectionFailed = false;
-            console.log('✅ Socket reconnected successfully');
+            console.log('✅ Socket reconnected');
         });
     }
 
@@ -89,11 +97,11 @@ class SocketService {
     }
 
     joinUserRoom(userId) {
+        this._userId = userId; // persist for auto-rejoin after reconnect
         if (this.socket?.connected) {
             this.socket.emit('user:join', userId);
             console.log(`📡 Joined room: user:${userId}`);
         } else {
-            // Queue for when connection is ready
             this._pendingRooms.push({ event: 'user:join', id: userId });
         }
     }
@@ -155,6 +163,45 @@ class SocketService {
         if (this.socket) {
             if (callback) this.socket.off('job:withdrawn', callback);
             else this.socket.off('job:withdrawn');
+        }
+    }
+
+    // group:job_accepted → fired to all members when the group leader accepts a job
+    onGroupJobAccepted(callback) {
+        if (this.socket) this.socket.on('group:job_accepted', callback);
+    }
+
+    offGroupJobAccepted(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('group:job_accepted', callback);
+            else this.socket.off('group:job_accepted');
+        }
+    }
+
+    // group:invite — PERSISTENT: survives socket reconnects
+    onGroupInvite(callback) {
+        if (!this._persistentCallbacks['group:invite']) {
+            this._persistentCallbacks['group:invite'] = new Set();
+        }
+        this._persistentCallbacks['group:invite'].add(callback);
+        // Also attach to current socket immediately if available
+        if (this.socket) {
+            this.socket.off('group:invite', callback); // avoid duplicates
+            this.socket.on('group:invite', callback);
+        }
+    }
+
+    offGroupInvite(callback) {
+        if (this._persistentCallbacks['group:invite']) {
+            if (callback) {
+                this._persistentCallbacks['group:invite'].delete(callback);
+            } else {
+                this._persistentCallbacks['group:invite'].clear();
+            }
+        }
+        if (this.socket) {
+            if (callback) this.socket.off('group:invite', callback);
+            else this.socket.off('group:invite');
         }
     }
 

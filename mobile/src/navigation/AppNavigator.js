@@ -1,7 +1,7 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Platform, TouchableOpacity, Alert } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,7 +10,8 @@ import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { authAPI } from '../services/api';
+import { authAPI, groupAPI } from '../services/api';
+import { socketService } from '../services/socketService';
 
 import * as Notifications from 'expo-notifications';
 
@@ -126,6 +127,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
+    <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
   </Stack.Navigator>
@@ -207,6 +209,50 @@ const AppNavigator = () => {
     };
 
     registerPush();
+  }, [isAuthenticated, user?.id]);
+
+  // ── Global socket: connect + listen for group invites ────────────────────
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    socketService.connect();
+    socketService.joinUserRoom(user.id);
+
+    // Workers (and leaders who are also workers) receive group invites
+    const handleGroupInvite = (data) => {
+      Alert.alert(
+        '\ud83e\udd1d Group Invitation',
+        `${data.leaderName} invited you to join group "${data.groupName}".\n\nWould you like to join?`,
+        [
+          {
+            text: 'Reject \u274c',
+            style: 'destructive',
+            onPress: async () => {
+              try { await groupAPI.respondToInvite(data.groupId, data.inviteId, 'reject'); }
+              catch (e) { console.warn('Reject invite failed:', e.message); }
+            },
+          },
+          {
+            text: 'Accept \u2705',
+            onPress: async () => {
+              try {
+                await groupAPI.respondToInvite(data.groupId, data.inviteId, 'accept');
+                Alert.alert('\ud83c\udf89 Joined!', `You are now a member of "${data.groupName}".`);
+              } catch (e) {
+                Alert.alert('Error', 'Could not accept the invite. Please try again.');
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    };
+
+    socketService.onGroupInvite(handleGroupInvite);
+
+    return () => {
+      socketService.offGroupInvite(handleGroupInvite);
+    };
   }, [isAuthenticated, user?.id]);
 
   if (!hydrated) {

@@ -19,12 +19,18 @@ const getNearbyWorkers = async (req, res, next) => {
       searchLng = 78.4867;
     }
 
-    // Get all users who are workers and are online/available
+    // Get IDs of workers already in an active group (joined status)
+    const occupiedMemberships = await prisma.groupMember.findMany({
+      where: { status: 'joined' },
+      select: { workerId: true },
+    });
+    const occupiedWorkerIds = occupiedMemberships.map(m => m.workerId);
+
+    // Get all workers who are available AND not already in a group
     const workers = await prisma.user.findMany({
       where: {
         role: 'worker',
-        // Optional: you can filter by status like 'available' if you want
-        // status: 'available' 
+        id: { notIn: occupiedWorkerIds },
       },
       select: {
         id: true,

@@ -20,7 +20,7 @@ import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import MapDashboard from '../../components/MapDashboard';
-import { jobAPI, authAPI } from '../../services/api';
+import { jobAPI, authAPI, groupAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
 
@@ -95,6 +95,8 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   // History state
   const [historyJobs, setHistoryJobs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  // Groups state (groups this worker is a member of)
+  const [myGroups, setMyGroups] = useState([]);
 
   // Derived array for MapDashboard
   const jobs = Object.values(jobsMap);
@@ -122,6 +124,20 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  // Fetch groups this worker belongs to (defined early so the socket handler can call it)
+  const loadMyGroups = useCallback(async () => {
+    try {
+      const res = await groupAPI.getMyMemberGroups();
+      setMyGroups(res.data?.groups || []);
+    } catch (e) {
+      console.warn('Could not load member groups:', e.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMyGroups();
+  }, [loadMyGroups]);
+
   useEffect(() => {
     fetchNearbyJobs();
 
@@ -147,9 +163,8 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       }
     })();
 
-    // Join personal socket room so backend can send targeted job offers
+    // Socket is connected globally by AppNavigator — just ensure user room is joined
     if (user?.id) {
-      socketService.connect();
       socketService.joinUserRoom(user.id);
     }
 
@@ -205,9 +220,69 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     socketService.onJobTaken(handleJobTaken);
     socketService.onNewOffer(handleNewOffer);
 
+    // ── Real-time: group leader accepted a job on behalf of the group ─
+    const handleGroupJobAccepted = (data) => {
+      Alert.alert(
+        '🤝 Group Job Accepted!',
+        `${data.leaderName} accepted a job for group "${data.groupName}".\n\n📋 ${data.workType || 'Farm Work'}\n📍 ${data.farmAddress || ''}\n💰 ₹${data.payPerDay || ''}/day`,
+        [
+          { text: 'Later', style: 'cancel' },
+          {
+            text: 'Open Group Chat',
+            onPress: () => navigationRef.current.navigate('GroupDetail', {
+              groupId: data.groupId,
+              groupName: data.groupName,
+            }),
+          },
+        ]
+      );
+      // Refresh the groups list to reflect the latest state
+      loadMyGroups();
+    };
+
+    socketService.onGroupJobAccepted(handleGroupJobAccepted);
+
+    // ── Real-time: leader invited this worker to join a group ────────
+    const handleGroupInvite = (data) => {
+      Alert.alert(
+        '🤝 Group Invitation',
+        `${data.leaderName} has invited you to join group "${data.groupName}".\n\nWould you like to join?`,
+        [
+          {
+            text: 'Reject ❌',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await groupAPI.respondToInvite(data.groupId, data.inviteId, 'reject');
+              } catch (e) {
+                console.warn('Failed to reject invite:', e.message);
+              }
+            },
+          },
+          {
+            text: 'Accept ✅',
+            onPress: async () => {
+              try {
+                await groupAPI.respondToInvite(data.groupId, data.inviteId, 'accept');
+                loadMyGroups(); // refresh group list so the My Group card appears
+                Alert.alert('🎉 Joined!', `You are now a member of "${data.groupName}".`);
+              } catch (e) {
+                Alert.alert('Error', 'Could not accept the invite. Please try again.');
+              }
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    };
+
+    socketService.onGroupInvite(handleGroupInvite);
+
     return () => {
       socketService.offJobTaken();
       socketService.offNewOffer();
+      socketService.offGroupJobAccepted(handleGroupJobAccepted);
+      socketService.offGroupInvite(handleGroupInvite);
     };
   }, [user?.id, fetchNearbyJobs]);
 
@@ -378,6 +453,21 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             </View>
             <Text style={styles.actionText}>{t('qr.scanQR')}</Text>
           </TouchableOpacity>
+          {myGroups.length > 0 && (
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => {
+                // Navigate to the first group; if multiple, go to a list/the most recent
+                const g = myGroups[0];
+                navigation.navigate('GroupDetail', { groupId: g.id, groupName: g.name });
+              }}
+            >
+              <View style={[styles.actionIconCircle, { backgroundColor: `${colors.primary}20` }]}>
+                <MaterialIcons name="groups" size={30} color={colors.primary} />
+              </View>
+              <Text style={styles.actionText}>My Group</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Logout Button */}

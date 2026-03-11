@@ -146,6 +146,30 @@ const ManageGroupScreen = ({ navigation, route }) => {
         }
     };
 
+    const handleDeleteGroup = () => {
+        Alert.alert(
+            '🗑️ Delete Group',
+            `Are you sure you want to permanently delete "${routeGroupName || 'this group'}"? All members will be removed and this cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await groupAPI.deleteGroup(resolvedGroupId);
+                            Alert.alert('Deleted', 'Group has been deleted.', [
+                                { text: 'OK', onPress: () => navigation.navigate('LeaderHome') },
+                            ]);
+                        } catch {
+                            Alert.alert('Error', 'Failed to delete the group.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
@@ -210,6 +234,10 @@ const ManageGroupScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.goLiveButton} onPress={handleGoLive} disabled={!resolvedGroupId}>
                         <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length})</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteGroup}>
+                        <MaterialIcons name="delete-forever" size={20} color="#EF4444" />
+                        <Text style={styles.deleteButtonText}>DELETE GROUP</Text>
                     </TouchableOpacity>
                 </View>
             </>
@@ -279,6 +307,8 @@ const styles = StyleSheet.create({
     addButtonText: { fontSize: 20, fontWeight: '900', color: '#111827' },
     goLiveButton: { height: 52, backgroundColor: '#374151', borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
     goLiveButtonText: { color: '#FFF', fontWeight: '900', fontSize: 16 },
+    deleteButton: { flexDirection: 'row', height: 44, borderRadius: 22, borderWidth: 1.5, borderColor: '#EF4444', alignItems: 'center', justifyContent: 'center', gap: 6 },
+    deleteButtonText: { color: '#EF4444', fontWeight: '700', fontSize: 14 },
 
     // ── Dialpad ──
     nameSection: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 },

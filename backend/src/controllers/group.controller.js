@@ -68,6 +68,7 @@ const getGroupDetails = async (req, res, next) => {
           select: { id: true, name: true, phone: true },
         },
         members: {
+          where: { status: 'joined' },   // ← only confirmed members, not pending invites
           include: {
             worker: {
               select: { id: true, name: true, phone: true, skills: true, ratingAvg: true },
@@ -154,7 +155,7 @@ const acceptGroupJob = async (req, res, next) => {
     // Atomic update — only succeeds if the job is still 'pending' (race condition safe)
     const { count } = await prisma.job.updateMany({
       where: { id: jobId, status: 'pending' },
-      data: { status: 'matched' },
+      data: { status: 'accepted' },
     });
 
     if (count === 0) {
@@ -174,9 +175,62 @@ const acceptGroupJob = async (req, res, next) => {
       },
     });
 
-    const updatedJob = await prisma.job.findUnique({ where: { id: jobId } });
+    // Fetch full job with farmer info for socket notifications
+    const updatedJob = await prisma.job.findUnique({
+      where: { id: jobId },
+      include: { farmer: { select: { id: true, name: true, phone: true } } },
+    });
+
+    // Fetch leader details for the notification payload
+    const leader = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, name: true, phone: true, photoUrl: true, ratingAvg: true },
+    });
 
     console.log('✅ Group accepted job:', { groupId, jobId });
+
+    // ── Socket Notifications ─────────────────────────────────────────
+    const io = req.app.get('io');
+    if (io) {
+      // 1️⃣ Notify farmer so their "Finding Workers" screen navigates forward
+      if (updatedJob?.farmer?.id) {
+        io.to(`user:${updatedJob.farmer.id}`).emit('job:accepted', {
+          jobId,
+          workerId: req.user.id,
+          workerName: leader?.name || group.name,
+          workerPhone: leader?.phone || null,
+          workerPhotoUrl: leader?.photoUrl || null,
+          workerRating: leader?.ratingAvg || 0,
+          isFullyStaffed: true,
+          isGroup: true,
+          groupId,
+          groupName: group.name,
+        });
+        console.log(`📡 job:accepted → farmer user:${updatedJob.farmer.id}`);
+      }
+
+      // 2️⃣ Notify ONLY confirmed (joined) group members
+      const allMemberIds = [
+        group.leaderId,
+        ...group.members.filter((m) => m.status === 'joined').map((m) => m.workerId),
+      ].filter((id, idx, arr) => id && arr.indexOf(id) === idx); // unique non-null
+
+      allMemberIds.forEach((memberId) => {
+        io.to(`user:${memberId}`).emit('group:job_accepted', {
+          jobId,
+          groupId,
+          groupName: group.name,
+          leaderName: leader?.name || 'Group Leader',
+          workType: updatedJob?.workType,
+          farmAddress: updatedJob?.farmAddress,
+          payPerDay: updatedJob?.payPerDay,
+        });
+      });
+      console.log(`📡 group:job_accepted → ${allMemberIds.length} members`);
+
+      // 3️⃣ Global broadcast so other workers remove this job from their feed
+      io.emit('job:taken', { jobId });
+    }
 
     res.json({
       message: 'Job accepted by group',
@@ -188,20 +242,52 @@ const acceptGroupJob = async (req, res, next) => {
   }
 };
 
-// POST /api/groups/:groupId/members - Add a member to group
+// GET /api/groups/my-member-groups - Get all groups where the current user is a member (not leader)
+const getMyMemberGroups = async (req, res, next) => {
+  try {
+    const workerId = req.user.id;
+
+    const memberships = await prisma.groupMember.findMany({
+      where: { workerId, status: 'joined' },   // ← only groups where the worker accepted
+      include: {
+        group: {
+          include: {
+            leader: { select: { id: true, name: true, phone: true } },
+            members: {
+              include: {
+                worker: { select: { id: true, name: true, phone: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const groups = memberships.map((m) => m.group);
+    res.json({ groups });
+  } catch (error) {
+    console.error('💥 Get My Member Groups Error:', error);
+    next(error);
+  }
+};
+
+// POST /api/groups/:groupId/members - Send group invite (sets status='pending')
 const addMember = async (req, res, next) => {
   try {
     const { groupId } = req.params;
     const { workerId, name, role } = req.body;
 
-    console.log('➕ Add Member:', { groupId, workerId, name, role });
+    console.log('➕ Invite Member:', { groupId, workerId, name, role });
 
     if (!workerId) {
       return res.status(400).json({ error: 'Worker ID is required' });
     }
 
     // Verify group exists and caller is the leader
-    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    const group = await prisma.group.findUnique({
+      where: { id: groupId },
+      include: { leader: { select: { id: true, name: true } } },
+    });
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
     }
@@ -215,33 +301,59 @@ const addMember = async (req, res, next) => {
       return res.status(404).json({ error: 'Worker not found' });
     }
 
-    // Check if already a member
+    // Check if worker is already in ANY group (joined status)
+    const alreadyInGroup = await prisma.groupMember.findFirst({
+      where: { workerId, status: 'joined' },
+    });
+    if (alreadyInGroup) {
+      return res.status(400).json({ error: 'Worker is already in another group' });
+    }
+
+    // Check if already invited/member of this group
     const existing = await prisma.groupMember.findFirst({
       where: { groupId, workerId },
     });
 
+    let member;
     if (existing) {
-      return res.status(400).json({ error: 'Worker is already a member of this group' });
+      if (existing.status === 'joined') {
+        return res.status(400).json({ error: 'Worker is already a member of this group' });
+      }
+      // Status is 'pending' — just resend the socket notification, don't create a duplicate
+      member = existing;
+      console.log('🔁 Re-sending invite for existing pending record:', member.id);
+    } else {
+      // Create new invite with pending status
+      member = await prisma.groupMember.create({
+        data: {
+          groupId,
+          workerId,
+          name: name || worker.name,
+          role: role || 'Member',
+          status: 'pending',
+        },
+      });
+      console.log('📨 Invite sent:', member.id);
     }
 
-    const member = await prisma.groupMember.create({
-      data: {
+    // Emit socket invite to the worker's personal room
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${workerId}`).emit('group:invite', {
         groupId,
-        workerId,
-        name: name || worker.name,
-        role: role || 'Member',
-        status: 'joined',
-      },
-    });
-
-    console.log('✅ Member added:', member.id);
+        groupName: group.name,
+        leaderName: group.leader?.name || 'Group Leader',
+        inviteId: member.id,
+      });
+      console.log(`📡 group:invite → worker user:${workerId}`);
+    }
 
     res.status(201).json({
-      message: 'Member added to group',
+      message: 'Invite sent to worker',
       member,
     });
   } catch (error) {
-    console.error('💥 Add Member Error:', error);
+    console.error('💥 Invite Member Error:', error);
     next(error);
   }
 };
@@ -345,6 +457,86 @@ const removeMember = async (req, res, next) => {
   }
 };
 
+// DELETE /api/groups/:groupId - Leader deletes the entire group
+const deleteGroup = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await prisma.group.findUnique({ where: { id: groupId } });
+    if (!group) return res.status(404).json({ error: 'Group not found' });
+    if (group.leaderId !== req.user.id)
+      return res.status(403).json({ error: 'Only the group leader can delete this group' });
+
+    // Delete in dependency order to avoid FK constraint violations
+    await prisma.groupMessage.deleteMany({ where: { groupId } });
+    await prisma.jobApplication.deleteMany({ where: { groupId } });
+    await prisma.groupMember.deleteMany({ where: { groupId } });
+    await prisma.group.delete({ where: { id: groupId } });
+
+    console.log('🗑️ Group deleted:', groupId);
+    res.json({ message: 'Group deleted successfully' });
+  } catch (error) {
+    console.error('💥 Delete Group Error:', error);
+    next(error);
+  }
+};
+
+// POST /api/groups/:groupId/members/:memberId/respond - Worker accepts or rejects invite
+const respondToGroupInvite = async (req, res, next) => {
+  try {
+    const { groupId, memberId } = req.params;
+    const { response } = req.body; // 'accept' | 'reject'
+    const workerId = req.user.id;
+
+    if (!['accept', 'reject'].includes(response)) {
+      return res.status(400).json({ error: "response must be 'accept' or 'reject'" });
+    }
+
+    // Find the pending invite
+    const invite = await prisma.groupMember.findUnique({ where: { id: memberId } });
+    if (!invite) return res.status(404).json({ error: 'Invite not found' });
+    if (invite.workerId !== workerId)
+      return res.status(403).json({ error: 'This invite is not for you' });
+    if (invite.status !== 'pending')
+      return res.status(400).json({ error: 'Invite already responded to' });
+
+    if (response === 'accept') {
+      await prisma.groupMember.update({
+        where: { id: memberId },
+        data: { status: 'joined' },
+      });
+
+      // Notify the leader that the worker accepted
+      const group = await prisma.group.findUnique({
+        where: { id: groupId },
+        select: { leaderId: true, name: true },
+      });
+      const worker = await prisma.user.findUnique({
+        where: { id: workerId },
+        select: { name: true },
+      });
+      const io = req.app.get('io');
+      if (io && group?.leaderId) {
+        io.to(`user:${group.leaderId}`).emit('group:member_joined', {
+          groupId,
+          groupName: group.name,
+          workerName: worker?.name || 'A worker',
+          workerId,
+        });
+      }
+
+      res.json({ message: 'You have joined the group', status: 'joined' });
+    } else {
+      // Reject — remove the invite record
+      await prisma.groupMember.delete({ where: { id: memberId } });
+      res.json({ message: 'Invite declined', status: 'rejected' });
+    }
+  } catch (error) {
+    console.error('💥 Respond to Invite Error:', error);
+    next(error);
+  }
+};
+
 // PATCH /api/groups/:groupId/status - Update group status (e.g., to 'available')
 const updateGroupStatus = async (req, res, next) => {
   try {
@@ -376,6 +568,7 @@ const updateGroupStatus = async (req, res, next) => {
 
 module.exports = {
   getMyGroups,
+  getMyMemberGroups,
   createGroup,
   getGroupDetails,
   getGroupJobs,
@@ -384,5 +577,7 @@ module.exports = {
   addMemberByPhone,
   updateMember,
   removeMember,
-  updateGroupStatus
+  updateGroupStatus,
+  deleteGroup,
+  respondToGroupInvite,
 };

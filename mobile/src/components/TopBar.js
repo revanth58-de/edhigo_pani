@@ -1,31 +1,13 @@
-// Shared Top App Bar with Help icon in top-right
+// Shared Top App Bar with Notification Bell + unread badge
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Linking, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
-import { useTranslation } from '../i18n';
+import useNotificationStore from '../store/notificationStore';
 
-const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp, onBack }) => {
-  const { t } = useTranslation();
-
-  const handleHelp = () => {
-    if (onHelp) {
-      onHelp();
-    } else {
-      const phoneNumber = '+911800123456';
-      Linking.canOpenURL(`tel:${phoneNumber}`).then((supported) => {
-        if (supported) {
-          Linking.openURL(`tel:${phoneNumber}`);
-        } else {
-          Alert.alert(
-            'Help / సహాయం',
-            'Support: +91 1800-123-456',
-            [{ text: 'OK' }]
-          );
-        }
-      });
-    }
-  };
+const TopBar = ({ title = 'Home', showBack = false, navigation, onBack }) => {
+  const notifications = useNotificationStore((s) => s.notifications);
+  const unread = notifications.filter((n) => !n.read).length;
 
   const handleBack = () => {
     if (onBack) {
@@ -35,13 +17,16 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp, onBack }
     }
   };
 
+  const handleBell = () => {
+    if (navigation) {
+      navigation.navigate('Notifications');
+    }
+  };
+
   return (
     <View style={styles.topBar}>
       {showBack && navigation ? (
-        <TouchableOpacity
-          style={styles.iconButton}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={styles.iconButton} onPress={handleBack}>
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>
       ) : (
@@ -50,8 +35,14 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onHelp, onBack }
 
       <Text style={styles.title} numberOfLines={1}>{title}</Text>
 
-      <TouchableOpacity style={styles.helpButton} onPress={handleHelp}>
-        <MaterialIcons name="help-outline" size={26} color={colors.primary} />
+      {/* Notification Bell */}
+      <TouchableOpacity style={styles.bellButton} onPress={handleBell}>
+        <MaterialIcons name="notifications-none" size={26} color={colors.primary} />
+        {unread > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+          </View>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -64,41 +55,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: Platform.OS === 'ios' ? 52 : 48, // Standardized top padding for mobile status bar visibility
+    paddingTop: Platform.OS === 'ios' ? 52 : 48,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     zIndex: 100,
   },
   iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: `${colors.primary}1A`,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
-  iconButtonPlaceholder: {
-    width: 44,
-  },
+  iconButtonPlaceholder: { width: 44 },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#131811',
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 8,
+    fontSize: 20, fontWeight: 'bold', color: '#131811',
+    flex: 1, textAlign: 'center', marginHorizontal: 8,
   },
-  helpButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  bellButton: {
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: `${colors.primary}0D`,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: `${colors.primary}33`,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1.5, borderColor: `${colors.primary}33`,
   },
+  badge: {
+    position: 'absolute',
+    top: 4, right: 4,
+    minWidth: 16, height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  badgeText: { fontSize: 9, fontWeight: '900', color: '#FFF' },
 });
 
 export default TopBar;

@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { getIO } = require('../config/socket');
 
 // GET /api/groups/my-groups - Get all groups led by current user
 const getMyGroups = async (req, res, next) => {
@@ -56,6 +57,28 @@ const createGroup = async (req, res, next) => {
   }
 };
 
+// GET /api/groups/pending-invites — worker fetches their own unread group invites
+const getMyPendingInvites = async (req, res, next) => {
+  try {
+    const workerId = req.user.id;
+    const invites = await prisma.groupMember.findMany({
+      where: { workerId, status: 'invited' },
+      include: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            leader: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+    res.json({ invites });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // GET /api/groups/:groupId - Get group details
 const getGroupDetails = async (req, res, next) => {
   try {
@@ -81,7 +104,11 @@ const getGroupDetails = async (req, res, next) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
-    res.json({ group });
+    // Separate joined members from invited-but-pending members
+    const joinedMembers = group.members.filter(m => m.status === 'joined');
+    const pendingInvites = group.members.filter(m => m.status === 'invited');
+
+    res.json({ group: { ...group, members: joinedMembers, pendingInvites } });
   } catch (error) {
     console.error('💥 Get Group Details Error:', error);
     next(error);
@@ -230,11 +257,24 @@ const addMember = async (req, res, next) => {
         workerId,
         name: name || worker.name,
         role: role || 'Member',
-        status: 'joined',
+        status: 'invited',   // Worker must accept — not joined yet
       },
     });
 
     console.log('✅ Member added:', member.id);
+
+    // Notify the worker via socket (if online)
+    const io = getIO();
+    const leader = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
+    if (io) {
+      io.to(`user:${workerId}`).emit('group:invite', {
+        groupId,
+        groupName: group.name,
+        leaderId: req.user.id,
+        leaderName: leader?.name || 'Group Leader',
+        inviteId: member.id,
+      });
+    }
 
     res.status(201).json({
       message: 'Member added to group',
@@ -291,9 +331,22 @@ const addMemberByPhone = async (req, res, next) => {
         workerId: user.id,
         name: name || user.name,
         role: role || 'Member',
-        status: 'joined',
+        status: 'invited',   // Worker must accept — not joined yet
       },
     });
+
+    // Notify the worker via socket (if online)
+    const io = getIO();
+    const leader = await prisma.user.findUnique({ where: { id: req.user.id }, select: { name: true } });
+    if (io) {
+      io.to(`user:${user.id}`).emit('group:invite', {
+        groupId,
+        groupName: group.name,
+        leaderId: req.user.id,
+        leaderName: leader?.name || 'Group Leader',
+        inviteId: member.id,
+      });
+    }
 
     res.status(201).json({ message: 'Member added', member });
   } catch (error) {
@@ -384,5 +437,89 @@ module.exports = {
   addMemberByPhone,
   updateMember,
   removeMember,
-  updateGroupStatus
+  updateGroupStatus,
+
+  // POST /api/groups/:groupId/respond-invite — worker accepts or rejects a group invite
+  respondToInvite: async (req, res, next) => {
+    try {
+      const { groupId } = req.params;
+      const { inviteId, action } = req.body; // action: 'accept' | 'reject'
+      const workerId = req.user.id;
+
+      if (!['accept', 'reject'].includes(action)) {
+        return res.status(400).json({ error: 'action must be "accept" or "reject"' });
+      }
+
+      const member = await prisma.groupMember.findFirst({
+        where: { groupId, workerId },
+      });
+
+      if (!member) {
+        return res.status(404).json({ error: 'Invite not found' });
+      }
+
+      if (action === 'reject') {
+        await prisma.groupMember.delete({ where: { id: member.id } });
+        return res.json({ message: 'Invite rejected' });
+      }
+
+      // Accept — update status to 'joined'
+      await prisma.groupMember.update({
+        where: { id: member.id },
+        data: { status: 'joined', joinedAt: new Date() },
+      });
+
+      res.json({ message: 'You have joined the group' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // DELETE /api/groups/:groupId — leader deletes the whole group
+  deleteGroup: async (req, res, next) => {
+    try {
+      const { groupId } = req.params;
+      const leaderId = req.user.id;
+
+      const group = await prisma.group.findUnique({ where: { id: groupId } });
+      if (!group) return res.status(404).json({ error: 'Group not found' });
+      if (group.leaderId !== leaderId) return res.status(403).json({ error: 'Only the group leader can delete the group' });
+
+      // Cascade delete members and messages first (Prisma SQLite doesn't cascade automatically)
+      await prisma.groupMessage.deleteMany({ where: { groupId } });
+      await prisma.groupMember.deleteMany({ where: { groupId } });
+      await prisma.group.delete({ where: { id: groupId } });
+
+      // Notify all members via socket
+      const io = getIO();
+      if (io) io.to(`group:${groupId}`).emit('group:deleted', { groupId });
+
+      res.json({ message: 'Group deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  // POST /api/groups/:groupId/exit — worker leaves the group themselves
+  exitGroup: async (req, res, next) => {
+    try {
+      const { groupId } = req.params;
+      const workerId = req.user.id;
+
+      const member = await prisma.groupMember.findFirst({
+        where: { groupId, workerId },
+      });
+
+      if (!member) return res.status(404).json({ error: 'You are not a member of this group' });
+
+      await prisma.groupMember.delete({ where: { id: member.id } });
+
+      res.json({ message: 'You have left the group' });
+    } catch (error) {
+      next(error);
+    }
+  },
 };
+
+// Re-export getMyPendingInvites so it can be used in routes
+module.exports.getMyPendingInvites = getMyPendingInvites;

@@ -138,6 +138,10 @@ export const groupAPI = {
     updateGroupStatus: (groupId, status) => apiClient.patch(`/groups/${groupId}/status`, { status }),
     getNearbyWorkers: () => apiClient.get('/workers/nearby'),
     getGroupMessages: (groupId) => apiClient.get(`/chats/${groupId}/messages`),
+    respondToInvite: (groupId, inviteId, action) => apiClient.post(`/groups/${groupId}/respond-invite`, { inviteId, action }),
+    deleteGroup: (groupId) => apiClient.delete(`/groups/${groupId}`),
+    exitGroup: (groupId) => apiClient.post(`/groups/${groupId}/exit`),
+    getPendingInvites: () => apiClient.get('/groups/pending-invites'),
 };
 
 export default apiClient;

@@ -109,6 +109,17 @@ class SocketService {
         }
     }
 
+    onGroupInvite(callback) {
+        if (this.socket) this.socket.on('group:invite', callback);
+    }
+
+    offGroupInvite(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('group:invite', callback);
+            else this.socket.off('group:invite');
+        }
+    }
+
     onGroupMessage(callback) {
         if (this.socket) this.socket.on('group:message', callback);
     }
@@ -201,6 +212,17 @@ class SocketService {
                 this.socket.off('job:cancelled');
                 this.socket.off('worker:job_cancelled');
             }
+        }
+    }
+
+    onWorkDone(callback) {
+        if (this.socket) this.socket.on('work:done', callback);
+    }
+
+    offWorkDone(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('work:done', callback);
+            else this.socket.off('work:done');
         }
     }
 

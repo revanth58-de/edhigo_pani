@@ -10,7 +10,8 @@ import useAuthStore from '../store/authStore';
 import { colors } from '../theme/colors';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
-import { authAPI } from '../services/api';
+import { authAPI, groupAPI } from '../services/api';
+import { socketService } from '../services/socketService';
 
 import * as Notifications from 'expo-notifications';
 
@@ -76,6 +77,10 @@ import GroupDetailScreen from '../screens/leader/GroupDetailScreen';
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
 import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
+import NotificationsScreen from '../screens/shared/NotificationsScreen';
+
+// Stores
+import useNotificationStore from '../store/notificationStore';
 
 // Global Overlays
 import NotificationOverlay from '../components/NotificationOverlay';
@@ -110,6 +115,7 @@ const FarmerNavigator = () => (
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
@@ -128,6 +134,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
@@ -151,6 +158,7 @@ const LeaderNavigator = () => (
     <Stack.Screen name="GroupCall" component={GroupCallScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
@@ -209,6 +217,43 @@ const AppNavigator = () => {
     registerPush();
   }, [isAuthenticated, user?.id]);
 
+  // ── On login: fetch any pending group invites missed while offline ──────────
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || user?.role !== 'worker') return;
+
+    const loadPendingInvites = async () => {
+      try {
+        const res = await groupAPI.getPendingInvites();
+        const invites = res?.data?.invites || [];
+        invites.forEach((invite) => {
+          const leaderName = invite.group?.leader?.name || 'A leader';
+          const groupName = invite.group?.name || 'a group';
+          useNotificationStore.getState().addNotification({
+            id: `invite-${invite.id}`,   // stable id = no duplicates on re-login
+            type: 'group',
+            title: '\ud83e\udd1d Group Invitation',
+            body: `${leaderName} invited you to join "${groupName}" — tap to accept or reject`,
+            icon: 'groups',
+            data: {
+              screen: 'GroupDetail',
+              params: { groupId: invite.group?.id, groupName },
+              // carry invite id so tapping can trigger accept/reject
+              inviteId: invite.id,
+              groupId: invite.group?.id,
+              leaderName,
+              groupName,
+            },
+          });
+        });
+      } catch (e) {
+        // non-fatal — user still navigates normally
+        console.warn('Could not load pending invites:', e?.message);
+      }
+    };
+
+    loadPendingInvites();
+  }, [isAuthenticated, user?.id, user?.role]);
+
   // \u2500\u2500 Global socket: connect + handle real-time notifications \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -218,12 +263,21 @@ const AppNavigator = () => {
 
     // \u2500\u2500 Group invite (workers/leaders) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
     const handleGroupInvite = (data) => {
+      // Push to notification store so it shows in bell even if dismissed
+      useNotificationStore.getState().addNotification({
+        type: 'group',
+        title: '🤝 Group Invitation',
+        body: `${data.leaderName} invited you to join "${data.groupName}"`,
+        icon: 'groups',
+        data: { screen: 'GroupDetail', params: { groupId: data.groupId, groupName: data.groupName } },
+      });
+
       Alert.alert(
-        '\ud83e\udd1d Group Invitation',
+        '🤝 Group Invitation',
         `${data.leaderName} invited you to join group "${data.groupName}".\n\nWould you like to join?`,
         [
           {
-            text: 'Reject \u274c',
+            text: 'Reject ❌',
             style: 'destructive',
             onPress: async () => {
               try { await groupAPI.respondToInvite(data.groupId, data.inviteId, 'reject'); }
@@ -231,11 +285,11 @@ const AppNavigator = () => {
             },
           },
           {
-            text: 'Accept \u2705',
+            text: 'Accept ✅',
             onPress: async () => {
               try {
                 await groupAPI.respondToInvite(data.groupId, data.inviteId, 'accept');
-                Alert.alert('\ud83c\udf89 Joined!', `You are now a member of "${data.groupName}".`);
+                Alert.alert('🎉 Joined!', `You are now a member of "${data.groupName}".`);
               } catch (e) {
                 Alert.alert('Error', 'Could not accept the invite. Please try again.');
               }
@@ -247,11 +301,18 @@ const AppNavigator = () => {
     };
     socketService.onGroupInvite(handleGroupInvite);
 
-    // \u2500\u2500 Work done (farmer ended job) \u2192 workers open checkout QR \u2500\u2500\u2500\u2500
+    // ── Work done (farmer ended job) → workers scan checkout QR ────
     const handleWorkDone = (data) => {
       if (user?.role === 'worker') {
+        useNotificationStore.getState().addNotification({
+          type: 'attendance',
+          title: '🌾 Work Completed!',
+          body: 'The farmer marked work as done. Scan the check-out QR.',
+          icon: 'fact-check',
+          data: { screen: 'QRScanner', params: { job: { id: data.jobId }, autoCheckout: true } },
+        });
         Alert.alert(
-          '\ud83c\udf3e Work Completed!',
+          '🌾 Work Completed!',
           'The farmer has marked the work as done. Please scan the check-out QR code now.',
           [
             {
@@ -268,11 +329,37 @@ const AppNavigator = () => {
         );
       }
     };
-    if (socketService.socket) socketService.socket.on('work:done', handleWorkDone);
+    socketService.onWorkDone(handleWorkDone);
+
+    // ── Job cancelled by farmer ─────────────────────────────────────
+    const handleJobCancelled = (data) => {
+      useNotificationStore.getState().addNotification({
+        type: 'job',
+        title: '❌ Job Cancelled',
+        body: `A farmer cancelled the job: ${data.workType || 'Farm Work'}`,
+        icon: 'cancel',
+        data: null,
+      });
+    };
+    socketService.onJobCancelled(handleJobCancelled);
+
+    // ── New job offer pushed to worker ──────────────────────────────
+    const handleNewOfferNotif = (offer) => {
+      useNotificationStore.getState().addNotification({
+        type: 'job',
+        title: '🌾 New Job Offer!',
+        body: `${offer.workType || 'Farm Work'} • ₹${offer.payPerDay}/day • ${offer.distanceLabel || 'Nearby'}`,
+        icon: 'work',
+        data: { screen: 'JobOffer', params: { job: { ...offer, id: offer.jobId } } },
+      });
+    };
+    socketService.onNewOffer(handleNewOfferNotif);
 
     return () => {
       socketService.offGroupInvite(handleGroupInvite);
-      if (socketService.socket) socketService.socket.off('work:done', handleWorkDone);
+      socketService.offWorkDone(handleWorkDone);
+      socketService.offJobCancelled(handleJobCancelled);
+      socketService.offNewOffer(handleNewOfferNotif);
     };
   }, [isAuthenticated, user?.id, user?.role]);
 

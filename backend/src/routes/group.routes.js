@@ -12,11 +12,16 @@ const {
   updateMember,
   removeMember,
   updateGroupStatus,
+  respondToInvite,
+  deleteGroup,
+  exitGroup,
+  getMyPendingInvites,
 } = require('../controllers/group.controller');
 
 // All group routes require authentication
 router.post('/', authenticate, createGroup);
-router.get('/my-groups', authenticate, getMyGroups);  // must be before /:groupId
+router.get('/my-groups', authenticate, getMyGroups);           // must be before /:groupId
+router.get('/pending-invites', authenticate, getMyPendingInvites); // must be before /:groupId
 router.get('/:groupId', authenticate, getGroupDetails);
 router.get('/:groupId/jobs', authenticate, getGroupJobs);
 router.post('/accept-job', authenticate, acceptGroupJob);
@@ -25,5 +30,8 @@ router.post('/:groupId/members/by-phone', authenticate, addMemberByPhone);
 router.patch('/:groupId/members/:workerId', authenticate, updateMember);
 router.delete('/:groupId/members/:workerId', authenticate, removeMember);
 router.patch('/:groupId/status', authenticate, updateGroupStatus);
+router.post('/:groupId/respond-invite', authenticate, respondToInvite);
+router.delete('/:groupId', authenticate, deleteGroup);
+router.post('/:groupId/exit', authenticate, exitGroup);
 
 module.exports = router;

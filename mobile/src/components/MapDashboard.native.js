@@ -2,7 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Platform, Text, TouchableOpacity, Animated, Easing } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
+const isWeb = Platform.OS === 'web';
+let MapView, Marker, PROVIDER_GOOGLE;
+
+if (!isWeb) {
+    const Maps = require('react-native-maps');
+    MapView = Maps.default;
+    Marker = Maps.Marker;
+    PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
+}
 import * as Location from 'expo-location';
 
 const DEFAULT_CENTER = {

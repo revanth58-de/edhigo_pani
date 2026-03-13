@@ -6,6 +6,7 @@ import {
     StyleSheet,
     StatusBar,
     Dimensions,
+    Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -13,7 +14,17 @@ import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import { calculateDistance, estimateETA } from '../../utils/location';
 import { LinearGradient } from 'expo-linear-gradient';
-import MapView, { Marker, Polyline } from 'react-native-maps';
+
+// Dynamically import MapView only on native platforms
+const isWeb = Platform.OS === 'web';
+let MapView, Marker, Polyline;
+
+if (!isWeb) {
+  const Maps = require('react-native-maps');
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+  Polyline = Maps.Polyline;
+}
 
 const GroupNavigationScreen = ({ navigation, route }) => {
     const { job, groupId } = route.params;
@@ -65,32 +76,42 @@ const GroupNavigationScreen = ({ navigation, route }) => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
       <View style={styles.mapContainer}>
-        <MapView
-          style={StyleSheet.absoluteFill}
-          initialRegion={{
-            ...farmCoords,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-          showsUserLocation
-          showsMyLocationButton={false}
-        >
-          {userLocation && (
-            <Polyline
-              coordinates={[userLocation, farmCoords]}
-              strokeColor={colors.primary}
-              strokeWidth={4}
-              lineDashPattern={[5, 5]}
-            />
-          )}
-          <Marker coordinate={farmCoords} title="Farm Location">
-            <View style={styles.markerBorder}>
-              <View style={styles.markerInner}>
-                <MaterialIcons name="agriculture" size={18} color="#FFFFFF" />
+        {isWeb ? (
+          <View style={styles.webPlaceholderContent}>
+              <MaterialIcons name="map" size={80} color={colors.gray300} />
+              <Text style={styles.webPlaceholderTitle}>Map Navigation</Text>
+              <Text style={styles.webPlaceholderSubtitle}>
+                  Live map view is only available on the mobile application.
+              </Text>
+          </View>
+        ) : (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            initialRegion={{
+              ...farmCoords,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {userLocation && (
+              <Polyline
+                coordinates={[userLocation, farmCoords]}
+                strokeColor={colors.primary}
+                strokeWidth={4}
+                lineDashPattern={[5, 5]}
+              />
+            )}
+            <Marker coordinate={farmCoords} title="Farm Location">
+              <View style={styles.markerBorder}>
+                <View style={styles.markerInner}>
+                  <MaterialIcons name="agriculture" size={18} color="#FFFFFF" />
+                </View>
               </View>
-            </View>
-          </Marker>
-        </MapView>
+            </Marker>
+          </MapView>
+        )}
 
         <View style={styles.topCards}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>

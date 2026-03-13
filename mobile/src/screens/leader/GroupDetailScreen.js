@@ -36,59 +36,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [newMessage, setNewMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  const loadTabContent = useCallback(() => {
-    if (activeTab === 'Jobs') {
-      fetchJobs();
-    } else if (activeTab === 'Chat') {
-      fetchChat();
-    }
-  }, [activeTab, groupId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchGroupDetails();
-      loadTabContent();
-    }, [fetchGroupDetails, loadTabContent])
-  );
-
-  // Handle real-time incoming messages
-  useEffect(() => {
-    socketService.joinGroupRoom(groupId);
-
-    // Listen for group deletion by leader
-    const handleGroupDeleted = () => {
-      Alert.alert('Group Dissolved', 'The leader has deleted this group.');
-      navigation.goBack();
-    };
-    if (socketService.socket) socketService.socket.on('group:deleted', handleGroupDeleted);
-
-    const handleNewMessage = (message) => {
-      setMessages(prev => {
-        // Did we already optimistically add this exact message content from this user?
-        // (If so, replace the temp message with the real server message to get the real ID and timestamp)
-        const optimisticIndex = prev.findIndex(m => m.id.startsWith('temp-') && m.content === message.content && m.senderId === message.senderId);
-        
-        if (optimisticIndex >= 0) {
-          const newMessages = [...prev];
-          newMessages[optimisticIndex] = message;
-          return newMessages;
-        }
-
-        // Standard deduplication just in case
-        if (prev.find(m => m.id === message.id)) return prev;
-        
-        return [...prev, message];
-      });
-    };
-
-    socketService.onGroupMessage(handleNewMessage);
-
-    return () => {
-      socketService.offGroupMessage(handleNewMessage);
-      if (socketService.socket) socketService.socket.off('group:deleted', handleGroupDeleted);
-    };
-  }, [groupId]);
-
   const fetchGroupDetails = useCallback(async () => {
     try {
       setLoading(true);
@@ -123,6 +70,56 @@ const GroupDetailScreen = ({ route, navigation }) => {
     } finally {
       setChatLoading(false);
     }
+  }, [groupId]);
+
+  const loadTabContent = useCallback(() => {
+    if (activeTab === 'Jobs') {
+      fetchJobs();
+    } else if (activeTab === 'Chat') {
+      fetchChat();
+    }
+  }, [activeTab, fetchJobs, fetchChat]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroupDetails();
+      loadTabContent();
+    }, [fetchGroupDetails, loadTabContent])
+  );
+
+  // Handle real-time incoming messages
+  useEffect(() => {
+    socketService.joinGroupRoom(groupId);
+
+    // Listen for group deletion by leader
+    const handleGroupDeleted = () => {
+      Alert.alert('Group Dissolved', 'The leader has deleted this group.');
+      navigation.goBack();
+    };
+    if (socketService.socket) socketService.socket.on('group:deleted', handleGroupDeleted);
+
+    const handleNewMessage = (message) => {
+      setMessages(prev => {
+        const optimisticIndex = prev.findIndex(m => m.id.startsWith('temp-') && m.content === message.content && m.senderId === message.senderId);
+        
+        if (optimisticIndex >= 0) {
+          const newMessages = [...prev];
+          newMessages[optimisticIndex] = message;
+          return newMessages;
+        }
+
+        if (prev.find(m => m.id === message.id)) return prev;
+        
+        return [...prev, message];
+      });
+    };
+
+    socketService.onGroupMessage(handleNewMessage);
+
+    return () => {
+      socketService.offGroupMessage(handleNewMessage);
+      if (socketService.socket) socketService.socket.off('group:deleted', handleGroupDeleted);
+    };
   }, [groupId]);
 
   const handleSendMessage = () => {

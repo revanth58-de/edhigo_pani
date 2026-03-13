@@ -12,6 +12,7 @@ import {
   ScrollView,
   Animated,
   Easing,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';

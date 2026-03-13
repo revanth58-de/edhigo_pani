@@ -7,12 +7,14 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
+  Platform,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform } from 'react-native';
+
 
 const WorkStatusScreen = ({ navigation, route }) => {
   const { job } = route.params || {};

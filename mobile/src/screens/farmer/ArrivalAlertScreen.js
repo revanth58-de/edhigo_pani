@@ -12,6 +12,8 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 
+import { LinearGradient } from 'expo-linear-gradient';
+
 const ArrivalAlertScreen = ({ navigation, route }) => {
   const { job } = route.params;
   const { t } = useTranslation();
@@ -19,129 +21,223 @@ const ArrivalAlertScreen = ({ navigation, route }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       navigation.replace('QRAttendance', { job, type: 'in' });
-    }, 2000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient
+      colors={['#FDFBF7', colors.backgroundLight]}
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <MaterialIcons name="place" size={120} color={colors.primary} />
+          <LinearGradient
+            colors={[`${colors.primary}22`, `${colors.primary}05`]}
+            style={styles.iconCircle}
+          >
+            <MaterialIcons name="local-shipping" size={80} color={colors.primary} />
+          </LinearGradient>
+          <View style={styles.successBadge}>
+            <MaterialIcons name="check" size={20} color="#FFFFFF" />
+          </View>
         </View>
 
-        <Text style={styles.title}>Workers Arrived!</Text>
-        <Text style={styles.subtitle}>కార్మికులు వచ్చేసారు</Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Workers Arrived!</Text>
+          <Text style={styles.subtitle}>కార్మికులు వచ్చేసారు</Text>
+        </View>
 
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <MaterialIcons name="group" size={24} color={colors.primary} />
-            <Text style={styles.infoLabel}>Workers Present:</Text>
-            <Text style={styles.infoValue}>{job?.workersNeeded || '10'}</Text>
+            <View style={styles.rowIcon}>
+              <MaterialIcons name="groups" size={24} color={colors.primary} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.infoLabel}>Workers Present</Text>
+              <Text style={styles.infoValue}>{job?.workersNeeded || '10'} People</Text>
+            </View>
           </View>
+          
           <View style={styles.divider} />
+          
           <View style={styles.infoRow}>
-            <MaterialIcons name="schedule" size={24} color={colors.primary} />
-            <Text style={styles.infoLabel}>Time:</Text>
-            <Text style={styles.infoValue}>{new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</Text>
+            <View style={styles.rowIcon}>
+              <MaterialIcons name="access-time" size={24} color={colors.primary} />
+            </View>
+            <View style={styles.rowText}>
+              <Text style={styles.infoLabel}>Arrival Time</Text>
+              <Text style={styles.infoValue}>
+                {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            </View>
           </View>
         </View>
 
+        <Text style={styles.footerNote}>Navigating to QR Scan in a few seconds...</Text>
       </View>
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.continueButton}
+          style={styles.continueButtonWrap}
           onPress={() => navigation.navigate('QRAttendance', { job, type: 'in' })}
           activeOpacity={0.9}
         >
-          <Text style={styles.continueButtonText}>SHOW QR CODE</Text>
-          <MaterialIcons name="qr-code-2" size={24} color={colors.backgroundDark} />
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.continueButton}
+          >
+            <Text style={styles.continueButtonText}>SHOW QR CODE</Text>
+            <MaterialIcons name="qr-code- scanner" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
   },
   iconContainer: {
-    marginBottom: 32,
+    marginBottom: 40,
+    position: 'relative',
+  },
+  iconCircle: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: `${colors.primary}22`,
+  },
+  successBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  textContainer: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 40,
+    fontWeight: '900',
     color: '#131811',
     textAlign: 'center',
-    marginBottom: 8,
+    letterSpacing: -1,
   },
   subtitle: {
-    fontSize: 24,
+    fontSize: 22,
     color: '#6f8961',
     textAlign: 'center',
-    marginBottom: 48,
+    marginTop: 8,
+    fontWeight: '600',
   },
   infoCard: {
     width: '100%',
-    backgroundColor: `${colors.primary}0D`,
-    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 32,
     padding: 24,
-    borderWidth: 2,
-    borderColor: `${colors.primary}33`,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 12,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
+  },
+  rowIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rowText: {
+    flex: 1,
   },
   infoLabel: {
-    fontSize: 16,
-    color: '#6f8961',
-    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   infoValue: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#131811',
+    marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
     marginVertical: 16,
+    marginLeft: 64,
+  },
+  footerNote: {
+    marginTop: 32,
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
   footer: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  continueButtonWrap: {
+    borderRadius: 9999,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   continueButton: {
     flexDirection: 'row',
-    height: 64,
-    backgroundColor: colors.primary,
-    borderRadius: 9999,
+    height: 68,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
   },
   continueButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    color: colors.backgroundDark,
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });
 

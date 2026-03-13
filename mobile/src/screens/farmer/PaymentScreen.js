@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import * as Speech from 'expo-speech';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const PaymentScreen = ({ navigation, route }) => {
   const { job, workers } = route.params;
@@ -73,39 +74,38 @@ const PaymentScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient
+      colors={['#FDFBF7', '#FFFBF0', '#FFF7E6']} // Rich beige/gold gradient
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
-          <MaterialIcons name="arrow-back" size={28} color="#131811" />
+          <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('payment.title') || 'Payment'}</Text>
+        <Text style={styles.headerTitle}>SECURE PAYMENT</Text>
         <TouchableOpacity onPress={handleVoiceGuidance} style={styles.voiceIcon}>
-          <MaterialIcons name="record-voice-over" size={24} color={colors.primary} />
+          <MaterialIcons name="record-voice-over" size={22} color={colors.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Voice Guidance Banner */}
-        <TouchableOpacity
-          style={styles.voiceBanner}
-          onPress={handleVoiceGuidance}
-          activeOpacity={0.8}
-        >
-          <View style={styles.voiceIconContainer}>
-            <MaterialIcons name="volume-up" size={24} color={colors.primary} />
-          </View>
-          <Text style={styles.voiceBannerText}>
-            "Dabbulu pay cheyyandi" (Please pay the amount)
-          </Text>
-        </TouchableOpacity>
-
-        {/* Amount Display */}
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Amount Section */}
         <View style={styles.amountSection}>
-          <Text style={styles.amountLabel}>Total Amount to Pay</Text>
-          <Text style={styles.amount}>₹{totalAmount}</Text>
+          <Text style={styles.amountLabel}>Total to Pay</Text>
+          <View style={styles.amountWrap}>
+            <Text style={styles.currency}>₹</Text>
+            <Text style={styles.amount}>{totalAmount}</Text>
+          </View>
+          <View style={styles.workerSummary}>
+            <MaterialIcons name="groups" size={16} color="#6f8961" />
+            <Text style={styles.summaryText}>For {workerCount} Workers</Text>
+          </View>
         </View>
 
         {/* Payment Method Selection */}
@@ -118,18 +118,20 @@ const PaymentScreen = ({ navigation, route }) => {
             onPress={() => setPaymentMethod('cash')}
             activeOpacity={0.9}
           >
-            <MaterialIcons
-              name="payments"
-              size={48}
-              color={paymentMethod === 'cash' ? colors.primary : '#9CA3AF'}
-            />
+            <View style={[styles.methodIconWrap, paymentMethod === 'cash' && styles.methodIconWrapSelected]}>
+              <MaterialIcons
+                name="payments"
+                size={32}
+                color={paymentMethod === 'cash' ? '#FFFFFF' : '#9CA3AF'}
+              />
+            </View>
             <Text
               style={[
                 styles.methodText,
                 paymentMethod === 'cash' && styles.methodTextSelected,
               ]}
             >
-              CASH
+              Cash
             </Text>
           </TouchableOpacity>
 
@@ -141,11 +143,13 @@ const PaymentScreen = ({ navigation, route }) => {
             onPress={() => setPaymentMethod('upi')}
             activeOpacity={0.9}
           >
-            <MaterialIcons
-              name="qr-code-2"
-              size={48}
-              color={paymentMethod === 'upi' ? colors.primary : '#9CA3AF'}
-            />
+            <View style={[styles.methodIconWrap, paymentMethod === 'upi' && styles.methodIconWrapSelected]}>
+              <MaterialIcons
+                name="qr-code-2"
+                size={32}
+                color={paymentMethod === 'upi' ? '#FFFFFF' : '#9CA3AF'}
+              />
+            </View>
             <Text
               style={[
                 styles.methodText,
@@ -160,39 +164,42 @@ const PaymentScreen = ({ navigation, route }) => {
         {/* QR Code Section (Visible if UPI Selected) */}
         {paymentMethod === 'upi' && (
           <View style={styles.qrSection}>
-            <Text style={styles.qrLabel}>SCAN THIS CODE</Text>
             <View style={styles.qrCard}>
-              <QRCode
-                value={`upi://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=Payment for work`}
-                size={256}
-              />
+              <Text style={styles.qrLabel}>SCAN TO PAY</Text>
+              <View style={styles.qrContainer}>
+                <QRCode
+                  value={`upi://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=Payment for work`}
+                  size={200}
+                  backgroundColor="white"
+                />
+              </View>
+              <Text style={styles.transactionId}>TXID: {transactionId}</Text>
             </View>
-            <Text style={styles.transactionId}>Transaction ID: {transactionId}</Text>
 
-            {/* UPI Deeplink button — opens GPay/PhonePe/any UPI app directly */}
             <TouchableOpacity
-              style={styles.upiDeeplinkButton}
+              style={styles.upiDeeplinkButtonWrap}
+              activeOpacity={0.8}
               onPress={async () => {
                 const upiUrl = `upi://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=FarmWork&cu=INR`;
                 const canOpen = await Linking.canOpenURL(upiUrl);
                 if (canOpen) {
                   Linking.openURL(upiUrl);
                 } else {
-                  // Fallback: try intent URL for Android, or show instructions
                   if (Platform.OS === 'android') {
                     Linking.openURL(`intent://pay?pa=${upiId}&pn=Farmer&am=${totalAmount}&tn=FarmWork&cu=INR#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`);
                   } else {
-                    Alert.alert(
-                      'Open UPI App',
-                      'Please open GPay, PhonePe or any UPI app and pay to:\n\n' +
-                      `UPI ID: ${upiId}\nAmount: ₹${totalAmount}`,
-                      [{ text: 'OK' }]
-                    );
+                    Alert.alert('Open UPI App', `UPI ID: ${upiId}\nAmount: ₹${totalAmount}`);
                   }
                 }
               }}
             >
-              <Text style={styles.upiDeeplinkText}>💳 Open UPI App to Pay</Text>
+              <LinearGradient
+                colors={['#131811', '#2D3748']}
+                style={styles.upiDeeplinkButton}
+              >
+                <MaterialIcons name="account-balance-wallet" size={20} color="#FFFFFF" />
+                <Text style={styles.upiDeeplinkText}>Open GPay / PhonePe</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         )}
@@ -201,61 +208,50 @@ const PaymentScreen = ({ navigation, route }) => {
       {/* Bottom Action Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.paidButton}
+          style={styles.paidButtonWrap}
           onPress={handlePayment}
           disabled={loading}
           activeOpacity={0.9}
         >
-          {loading ? (
-            <ActivityIndicator color={colors.backgroundDark} />
-          ) : (
-            <>
-              <Text style={styles.paidButtonText}>PAID</Text>
-              <MaterialIcons name="check-circle" size={32} color={colors.backgroundDark} />
-            </>
-          )}
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.paidButton}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <>
+                <Text style={styles.paidButtonText}>CONFIRM PAYMENT</Text>
+                <MaterialIcons name="check-circle" size={26} color="#FFFFFF" />
+              </>
+            )}
+          </LinearGradient>
         </TouchableOpacity>
-
-        {/* Tab Bar */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity style={styles.tabItem}>
-            <MaterialIcons name="home" size={30} color={colors.primary} />
-            <Text style={[styles.tabText, styles.tabTextActive]}>HOME</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem}>
-            <MaterialIcons name="history" size={30} color="#9CA3AF" />
-            <Text style={styles.tabText}>HISTORY</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tabItem}>
-            <MaterialIcons name="account-circle" size={30} color="#9CA3AF" />
-            <Text style={styles.tabText}>PROFILE</Text>
-          </TouchableOpacity>
-        </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '900',
     color: '#131811',
     flex: 1,
     textAlign: 'center',
+    letterSpacing: 2,
   },
   headerIcon: {
     width: 48,
@@ -264,44 +260,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   voiceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${colors.primary}33`,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  voiceBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: `${colors.primary}1A`,
-    borderWidth: 1,
-    borderColor: `${colors.primary}33`,
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    gap: 12,
-  },
-  voiceIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-  },
-  voiceBannerText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#131811',
-    lineHeight: 20,
   },
   content: {
     flex: 1,
@@ -310,87 +279,151 @@ const styles = StyleSheet.create({
     paddingBottom: 200,
   },
   amountSection: {
-    marginTop: 32,
+    marginTop: 40,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
   },
   amountLabel: {
-    fontSize: 18,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '800',
     color: '#6f8961',
-    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 8,
   },
-  amount: {
-    fontSize: 64,
+  amountWrap: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  currency: {
+    fontSize: 32,
     fontWeight: '900',
     color: '#131811',
-    paddingVertical: 16,
+    opacity: 0.5,
+  },
+  amount: {
+    fontSize: 80,
+    fontWeight: '900',
+    color: '#131811',
+    letterSpacing: -2,
+  },
+  workerSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 99,
+    marginTop: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#6f8961',
+    fontWeight: '700',
   },
   paymentMethodSection: {
     flexDirection: 'row',
     gap: 16,
-    paddingHorizontal: 16,
-    marginTop: 32,
+    paddingHorizontal: 20,
+    marginTop: 48,
   },
   methodCard: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
+    padding: 24,
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    borderWidth: 4,
+    borderRadius: 28,
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 12,
   },
   methodCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: `${colors.primary}0D`,
+    backgroundColor: `${colors.primary}05`,
+  },
+  methodIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  methodIconWrapSelected: {
+    backgroundColor: colors.primary,
   },
   methodText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    marginTop: 8,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#9CA3AF',
   },
   methodTextSelected: {
     color: '#131811',
   },
   qrSection: {
-    marginTop: 32,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-  },
-  qrLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    letterSpacing: 2,
-    marginBottom: 16,
+    marginTop: 40,
+    paddingHorizontal: 20,
   },
   qrCard: {
     backgroundColor: '#FFFFFF',
     padding: 24,
-    borderRadius: 24,
+    borderRadius: 32,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    elevation: 20,
+  },
+  qrLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#9CA3AF',
+    letterSpacing: 4,
+    marginBottom: 24,
+  },
+  qrContainer: {
+    padding: 16,
+    backgroundColor: 'white',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#F3F4F6',
   },
   transactionId: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 16,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D1D5DB',
+    marginTop: 24,
+    textTransform: 'uppercase',
+  },
+  upiDeeplinkButtonWrap: {
+    marginTop: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
   upiDeeplinkButton: {
-    marginTop: 16,
-    backgroundColor: '#131811',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 9999,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
   },
   upiDeeplinkText: {
     fontSize: 16,
@@ -402,50 +435,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    backdropFilter: 'blur(10px)',
-    borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    backgroundColor: 'transparent',
+  },
+  paidButtonWrap: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
   },
   paidButton: {
     flexDirection: 'row',
-    height: 64,
-    backgroundColor: colors.primary,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 9999,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 16,
   },
   paidButtonText: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '900',
-    color: colors.backgroundDark,
-  },
-  tabBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 8,
-    paddingBottom: 24,
-  },
-  tabItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  tabText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#9CA3AF',
-    marginTop: 4,
-  },
-  tabTextActive: {
-    color: colors.primary,
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });
 

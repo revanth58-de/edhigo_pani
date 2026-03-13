@@ -8,10 +8,11 @@ import {
   StatusBar,
   ScrollView,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Platform } from 'react-native';
 
 const WorkStatusScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -46,13 +47,22 @@ const WorkStatusScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <LinearGradient
+      colors={['#FDFBF7', colors.backgroundLight]}
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Work in Progress</Text>
-        <Text style={styles.headerSubtitle}>పని జరుగుతోంది</Text>
+        <View style={styles.headerLeft} />
+        <Text style={styles.headerTitle}>SESSION IN PROGRESS</Text>
+        <TouchableOpacity style={styles.headerRight}>
+          <MaterialIcons name="help-outline" size={24} color="#131811" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -117,189 +127,199 @@ const WorkStatusScreen = ({ navigation, route }) => {
       {/* End Work Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.endButton}
+          style={styles.endButtonWrap}
           onPress={handleEndWork}
           activeOpacity={0.9}
         >
-          <MaterialIcons name="stop-circle" size={32} color="#FFFFFF" />
-          <Text style={styles.endButtonText}>END WORK</Text>
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.endButton}
+          >
+            <Text style={styles.endButtonText}>FINISH WORK & CHECK-OUT</Text>
+            <MaterialIcons name="qr-code- scanner" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
   },
   header: {
-    backgroundColor: colors.primary,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  headerLeft: {
+    width: 48,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 14,
     fontWeight: '900',
-    color: colors.backgroundDark,
-    marginBottom: 8,
+    color: '#131811',
+    flex: 1,
+    textAlign: 'center',
+    letterSpacing: 2,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: colors.backgroundDark,
-    opacity: 0.8,
+  headerRight: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
+    paddingBottom: 150,
+    paddingTop: 20,
   },
   timerCard: {
     backgroundColor: '#FFFFFF',
-    marginTop: -20,
-    marginHorizontal: 16,
-    borderRadius: 32,
+    marginHorizontal: 20,
+    borderRadius: 40,
     padding: 40,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.1,
-    shadowRadius: 16,
-    elevation: 8,
-    position: 'relative',
+    shadowRadius: 32,
+    elevation: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   timerLabel: {
-    fontSize: 18,
+    fontSize: 14,
+    fontWeight: '800',
     color: '#6f8961',
-    marginTop: 16,
-    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginBottom: 12,
   },
   timerValue: {
-    fontSize: 56,
-    fontWeight: 'bold',
+    fontSize: 64,
+    fontWeight: '900',
     color: colors.primary,
     fontVariant: ['tabular-nums'],
+    letterSpacing: -1,
   },
   breakBadge: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
+    marginTop: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 9999,
+    borderRadius: 99,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
   },
   breakText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontWeight: '800',
+    color: '#D97706',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   detailsCard: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 24,
-    borderRadius: 24,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 32,
     padding: 24,
-    gap: 20,
+    gap: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 8,
   },
   detailRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    paddingVertical: 4,
   },
   detailLabel: {
-    fontSize: 16,
-    color: '#6f8961',
+    fontSize: 15,
+    color: '#9CA3AF',
     flex: 1,
+    fontWeight: '600',
+    marginLeft: 12,
   },
   detailValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#131811',
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: 16,
-    paddingHorizontal: 16,
+    gap: 12,
+    paddingHorizontal: 20,
     marginTop: 24,
   },
   actionButton: {
     flex: 1,
+    height: 100,
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 24,
     borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.primary,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    gap: 8,
   },
   actionButtonActive: {
     backgroundColor: '#F59E0B',
     borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.2,
   },
   actionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#131811',
   },
   actionTextActive: {
     color: '#FFFFFF',
   },
-  voiceCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginTop: 24,
-    marginHorizontal: 16,
-    backgroundColor: `${colors.primary}0D`,
-    padding: 16,
-    borderRadius: 16,
-  },
-  voiceText: {
-    fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
-  },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    paddingBottom: 32,
-    backgroundColor: 'rgba(246, 248, 246, 0.95)',
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  endButtonWrap: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   endButton: {
     flexDirection: 'row',
-    height: 64,
-    backgroundColor: '#EF4444',
-    borderRadius: 9999,
+    height: 68,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
   },
   endButtonText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });
 

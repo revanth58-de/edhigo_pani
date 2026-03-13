@@ -8,10 +8,11 @@ import {
   StatusBar,
   Alert,
   ActivityIndicator,
+  Platform,
+  ScrollView,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import GlassCard from '../../components/GlassCard';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
@@ -111,227 +112,312 @@ const JobOfferScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <LinearGradient
+      colors={['#FDFBF7', colors.backgroundLight]}
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.workType}>{job?.workType?.toUpperCase() || 'NEW JOB'}</Text>
-        <Text style={styles.subHeader}>Job Offer Available</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+          <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>NEW JOB OPPORTUNITY</Text>
+        <View style={styles.headerRight} />
       </View>
 
-      {/* Job Details Card */}
-      <View style={styles.detailsCard}>
-        {/* Farmer Info */}
-        <View style={styles.farmerSection}>
-          <View style={styles.farmerAvatar}>
-            <MaterialIcons name="agriculture" size={40} color={colors.primary} />
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Main Card */}
+        <View style={styles.mainCard}>
+          <View style={styles.jobTypeBadge}>
+            <Text style={styles.jobTypeText}>{job?.workType || 'Harvesting'}</Text>
           </View>
-          <View style={styles.farmerInfo}>
-            <Text style={styles.farmerName}>{job?.farmer?.name || job?.farmerName || 'Farmer'}</Text>
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={18} color="#6f8961" />
-              <Text style={styles.location}>
-                {job?.farmAddress || job?.location || 'Location'} • {job?.distanceLabel || job?.distance || 'Nearby'}
-              </Text>
+          
+          <Text style={styles.jobHeading}>Work Requested by {job?.farmer?.name || job?.farmerName || 'Farmer'}</Text>
+          
+          <View style={styles.locationContainer}>
+            <View style={styles.locationIconWrap}>
+              <MaterialIcons name="location-on" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.locationTextWrap}>
+              <Text style={styles.locationLabel}>Location</Text>
+              <Text style={styles.locationValue}>{job?.farmAddress || job?.location || 'Malkapur Village'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.distanceBadge}>
+            <MaterialIcons name="navigation" size={14} color="#6f8961" />
+            <Text style={styles.distanceText}>{job?.distanceLabel || job?.distance || '2.4 KM Away'}</Text>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>DAILY PAY</Text>
+              <Text style={styles.statValue}>₹{job?.payPerDay || 500}</Text>
+            </View>
+            <View style={styles.verticalDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>TOTAL SPOTS</Text>
+              <Text style={styles.statValue}>{job?.workersNeeded || 10}</Text>
+            </View>
+            <View style={styles.verticalDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>TIMING</Text>
+              <Text style={styles.statValue}>8 HRS</Text>
             </View>
           </View>
         </View>
 
-        {/* Job Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <MaterialIcons name="payments" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>₹{job?.payPerDay || 500}</Text>
-            <Text style={styles.statLabel}>Per Day</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialIcons name="schedule" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>8 hrs</Text>
-            <Text style={styles.statLabel}>Duration</Text>
-          </View>
+        <View style={styles.infoNote}>
+          <MaterialIcons name="info-outline" size={16} color="#9CA3AF" />
+          <Text style={styles.infoNoteText}>Accepting this job will start navigation to the farm.</Text>
         </View>
-
-      </View>
+      </ScrollView>
 
       {/* Action Buttons */}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={styles.acceptButtonWrap}
-          onPress={handleAccept}
-          disabled={loading}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={colors.primaryGradient}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={[styles.actionButton, styles.acceptButton]}
+      <View style={styles.footer}>
+        <View style={styles.buttonsRow}>
+          <TouchableOpacity
+            style={styles.rejectButton}
+            onPress={handleReject}
+            disabled={loading}
+            activeOpacity={0.8}
           >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <MaterialIcons name="check-circle" size={48} color="#FFFFFF" />
-                <Text style={styles.acceptButtonText}>ACCEPT</Text>
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <Text style={styles.rejectButtonText}>REJECT</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.actionButton, styles.rejectButton]}
-          onPress={handleReject}
-          disabled={loading}
-          activeOpacity={0.9}
-        >
-          <MaterialIcons name="cancel" size={48} color="#FFFFFF" />
-          <Text style={styles.rejectButtonText}>REJECT</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.acceptButtonWrap}
+            onPress={handleAccept}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={colors.primaryGradient}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.acceptButton}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>
+                  <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
   },
   header: {
-    backgroundColor: colors.primary,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  workType: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: colors.backgroundDark,
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  subHeader: {
-    fontSize: 16,
-    color: colors.backgroundDark,
-    opacity: 0.8,
-  },
-  detailsCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginTop: -20,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  farmerSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingBottom: 24,
+    justifyContent: 'space-between',
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  farmerAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: `${colors.primary}1A`,
+  headerIcon: {
+    width: 48,
+    height: 48,
     justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.primary,
   },
-  farmerInfo: {
-    flex: 1,
+  headerRight: {
+    width: 48,
   },
-  farmerName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 4,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  location: {
-    fontSize: 16,
-    color: '#6f8961',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingVertical: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    gap: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  statLabel: {
+  headerTitle: {
     fontSize: 14,
-    color: '#6f8961',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 16,
-    padding: 24,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    borderRadius: 24,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
-  },
-  acceptButtonWrap: {
-    flex: 1,
-    borderRadius: 24,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
-  },
-  acceptButton: {
-    width: '100%',
-    height: '100%',
-    shadowColor: 'transparent',
-    elevation: 0,
-  },
-  acceptButtonText: {
-    fontSize: 20,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#131811',
+    flex: 1,
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
+  content: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 120,
+    paddingTop: 20,
+  },
+  mainCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    borderRadius: 32,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
+    elevation: 16,
+  },
+  jobTypeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: `${colors.primary}15`,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  jobTypeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.primary,
+    textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  jobHeading: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#131811',
+    lineHeight: 32,
+    marginBottom: 24,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  locationIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locationTextWrap: {
+    flex: 1,
+  },
+  locationLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  locationValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#131811',
+    marginTop: 2,
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 4,
+    marginLeft: 60,
+  },
+  distanceText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6f8961',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 24,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  verticalDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#F3F4F6',
+  },
+  statLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#131811',
+  },
+  infoNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 30,
+    marginTop: 24,
+  },
+  infoNoteText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  footer: {
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  buttonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   rejectButton: {
-    backgroundColor: '#EF4444',
+    flex: 1,
+    height: 68,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
   },
   rejectButtonText: {
-    fontSize: 20,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 1,
+  },
+  acceptButtonWrap: {
+    flex: 2,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  acceptButton: {
+    flexDirection: 'row',
+    height: 68,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  acceptButtonText: {
+    fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 1,

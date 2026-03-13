@@ -10,11 +10,9 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import useNotificationStore from '../../store/notificationStore';
 import { groupAPI } from '../../services/api';
-import GlassCard from '../../components/GlassCard';
 
 // Icon + color per notification type
 const TYPE_META = {
@@ -43,28 +41,21 @@ const NotificationItem = ({ item, onPress }) => {
     <TouchableOpacity
       onPress={() => onPress(item)}
       activeOpacity={0.8}
-      style={styles.cardWrapper}
+      style={[styles.card, isUnread && styles.cardUnread]}
     >
-      <GlassCard 
-        intensity={isUnread ? 80 : 30}
-        tint="light"
-        style={[styles.card, isUnread && styles.cardUnread]}
-        contentStyle={styles.cardContent}
-      >
-        <View style={[styles.iconCircle, { backgroundColor: isUnread ? `${meta.color}20` : meta.bg }]}>
-          <MaterialIcons name={item.icon || meta.icon} size={24} color={meta.color} />
+      <View style={[styles.iconCircle, { backgroundColor: isUnread ? `${meta.color}15` : '#F9FAFB' }]}>
+        <MaterialIcons name={item.icon || meta.icon} size={22} color={meta.color} />
+      </View>
+      <View style={styles.cardBody}>
+        <View style={styles.cardTitleRow}>
+          <Text style={[styles.cardTitle, isUnread && styles.cardTitleUnread]} numberOfLines={1}>
+            {item.title}
+          </Text>
+          <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
         </View>
-        <View style={styles.cardBody}>
-          <View style={styles.cardTitleRow}>
-            <Text style={[styles.cardTitle, isUnread && styles.cardTitleUnread]} numberOfLines={1}>
-              {item.title}
-            </Text>
-            <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
-          </View>
-          <Text style={styles.cardBody2} numberOfLines={2}>{item.body}</Text>
-        </View>
-        {isUnread && <View style={styles.unreadDot} />}
-      </GlassCard>
+        <Text style={styles.cardBodyText} numberOfLines={2}>{item.body}</Text>
+      </View>
+      {isUnread && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
 };
@@ -115,10 +106,11 @@ const NotificationsScreen = ({ navigation }) => {
   }, [markRead, navigation]);
 
   return (
-    <LinearGradient
-      colors={['#FDFBF7', colors.backgroundLight]}
-      style={styles.container}
-    >
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#FDFBF7', '#F3F4F6']}
+        style={StyleSheet.absoluteFill}
+      />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       {/* Spacer for translucent status bar */}
@@ -154,10 +146,10 @@ const NotificationsScreen = ({ navigation }) => {
       {notifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconCircle}>
-            <MaterialIcons name="notifications-none" size={64} color={colors.gray200} />
+            <MaterialIcons name="notifications-none" size={48} color={colors.primary} />
           </View>
           <Text style={styles.emptyTitle}>All caught up!</Text>
-          <Text style={styles.emptyBody}>New notifications about jobs, payments, and group invites will appear here.</Text>
+          <Text style={styles.emptyBody}>You're all set. New notifications will appear here as they arrive.</Text>
         </View>
       ) : (
         <FlatList
@@ -169,98 +161,181 @@ const NotificationsScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
-  // Header
+  container: {
+    flex: 1,
+    backgroundColor: '#FDFBF7',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'transparent',
-    paddingBottom: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     zIndex: 10,
   },
   backBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: `${colors.primary}1A`,
-    justifyContent: 'center', alignItems: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 16, gap: 10 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: colors.black },
+  headerCenter: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#131811',
+    letterSpacing: -0.5,
+  },
   headerBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 9999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
   },
-  headerBadgeText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-  headerActions: { flexDirection: 'row', gap: 10 },
+  headerBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   headerActionBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: colors.glassBgLight,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
-
-  // List
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
-  separator: { height: 12 },
-
-  // Card
-  cardWrapper: {
-    borderRadius: 20,
-    overflow: 'hidden',
+  list: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 100,
+  },
+  separator: {
+    height: 12,
   },
   card: {
-    borderRadius: 20,
-    borderWidth: 1.5,
-  },
-  cardContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 14,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
   cardUnread: {
-    borderColor: `${colors.primary}4D`,
-    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: '#F0FDF4',
   },
   iconCircle: {
-    width: 52, height: 52, borderRadius: 26,
-    justifyContent: 'center', alignItems: 'center',
-    flexShrink: 0,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardBody: { flex: 1 },
-  cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  cardTitleUnread: { fontWeight: '900', color: colors.black },
-  cardTime: { fontSize: 12, color: colors.textMuted, fontWeight: '600', flexShrink: 0 },
-  cardBody2: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, fontWeight: '500' },
+  cardBody: {
+    flex: 1,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#131811',
+    flex: 1,
+    marginRight: 8,
+  },
+  cardTitleUnread: {
+    color: '#064E3B',
+  },
+  cardTime: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '700',
+  },
+  cardBodyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+    fontWeight: '500',
+  },
   unreadDot: {
-    width: 10, height: 10, borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: colors.primary,
-    flexShrink: 0,
   },
-
-  // Empty state
   empty: {
-    flex: 1, justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 40, gap: 20,
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+    marginTop: -80,
   },
   emptyIconCircle: {
-    width: 110, height: 110, borderRadius: 55,
-    backgroundColor: colors.glassBgLight,
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.glassBorder,
+    width: 100,
+    height: 100,
+    borderRadius: 35,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.05,
+    shadowRadius: 30,
+    elevation: 10,
   },
-  emptyTitle: { fontSize: 24, fontWeight: '800', color: colors.textPrimary, textAlign: 'center' },
-  emptyBody: { fontSize: 15, color: colors.textMuted, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#131811',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyBody: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    lineHeight: 22,
+    fontWeight: '500',
+  },
 });
 
 export default NotificationsScreen;

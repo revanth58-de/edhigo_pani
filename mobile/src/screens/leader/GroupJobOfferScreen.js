@@ -13,6 +13,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import * as Speech from 'expo-speech';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
   const { groupId, jobData, workerCount } = route.params || {};
@@ -55,14 +56,24 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
       <View style={styles.header}>
-        <View style={styles.iconCircle}>
-          <MaterialIcons name={getWorkIcon(job.workType)} size={48} color={colors.primary} />
+        <LinearGradient
+          colors={colors.primaryGradient}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.headerContent}>
+          <View style={styles.iconCircle}>
+            <MaterialIcons name={getWorkIcon(job.workType)} size={42} color={colors.primary} />
+          </View>
+          <Text style={styles.headerTitle}>{job.workType?.toUpperCase()}</Text>
+          <View style={styles.distanceBadge}>
+            <MaterialIcons name="navigation" size={14} color="#FFFFFF" />
+            <Text style={styles.distanceText}>{job.distance} AWAY</Text>
+          </View>
         </View>
-        <Text style={styles.headerTitle}>{job.workType.toUpperCase()}</Text>
-        <Text style={styles.headerSubtitle}>{job.distance} Away</Text>
       </View>
 
       <View style={styles.content}>
@@ -98,17 +109,22 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
           onPress={handleReject}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="close" size={32} color="#FFFFFF" />
-          <Text style={styles.buttonText}>REJECT</Text>
+          <Text style={styles.rejectButtonText}>REJECT</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.acceptButton}
+          style={styles.acceptButtonTouchable}
           onPress={handleAccept}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <MaterialIcons name="check" size={32} color={colors.backgroundDark} />
-          <Text style={styles.buttonText}>ACCEPT</Text>
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.acceptButton}
+          >
+            <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>
+            <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -116,93 +132,191 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.backgroundLight },
-  header: {
-    backgroundColor: colors.primary,
-    paddingTop: 80,
-    paddingBottom: 40,
-    alignItems: 'center',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF',
+  header: {
+    height: 300,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    elevation: 4,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  headerTitle: { fontSize: 24, fontWeight: '900', color: colors.backgroundDark },
-  headerSubtitle: { fontSize: 16, color: colors.backgroundDark, opacity: 0.8 },
-  content: { flex: 1, padding: 20 },
+  headerContent: {
+    alignItems: 'center',
+    paddingTop: 40,
+  },
+  iconCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  distanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  distanceText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+    marginTop: -40,
+  },
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    padding: 20,
-    elevation: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.05,
+    shadowRadius: 30,
+    elevation: 6,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.03)',
   },
-  statItem: { flex: 1, alignItems: 'center' },
-  statLabel: { fontSize: 12, color: '#6B7280', marginBottom: 4 },
-  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
-  statDivider: { width: 1, backgroundColor: '#E5E7EB', height: '100%' },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#131811',
+  },
+  statDivider: {
+    width: 1.5,
+    backgroundColor: '#F3F4F6',
+    height: '60%',
+    alignSelf: 'center',
+  },
   locationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.03,
+    shadowRadius: 15,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
-  locationText: { fontSize: 16, color: '#374151', flex: 1 },
+  locationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+    flex: 1,
+    lineHeight: 22,
+  },
   voiceIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 32,
-    gap: 8,
-    backgroundColor: `${colors.primary}1A`,
-    padding: 12,
-    borderRadius: 99,
+    marginTop: 40,
+    gap: 10,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
     alignSelf: 'center',
   },
-  voiceText: { color: colors.primary, fontWeight: 'bold' },
+  voiceText: {
+    color: colors.primary,
+    fontWeight: '800',
+    fontSize: 14,
+  },
   footer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 20,
     paddingBottom: 40,
-    gap: 12,
-    backgroundColor: '#FFF'
+    gap: 16,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   rejectButton: {
-    flex: 1,
-    height: 70,
-    backgroundColor: '#EF4444',
-    borderRadius: 16,
-    flexDirection: 'row',
+    width: 120,
+    height: 64,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    elevation: 4,
+    borderWidth: 1.5,
+    borderColor: '#F3F4F6',
+  },
+  rejectButtonText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  acceptButtonTouchable: {
+    flex: 1,
   },
   acceptButton: {
-    flex: 1,
-    height: 70,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
+    height: 64,
+    borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    elevation: 4,
+    gap: 12,
   },
-  buttonText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
+  acceptButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
 });
 
 export default GroupJobOfferScreen;

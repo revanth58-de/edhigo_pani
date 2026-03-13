@@ -9,7 +9,7 @@ import {
   Linking,
   Alert,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
@@ -17,6 +17,8 @@ import { socketService } from '../../services/socketService';
 import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
 import { calculateDistance, estimateETA } from '../../utils/location';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Platform } from 'react-native';
 
 const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -142,62 +144,61 @@ const NavigationScreen = ({ navigation, route }) => {
 
       {/* Navigation Info Card */}
       <View style={styles.infoCard}>
-        {/* Distance & ETA */}
-        <View style={styles.distanceContainer}>
-          <View style={styles.distanceBadge}>
-            <MaterialIcons name="navigation" size={32} color={colors.primary} />
-            <Text style={styles.distanceText}>{distance}</Text>
+        <View style={styles.infoCardContent}>
+          <View style={styles.topRow}>
+            <View style={styles.mainInfo}>
+              <Text style={styles.etaValue}>{eta}</Text>
+              <Text style={styles.distanceValue}>{distance}</Text>
+            </View>
+            <TouchableOpacity style={styles.callButtonWrap} onPress={handleCall} activeOpacity={0.8}>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.callButton}
+              >
+                <MaterialIcons name="call" size={24} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
           </View>
-          <View style={styles.etaBadge}>
-            <MaterialIcons name="schedule" size={24} color="#FFFFFF" />
-            <Text style={styles.etaText}>{eta}</Text>
+
+          <View style={styles.divider} />
+
+          <View style={styles.destinationRow}>
+            <View style={styles.locIconWrap}>
+              <MaterialIcons name="location-on" size={20} color={colors.primary} />
+            </View>
+            <View style={styles.locTextWrap}>
+              <Text style={styles.locLabel}>DESTINATION</Text>
+              <Text style={styles.locValue} numberOfLines={1}>
+                {job?.farmAddress || 'Malkapur Farm, Hyderabad'}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/* Destination Info */}
-        <View style={styles.destinationInfo}>
-          <MaterialIcons name="location-on" size={24} color={colors.primary} />
-          <View style={styles.destinationText}>
-            <Text style={styles.destinationLabel}>Going to</Text>
-            <Text style={styles.destinationAddress}>{job?.farmAddress || 'Farm Location'}</Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.mapsButton}
-            onPress={handleOpenMaps}
-            activeOpacity={0.9}
-          >
-            <MaterialIcons name="directions" size={32} color={colors.backgroundDark} />
-            <Text style={styles.mapsButtonText}>OPEN MAPS</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.callButton}
-            onPress={handleCall}
-            activeOpacity={0.9}
-          >
-            <MaterialIcons name="phone" size={28} color="#FFFFFF" />
+          <TouchableOpacity style={styles.mapsButton} onPress={handleOpenMaps} activeOpacity={0.8}>
+            <MaterialIcons name="directions" size={20} color={colors.primary} />
+            <Text style={styles.mapsButtonText}>OPEN IN GOOGLE MAPS</Text>
           </TouchableOpacity>
         </View>
-
       </View>
 
       {/* Arrival Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.arrivedButton}
+          style={styles.arrivedButtonWrap}
           onPress={() => {
-            // In a real flow, we notify the server/farmer of arrival
             socketService.socket?.emit('job:arrival', { jobId: job?.id, workerId: user?.id });
             navigation.navigate('QRScanner', { job });
           }}
           activeOpacity={0.9}
         >
-          <MaterialIcons name="check-circle" size={32} color={colors.backgroundDark} />
-          <Text style={styles.arrivedButtonText}>I'VE ARRIVED</Text>
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.arrivedButton}
+          >
+            <Text style={styles.arrivedButtonText}>I HAVE ARRIVED</Text>
+            <MaterialIcons name="check-circle" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -211,145 +212,143 @@ const styles = StyleSheet.create({
   },
   mapContainer: {
     flex: 1,
-    backgroundColor: '#4A5568',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  mapOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#F3F4F6',
   },
   infoCard: {
     position: 'absolute',
-    top: 60,
-    left: 16,
-    right: 16,
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 20,
+    right: 20,
+  },
+  infoCardContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 32,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
+    elevation: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  distanceContainer: {
+  topRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  distanceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: `${colors.primary}1A`,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 9999,
-  },
-  distanceText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  etaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 9999,
-  },
-  etaText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.backgroundDark,
-  },
-  destinationInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     marginBottom: 20,
   },
-  destinationText: {
-    flex: 1,
+  mainInfo: {
+    flexDirection: 'column',
   },
-  destinationLabel: {
-    fontSize: 14,
-    color: '#6f8961',
-    marginBottom: 4,
-  },
-  destinationAddress: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  mapsButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 9999,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  mapsButtonText: {
-    fontSize: 16,
+  etaValue: {
+    fontSize: 32,
     fontWeight: '900',
-    color: colors.backgroundDark,
+    color: colors.primary,
+    letterSpacing: -1,
+  },
+  distanceValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    marginTop: -2,
+    textTransform: 'uppercase',
+  },
+  callButtonWrap: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   callButton: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#10B981',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 20,
+  },
+  destinationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  locIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  locTextWrap: {
+    flex: 1,
+  },
+  locLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+  },
+  locValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#131811',
+    marginTop: 2,
+  },
+  mapsButton: {
+    flexDirection: 'row',
+    height: 54,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+  },
+  mapsButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#131811',
+    letterSpacing: 0.5,
   },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 16,
-    paddingBottom: 32,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  arrivedButtonWrap: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 20,
   },
   arrivedButton: {
     flexDirection: 'row',
-    height: 64,
-    backgroundColor: colors.primary,
-    borderRadius: 9999,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
   },
   arrivedButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    color: colors.backgroundDark,
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });
 

@@ -21,6 +21,8 @@ import { attendanceService } from '../../services/api/attendanceService';
 import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
 import BottomNavBar from '../../components/BottomNavBar';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const HELP_STEPS = [
   {
@@ -269,13 +271,19 @@ const QRScannerScreen = ({ navigation, route }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <MaterialIcons name="arrow-back-ios" size={20} color="#fff" />
+            <MaterialIcons name="arrow-back-ios" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerCard}>
-            <MaterialIcons name="qr-code-scanner" size={26} color={colors.primary} />
-            <Text style={styles.headerTitle}>QR Scan — Attendance</Text>
+            <View style={styles.headerDot} />
+            <Text style={styles.headerTitle}>ATTENDANCE SCAN</Text>
           </View>
-          <Text style={styles.headerSubtitle}>Focus the QR code inside the green square</Text>
+          <TouchableOpacity style={styles.infoButton} onPress={() => setHelpVisible(true)}>
+            <MaterialIcons name="info-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.instructionContainer}>
+          <Text style={styles.instructionText}>Position the QR code within the frame</Text>
         </View>
 
         {/* Scanner frame */}
@@ -287,16 +295,21 @@ const QRScannerScreen = ({ navigation, route }) => {
             <View style={[styles.corner, styles.cornerBR]} />
 
             {!scanned && !loading && (
-              <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineY }] }]} />
+              <Animated.View style={[styles.scanLine, { transform: [{ translateY: scanLineY }] }]}>
+                <LinearGradient
+                  colors={['transparent', colors.primary, 'transparent']}
+                  style={{ flex: 1 }}
+                />
+              </Animated.View>
             )}
 
-            {loading ? (
-              <ActivityIndicator size="large" color={colors.primary} />
-            ) : (
-              <MaterialIcons name="center-focus-weak" size={72} color="rgba(255,255,255,0.3)" />
+            {loading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Verifying...</Text>
+              </View>
             )}
           </View>
-          {loading && <Text style={styles.processingText}>Processing attendance…</Text>}
         </View>
 
         {/* Success overlay */}
@@ -312,49 +325,30 @@ const QRScannerScreen = ({ navigation, route }) => {
 
         {/* Bottom controls */}
         <View style={styles.controls}>
-          {!scanned && !loading && (
-            <View style={styles.tipCard}>
-              <MaterialIcons name="info-outline" size={16} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.tipText}>
-                Scan the farmer's QR code, or tap the gallery icon for a saved QR image
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.actionButtons}>
+          <View style={styles.controlRow}>
             {/* Flashlight */}
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.controlButton, flashOn && styles.controlButtonActive]}
               onPress={() => setFlashOn(!flashOn)}
-              accessibilityLabel="Toggle flashlight"
             >
               <MaterialIcons
-                name={flashOn ? 'flashlight-off' : 'flashlight-on'}
+                name={flashOn ? 'flashlight-on' : 'flashlight-off'}
                 size={24}
-                color="#FFFFFF"
+                color={flashOn ? '#131811' : '#FFFFFF'}
               />
             </TouchableOpacity>
 
-            {/* Help */}
-            <TouchableOpacity
-              style={styles.helpButton}
-              onPress={() => setHelpVisible(true)}
-              accessibilityLabel="Open help"
-            >
-              <MaterialIcons name="help-outline" size={26} color={colors.backgroundDark} />
-              <Text style={styles.helpButtonText}>Help / मदद</Text>
-            </TouchableOpacity>
-
-            {/* Gallery upload */}
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={handleImageUpload}
-              accessibilityLabel="Upload QR from gallery"
-            >
+            {/* Gallery */}
+            <TouchableOpacity style={styles.controlButton} onPress={handleImageUpload}>
               <MaterialIcons name="photo-library" size={24} color="#FFFFFF" />
             </TouchableOpacity>
-          </View>
 
+            {/* Help */}
+            <TouchableOpacity style={styles.controlButton} onPress={() => setHelpVisible(true)}>
+              <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          
           {scanned && !loading && (
             <TouchableOpacity
               style={styles.rescanButton}
@@ -386,44 +380,46 @@ const QRScannerScreen = ({ navigation, route }) => {
                 <Text style={styles.modalTitle}>How to Scan QR</Text>
               </View>
               <TouchableOpacity onPress={() => setHelpVisible(false)} style={styles.modalClose}>
-                <MaterialIcons name="close" size={24} color={colors.textSecondary} />
+                <MaterialIcons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
               {HELP_STEPS.map((step, idx) => (
                 <View key={idx} style={styles.helpStep}>
-                  <View style={styles.helpStepLeft}>
-                    <View style={styles.helpStepNumWrap}>
-                      <Text style={styles.helpStepNum}>{idx + 1}</Text>
-                    </View>
-                    {idx < HELP_STEPS.length - 1 && <View style={styles.helpStepLine} />}
+                  <View style={styles.helpStepIconWrap}>
+                    <MaterialIcons name={step.icon} size={24} color={colors.primary} />
                   </View>
-                  <View style={styles.helpStepContent}>
-                    <View style={styles.helpStepIconWrap}>
-                      <MaterialIcons name={step.icon} size={22} color={colors.primary} />
-                    </View>
-                    <View style={styles.helpStepText}>
-                      <Text style={styles.helpStepTitle}>{step.title}</Text>
-                      <Text style={styles.helpStepDesc}>{step.desc}</Text>
-                    </View>
+                  <View style={styles.helpStepText}>
+                    <Text style={styles.helpStepTitle}>{step.title}</Text>
+                    <Text style={styles.helpStepDesc}>{step.desc}</Text>
                   </View>
                 </View>
               ))}
 
-              <View style={styles.helpNote}>
-                <MaterialIcons name="support-agent" size={20} color={colors.secondary} />
-                <Text style={styles.helpNoteText}>
-                  Still having trouble? Contact your farmer or group leader for a new QR code.
-                </Text>
+              <View style={[styles.helpStep, { marginBottom: 0 }]}>
+                <View style={[styles.helpStepIconWrap, { backgroundColor: '#FDF4E6', borderColor: '#FEF3C7' }]}>
+                  <MaterialIcons name="support-agent" size={24} color="#D97706" />
+                </View>
+                <View style={styles.helpStepText}>
+                  <Text style={[styles.helpStepTitle, { color: '#D97706' }]}>Need Support?</Text>
+                  <Text style={styles.helpStepDesc}>Contact your group leader if you face any issues while scanning.</Text>
+                </View>
               </View>
             </ScrollView>
 
             <TouchableOpacity
               style={styles.modalDoneButton}
               onPress={() => setHelpVisible(false)}
+              activeOpacity={0.9}
             >
-              <Text style={styles.modalDoneText}>Got it!</Text>
+              <LinearGradient
+                colors={colors.primaryGradient}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.modalDoneGradient}
+              >
+                <Text style={styles.modalDoneText}>GOT IT!</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -435,148 +431,254 @@ const QRScannerScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   centered: { justifyContent: 'center', alignItems: 'center', padding: 24 },
-  permissionText: { color: '#fff', fontSize: 16, marginTop: 16, textAlign: 'center' },
+  permissionText: { color: '#fff', fontSize: 16, marginTop: 16, textAlign: 'center', fontWeight: '600' },
   retryButton: {
     marginTop: 24, backgroundColor: colors.primary,
-    paddingHorizontal: 32, paddingVertical: 14, borderRadius: 14,
+    paddingHorizontal: 32, paddingVertical: 16, borderRadius: 16,
+    shadowColor: colors.primary, shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3, shadowRadius: 15, elevation: 10,
   },
-  retryButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  retryButtonText: { color: '#fff', fontWeight: '900', fontSize: 16, letterSpacing: 1 },
   camera: { flex: 1 },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.4)' },
 
   // Header
-  header: { paddingTop: 56, paddingHorizontal: 20, alignItems: 'center', zIndex: 10 },
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 100,
+  },
   backButton: {
-    position: 'absolute', top: 56, left: 20,
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center', alignItems: 'center',
-    zIndex: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   headerCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 20, paddingVertical: 10, borderRadius: 9999,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2, shadowRadius: 8, elevation: 8,
-    borderWidth: 1, borderColor: `${colors.primary}33`,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#131811' },
-  headerSubtitle: {
-    marginTop: 14, fontSize: 15, fontWeight: '500', color: '#fff',
-    backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 14, paddingVertical: 4,
-    borderRadius: 9999,
+  headerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  headerTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#131811',
+    letterSpacing: 2,
+  },
+  infoButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  instructionContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    zIndex: 10,
+  },
+  instructionText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 
   // Scanner
-  scannerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  scannerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
   scannerFrame: {
-    width: 264, height: 264, borderRadius: 20,
-    borderWidth: 3, borderColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6, shadowRadius: 24, overflow: 'hidden',
+    width: 280,
+    height: 280,
+    borderRadius: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  corner: { position: 'absolute', width: 36, height: 36, borderColor: colors.primary },
-  cornerTL: { top: -3, left: -3, borderTopWidth: 5, borderLeftWidth: 5, borderTopLeftRadius: 20 },
-  cornerTR: { top: -3, right: -3, borderTopWidth: 5, borderRightWidth: 5, borderTopRightRadius: 20 },
-  cornerBL: { bottom: -3, left: -3, borderBottomWidth: 5, borderLeftWidth: 5, borderBottomLeftRadius: 20 },
-  cornerBR: { bottom: -3, right: -3, borderBottomWidth: 5, borderRightWidth: 5, borderBottomRightRadius: 20 },
+  corner: {
+    position: 'absolute',
+    width: 40,
+    height: 40,
+    borderColor: colors.primary,
+    borderWidth: 6,
+  },
+  cornerTL: { top: 0, left: 0, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 40 },
+  cornerTR: { top: 0, right: 0, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 40 },
+  cornerBL: { bottom: 0, left: 0, borderRightWidth: 0, borderTopWidth: 0, borderBottomLeftRadius: 40 },
+  cornerBR: { bottom: 0, right: 0, borderLeftWidth: 0, borderTopWidth: 0, borderBottomRightRadius: 40 },
   scanLine: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-    backgroundColor: colors.primary, opacity: 0.9,
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1, shadowRadius: 10,
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    height: 40,
   },
-  processingText: { color: '#fff', marginTop: 16, fontSize: 16, fontWeight: '500' },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 16,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
 
   // Success
   successOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(22,34,16,0.92)',
-    justifyContent: 'center', alignItems: 'center', zIndex: 50,
+    backgroundColor: 'rgba(22,34,16,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
   successIcon: {
-    backgroundColor: '#fff', borderRadius: 9999, padding: 28,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3, shadowRadius: 16, elevation: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 50,
+    padding: 20,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
   },
-  successTitle: { fontSize: 32, fontWeight: 'bold', color: '#fff', marginTop: 28 },
-  successSubtitle: { fontSize: 18, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
+  successTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 32,
+    letterSpacing: 1,
+  },
+  successSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 8,
+    fontWeight: '600',
+  },
 
   // Controls
-  controls: { paddingHorizontal: 24, paddingBottom: 40, gap: 16, zIndex: 10 },
-  tipCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+  controls: {
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 120 : 100,
+    zIndex: 100,
   },
-  tipText: { color: 'rgba(255,255,255,0.8)', fontSize: 13, flex: 1 },
-  actionButtons: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 },
-  iconButton: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center', alignItems: 'center',
+  controlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
   },
-  helpButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 28, paddingVertical: 15, borderRadius: 9999,
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.5, shadowRadius: 20, elevation: 14,
+  controlButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
-  helpButtonText: { fontSize: 18, fontWeight: '800', color: colors.backgroundDark },
-  rescanButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 14,
-    paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
+  controlButtonActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
   },
-  rescanText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 
-  // Help modal
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  // Modal styling - Premium
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    paddingHorizontal: 24, paddingTop: 12, paddingBottom: 32, maxHeight: '88%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    maxHeight: '90%',
   },
   modalHandle: {
-    width: 40, height: 5, backgroundColor: '#D1D5DB',
-    borderRadius: 3, alignSelf: 'center', marginBottom: 16,
+    width: 40,
+    height: 5,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 24,
   },
   modalHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 32,
   },
-  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  modalTitle: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
-  modalClose: { padding: 4 },
-  helpStep: { flexDirection: 'row', marginBottom: 20 },
-  helpStepLeft: { alignItems: 'center', marginRight: 16, width: 32 },
-  helpStepNumWrap: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center',
-  },
-  helpStepNum: { color: '#fff', fontWeight: '800', fontSize: 14 },
-  helpStepLine: { width: 2, flex: 1, backgroundColor: `${colors.primary}30`, marginTop: 4, minHeight: 20 },
-  helpStepContent: { flex: 1, flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
+  modalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  modalTitle: { fontSize: 24, fontWeight: '900', color: '#131811', letterSpacing: -0.5 },
+  modalClose: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+  helpStep: { flexDirection: 'row', marginBottom: 24, gap: 16 },
   helpStepIconWrap: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: colors.primaryLight, justifyContent: 'center', alignItems: 'center',
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   helpStepText: { flex: 1 },
-  helpStepTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
-  helpStepDesc: { fontSize: 14, color: colors.textSecondary, lineHeight: 20 },
-  helpNote: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    backgroundColor: '#FDF4E6', borderRadius: 14, padding: 14, marginBottom: 8,
-    borderWidth: 1, borderColor: '#ECAE4033',
-  },
-  helpNoteText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  helpStepTitle: { fontSize: 17, fontWeight: '800', color: '#131811', marginBottom: 4 },
+  helpStepDesc: { fontSize: 14, color: '#6B7280', lineHeight: 22, fontWeight: '500' },
   modalDoneButton: {
-    marginTop: 16, backgroundColor: colors.primary,
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+    marginTop: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 5,
   },
-  modalDoneText: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  modalDoneGradient: {
+    height: 64,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalDoneText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: 1 },
 });
 
 export default QRScannerScreen;

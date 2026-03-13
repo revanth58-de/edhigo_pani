@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import GlassCard from '../../components/GlassCard';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -50,10 +49,9 @@ const JobCard = ({ job }) => {
   const status = STATUS_META[job.status] || STATUS_META.pending;
   const workIcon = WORK_ICONS[job.workType] || 'work';
 
-  return (
-    <View style={historyStyles.card}>
+    <TouchableOpacity style={historyStyles.card} activeOpacity={0.8}>
       <View style={historyStyles.cardHeader}>
-        <View style={[historyStyles.workIconCircle, { backgroundColor: `${colors.primary}15` }]}>
+        <View style={[historyStyles.workIconCircle, { backgroundColor: `${colors.primary}10` }]}>
           <MaterialIcons name={workIcon} size={28} color={colors.primary} />
         </View>
         <View style={historyStyles.cardHeaderText}>
@@ -69,15 +67,14 @@ const JobCard = ({ job }) => {
       <View style={historyStyles.cardDetails}>
         <View style={historyStyles.detailRow}>
           <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText}>{job.farmAddress || 'Location'}</Text>
+          <Text style={historyStyles.detailText} numberOfLines={1}>{job.farmAddress || 'Location'}</Text>
         </View>
         <View style={historyStyles.detailRow}>
-          <MaterialIcons name="currency-rupee" size={16} color="#9CA3AF" />
+          <MaterialIcons name="payments" size={16} color="#9CA3AF" />
           <Text style={historyStyles.detailText}>₹{job.wagePerDay || job.payPerDay || '500'}</Text>
         </View>
       </View>
-    </View>
-  );
+    </TouchableOpacity>
 };
 
 const WorkerHomeScreen = ({ navigation, route }) => {
@@ -313,12 +310,12 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             onMarkerPress={(job) => navigation.navigate('JobOffer', { job })}
           />
           <View style={styles.mapOverlay}>
-            <GlassCard intensity={80} tint="dark" style={styles.glassBadge} noShadow>
+            <View style={styles.statusBadgeWrap}>
               <View style={[styles.onlineStatusBadge, { backgroundColor: isOnline ? colors.primary : '#9CA3AF' }]}>
-                <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#fff' : '#666' }]} />
+                <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#FFF' : '#666' }]} />
                 <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
               </View>
-            </GlassCard>
+            </View>
           </View>
         </View>
 
@@ -496,26 +493,35 @@ const styles = StyleSheet.create({
     left: 12,
     zIndex: 10,
   },
+  statusBadgeWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9999,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
   onlineStatusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   onlineDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   onlineLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FFF',
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   profileHeader: {
     padding: 16,
@@ -575,30 +581,28 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   startButton: {
-    width: 256,
-    height: 256,
-    borderRadius: 128,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.4,
-    shadowRadius: 25,
-    elevation: 20,
-    borderWidth: 8,
+    shadowRadius: 40,
+    elevation: 25,
+    borderWidth: 10,
     borderColor: '#FFFFFF',
   },
   startBtnTouchable: {
-    borderRadius: 128,
-  },
-  glassBadge: {
-    borderRadius: 9999,
+    borderRadius: 130,
   },
   startButtonText: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.backgroundDark,
+    color: '#FFFFFF',
     marginTop: 8,
+    letterSpacing: 1,
   },
   actionsContainer: {
     flexDirection: 'row',

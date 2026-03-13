@@ -15,6 +15,7 @@ import { ratingService } from '../../services/api/ratingService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const RateWorkerScreen = ({ navigation, route }) => {
   const { job, worker } = route.params;
@@ -69,13 +70,22 @@ const RateWorkerScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <LinearGradient
+      colors={['#FDFBF7', colors.backgroundLight]}
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Rate Worker</Text>
-        <Text style={styles.headerSubtitle}>మీరు వర్కర్ ను రేట్ చేయండి</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+          <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>RATE EXPERIENCE</Text>
+        <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
@@ -136,175 +146,188 @@ const RateWorkerScreen = ({ navigation, route }) => {
       {/* Submit Button */}
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.submitButton, rating === 0 && styles.submitButtonDisabled]}
+          style={[styles.submitButtonWrap, (rating === 0 || loading) && { opacity: 0.6 }]}
           onPress={handleSubmit}
           disabled={loading || rating === 0}
           activeOpacity={0.9}
         >
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Submitting...' : 'SUBMIT RATING'}
-          </Text>
-          <MaterialIcons name="send" size={24} color={colors.backgroundDark} />
+          <LinearGradient
+            colors={colors.primaryGradient}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.submitButton}
+          >
+            <Text style={styles.submitButtonText}>
+              {loading ? 'Submitting...' : 'SUBMIT FEEDBACK'}
+            </Text>
+            {!loading && <MaterialIcons name="trending-flat" size={24} color="#FFFFFF" />}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
   },
   header: {
-    backgroundColor: colors.primary,
-    paddingTop: 60,
-    paddingBottom: 40,
-    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: colors.backgroundDark,
-    marginBottom: 8,
-  },
-  headerSubtitle: {
     fontSize: 16,
-    color: colors.backgroundDark,
-    opacity: 0.8,
+    fontWeight: '900',
+    color: '#131811',
+    flex: 1,
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
+  headerIcon: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+  },
+  headerRight: {
+    width: 48,
   },
   content: {
     flex: 1,
   },
   contentContainer: {
     paddingBottom: 120,
+    paddingTop: 20,
   },
   workerCard: {
     backgroundColor: '#FFFFFF',
-    marginTop: -20,
-    marginHorizontal: 16,
+    marginHorizontal: 20,
+    borderRadius: 32,
+    padding: 32,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  workerAvatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: `${colors.primary}22`,
+  },
+  workerName: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#131811',
+    letterSpacing: -0.5,
+  },
+  jobType: {
+    fontSize: 15,
+    color: '#6f8961',
+    fontWeight: '700',
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  ratingSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 20,
     borderRadius: 32,
     padding: 32,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 16,
     elevation: 8,
   },
-  workerAvatar: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: `${colors.primary}1A`,
-    borderWidth: 4,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  workerName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 4,
-  },
-  jobType: {
-    fontSize: 16,
-    color: '#6f8961',
-  },
-  ratingSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 24,
-    borderRadius: 24,
-    padding: 32,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
-  },
   ratingLabel: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#131811',
     marginBottom: 24,
+    textAlign: 'center',
   },
   starsContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 20,
   },
   ratingText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: colors.primary,
-    marginTop: 8,
+    letterSpacing: 1,
   },
   feedbackSection: {
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 24,
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 32,
     padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 16,
+    elevation: 8,
   },
   feedbackHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   feedbackLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#131811',
   },
   feedbackInput: {
-    backgroundColor: colors.backgroundLight,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    padding: 20,
     fontSize: 16,
     color: '#131811',
-    minHeight: 120,
+    minHeight: 140,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    paddingBottom: 32,
-    backgroundColor: 'rgba(246, 248, 246, 0.95)',
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  },
+  submitButtonWrap: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
   },
   submitButton: {
     flexDirection: 'row',
-    height: 64,
-    backgroundColor: colors.primary,
-    borderRadius: 9999,
+    height: 68,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
   },
   submitButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
-    color: colors.backgroundDark,
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
 });
 

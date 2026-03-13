@@ -8,7 +8,7 @@ LogBox.ignoreLogs(['props.pointerEvents is deprecated. Use style.pointerEvents']
 
 export default function App() {
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <AppNavigator />
     </SafeAreaProvider>
   );

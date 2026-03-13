@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>FarmConnect</title>
+    <style>
+      /* Critical: React Native Web needs html/body/root to fill the viewport */
+      html, body {
+        height: 100%;
+        width: 100%;
+      }
+      body {
+        display: flex;
+        margin: 0;
+        padding: 0;
+        background-color: #f2f4f0;
+      }
+      #root {
+        display: flex;
+        flex: 1;
+      }
+      /* Prevent text selection flicker during animations */
+      body {
+        -webkit-tap-highlight-color: transparent;
+        -webkit-text-size-adjust: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <%- script %>
+  </body>
+</html>

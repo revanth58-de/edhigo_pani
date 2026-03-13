@@ -9,9 +9,20 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { calculateDistance } from '../../utils/location';
+import useAuthStore from '../../store/authStore';
 
 const LiveMapCallScreen = ({ navigation, route }) => {
   const { worker } = route.params || {};
+  const user = useAuthStore((state) => state.user);
+
+  const getDistanceDisplay = () => {
+    if (user?.latitude && user?.longitude && worker?.latitude && worker?.longitude) {
+      const d = calculateDistance(user.latitude, user.longitude, worker.latitude, worker.longitude);
+      return d < 1 ? `${Math.round(d * 1000)}m away` : `${d.toFixed(1)} km away`;
+    }
+    return 'Tracking location...';
+  };
 
   return (
     <View style={styles.container}>
@@ -27,7 +38,7 @@ const LiveMapCallScreen = ({ navigation, route }) => {
           <MaterialIcons name="person" size={64} color={colors.primary} />
         </View>
         <Text style={styles.name}>{worker?.name || 'Worker'}</Text>
-        <Text style={styles.distance}>0.8 km away</Text>
+        <Text style={styles.distance}>{getDistanceDisplay()}</Text>
 
         <View style={styles.actions}>
           <TouchableOpacity style={styles.callButton}>

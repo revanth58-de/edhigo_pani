@@ -10,9 +10,11 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import useNotificationStore from '../../store/notificationStore';
 import { groupAPI } from '../../services/api';
+import GlassCard from '../../components/GlassCard';
 
 // Icon + color per notification type
 const TYPE_META = {
@@ -35,25 +37,34 @@ const timeAgo = (iso) => {
 
 const NotificationItem = ({ item, onPress }) => {
   const meta = TYPE_META[item.type] || TYPE_META.info;
+  const isUnread = !item.read;
+
   return (
     <TouchableOpacity
-      style={[styles.card, !item.read && styles.cardUnread]}
       onPress={() => onPress(item)}
       activeOpacity={0.8}
+      style={styles.cardWrapper}
     >
-      <View style={[styles.iconCircle, { backgroundColor: meta.bg }]}>
-        <MaterialIcons name={item.icon || meta.icon} size={24} color={meta.color} />
-      </View>
-      <View style={styles.cardBody}>
-        <View style={styles.cardTitleRow}>
-          <Text style={[styles.cardTitle, !item.read && styles.cardTitleUnread]} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
+      <GlassCard 
+        intensity={isUnread ? 80 : 30}
+        tint="light"
+        style={[styles.card, isUnread && styles.cardUnread]}
+        contentStyle={styles.cardContent}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: isUnread ? `${meta.color}20` : meta.bg }]}>
+          <MaterialIcons name={item.icon || meta.icon} size={24} color={meta.color} />
         </View>
-        <Text style={styles.cardBody2} numberOfLines={2}>{item.body}</Text>
-      </View>
-      {!item.read && <View style={styles.unreadDot} />}
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleRow}>
+            <Text style={[styles.cardTitle, isUnread && styles.cardTitleUnread]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={styles.cardTime}>{timeAgo(item.timestamp)}</Text>
+          </View>
+          <Text style={styles.cardBody2} numberOfLines={2}>{item.body}</Text>
+        </View>
+        {isUnread && <View style={styles.unreadDot} />}
+      </GlassCard>
     </TouchableOpacity>
   );
 };
@@ -104,13 +115,19 @@ const NotificationsScreen = ({ navigation }) => {
   }, [markRead, navigation]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+    <LinearGradient
+      colors={['#FDFBF7', colors.backgroundLight]}
+      style={styles.container}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      {/* Spacer for translucent status bar */}
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <MaterialIcons name="arrow-back" size={24} color="#131811" />
+          <MaterialIcons name="arrow-back" size={24} color={colors.black} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Notifications</Text>
@@ -128,7 +145,7 @@ const NotificationsScreen = ({ navigation }) => {
           )}
           {notifications.length > 0 && (
             <TouchableOpacity style={styles.headerActionBtn} onPress={clearAll}>
-              <MaterialIcons name="delete-sweep" size={20} color="#9CA3AF" />
+              <MaterialIcons name="delete-sweep" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>
@@ -137,7 +154,7 @@ const NotificationsScreen = ({ navigation }) => {
       {notifications.length === 0 ? (
         <View style={styles.empty}>
           <View style={styles.emptyIconCircle}>
-            <MaterialIcons name="notifications-none" size={56} color="#D1D5DB" />
+            <MaterialIcons name="notifications-none" size={64} color={colors.gray200} />
           </View>
           <Text style={styles.emptyTitle}>All caught up!</Text>
           <Text style={styles.emptyBody}>New notifications about jobs, payments, and group invites will appear here.</Text>
@@ -149,88 +166,83 @@ const NotificationsScreen = ({ navigation }) => {
           renderItem={({ item }) => <NotificationItem item={item} onPress={handlePress} />}
           contentContainerStyle={styles.list}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          showsVerticalScrollIndicator={false}
         />
       )}
-    </View>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1 },
 
   // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingTop: Platform.OS === 'ios' ? 56 : 48,
-    paddingBottom: 14,
+    backgroundColor: 'transparent',
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    zIndex: 10,
   },
   backBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: `${colors.primary}14`,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: `${colors.primary}1A`,
     justifyContent: 'center', alignItems: 'center',
   },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 12, gap: 8 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#131811' },
+  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 16, gap: 10 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: colors.black },
   headerBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 8, paddingVertical: 2,
+    paddingHorizontal: 10, paddingVertical: 4,
     borderRadius: 9999,
   },
-  headerBadgeText: { fontSize: 11, fontWeight: '700', color: '#131811' },
-  headerActions: { flexDirection: 'row', gap: 4 },
+  headerBadgeText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  headerActions: { flexDirection: 'row', gap: 10 },
   headerActionBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#F3F4F6',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: colors.glassBgLight,
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
   },
 
   // List
-  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 },
-  separator: { height: 8 },
+  list: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
+  separator: { height: 12 },
 
   // Card
+  cardWrapper: {
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
   card: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    padding: 16,
+    gap: 14,
   },
   cardUnread: {
-    borderColor: `${colors.primary}33`,
-    backgroundColor: `${colors.primary}06`,
+    borderColor: `${colors.primary}4D`,
+    borderWidth: 2,
   },
   iconCircle: {
-    width: 48, height: 48, borderRadius: 24,
+    width: 52, height: 52, borderRadius: 26,
     justifyContent: 'center', alignItems: 'center',
     flexShrink: 0,
   },
   cardBody: { flex: 1 },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  cardTitle: { fontSize: 14, fontWeight: '600', color: '#374151', flex: 1, marginRight: 8 },
-  cardTitleUnread: { fontWeight: '800', color: '#111827' },
-  cardTime: { fontSize: 11, color: '#9CA3AF', flexShrink: 0 },
-  cardBody2: { fontSize: 13, color: '#6B7280', lineHeight: 18 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, flex: 1, marginRight: 8 },
+  cardTitleUnread: { fontWeight: '900', color: colors.black },
+  cardTime: { fontSize: 12, color: colors.textMuted, fontWeight: '600', flexShrink: 0 },
+  cardBody2: { fontSize: 14, color: colors.textSecondary, lineHeight: 20, fontWeight: '500' },
   unreadDot: {
-    width: 8, height: 8, borderRadius: 4,
+    width: 10, height: 10, borderRadius: 5,
     backgroundColor: colors.primary,
     flexShrink: 0,
   },
@@ -238,15 +250,17 @@ const styles = StyleSheet.create({
   // Empty state
   empty: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    paddingHorizontal: 40, gap: 16,
+    paddingHorizontal: 40, gap: 20,
   },
   emptyIconCircle: {
-    width: 96, height: 96, borderRadius: 48,
-    backgroundColor: '#F3F4F6',
+    width: 110, height: 110, borderRadius: 55,
+    backgroundColor: colors.glassBgLight,
     justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.glassBorder,
   },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: '#374151', textAlign: 'center' },
-  emptyBody: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 24, fontWeight: '800', color: colors.textPrimary, textAlign: 'center' },
+  emptyBody: { fontSize: 15, color: colors.textMuted, textAlign: 'center', lineHeight: 22, fontWeight: '500' },
 });
 
 export default NotificationsScreen;

@@ -16,13 +16,14 @@ import { useTranslation } from '../../i18n';
 import { socketService } from '../../services/socketService';
 import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
+import { calculateDistance, estimateETA } from '../../utils/location';
 
 const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const [distance, setDistance] = useState('2.5 km');
-  const [eta, setETA] = useState('15 min');
+  const [distance, setDistance] = useState(t('common.calculating') || '...');
+  const [eta, setETA] = useState('--');
   const [currentLocation, setCurrentLocation] = useState(null);
 
   useEffect(() => {
@@ -63,12 +64,26 @@ const NavigationScreen = ({ navigation, route }) => {
         (location) => {
           const { latitude, longitude } = location.coords;
           setCurrentLocation([longitude, latitude]);
-          socketService.emitLocation({
-            userId: user?.id,
-            jobId: job?.id,
-            latitude,
-            longitude,
-          });
+
+          // Dynamic calculation
+          if (job?.farmLatitude && job?.farmLongitude) {
+            const d = calculateDistance(latitude, longitude, job.farmLatitude, job.farmLongitude);
+            if (d !== null) {
+              setDistance(d < 1 ? `${Math.round(d * 1000)}m` : `${d.toFixed(1)} km`);
+              const e = estimateETA(d);
+              setETA(e < 1 ? '< 1 min' : `${e} min`);
+
+              // Emit update with calculated fields
+              socketService.emitLocation({
+                userId: user?.id,
+                jobId: job?.id,
+                latitude,
+                longitude,
+                distance: d,
+                eta: `${e} min`,
+              });
+            }
+          }
         }
       );
     };

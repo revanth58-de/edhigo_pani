@@ -29,7 +29,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
 
   const [workers, setWorkers] = useState([]);   // all accepted workers
-  const [eta, setEta] = useState('~10 min');
+  const [eta, setEta] = useState('--');
   const [workerLocations, setWorkerLocations] = useState([]);
   const sheetAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;

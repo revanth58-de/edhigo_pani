@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import useNotificationStore from '../../store/notificationStore';
 import { groupAPI } from '../../services/api';

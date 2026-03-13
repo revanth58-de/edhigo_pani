@@ -1,5 +1,4 @@
-// Worker Payment History Screen — shows all payments received by the worker
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { paymentService } from '../../services/api/paymentService';
 import { colors } from '../../theme/colors';
 import useAuthStore from '../../store/authStore';
@@ -72,32 +72,32 @@ const WorkerPaymentHistoryScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [totalEarned, setTotalEarned] = useState(0);
 
-  useEffect(() => {
-    const loadPayments = async () => {
-      setLoading(true);
-      try {
-        const result = await paymentService.getPaymentHistory(user?.id);
-        // paymentService wraps axios: result = { success, data: { payments: [], count } }
-        // On error it returns: { success: false, data: [] }
-        const payload = result?.data;
-        const raw = Array.isArray(payload)
-          ? payload                   // fallback: data is already an array
-          : (payload?.payments ?? []); // normal: data.payments
-        const list = Array.isArray(raw) ? raw : [];
-        setPayments(list);
-        // Sum up completed payments
-        const total = list
-          .filter((p) => p.status === 'completed')
-          .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        setTotalEarned(total);
-      } catch (e) {
-        console.warn('Failed to load payment history', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPayments();
-  }, [user?.id]);
+  useFocusEffect(
+    useCallback(() => {
+      const loadPayments = async () => {
+        setLoading(true);
+        try {
+          const result = await paymentService.getPaymentHistory(user?.id);
+          const payload = result?.data;
+          const raw = Array.isArray(payload)
+            ? payload
+            : (payload?.payments ?? []);
+          const list = Array.isArray(raw) ? raw : [];
+          setPayments(list);
+          const total = list
+            .filter((p) => p.status === 'completed')
+            .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+          setTotalEarned(total);
+        } catch (e) {
+          console.warn('Failed to load payment history', e);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadPayments();
+    }, [user?.id])
+  );
 
   return (
     <View style={styles.container}>

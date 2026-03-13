@@ -1,5 +1,5 @@
 // Screen 24: Worker Profile - Skills Add+ & Experience Level system
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -34,8 +35,14 @@ const ALL_SKILLS = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WorkerProfileScreen = ({ navigation }) => {
-  const { user, logout, updateUser } = useAuthStore();
+  const { user, logout, updateUser, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
+  
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
   const [isAvailable, setIsAvailable] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

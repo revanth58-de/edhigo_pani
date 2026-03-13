@@ -1,12 +1,24 @@
 const prisma = require('../config/database');
 const { getIO } = require('../config/socket');
 
-// GET /api/groups/my-groups - Get all groups led by current user
+// GET /api/groups/my-groups - Get all groups led by or containing current user
 const getMyGroups = async (req, res, next) => {
   try {
-    const leaderId = req.user.id;
+    const userId = req.user.id;
     const groups = await prisma.group.findMany({
-      where: { leaderId },
+      where: {
+        OR: [
+          { leaderId: userId },
+          {
+            members: {
+              some: {
+                workerId: userId,
+                status: { not: 'invited' }, // joined, checked_in, checked_out
+              },
+            },
+          },
+        ],
+      },
       include: {
         members: {
           include: {
@@ -133,7 +145,7 @@ const getGroupJobs = async (req, res, next) => {
     const jobs = await prisma.job.findMany({
       where: {
         workerType: 'group',
-        status: { in: ['pending', 'matched'] },
+        status: 'pending',
       },
       include: {
         farmer: {

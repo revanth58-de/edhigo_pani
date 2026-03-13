@@ -1,5 +1,5 @@
 // Screen 25: Leader Home - Exact match to leader-home-start-group.html
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
@@ -80,6 +81,13 @@ const LeaderHomeScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const activeTab = route.params?.tab || 'home';
+  const { refreshProfile } = useAuthStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   useEffect(() => {
   }, []);

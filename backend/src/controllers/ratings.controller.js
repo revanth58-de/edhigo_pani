@@ -5,14 +5,14 @@ const submitRating = async (req, res, next) => {
     // Accept both field naming conventions from different frontend versions
     const {
       jobId,
-      toUserId,   workerId,            // either field name for recipient
+      toUserId,   workerId,   farmerId,   // fields names for recipient
       emoji,      rating: ratingNum,   // rename to avoid conflict with prisma.rating variable below
       stars,      feedback,            // optional extras
     } = req.body;
     const fromUserId = req.user.id;
 
     // Normalise recipient ID
-    const recipientId = toUserId || workerId;
+    const recipientId = toUserId || workerId || farmerId;
 
     // Normalise emoji: convert numeric rating → emoji if needed
     const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';

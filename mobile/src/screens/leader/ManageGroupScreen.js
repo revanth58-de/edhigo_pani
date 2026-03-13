@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -14,8 +14,10 @@ import {
     Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
+import { socketService } from '../../services/socketService';
 
 const KEYPAD_ROWS = [
     ['1', '2', '3'],
@@ -30,15 +32,53 @@ const ManageGroupScreen = ({ navigation, route }) => {
 
     const [resolvedGroupId, setResolvedGroupId] = useState(routeGroupId || null);
     const [members, setMembers] = useState([]);
+    const [pendingInvites, setPendingInvites] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingMember, setEditingMember] = useState(null);
     const [editName, setEditName] = useState('');
     const [editRole, setEditRole] = useState('');
     const [updating, setUpdating] = useState(false);
 
+    useFocusEffect(
+      useCallback(() => {
+          initGroup();
+      }, [resolvedGroupId])
+    );
+
+    // Listen for group:deleted socket event (e.g. another admin deleted)
     useEffect(() => {
-        initGroup();
-    }, []);
+        if (!resolvedGroupId) return;
+        const handleDeleted = () => {
+            Alert.alert('Group Deleted', 'This group has been deleted.');
+            navigation.replace('Groups');
+        };
+        if (socketService.socket) socketService.socket.on('group:deleted', handleDeleted);
+        return () => {
+            if (socketService.socket) socketService.socket.off('group:deleted', handleDeleted);
+        };
+    }, [resolvedGroupId]);
+
+    const handleDeleteGroup = () => {
+        Alert.alert(
+            '🗑️ Delete Group',
+            'Are you sure you want to permanently delete this group? This cannot be undone.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await groupAPI.deleteGroup(resolvedGroupId);
+                            navigation.replace('Groups');
+                        } catch {
+                            Alert.alert('Error', 'Failed to delete group. Please try again.');
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const initGroup = async () => {
         setLoading(true);
@@ -74,19 +114,19 @@ const ManageGroupScreen = ({ navigation, route }) => {
     const fetchMembers = async (gid) => {
         try {
             const res = await groupAPI.getGroupDetails(gid);
-            const rawMembers =
-                res?.data?.group?.members ||
-                res?.data?.members ||
-                [];
-            // Flatten nested worker data so display is simple
-            const memberList = rawMembers.map(m => ({
+            const rawMembers = res?.data?.group?.members || res?.data?.members || [];
+            const rawPending = res?.data?.group?.pendingInvites || [];
+
+            const toCard = m => ({
                 id: m.id,
                 workerId: m.workerId || m.worker?.id,
                 name: m.name || m.worker?.name || 'Member',
                 phone: m.worker?.phone || m.phone || '',
                 role: m.role || 'Member',
-            }));
-            setMembers(memberList);
+            });
+
+            setMembers(rawMembers.map(toCard));
+            setPendingInvites(rawPending.map(toCard));
         } catch (error) {
             console.error('Fetch Group Error:', error);
         } finally {
@@ -157,10 +197,10 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Manage your group</Text>
                 <TouchableOpacity
-                    style={styles.headerBtn}
-                    onPress={() => navigation.navigate('LeaderProfile')}
+                    style={[styles.headerBtn, styles.deleteBtn]}
+                    onPress={handleDeleteGroup}
                 >
-                    <MaterialIcons name="person-add-alt" size={24} color={colors.backgroundDark} />
+                    <MaterialIcons name="delete-forever" size={22} color="#EF4444" />
                 </TouchableOpacity>
             </View>
 
@@ -176,30 +216,55 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 220 }}>
                     {loading ? (
                         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
-                    ) : members.length === 0 ? (
+                    ) : members.length === 0 && pendingInvites.length === 0 ? (
                         <View style={styles.emptyState}>
                             <MaterialIcons name="groups" size={80} color="#E5E7EB" />
                             <Text style={styles.emptyText}>No members yet</Text>
                             <Text style={styles.emptySubText}>Tap ADD MEMBER to get started</Text>
                         </View>
                     ) : (
-                        members.map((item) => (
-                            <View key={item.id || item.workerId} style={styles.memberCard}>
-                                <TouchableOpacity style={styles.memberInfo} onPress={() => { setEditingMember(item); setEditName(item.name || ''); setEditRole(item.role || ''); }}>
-                                    <Image
-                                        source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=random` }}
-                                        style={styles.avatar}
-                                    />
-                                    <View>
-                                        <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
-                                        <Text style={styles.memberRole}>{item.phone || item.role || 'Member'}</Text>
-                                    </View>
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => removeMember(item.workerId)}>
-                                    <MaterialIcons name="delete-outline" size={24} color="#EF4444" />
-                                </TouchableOpacity>
-                            </View>
-                        ))
+                        <>
+                            {members.map((item) => (
+                                <View key={item.id || item.workerId} style={styles.memberCard}>
+                                    <TouchableOpacity style={styles.memberInfo} onPress={() => { setEditingMember(item); setEditName(item.name || ''); setEditRole(item.role || ''); }}>
+                                        <Image
+                                            source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=random` }}
+                                            style={styles.avatar}
+                                        />
+                                        <View>
+                                            <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
+                                            <Text style={styles.memberRole}>{item.phone || item.role || 'Member'}</Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => removeMember(item.workerId)}>
+                                        <MaterialIcons name="delete-outline" size={24} color="#EF4444" />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+
+                            {pendingInvites.length > 0 && (
+                                <>
+                                    <Text style={styles.pendingHeader}>⏳ Awaiting Response</Text>
+                                    {pendingInvites.map((item) => (
+                                        <View key={item.id || item.workerId} style={[styles.memberCard, styles.pendingCard]}>
+                                            <View style={styles.memberInfo}>
+                                                <Image
+                                                    source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=E5E7EB&color=9CA3AF` }}
+                                                    style={[styles.avatar, styles.pendingAvatar]}
+                                                />
+                                                <View>
+                                                    <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
+                                                    <Text style={[styles.memberRole, { color: '#F59E0B' }]}>Invite sent • Pending</Text>
+                                                </View>
+                                            </View>
+                                            <TouchableOpacity onPress={() => removeMember(item.workerId)}>
+                                                <MaterialIcons name="cancel" size={24} color="#9CA3AF" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </>
+                            )}
+                        </>
                     )}
                 </ScrollView>
 
@@ -256,6 +321,7 @@ const styles = StyleSheet.create({
         backgroundColor: colors.primary,
     },
     headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: `${colors.backgroundDark}22`, justifyContent: 'center', alignItems: 'center' },
+    deleteBtn: { backgroundColor: '#FEE2E2' },
     headerTitle: { fontSize: 20, fontWeight: '900', color: colors.backgroundDark },
 
     // Member list
@@ -279,6 +345,9 @@ const styles = StyleSheet.create({
     addButtonText: { fontSize: 20, fontWeight: '900', color: '#111827' },
     goLiveButton: { height: 52, backgroundColor: '#374151', borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
     goLiveButtonText: { color: '#FFF', fontWeight: '900', fontSize: 16 },
+    pendingHeader: { fontSize: 13, fontWeight: '700', color: '#9CA3AF', marginTop: 20, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' },
+    pendingCard: { opacity: 0.75, borderStyle: 'dashed', borderColor: '#E5E7EB' },
+    pendingAvatar: { opacity: 0.6 },
 
     // ── Dialpad ──
     nameSection: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 },

@@ -13,7 +13,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
-import socketService from '../../services/socketService';
+import { socketService } from '../../services/socketService';
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
   const { job, groupId, type } = route.params || { type: 'IN' };
@@ -35,15 +35,17 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
     }, 1000);
 
     // Listen for attendance confirmation from backend (via socket)
-    socketService.on('attendance:confirmed', (data) => {
+    const handleAttendanceConfirmed = (data) => {
       if (data.groupId === groupId) {
         navigation.navigate('GroupAttendanceConfirmed', { job, groupId, type });
       }
-    });
+    };
+    
+    socketService.onAttendanceConfirmed(handleAttendanceConfirmed);
 
     return () => {
       clearInterval(timer);
-      socketService.off('attendance:confirmed');
+      socketService.offAttendanceConfirmed(handleAttendanceConfirmed);
     };
   }, []);
 
@@ -103,13 +105,6 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
           <Text style={styles.infoText}>Must be within 100m of the farm</Text>
         </View>
 
-        {/* PROTOTYPE: Simulate confirmation for testing */}
-        <TouchableOpacity
-          style={styles.simButton}
-          onPress={() => navigation.navigate('GroupAttendanceConfirmed', { job, groupId, type })}
-        >
-          <Text style={styles.simButtonText}>Simulate Attendance (G8)</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );

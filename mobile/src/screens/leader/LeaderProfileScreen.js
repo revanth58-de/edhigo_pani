@@ -1,5 +1,5 @@
 // Leader Profile Screen - with logout button
-import React from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -22,9 +23,16 @@ const LeaderProfileScreen = ({ navigation }) => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const updateUser = useAuthStore((state) => state.updateUser);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const setLanguage = useAuthStore((state) => state.setLanguage);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   const LANGUAGES = [
     { code: 'en', label: '🇬🇧 English' },

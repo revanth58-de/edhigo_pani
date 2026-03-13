@@ -1,5 +1,5 @@
 // Screen 6: Farmer Home - Exact match to farmer-home-work-type.html
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -90,11 +91,17 @@ const AnimatedCard = ({ workType, onPress }) => {
 };
 
 const FarmerHomeScreen = ({ navigation }) => {
-  const { user } = useAuthStore();
+  const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [workers, setWorkers] = useState([]); // Real-time worker locations
   const [userLocation, setUserLocation] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   useEffect(() => {
     socketService.connect();

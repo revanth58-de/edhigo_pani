@@ -1,5 +1,5 @@
 // Screen 7: Farmer Profile - Fully editable with image-based view mode
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -145,10 +146,14 @@ const cardStyles = StyleSheet.create({
 
 // ─── Main Screen ───
 const FarmerProfileScreen = ({ navigation }) => {
-  const user = useAuthStore((state) => state.user);
-  const updateUser = useAuthStore((state) => state.updateUser);
-  const logout = useAuthStore((state) => state.logout);
+  const { user, logout, updateUser, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [refreshProfile])
+  );
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

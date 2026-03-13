@@ -28,6 +28,33 @@ const NavigationScreen = ({ navigation, route }) => {
   const [eta, setETA] = useState('--');
   const [currentLocation, setCurrentLocation] = useState(null);
 
+  // Haversine formula — returns distance in km
+  const haversineKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const updateDistanceETA = (latitude, longitude) => {
+    const farmLat = job?.farmLatitude;
+    const farmLon = job?.farmLongitude;
+    if (!farmLat || !farmLon) return;
+    const km = haversineKm(latitude, longitude, farmLat, farmLon);
+    const displayDist = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+    // Assume average travel speed: <500m walk (4 km/h), else auto (30 km/h)
+    const speedKmh = km < 0.5 ? 4 : 30;
+    const minutes = Math.max(1, Math.round((km / speedKmh) * 60));
+    const displayETA = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+    setDistance(displayDist);
+    setETA(displayETA);
+  };
+
   useEffect(() => {
 
     // Connect socket

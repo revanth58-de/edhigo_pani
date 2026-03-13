@@ -1,7 +1,7 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Platform, TouchableOpacity, Alert } from 'react-native';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -132,6 +132,8 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
+    <Stack.Screen name="Groups" component={GroupsScreen} />
+    <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
@@ -269,7 +271,15 @@ const AppNavigator = () => {
         title: '🤝 Group Invitation',
         body: `${data.leaderName} invited you to join "${data.groupName}"`,
         icon: 'groups',
-        data: { screen: 'GroupDetail', params: { groupId: data.groupId, groupName: data.groupName } },
+        data: {
+          screen: 'GroupDetail',
+          params: { groupId: data.groupId, groupName: data.groupName },
+          // These are required so tapping the notification shows the Accept/Reject dialog
+          inviteId: data.inviteId,
+          groupId: data.groupId,
+          leaderName: data.leaderName,
+          groupName: data.groupName,
+        },
       });
 
       Alert.alert(

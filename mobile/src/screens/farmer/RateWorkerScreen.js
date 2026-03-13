@@ -18,8 +18,24 @@ import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const RateWorkerScreen = ({ navigation, route }) => {
-  const { job, worker } = route.params;
+  const { job, worker, workers } = route.params || {};
   const { t } = useTranslation();
+  
+  // Support both single worker (legacy screens) and multiple workers (PaymentScreen)
+  let workerList = workers || (worker ? [worker] : []);
+  
+  // Fallback: If no explicit worker object was passed, construct it from job's embedded worker details
+  if (workerList.length === 0 && job?.workerId) {
+    workerList = [{
+      id: job.workerId,
+      name: job.workerName || 'Worker',
+      phone: job.workerPhone || '',
+      photoUrl: job.workerPhotoUrl || null,
+    }];
+  }
+
+  const displayWorker = workerList[0];
+  const isMultiple = workerList.length > 1;
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,28 +54,36 @@ const RateWorkerScreen = ({ navigation, route }) => {
     }
 
     const jobId = job?.id || job?.jobId;
-    const workerId = worker?.id || worker?.workerId;
 
-    if (!jobId || !workerId) {
-      console.warn('RateWorker: missing jobId or workerId', { job, worker });
+    if (!jobId || workerList.length === 0) {
+      console.warn('RateWorker: missing jobId or workerList', { job, workerList });
       Alert.alert('Error', 'Cannot submit rating — job or worker information is missing.');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('📡 Submitting rating:', { jobId, workerId, rating });
-      const response = await ratingService.rateWorker({
-        jobId,
-        workerId,
-        rating,
-        feedback,
-      });
+      console.log('📡 Submitting rating for workers:', workerList.length, { jobId, rating });
+      
+      // Submit identical rating for all workers involved
+      const results = await Promise.all(
+        workerList.map(w => 
+          ratingService.rateWorker({
+            jobId,
+            workerId: w?.id || w?.workerId,
+            rating,
+            feedback,
+          })
+        )
+      );
 
-      if (response.success) {
+      const allSuccess = results.every(r => r.success);
+
+      if (allSuccess) {
         navigation.navigate('FarmerHome');
       } else {
-        Alert.alert('Error', response.message || 'Failed to submit rating');
+        Alert.alert('Partially Successful', 'Some ratings failed to submit.');
+        navigation.navigate('FarmerHome');
       }
     } catch (error) {
       console.error('Rate Worker Error:', error);
@@ -92,10 +116,13 @@ const RateWorkerScreen = ({ navigation, route }) => {
         {/* Worker Info Card */}
         <View style={styles.workerCard}>
           <View style={styles.workerAvatar}>
-            <MaterialIcons name="person" size={48} color={colors.primary} />
+            <MaterialIcons name={isMultiple ? "people" : "person"} size={48} color={colors.primary} />
           </View>
-          <Text style={styles.workerName}>{worker?.name || 'Worker Name'}</Text>
-          <Text style={styles.jobType}>{job?.workType || 'Harvesting'}</Text>
+          <Text style={styles.workerName}>
+            {displayWorker?.name || 'Worker'}
+            {isMultiple ? ` + ${workerList.length - 1} Others` : ''}
+          </Text>
+          <Text style={styles.jobType}>{job?.workType || 'Job Completion'}</Text>
         </View>
 
         {/* Rating Section */}

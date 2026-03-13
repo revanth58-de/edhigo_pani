@@ -11,8 +11,9 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import useAuthStore from '../../store/authStore';
-import socketService from '../../services/socketService';
+import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
+import MapDashboard from '../../components/MapDashboard';
 
 const GroupMapScreen = ({ navigation, route }) => {
     const { groupId, workerCount } = route.params || { workerCount: 15 };
@@ -43,7 +44,7 @@ const GroupMapScreen = ({ navigation, route }) => {
             (newLoc) => {
                 setLocation(newLoc.coords);
                 // Sync with backend/socket if needed
-                socketService.emit('group:location_update', {
+                socketService.socket?.emit('group:location_update', {
                     groupId,
                     latitude: newLoc.coords.latitude,
                     longitude: newLoc.coords.longitude
@@ -53,7 +54,7 @@ const GroupMapScreen = ({ navigation, route }) => {
     };
 
     const setupSocket = () => {
-        socketService.on('job:request', (data) => {
+        if (socketService.socket) socketService.socket.on('job:request', (data) => {
             // Navigate to G4 when request received
             navigation.navigate('GroupRequest', { jobData: data, groupId });
         });
@@ -67,21 +68,12 @@ const GroupMapScreen = ({ navigation, route }) => {
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-            {/* Real map component would go here. Using a placeholder for UI demo. */}
-            <View style={styles.mapPlaceholder}>
-                <View style={styles.markerContainer}>
-                    <View style={styles.marker}>
-                        <MaterialIcons name="groups" size={32} color="#FFF" />
-                        <Text style={styles.markerText}>👥 {workerCount}</Text>
-                    </View>
-                    <View style={styles.markerTail} />
-                </View>
-
-                <View style={styles.infoBadge}>
-                    <View style={styles.pulseDot} />
-                    <Text style={styles.infoBadgeText}>AVAILABLE</Text>
-                </View>
-            </View>
+            {/* Real Google Map */}
+            <MapDashboard
+                fullScreen
+                userLocation={location}
+                markers={[]}
+            />
 
             <View style={styles.overlay}>
                 <View style={styles.header}>
@@ -118,13 +110,7 @@ const GroupMapScreen = ({ navigation, route }) => {
                     </View>
                 </View>
 
-                {/* PROTOTYPE: Button to simulate request for testing flow */}
-                <TouchableOpacity
-                    style={styles.simButton}
-                    onPress={() => navigation.navigate('GroupRequest', { workerCount, groupId })}
-                >
-                    <Text style={styles.simButtonText}>Simulate Request (G4)</Text>
-                </TouchableOpacity>
+
             </View>
         </View>
     );

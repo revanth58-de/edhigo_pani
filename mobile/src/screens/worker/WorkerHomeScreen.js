@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -119,30 +120,36 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchNearbyJobs();
+  const { refreshProfile } = useAuthStore();
 
-    // ── Save real GPS location to backend for accurate job matching ────
-    (async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
-          const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.BestForNavigation
-          });
-          setUserLocation(loc.coords);
-          // Save to backend so matchWorkers uses real coordinates
-          await authAPI.updateProfile({
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
-            status: 'available',
-          });
-          console.log('📍 Worker GPS saved:', loc.coords.latitude, loc.coords.longitude);
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+      fetchNearbyJobs();
+      
+      // GPS update on focus
+      (async () => {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status === 'granted') {
+            const loc = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.BestForNavigation
+            });
+            setUserLocation(loc.coords);
+            await authAPI.updateProfile({
+              latitude: loc.coords.latitude,
+              longitude: loc.coords.longitude,
+              status: 'available',
+            });
+          }
+        } catch (gpsErr) {
+          console.warn('GPS save failed:', gpsErr.message);
         }
-      } catch (gpsErr) {
-        console.warn('GPS save failed (non-fatal):', gpsErr.message);
-      }
-    })();
+      })();
+    }, [fetchNearbyJobs, refreshProfile])
+  );
+
+  useEffect(() => {
 
     // Join personal socket room so backend can send targeted job offers
     if (user?.id) {
@@ -208,36 +215,36 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     };
   }, [user?.id, fetchNearbyJobs]);
 
-  // Fetch real job history whenever history tab opens
-  useEffect(() => {
-    if (activeTab !== 'history') return;
-    const fetchHistory = async () => {
-      setHistoryLoading(true);
-      try {
-        // getWorkerJobs returns all jobs via JobApplication records (accepted, in_progress, completed)
-        // This is the correct source — includes accepted jobs even before check-in
-        const res = await jobAPI.getWorkerJobs();
-        const all = res?.data?.data || [];
-        setHistoryJobs(
-          all
-            .filter(j => ['accepted', 'in_progress', 'completed', 'cancelled'].includes(j.status))
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        );
-      } catch (e) {
-        // Fallback: attendance-based endpoint
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab !== 'history') return;
+
+      const fetchHistory = async () => {
+        setHistoryLoading(true);
         try {
-          const res2 = await jobAPI.getWorkerHistory();
-          const all2 = res2?.data?.data || [];
-          setHistoryJobs(all2.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
-        } catch (e2) {
-          console.warn('Failed to fetch work history', e2);
+          const res = await jobAPI.getWorkerJobs();
+          const all = res?.data?.data || [];
+          setHistoryJobs(
+            all
+              .filter(j => ['accepted', 'in_progress', 'completed', 'cancelled'].includes(j.status))
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          );
+        } catch (e) {
+          try {
+            const res2 = await jobAPI.getWorkerHistory();
+            const all2 = res2?.data?.data || [];
+            setHistoryJobs(all2.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
+          } catch (e2) {
+            console.warn('Failed to fetch work history', e2);
+          }
+        } finally {
+          setHistoryLoading(false);
         }
-      } finally {
-        setHistoryLoading(false);
-      }
-    };
-    fetchHistory();
-  }, [activeTab, user?.id]);
+      };
+
+      fetchHistory();
+    }, [activeTab, user?.id])
+  );
 
   useEffect(() => {
     // Voice guidance removed
@@ -372,11 +379,14 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionCard} onPress={handleHelp}>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => navigation.navigate('Groups')}
+          >
             <View style={styles.actionIconCircle}>
-              <MaterialIcons name="support-agent" size={30} color={colors.primary} />
+              <MaterialIcons name="groups" size={30} color={colors.primary} />
             </View>
-            <Text style={styles.actionText}>{t('worker.help')}</Text>
+            <Text style={styles.actionText}>My Groups</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
@@ -386,6 +396,12 @@ const WorkerHomeScreen = ({ navigation, route }) => {
               <MaterialIcons name="qr-code-scanner" size={30} color={colors.primary} />
             </View>
             <Text style={styles.actionText}>{t('qr.scanQR')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={handleHelp}>
+            <View style={styles.actionIconCircle}>
+              <MaterialIcons name="support-agent" size={30} color={colors.primary} />
+            </View>
+            <Text style={styles.actionText}>{t('worker.help')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -606,16 +622,18 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     flexDirection: 'row',
-    gap: 16,
+    flexWrap: 'wrap',
+    gap: 12,
     paddingHorizontal: 16,
     marginTop: 24,
   },
   actionCard: {
     flex: 1,
+    minWidth: '30%',
     alignItems: 'center',
     gap: 8,
     backgroundColor: '#FFFFFF',
-    padding: 16,
+    padding: 12,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

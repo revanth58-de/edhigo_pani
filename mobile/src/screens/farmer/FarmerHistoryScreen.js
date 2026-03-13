@@ -1,5 +1,5 @@
 // FarmerHistoryScreen - History of jobs posted by the farmer
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,8 +9,10 @@ import {
     ScrollView,
     ActivityIndicator,
     RefreshControl,
+    Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { jobAPI } from '../../services/api';
@@ -113,9 +115,11 @@ const FarmerHistoryScreen = ({ navigation }) => {
         }
     };
 
-    useEffect(() => {
-        fetchJobs();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchJobs();
+        }, [])
+    );
 
     const renderContent = () => {
         if (loading) {

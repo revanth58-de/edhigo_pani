@@ -56,8 +56,8 @@ const GroupNavigationScreen = ({ navigation, route }) => {
     }, []);
 
     const handleArrival = () => {
-        Speech.speak("Meeru thotaku cheraru", { language: 'te' });
-        navigation.navigate('LiveMapCall', { job, groupId });
+        Speech.speak("Meeru thotaku cheraru", { language: 'te' }); // "You have arrived at the farm"
+        navigation.navigate('GroupCall', { job, groupId });
     };
 
     return (

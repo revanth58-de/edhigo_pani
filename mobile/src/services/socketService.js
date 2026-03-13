@@ -226,6 +226,19 @@ class SocketService {
         }
     }
 
+    // ── Attendance ───────────────────────────────────────────────────
+
+    onAttendanceConfirmed(callback) {
+        if (this.socket) this.socket.on('attendance:confirmed', callback);
+    }
+
+    offAttendanceConfirmed(callback) {
+        if (this.socket) {
+            if (callback) this.socket.off('attendance:confirmed', callback);
+            else this.socket.off('attendance:confirmed');
+        }
+    }
+
     // ── Location ─────────────────────────────────────────────────────
 
     onLocationUpdate(callback) {

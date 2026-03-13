@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
   TextInput,
   Image,
+  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -34,11 +36,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [newMessage, setNewMessage] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
-  useEffect(() => {
-    fetchGroupDetails();
-  }, [groupId]);
-
-  useEffect(() => {
+  const loadTabContent = useCallback(() => {
     if (activeTab === 'Jobs') {
       fetchJobs();
     } else if (activeTab === 'Chat') {
@@ -46,9 +44,23 @@ const GroupDetailScreen = ({ route, navigation }) => {
     }
   }, [activeTab, groupId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroupDetails();
+      loadTabContent();
+    }, [fetchGroupDetails, loadTabContent])
+  );
+
   // Handle real-time incoming messages
   useEffect(() => {
     socketService.joinGroupRoom(groupId);
+
+    // Listen for group deletion by leader
+    const handleGroupDeleted = () => {
+      Alert.alert('Group Dissolved', 'The leader has deleted this group.');
+      navigation.goBack();
+    };
+    if (socketService.socket) socketService.socket.on('group:deleted', handleGroupDeleted);
 
     const handleNewMessage = (message) => {
       setMessages(prev => {
@@ -73,43 +85,45 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
     return () => {
       socketService.offGroupMessage(handleNewMessage);
+      if (socketService.socket) socketService.socket.off('group:deleted', handleGroupDeleted);
     };
   }, [groupId]);
 
-  const fetchGroupDetails = async () => {
+  const fetchGroupDetails = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await groupAPI.getGroupDetails(groupId);
-      setGroup(res.data?.group || res.data);
+      setGroup(res.data.group || res.data);
     } catch (error) {
-      console.error('Failed to fetch group details', error);
+      console.warn('Failed to fetch group details:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId]);
 
-  const fetchJobs = async () => {
-    setJobsLoading(true);
+  const fetchJobs = useCallback(async () => {
     try {
+      setJobsLoading(true);
       const res = await groupAPI.getGroupJobs(groupId);
-      setJobs(res.data?.jobs || []);
+      setJobs(res.data.jobs || res.data || []);
     } catch (error) {
-      console.error('Failed to fetch group jobs', error);
+      console.warn('Failed to fetch group jobs', error);
     } finally {
       setJobsLoading(false);
     }
-  };
+  }, [groupId]);
 
-  const fetchChat = async () => {
-    setChatLoading(true);
+  const fetchChat = useCallback(async () => {
     try {
+      setChatLoading(true);
       const res = await groupAPI.getGroupMessages(groupId);
-      setMessages(res.data?.messages || []);
+      setMessages(res.data.messages || res.data || []);
     } catch (error) {
-      console.error('Failed to fetch chat messages', error);
+      console.warn('Failed to fetch chat messages', error);
     } finally {
       setChatLoading(false);
     }
-  };
+  }, [groupId]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -136,12 +150,41 @@ const GroupDetailScreen = ({ route, navigation }) => {
     setNewMessage('');
   };
 
+  const handleExitGroup = () => {
+    Alert.alert(
+      '🚪 Leave Group',
+      'Are you sure you want to leave this group?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await groupAPI.exitGroup(groupId);
+              navigation.goBack();
+            } catch {
+              Alert.alert('Error', 'Failed to leave the group. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleAcceptJob = async (jobId) => {
     try {
       await groupAPI.acceptGroupJob({ groupId, jobId });
+      
+      // Find the job to pass it to the navigation screen
+      const acceptedJob = jobs.find(j => j.id === jobId);
       setJobs(prev => prev.filter(j => j.id !== jobId));
-      // Just visually confirming for the user
-      alert('Job accepted successfully for the entire group!');
+      
+      if (acceptedJob) {
+        navigation.navigate('GroupNavigation', { job: acceptedJob, groupId });
+      } else {
+        alert('Job accepted successfully for the entire group!');
+      }
     } catch (error) {
       console.error('Failed to accept group job', error);
       alert(error.response?.data?.error || 'Failed to accept job');
@@ -157,15 +200,17 @@ const GroupDetailScreen = ({ route, navigation }) => {
           {item.workersNeeded} workers • ₹{item.payPerDay}/day
         </Text>
       </View>
-      <View style={styles.jobActions}>
-        <TouchableOpacity 
-          style={styles.acceptBtn} 
-          activeOpacity={0.8}
-          onPress={() => handleAcceptJob(item.id)}
-        >
-          <Text style={styles.acceptBtnText}>ACCEPT FOR GROUP</Text>
-        </TouchableOpacity>
-      </View>
+      {user?.role === 'leader' && (
+        <View style={styles.jobActions}>
+          <TouchableOpacity 
+            style={styles.acceptBtn} 
+            activeOpacity={0.8}
+            onPress={() => handleAcceptJob(item.id)}
+          >
+            <Text style={styles.acceptBtnText}>ACCEPT FOR GROUP</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 
@@ -200,12 +245,22 @@ const GroupDetailScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        <TouchableOpacity 
-          style={styles.iconBtn} 
-          onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
-        >
-          <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
-        </TouchableOpacity>
+        {/* Show settings (manage) for leader, exit button for members */}
+        {user?.role === 'leader' ? (
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
+          >
+            <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.iconBtn, styles.exitBtn]}
+            onPress={handleExitGroup}
+          >
+            <MaterialIcons name="exit-to-app" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Tabs */}
@@ -312,6 +367,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  exitBtn: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
   },
   headerTitles: {
     flex: 1,

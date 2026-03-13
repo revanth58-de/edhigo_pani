@@ -91,6 +91,22 @@ const useAuthStore = create((set, get) => ({
     });
   },
 
+  refreshProfile: async () => {
+    try {
+      const meResponse = await authAPI.getMe();
+      if (meResponse?.data?.user) {
+        set((state) => {
+          // Merge to avoid losing state properties not returned by getMe
+          const fullUser = mapServerUser({ ...state.user, ...meResponse.data.user });
+          saveToStorage({ user: fullUser, accessToken: state.accessToken, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated, language: state.language, phone: state.phone });
+          return { user: fullUser };
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
+    }
+  },
+
   sendOTP: async (phone) => {
     set({ isLoading: true });
     try {

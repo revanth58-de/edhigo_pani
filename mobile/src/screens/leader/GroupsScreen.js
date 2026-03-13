@@ -10,6 +10,7 @@ import {
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
 import { useTranslation } from '../../i18n';
@@ -35,12 +36,11 @@ const GroupsScreen = ({ navigation }) => {
     }
   }, []);
 
-  useEffect(() => {
-    // Fetch groups on mount and when screen is focused
-    const unsubscribe = navigation.addListener('focus', fetchGroups);
-    fetchGroups();
-    return unsubscribe;
-  }, [navigation, fetchGroups]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchGroups();
+    }, [fetchGroups])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -108,13 +108,15 @@ const GroupsScreen = ({ navigation }) => {
       )}
 
       {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('GroupSetup')}
-        activeOpacity={0.9}
-      >
-        <MaterialIcons name="add" size={32} color={colors.backgroundDark} />
-      </TouchableOpacity>
+      {user?.role === 'leader' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => navigation.navigate('GroupSetup')}
+          activeOpacity={0.9}
+        >
+          <MaterialIcons name="add" size={32} color={colors.backgroundDark} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

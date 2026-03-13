@@ -39,7 +39,6 @@ const RateFarmerScreen = ({ navigation, route }) => {
         jobId: job.id,
         farmerId: job.farmerId || job.farmer?.id,
         rating,
-        feedback,
       });
 
       if (response.success) {

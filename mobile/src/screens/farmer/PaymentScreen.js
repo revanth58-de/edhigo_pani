@@ -21,13 +21,27 @@ import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { job, workers } = route.params;
+  const { job, workers, worker } = route.params || {};
   const { t } = useTranslation();
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'cash' or 'upi'
   const [loading, setLoading] = useState(false);
 
   const { user, language } = useAuthStore();
-  const workerCount = workers?.length || String(job?.workersNeeded || 1);
+  
+  // Support either single `worker` or multiple `workers`
+  let workerList = workers || (worker ? [worker] : []);
+  
+  // Fallback: If no explicit worker object was passed, construct it from job's embedded worker details
+  if (workerList.length === 0 && job?.workerId) {
+    workerList = [{
+      id: job.workerId,
+      name: job.workerName || 'Worker',
+      phone: job.workerPhone || '',
+      photoUrl: job.workerPhotoUrl || null,
+    }];
+  }
+
+  const workerCount = workerList.length || String(job?.workersNeeded || 1);
   const totalAmount = (job?.payPerDay || 500) * workerCount;
   // Use farmer's UPI ID from profile, fallback to phone-based UPI
   const upiId = user?.upiId || `${user?.phone || 'farmer'}@upi`;
@@ -61,7 +75,7 @@ const PaymentScreen = ({ navigation, route }) => {
       });
 
       if (response.success) {
-        navigation.navigate('RateWorker', { job, workers });
+        navigation.navigate('RateWorker', { job, workers: workerList });
       } else {
         Alert.alert('Error', response.message || 'Payment failed');
       }

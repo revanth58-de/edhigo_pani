@@ -104,4 +104,18 @@ export const jobService = {
       };
     }
   },
+
+  // Get nearby available workers (for live map — with real GPS distances)
+  getNearbyWorkers: async (params = {}) => {
+    try {
+      const response = await jobAPI.getNearbyWorkers(params);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Get Nearby Workers Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch nearby workers',
+      };
+    }
+  },
 };

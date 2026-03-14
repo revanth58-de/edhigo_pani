@@ -98,7 +98,7 @@ export const jobAPI = {
     acceptJob: (jobId, workerId) => apiClient.post(`/jobs/${jobId}/accept`, { workerId }),
     withdrawJob: (jobId) => apiClient.post(`/jobs/${jobId}/withdraw`),  // Radio System
     cancelJob: (jobId) => apiClient.delete(`/jobs/${jobId}`),
-    getNearbyWorkers: () => apiClient.get('/jobs/nearby-workers'),
+    getNearbyWorkers: (params = {}) => apiClient.get('/jobs/nearby-workers', { params }),
 };
 
 

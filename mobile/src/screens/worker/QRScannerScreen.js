@@ -164,8 +164,11 @@ const QRScannerScreen = ({ navigation, route }) => {
         : attendanceService.checkIn(payload));
 
       if (response.success) {
+        // Try to get farmerId from the backend response first, then from local job state
+        const farmerId = response.data?.job?.farmerId || job?.farmerId || job?.farmer?.id;
+
         navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', {
-          job: { ...job, id: qrInfo.jobId },
+          job: { ...job, id: qrInfo.jobId, farmerId },
         });
       } else {
         // Show the actual backend error — not "Invalid QR"

@@ -40,7 +40,9 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "CAMERA"
+        "CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "config": {
         "googleMaps": {
@@ -69,8 +71,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "placeholder-project-id"
+        "projectId": "cc35e220-f0b2-4acb-8f54-fd790ed0c66f"
       }
-    }
+    },
+    "owner": "revanth_de"
   }
 }

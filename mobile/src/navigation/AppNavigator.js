@@ -184,16 +184,6 @@ const AppNavigator = () => {
 
     const registerPush = async () => {
       try {
-        if (!Device.isDevice) return; // Skip in emulator
-
-        // Push notifications don't work in Expo Go (SDK 53+) — skip gracefully
-        // They will work once you build a development build or production APK
-        const isExpoGo = Constants.appOwnership === 'expo';
-        if (isExpoGo) {
-          console.log('ℹ️ Push notifications not supported in Expo Go — skipping token registration');
-          return;
-        }
-
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
         if (existingStatus !== 'granted') {
@@ -204,13 +194,18 @@ const AppNavigator = () => {
           console.warn('Push notification permission not granted');
           return;
         }
-        const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-        const tokenData = await Notifications.getExpoPushTokenAsync(
-          projectId ? { projectId } : {}
-        );
-        const token = tokenData.data;
-        console.log('📲 Expo Push Token:', token);
-        await authAPI.updateProfile({ pushToken: token });
+
+        const rawProjectId = Constants.expoConfig?.extra?.eas?.projectId;
+        const projectId = rawProjectId !== 'placeholder-project-id' ? rawProjectId : undefined;
+
+        if (projectId) {
+          const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+          const token = tokenData.data;
+          console.log('📲 Expo Push Token:', token);
+          await authAPI.updateProfile({ pushToken: token });
+        } else {
+          console.warn("No valid EAS projectId found. Skipping push token registration.");
+        }
       } catch (err) {
         console.warn('Push token registration failed (non-fatal):', err.message);
       }

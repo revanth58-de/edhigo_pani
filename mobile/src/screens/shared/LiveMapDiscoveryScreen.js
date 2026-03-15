@@ -1,5 +1,5 @@
-// Screen 31: Live Map Discovery - Map with SEND REQUEST button
-import React, { useEffect, useState } from 'react';
+// Screen 31: Live Map Discovery - Real map with nearby worker markers
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,10 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -21,34 +24,80 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
-  const [nearbyCount, setNearbyCount] = useState(0);
+  const [nearbyWorkers, setNearbyWorkers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [region, setRegion] = useState(null);
+  const [locationError, setLocationError] = useState(false);
+  const mapRef = useRef(null);
 
   useEffect(() => {
-    fetchNearbyWorkers();
+    initLocation();
   }, []);
 
-  const fetchNearbyWorkers = async () => {
+  const initLocation = async () => {
     try {
-      // Fetch available workers from jobs endpoint
-      const response = await jobService.getJobs({ status: 'pending' });
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocationError(true);
+        setLoading(false);
+        fetchNearbyWorkers(null, null);
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const { latitude, longitude } = loc.coords;
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+      fetchNearbyWorkers(latitude, longitude);
+    } catch (err) {
+      console.log('Location error:', err);
+      setLocationError(true);
+      fetchNearbyWorkers(null, null);
+    }
+  };
+
+  const fetchNearbyWorkers = async (lat, lng) => {
+    try {
+      let url = '/jobs/nearby';
+      const params = {};
+      if (lat != null) params.lat = lat;
+      if (lng != null) params.lng = lng;
+      const response = await jobService.getNearbyWorkers(params);
       if (response.success && response.data?.data) {
-        setNearbyCount(response.data.data.length || 0);
+        setNearbyWorkers(response.data.data);
       } else {
-        // Fallback: show count based on available data
-        setNearbyCount(0);
+        setNearbyWorkers([]);
       }
     } catch (error) {
       console.log('Fetch nearby workers error:', error);
-      setNearbyCount(0);
+      setNearbyWorkers([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleWorkerPress = (worker) => {
+    navigation.navigate('LiveMapCall', { worker });
+  };
+
   const handleSendRequest = () => {
     navigation.navigate('SelectWorkers', { workType: 'Labour' });
   };
+
+  const centerOnUser = () => {
+    if (region && mapRef.current) {
+      mapRef.current.animateToRegion(region, 500);
+    }
+  };
+
+  const nearbyCount = nearbyWorkers.length;
+
+  const isFarmer = user?.role === 'farmer';
 
   return (
     <View style={styles.container}>
@@ -62,37 +111,67 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
 
       {/* Map Area */}
       <View style={styles.mapContainer}>
-        {/* Map Placeholder */}
-        <View style={styles.mapPlaceholder}>
-          <MaterialIcons name="map" size={80} color="rgba(91, 236, 19, 0.2)" />
-          <Text style={styles.mapText}>{t('discovery.liveMapView')}</Text>
-
-          {/* User Location Pin */}
-          <View style={styles.youPin}>
-            <MaterialIcons name="location-on" size={32} color={colors.primary} />
-            <Text style={styles.youPinText}>{t('discovery.you')}</Text>
+        {loading && !region ? (
+          <View style={styles.mapLoading}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Finding your location...</Text>
           </View>
-        </View>
+        ) : (
+          <MapView
+            ref={mapRef}
+            style={StyleSheet.absoluteFillObject}
+            provider={PROVIDER_GOOGLE}
+            region={region || {
+              latitude: 17.385,
+              longitude: 78.4867,
+              latitudeDelta: 0.1,
+              longitudeDelta: 0.1,
+            }}
+            showsUserLocation={true}
+            showsMyLocationButton={false}
+            showsCompass={false}
+            toolbarEnabled={false}
+          >
+            {/* Nearby Worker Markers */}
+            {nearbyWorkers
+              .filter((w) => w.latitude && w.longitude)
+              .map((worker) => (
+                <Marker
+                  key={worker.id}
+                  coordinate={{
+                    latitude: parseFloat(worker.latitude),
+                    longitude: parseFloat(worker.longitude),
+                  }}
+                  title={worker.name || 'Worker'}
+                  description={`⭐ ${worker.ratingAvg?.toFixed(1) || 'New'} • ${worker.skills || 'General'}`}
+                  onCalloutPress={() => handleWorkerPress(worker)}
+                  onPress={() => handleWorkerPress(worker)}
+                >
+                  <View style={styles.workerPin}>
+                    <MaterialIcons name="person" size={18} color="#fff" />
+                  </View>
+                </Marker>
+              ))}
+          </MapView>
+        )}
 
-        {/* Zoom Controls */}
+        {/* Re-center button */}
         <View style={styles.zoomControls}>
-          <TouchableOpacity style={styles.zoomButton}>
-            <MaterialIcons name="remove" size={24} color="#131811" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.zoomButton}>
-            <MaterialIcons name="my-location" size={24} color={colors.primary} />
+          <TouchableOpacity style={styles.zoomButton} onPress={centerOnUser}>
+            <MaterialIcons name="my-location" size={22} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
-        {/* Floating Action Buttons */}
-        <View style={styles.floatingButtons}>
-          <TouchableOpacity style={styles.phoneButton}>
-            <MaterialIcons name="phone" size={24} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        {/* Worker count badge on map */}
+        {!loading && nearbyCount > 0 && (
+          <View style={styles.mapBadge}>
+            <MaterialIcons name="people" size={14} color="#fff" />
+            <Text style={styles.mapBadgeText}>{nearbyCount} nearby</Text>
+          </View>
+        )}
       </View>
 
-      {/* Bottom Worker Card */}
+      {/* Bottom card — farmer gets Send Request, workers/leaders get info */}
       <View style={styles.bottomCard}>
         <View style={styles.workerCountRow}>
           <View>
@@ -106,14 +185,21 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.sendRequestButton}
-          onPress={handleSendRequest}
-          activeOpacity={0.9}
-        >
-          <MaterialIcons name="send" size={24} color="#FFFFFF" />
-          <Text style={styles.sendRequestText}>{t('discovery.sendRequest')}</Text>
-        </TouchableOpacity>
+        {isFarmer ? (
+          <TouchableOpacity
+            style={styles.sendRequestButton}
+            onPress={handleSendRequest}
+            activeOpacity={0.9}
+          >
+            <MaterialIcons name="send" size={24} color="#FFFFFF" />
+            <Text style={styles.sendRequestText}>{t('discovery.sendRequest')}</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.infoCard}>
+            <MaterialIcons name="info-outline" size={20} color={colors.primary} />
+            <Text style={styles.infoText}>Tap a marker to view & call a worker</Text>
+          </View>
+        )}
       </View>
 
       {/* Bottom Navigation */}
@@ -152,34 +238,34 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     backgroundColor: '#E8EDDF',
-    margin: 0,
     position: 'relative',
+    overflow: 'hidden',
   },
-  mapPlaceholder: {
+  mapLoading: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
   },
-  mapText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#9CA3AF',
-    marginTop: 8,
+  loadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
-  youPin: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-  youPinText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
+  workerPin: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginTop: -4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2.5,
+    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   zoomControls: {
     position: 'absolute',
@@ -196,30 +282,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.12,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
-  floatingButtons: {
+  mapBadge: {
     position: 'absolute',
-    bottom: 16,
-    right: 16,
-    gap: 12,
-  },
-  phoneButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+    top: 16,
+    left: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.primary,
+    gap: 4,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
+  },
+  mapBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   bottomCard: {
     backgroundColor: '#FFFFFF',

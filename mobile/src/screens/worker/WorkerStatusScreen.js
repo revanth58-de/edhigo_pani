@@ -43,7 +43,7 @@ const STATUS_OPTIONS = [
   },
 ];
 
-const WorkerStatusScreen = ({ navigation }) => {
+const WorkerStatusScreen = ({ navigation, route }) => {
   const language = useAuthStore((state) => state.language) || 'en';
   const { t } = useTranslation();
   const [currentStatus, setCurrentStatus] = useState('working'); // Default to working after attendance
@@ -114,7 +114,7 @@ const WorkerStatusScreen = ({ navigation }) => {
         {/* Finish Job Button (Simulation) */}
         <TouchableOpacity
           style={styles.finishBtn}
-          onPress={() => navigation.navigate('RateFarmer')}
+          onPress={() => navigation.navigate('RateFarmer', { job: route.params?.job || {} })}
         >
           <MaterialIcons name="check" size={24} color="#fff" />
           <Text style={styles.finishBtnText}>FINISH JOB (SIMULATE)</Text>

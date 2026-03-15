@@ -18,7 +18,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
-import { jobAPI } from '../../services/api';
+import { socketService } from '../../services/socketService';
 
 const STATUS_META = {
   pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
@@ -90,7 +90,34 @@ const LeaderHomeScreen = ({ navigation, route }) => {
   );
 
   useEffect(() => {
-  }, []);
+    if (user?.id) {
+      socketService.connect();
+      socketService.joinUserRoom(user.id);
+    }
+
+    const handleNewOffer = (offer) => {
+      const distanceText = offer.distanceLabel || 'Nearby';
+      const label = offer.reOpened ? '🔄 Job Available Again!' : '🌾 New Job Offer!';
+      
+      Alert.alert(
+        label,
+        `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
+        [
+          { text: 'Ignore', style: 'cancel' },
+          {
+            text: 'View Offer',
+            onPress: () => navigation.navigate('GroupJobOffer', { job: { ...offer, id: offer.jobId } }),
+          },
+        ]
+      );
+    };
+
+    socketService.onNewOffer(handleNewOffer);
+
+    return () => {
+      socketService.offNewOffer(handleNewOffer);
+    };
+  }, [user?.id]);
 
   return (
     <View style={styles.container}>

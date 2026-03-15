@@ -113,7 +113,7 @@ const FarmerHomeScreen = ({ navigation }) => {
   }, [user?.id]);
 
   const handleWorkTypeSelect = (workType) => {
-    navigation.navigate('SelectWorkers', { workType });
+    navigation.navigate('LiveMapDiscovery', { workType });
   };
 
   const workTypes = [
@@ -174,7 +174,7 @@ const FarmerHomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <BottomNavBar role="farmer" activeTab="Home" />
+      <BottomNavBar role="farmer" activeTab="Main" />
     </LinearGradient>
   );
 };

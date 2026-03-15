@@ -7,8 +7,8 @@ import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
 
 const FARMER_TABS = [
-  { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'FarmerHome' },
-  { key: 'History', icon: 'history', labelKey: 'nav.history', screen: 'FarmerHistory' },
+  { key: 'Main', icon: 'home', labelKey: 'nav.home', screen: 'FarmerHome' },
+  { key: 'Home', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'QRAttendance', params: { type: 'in' } },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'FarmerProfile' },
 ];

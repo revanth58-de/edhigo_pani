@@ -33,7 +33,7 @@ export default {
     showQR: 'QR చూపించు',
     payments: 'చెల్లింపులు',
     profile: 'ప్రొఫైల్',
-    home: 'హోమ్',
+    home: 'మెయిన్',
     jobs: 'ఉద్యోగాలు',
   },
 
@@ -92,7 +92,7 @@ export default {
     searchNearby: 'సమీపంలో మార్కెట్లు లేదా పొలాల కోసం వెతకండి',
     workersNearby: 'సమీపంలో కూలీలు',
     readyToStart: 'వెంటనే పని ప్రారంభించడానికి సిద్ధం',
-    sendRequest: 'అభ్యర్థన పంపండి',
+    sendRequest: 'కూలీలను ఎంచుకోండి',
     liveMapView: 'లైవ్ మ్యాప్ వ్యూ',
     you: 'మీరు',
   },

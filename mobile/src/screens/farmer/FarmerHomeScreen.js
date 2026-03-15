@@ -19,7 +19,6 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
-import MapDashboard from '../../components/MapDashboard';
 import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
 import { Alert } from 'react-native';
@@ -201,28 +200,6 @@ const FarmerHomeScreen = ({ navigation }) => {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         
-        {/* Dynamic Map Dashboard wrapped with styling for premium look */}
-        <View style={styles.mapContainer}>
-          <View style={styles.mapWrap}>
-            <MapDashboard
-              markers={workers}
-              userLocation={userLocation}
-              height={320}
-              onMarkerPress={(m) => console.log('Marker pressed:', m)}
-            />
-          </View>
-          
-          <View style={styles.mapOverlay}>
-            <GlassCard intensity={80} tint="light" style={styles.glassBadge} noShadow>
-              <View style={styles.activeBadge}>
-                <View style={[styles.pulseDot, workers.length === 0 && { backgroundColor: colors.warning }]} />
-                <Text style={styles.activeLabel}>
-                  {workers.length} {workers.length === 1 ? 'Worker' : 'Workers'} Online
-                </Text>
-              </View>
-            </GlassCard>
-          </View>
-        </View>
 
         <View style={styles.headlineContainer}>
           <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
@@ -255,58 +232,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 24,
-  },
-  mapWrap: {
-    height: 320,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-      web: {
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-      }
-    }),
-  },
-  mapOverlay: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    zIndex: 10,
-  },
-  activeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 9999,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  pulseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-  activeLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#131811',
   },
   headlineContainer: {
     paddingHorizontal: 24,

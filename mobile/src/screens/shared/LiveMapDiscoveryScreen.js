@@ -103,11 +103,6 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-      {/* Search Bar */}
-      <View style={styles.searchBar}>
-        <MaterialIcons name="search" size={24} color="#9CA3AF" />
-        <Text style={styles.searchPlaceholder}>{t('discovery.searchNearby')}</Text>
-      </View>
 
       {/* Map Area */}
       <View style={styles.mapContainer}>
@@ -212,28 +207,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginHorizontal: 12,
-    marginTop: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  searchPlaceholder: {
-    fontSize: 16,
-    color: '#9CA3AF',
   },
   mapContainer: {
     flex: 1,

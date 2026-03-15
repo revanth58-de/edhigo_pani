@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#FFFFFF',
     letterSpacing: 1,
   },
@@ -539,19 +539,19 @@ const styles = StyleSheet.create({
   },
   nameText: {
     fontSize: 24,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#131811',
     letterSpacing: -0.5,
   },
   phoneText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#9CA3AF',
     marginTop: 4,
   },
   nameInput: {
     fontSize: 22,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#131811',
     textAlign: 'center',
     paddingVertical: 8,
@@ -582,7 +582,7 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#9CA3AF',
     letterSpacing: 1,
   },
@@ -618,22 +618,23 @@ const styles = StyleSheet.create({
   },
   statNum: {
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#131811',
   },
   statLabel: {
     fontSize: 9,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#9CA3AF',
     marginTop: 4,
     letterSpacing: 1,
   },
   statExpInput: {
     fontSize: 18,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#131811',
     textAlign: 'center',
-    minWidth: 40,
+    width: 60,
+    padding: 0,
     borderBottomWidth: 1.5,
     borderBottomColor: colors.primary,
   },
@@ -658,7 +659,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: 'bold',
     color: '#131811',
     letterSpacing: 0.5,
   },
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
   },
   addSkillBtnText: {
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   customInputRow: {
@@ -746,7 +747,7 @@ const styles = StyleSheet.create({
   },
   skillText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#4B5563',
   },
   skillTextSelected: {
@@ -776,7 +777,7 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 15,
-    fontWeight: '800',
+    fontWeight: '700',
     color: colors.primary,
   },
   saveButton: {
@@ -784,14 +785,14 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: '#FFFFFF',
-    fontWeight: '900',
+    fontWeight: 'bold',
   },
   cancelButton: {
     backgroundColor: '#F3F4F6',
   },
   cancelButtonText: {
     color: '#6B7280',
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
   logoutButton: {

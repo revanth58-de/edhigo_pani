@@ -28,7 +28,7 @@ export default {
 
   // ─── Bottom Navigation ───
   nav: {
-    discovery: 'Discovery',
+    discovery: 'Home',
     history: 'History',
     showQR: 'QR',
     payments: 'Payments',

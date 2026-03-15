@@ -454,7 +454,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       )}
 
       {/* Bottom Navigation */}
-      <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
+      <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Main'} />
     </LinearGradient>
   );
 };

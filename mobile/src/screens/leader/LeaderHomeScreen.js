@@ -209,7 +209,7 @@ const LeaderHomeScreen = ({ navigation, route }) => {
       )}
 
       {/* Bottom Navigation */}
-      <BottomNavBar role="leader" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
+      <BottomNavBar role="leader" activeTab={activeTab === 'history' ? 'History' : 'Main'} />
     </View>
   );
 };

@@ -7,22 +7,22 @@ import { colors } from '../theme/colors';
 import { useTranslation } from '../i18n';
 
 const FARMER_TABS = [
-  { key: 'Discovery', icon: 'home', labelKey: 'nav.discovery', screen: 'FarmerHome' },
+  { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'FarmerHome' },
   { key: 'History', icon: 'history', labelKey: 'nav.history', screen: 'FarmerHistory' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'QRAttendance', params: { type: 'in' } },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'FarmerProfile' },
 ];
 
 const WORKER_TABS = [
-  { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'WorkerHome' },
-  { key: 'Discovery', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
+  { key: 'Main', icon: 'home', labelKey: 'nav.home', screen: 'WorkerHome' },
+  { key: 'Home', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'QRScanner' },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'WorkerProfile' },
 ];
 
 const LEADER_TABS = [
-  { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'LeaderHome' },
-  { key: 'Discovery', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
+  { key: 'Main', icon: 'home', labelKey: 'nav.home', screen: 'LeaderHome' },
+  { key: 'Home', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'GroupQRAttendance' },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'LeaderProfile' },
 ];

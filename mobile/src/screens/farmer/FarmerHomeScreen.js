@@ -23,66 +23,24 @@ import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
 import { Alert } from 'react-native';
 
-const AnimatedCard = ({ workType, onPress }) => {
-  // ... (keep existing AnimatedCard implementation intact, just change styling below)
-  const hoverAnim = React.useRef(new Animated.Value(0)).current;
-
-  const handleMouseEnter = () => {
-    Animated.timing(hoverAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleMouseLeave = () => {
-    Animated.timing(hoverAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const translateY = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [300, 0], // Safe offset
-  });
-
-  const scale = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.1],
-  });
-
-  const textColor = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#0F172A', '#FFFFFF'],
-  });
-
+const WorkTypeCard = ({ workType, onPress }) => {
   return (
     <TouchableOpacity
       style={styles.workTypeWrapper}
-      activeOpacity={0.9}
+      activeOpacity={0.7}
       onPress={() => onPress(workType.name)}
-      onMouseEnter={Platform.OS === 'web' ? handleMouseEnter : undefined}
-      onMouseLeave={Platform.OS === 'web' ? handleMouseLeave : undefined}
     >
       <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
-        <Animated.View
-          style={[
-            styles.hoverBackground,
-            { transform: [{ translateY }] }
-          ]}
-        />
         <View style={styles.imageHeader}>
-          <Animated.Image
+          <Image
             source={{ uri: workType.image }}
-            style={[styles.cardImage, { transform: [{ scale }] }]}
+            style={styles.cardImage}
           />
         </View>
         <View style={styles.cardContent}>
-          <Animated.Text style={[styles.workTypeName, { color: textColor }]} numberOfLines={1}>
+          <Text style={styles.workTypeName} numberOfLines={1}>
             {workType.name}
-          </Animated.Text>
+          </Text>
         </View>
       </GlassCard>
     </TouchableOpacity>
@@ -207,7 +165,7 @@ const FarmerHomeScreen = ({ navigation }) => {
 
         <View style={styles.grid}>
           {workTypes.map((workType) => (
-            <AnimatedCard
+            <WorkTypeCard
               key={workType.id}
               workType={workType}
               onPress={handleWorkTypeSelect}
@@ -216,7 +174,7 @@ const FarmerHomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <BottomNavBar role="farmer" activeTab="Discovery" />
+      <BottomNavBar role="farmer" activeTab="Home" />
     </LinearGradient>
   );
 };
@@ -279,15 +237,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.glassBorder,
     position: 'relative',
-  },
-  hoverBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-    backgroundColor: colors.primary, // App primary green
   },
   imageHeader: {
     width: '100%',

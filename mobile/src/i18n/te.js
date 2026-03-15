@@ -28,7 +28,7 @@ export default {
 
   // ─── Bottom Navigation ───
   nav: {
-    discovery: 'అన్వేషించండి',
+    discovery: 'హోమ్',
     history: 'చరిత్ర',
     showQR: 'QR చూపించు',
     payments: 'చెల్లింపులు',

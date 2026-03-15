@@ -198,7 +198,7 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
       </View>
 
       {/* Bottom Navigation */}
-      <BottomNavBar role={user?.role || 'farmer'} activeTab="Discovery" />
+      <BottomNavBar role={user?.role || 'farmer'} activeTab="Home" />
     </View>
   );
 };

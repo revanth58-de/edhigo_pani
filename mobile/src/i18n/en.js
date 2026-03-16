@@ -28,12 +28,12 @@ export default {
 
   // ─── Bottom Navigation ───
   nav: {
-    discovery: 'Home',
+    discovery: 'Discovery',
     history: 'History',
     showQR: 'QR',
     payments: 'Payments',
     profile: 'Profile',
-    home: 'Main',
+    home: 'Home',
     jobs: 'Jobs',
     group: 'Group',
   },

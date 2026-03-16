@@ -28,12 +28,12 @@ export default {
 
   // ─── Bottom Navigation ───
   nav: {
-    discovery: 'హోమ్',
+    discovery: 'అన్వేషించండి',
     history: 'చరిత్ర',
     showQR: 'QR చూపించు',
     payments: 'చెల్లింపులు',
     profile: 'ప్రొఫైల్',
-    home: 'మెయిన్',
+    home: 'హోమ్',
     jobs: 'ఉద్యోగాలు',
   },
 

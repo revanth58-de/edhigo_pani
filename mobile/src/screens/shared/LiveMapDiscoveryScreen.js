@@ -151,20 +151,19 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
           </MapView>
         )}
 
-        {/* Re-center button */}
-        <View style={styles.zoomControls}>
-          <TouchableOpacity style={styles.zoomButton} onPress={centerOnUser}>
-            <MaterialIcons name="my-location" size={22} color={colors.primary} />
-          </TouchableOpacity>
-        </View>
+        {/* Back Button */}
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#131811" />
+        </TouchableOpacity>
 
-        {/* Worker count badge on map */}
-        {!loading && nearbyCount > 0 && (
-          <View style={styles.mapBadge}>
-            <MaterialIcons name="people" size={14} color="#fff" />
-            <Text style={styles.mapBadgeText}>{nearbyCount} nearby</Text>
-          </View>
-        )}
+        {/* Re-center button */}
+        <TouchableOpacity style={styles.locationButton} onPress={centerOnUser}>
+          <MaterialIcons name="my-location" size={24} color={colors.primary} />
+        </TouchableOpacity>
+
       </View>
 
       {/* Bottom card — farmer gets Send Request, workers/leaders get info */}
@@ -199,7 +198,7 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
       </View>
 
       {/* Bottom Navigation */}
-      <BottomNavBar role={user?.role || 'farmer'} activeTab="Home" />
+      <BottomNavBar role={user?.role || 'farmer'} activeTab="Discovery" />
     </View>
   );
 };
@@ -241,46 +240,39 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  zoomControls: {
+  locationButton: {
     position: 'absolute',
-    top: 16,
+    top: 50,
     right: 16,
-    gap: 8,
-  },
-  zoomButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 5,
+    zIndex: 10,
   },
-  mapBadge: {
+  backButton: {
     position: 'absolute',
-    top: 16,
+    top: 50,
     left: 16,
-    flexDirection: 'row',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.primary,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 4,
-  },
-  mapBadgeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    elevation: 5,
+    zIndex: 10,
   },
   bottomCard: {
     backgroundColor: '#FFFFFF',

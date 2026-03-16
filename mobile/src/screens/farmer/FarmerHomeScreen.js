@@ -174,7 +174,7 @@ const FarmerHomeScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      <BottomNavBar role="farmer" activeTab="Main" />
+      <BottomNavBar role="farmer" activeTab="Home" />
     </LinearGradient>
   );
 };

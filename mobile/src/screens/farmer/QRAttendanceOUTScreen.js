@@ -1,125 +1,116 @@
-// Screen 14: QR Attendance OUT
-// Based on: qr-display-attendance-out.html (code27.html)
-// Flow: Farmer displays QR code → Worker scans it → Job Complete (Screen 15 placeholder)
-// Logic: Calculates mock payment based on duration.
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   StatusBar,
-  ScrollView,
-  Alert,
+  TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors, borderRadius, shadows } from '../../theme/colors';
-import { useTranslation } from '../../i18n';
+import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
+import { colors } from '../../theme/colors';
+import { socketService } from '../../services/socketService';
 
 const { width } = Dimensions.get('window');
 
 const QRAttendanceOUTScreen = ({ navigation, route }) => {
-  const { worker, job, duration, startTime } = route.params || {};
-  const language = useAuthStore((state) => state.language) || 'en';
-  const { t } = useTranslation();
-
-  // Mock Calculation
-  // Rate: ₹400/day (8 hours) => ₹50/hour => ~₹0.83/minute
-  // Minimum ₹50
-  const totalMinutes = Math.floor((duration || 0) / 60);
-  const calculatedAmount = Math.max(50, Math.ceil(totalMinutes * 0.83));
-
-  // QR Data Payload
-  const qrPayload = JSON.stringify({
-    type: 'attendance_out',
-    jobId: job?.id || 'job_123',
-    workerId: worker?.id || 'worker_456',
-    amount: calculatedAmount,
-    timestamp: new Date().toISOString(),
-  });
+  const { job } = route.params || {};
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
-  }, []);
+    socketService.connect();
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
 
-  const handleSimulateWorkerScan = () => {
-    Alert.alert(
-      'Worker Scanned!',
-      'Simulating that the worker has successfully scanned this code.',
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('Payment', { worker, job, amount: calculatedAmount }) // Navigate to Payment
-        }
-      ]
-    );
-  };
+    socketService.socket?.on('attendance:check_out', (data) => {
+      if (data.jobId === job?.id || !data.jobId) {
+        navigation.replace('Payment', { job, attendanceData: data });
+      }
+    });
+
+    return () => {
+      socketService.socket?.off('attendance:check_out');
+    };
+  }, [job?.id]);
+
+  const qrData = JSON.stringify({
+    jobId: job?.id,
+    farmerId: user?.id,
+    type: 'out',
+    timestamp: Date.now(),
+  });
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Top Header */}
+      {/* Header - PhonePe Style (Solid Primary Color) */}
       <View style={styles.header}>
-        <View style={styles.modePill}>
-          <Text style={styles.modeText}>WORKER MODE</Text>
-        </View>
-        <Text style={styles.headerTitle}>{t('qr.checkOut').toUpperCase()}</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Receive Checkout</Text>
+        <TouchableOpacity style={styles.helpBtn}>
+          <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+        {/* Top Info Banner */}
+        <View style={styles.infoBanner}>
+          <MaterialIcons name="info" size={20} color={colors.primary} />
+          <Text style={styles.infoText}>Show this QR code to the worker</Text>
+        </View>
 
-        {/* Main QR Display */}
-        <View style={styles.qrContainer}>
-          <View style={styles.qrFrame}>
-            <QRCode
-              value={qrPayload}
-              size={width * 0.6}
-              color="black"
-              backgroundColor="white"
-            />
+        {/* QR Card - PhonePe Style */}
+        <View style={styles.qrWrapper}>
+          <View style={styles.qrCard}>
+            <View style={styles.qrHeader}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'F'}</Text>
+              </View>
+              <View>
+                <Text style={styles.farmerName}>{user?.name || 'Farmer'}</Text>
+                <Text style={styles.phoneText}>{user?.phone || 'Farm Owner'}</Text>
+              </View>
+            </View>
 
-            {/* Corner Accents */}
-            <View style={styles.cornerTL} />
-            <View style={styles.cornerTR} />
-            <View style={styles.cornerBL} />
-            <View style={styles.cornerBR} />
+            <View style={styles.divider} />
+
+            <View style={styles.qrCodeContainer}>
+              <QRCode
+                value={qrData}
+                size={width * 0.6}
+                color="#000000"
+                backgroundColor="#FFFFFF"
+              />
+              <View style={styles.logoOverlay}>
+                <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+              </View>
+            </View>
+
+            <Text style={styles.scanText}>
+              Scan to mark Check-Out
+            </Text>
           </View>
         </View>
 
-        {/* Amount Display */}
-        <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>ESTIMATED PAYMENT</Text>
-          <Text style={styles.amountValue}>₹{calculatedAmount}</Text>
-          <Text style={styles.amountSub}>Based on {totalMinutes} mins work</Text>
-        </View>
-
-        {/* Translation Guidance */}
-        <View style={styles.guidanceContainer}>
-          <Text style={styles.teluguText}>"Pani ayipoyindi, scan cheyandi"</Text>
-          <Text style={styles.englishText}>Work finished, please scan</Text>
-        </View>
-
-
-        {/* Dev Tool: Simulate Scan */}
-        <TouchableOpacity
-          style={styles.simulateButton}
-          onPress={handleSimulateWorkerScan}
-        >
-          <Text style={styles.simulateText}>[DEV] Simulate Worker Scan</Text>
-        </TouchableOpacity>
-
-      </ScrollView>
-
-      {/* Footer Help */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.helpLink}>
-          <MaterialIcons name="help-outline" size={20} color="#6b7280" />
-          <Text style={styles.helpText}>Need help scanning?</Text>
-        </TouchableOpacity>
+        {/* Job Details Box */}
+        {job && (
+          <View style={styles.jobBox}>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Work Type</Text>
+               <Text style={styles.jobValue}>{job.workType || 'Farm Work'}</Text>
+             </View>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Daily Wage</Text>
+               <Text style={styles.jobValue}>₹{job.payPerDay || 500}</Text>
+             </View>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -128,125 +119,150 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f6f8f6', // background-light
+    backgroundColor: '#F5F7FA',
   },
   header: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 16,
-    paddingBottom: 24,
-    backgroundColor: colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  modePill: {
-    backgroundColor: 'rgba(91, 236, 19, 0.2)',
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 12,
+    elevation: 4,
   },
-  modeText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#131811',
-    letterSpacing: 1,
-  },
+  backBtn: { padding: 8, marginLeft: -8 },
+  helpBtn: { padding: 8, marginRight: -8 },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#131811',
-    letterSpacing: -1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
-  scrollContent: {
-    padding: 24,
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    paddingBottom: 40,
   },
-  qrContainer: {
-    marginBottom: 32,
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 24,
+    width: '100%',
+    gap: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1B4332',
+    fontWeight: '500',
+  },
+  qrWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 32,
+  },
+  qrCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  qrHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  farmerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  phoneText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    width: '100%',
+    marginBottom: 24,
+  },
+  qrCodeContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  qrFrame: {
-    backgroundColor: colors.white,
-    padding: 24,
-    borderRadius: 24,
-    ...shadows.lg,
     position: 'relative',
-    borderWidth: 4,
-    borderColor: colors.primary,
-  },
-  // Corners
-  cornerTL: { position: 'absolute', top: -4, left: -4, width: 24, height: 24, borderTopWidth: 4, borderLeftWidth: 4, borderColor: colors.primary },
-  cornerTR: { position: 'absolute', top: -4, right: -4, width: 24, height: 24, borderTopWidth: 4, borderRightWidth: 4, borderColor: colors.primary },
-  cornerBL: { position: 'absolute', bottom: -4, left: -4, width: 24, height: 24, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: colors.primary },
-  cornerBR: { position: 'absolute', bottom: -4, right: -4, width: 24, height: 24, borderBottomWidth: 4, borderRightWidth: 4, borderColor: colors.primary },
-
-  amountCard: {
-    backgroundColor: colors.white,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 32,
-    ...shadows.sm,
-  },
-  amountLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#6b7280',
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
-  amountValue: {
-    fontSize: 40,
-    fontWeight: '900',
-    color: '#131811',
-  },
-  amountSub: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9ca3af',
-  },
-  guidanceContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-    gap: 8,
-  },
-  teluguText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#131811',
-    fontStyle: 'italic',
-    textAlign: 'center',
-  },
-  englishText: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  simulateButton: {
     padding: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
-  simulateText: {
+  logoOverlay: {
+    position: 'absolute',
+    backgroundColor: '#FFFFFF',
+    padding: 4,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  scanText: {
+    textAlign: 'center',
     fontSize: 14,
-    fontWeight: '700',
-    color: '#6b7280',
-    textDecorationLine: 'underline',
+    color: '#6B7280',
+    marginTop: 24,
+    fontWeight: '500',
+    letterSpacing: 1,
   },
-  footer: {
-    padding: 24,
-    alignItems: 'center',
+  jobBox: {
+    marginTop: 32,
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  helpLink: {
+  jobRow: {
     flexDirection: 'row',
-    gap: 8,
-    opacity: 0.6,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
   },
-  helpText: {
+  jobLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  jobValue: {
     fontSize: 14,
     fontWeight: '600',
-    textDecorationLine: 'underline',
+    color: '#111827',
   },
 });
 

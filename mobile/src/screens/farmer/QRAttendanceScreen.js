@@ -1,29 +1,26 @@
-// Screen 12: QR Attendance - Display QR for workers to scan (with ScrollView)
+// Screen 12: QR Attendance - Display QR for workers to scan (PhonePe Style)
 import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   StatusBar,
-  ScrollView,
+  TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
-import { useTranslation } from '../../i18n';
 import { socketService } from '../../services/socketService';
-import TopBar from '../../components/TopBar';
-import BottomNavBar from '../../components/BottomNavBar';
+
+const { width } = Dimensions.get('window');
 
 const QRAttendanceScreen = ({ navigation, route }) => {
   const { job, type = 'in' } = route.params || {};
-  const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const language = useAuthStore((state) => state.language) || 'en';
 
   useEffect(() => {
-
     socketService.connect();
     if (job?.id) {
       socketService.joinJobRoom(job.id);
@@ -32,17 +29,12 @@ const QRAttendanceScreen = ({ navigation, route }) => {
     // Listen for attendance events
     const eventName = type === 'in' ? 'attendance:check_in' : 'attendance:check_out';
     socketService.socket?.on(eventName, (data) => {
-      // data coming from backend includes jobId and workerId
       if (data.jobId === job?.id || !data.jobId) {
-        console.log(`✅ Attendance ${type} successful for job ${job?.id}:`, data);
-
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
         } else {
           navigation.replace('Payment', { job, attendanceData: data });
         }
-      } else {
-        console.log(`📡 Attendance for different job ignored: ${data.jobId}`);
       }
     });
 
@@ -60,64 +52,75 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
-      {/* Top Bar with Help */}
-      <TopBar title={type === 'in' ? 'Check In QR' : 'Check Out QR'} showBack navigation={navigation} />
+      {/* Header - PhonePe Style (Solid Primary Color) */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <MaterialIcons name="arrow-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {type === 'in' ? 'Receive Attendance' : 'Receive Checkout'}
+        </Text>
+        <TouchableOpacity style={styles.helpBtn}>
+          <MaterialIcons name="help-outline" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header Card */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerIconWrap}>
-            <MaterialIcons name="qr-code-2" size={36} color="#FFFFFF" />
-          </View>
-          <Text style={styles.headerTitle}>
-            {type === 'in' ? 'ATTENDANCE IN' : 'ATTENDANCE OUT'}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {type === 'in' ? 'హాజరు నమోదు' : 'నిష్క్రమణ నమోదు'}
-          </Text>
+      <View style={styles.content}>
+        {/* Top Info Banner */}
+        <View style={styles.infoBanner}>
+          <MaterialIcons name="info" size={20} color={colors.primary} />
+          <Text style={styles.infoText}>Show this QR code to the worker</Text>
         </View>
 
-        {/* Instruction */}
-        <View style={styles.instructionCard}>
-          <MaterialIcons name="qr-code-scanner" size={32} color={colors.primary} />
-          <Text style={styles.instructionText}>
-            Workers, scan this code with your phone
-          </Text>
-        </View>
-
-        {/* QR Code */}
-        <View style={styles.qrContainer}>
+        {/* QR Card - PhonePe Style */}
+        <View style={styles.qrWrapper}>
           <View style={styles.qrCard}>
-            <QRCode
-              value={qrData}
-              size={260}
-              backgroundColor="#FFFFFF"
-            />
+            <View style={styles.qrHeader}>
+              <View style={styles.avatarPlaceholder}>
+                <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'F'}</Text>
+              </View>
+              <View>
+                <Text style={styles.farmerName}>{user?.name || 'Farmer'}</Text>
+                <Text style={styles.phoneText}>{user?.phone || 'Farm Owner'}</Text>
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.qrCodeContainer}>
+              <QRCode
+                value={qrData}
+                size={width * 0.6}
+                color="#000000"
+                backgroundColor="#FFFFFF"
+              />
+              <View style={styles.logoOverlay}>
+                <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+              </View>
+            </View>
+
+            <Text style={styles.scanText}>
+              Scan to mark {type === 'in' ? 'Check-In' : 'Check-Out'}
+            </Text>
           </View>
-          <Text style={styles.qrLabel}>
-            {type === 'in' ? 'CHECK IN' : 'CHECK OUT'}
-          </Text>
         </View>
 
-
-        {/* Job Info */}
+        {/* Job Details Box */}
         {job && (
-          <View style={styles.jobInfo}>
-            <Text style={styles.jobInfoTitle}>Job Details</Text>
-            <Text style={styles.jobInfoText}>Work: {job.workType || 'Farm Work'}</Text>
-            <Text style={styles.jobInfoText}>Pay: ₹{job.payPerDay || 500}/day</Text>
+          <View style={styles.jobBox}>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Work Type</Text>
+               <Text style={styles.jobValue}>{job.workType || 'Farm Work'}</Text>
+             </View>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Daily Wage</Text>
+               <Text style={styles.jobValue}>₹{job.payPerDay || 500}</Text>
+             </View>
           </View>
         )}
-      </ScrollView>
-
-      {/* Bottom Nav */}
-      <BottomNavBar role="farmer" activeTab="ShowQR" />
+      </View>
     </View>
   );
 };
@@ -125,125 +128,150 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
+    backgroundColor: '#F5F7FA', // Light gray background typical of finance apps
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 24,
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  headerCard: {
+  header: {
     backgroundColor: colors.primary,
-    width: '100%',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-    gap: 8,
-  },
-  headerIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  instructionCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    marginBottom: 24,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    elevation: 4,
   },
-  instructionText: {
-    fontSize: 16,
+  backBtn: { padding: 8, marginLeft: -8 },
+  helpBtn: { padding: 8, marginRight: -8 },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#131811',
-    flex: 1,
+    color: '#FFFFFF',
   },
-  qrContainer: {
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    marginBottom: 24,
+  },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 24,
+    width: '100%',
+    gap: 12,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1B4332',
+    fontWeight: '500',
+  },
+  qrWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 32,
   },
   qrCard: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    width: '100%',
     padding: 24,
-    borderRadius: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 10,
-    borderWidth: 3,
-    borderColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  qrLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.primary,
-    letterSpacing: 3,
-    marginTop: 16,
-  },
-  voiceHint: {
+  qrHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: `${colors.primary}0D`,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 9999,
-    marginBottom: 16,
+    gap: 16,
+    marginBottom: 20,
   },
-  voiceText: {
+  avatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  farmerName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  phoneText: {
     fontSize: 14,
-    color: '#6f8961',
-    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 2,
   },
-  jobInfo: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
+  divider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
     width: '100%',
-    gap: 4,
+    marginBottom: 24,
+  },
+  qrCodeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  logoOverlay: {
+    position: 'absolute',
+    backgroundColor: '#FFFFFF',
+    padding: 4,
+    borderRadius: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  jobInfoTitle: {
+  scanText: {
+    textAlign: 'center',
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 4,
+    color: '#6B7280',
+    marginTop: 24,
+    fontWeight: '500',
+    letterSpacing: 1,
   },
-  jobInfoText: {
+  jobBox: {
+    marginTop: 32,
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  jobRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  jobLabel: {
     fontSize: 14,
-    color: '#6f8961',
+    color: '#6B7280',
+  },
+  jobValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
   },
 });
 

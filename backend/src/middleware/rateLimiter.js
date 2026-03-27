@@ -1,7 +1,23 @@
 const rateLimit = require('express-rate-limit');
+const { logger } = require('./errorHandler');
 
 /**
- * Strict limiter for auth endpoints — prevents OTP spam & brute-force.
+ * Strict limiter for OTP generation — prevents SMS bombing.
+ * 5 requests per 30 minutes per IP.
+ */
+const otpLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000, // 30 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many OTP requests from this IP, please try again in 30 minutes' },
+  onLimitReached: (req) => {
+    logger.warn(`🛑 Rate limit reached: OTP requests. IP: ${req.ip}, Path: ${req.originalUrl}`);
+  },
+});
+
+/**
+ * Limiter for auth verification — prevents brute-force.
  * 10 requests per 15 minutes per IP.
  */
 const authLimiter = rateLimit({
@@ -9,7 +25,10 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many auth attempts, please try again in 15 minutes' },
+  message: { error: 'Too many login attempts, please try again in 15 minutes' },
+  onLimitReached: (req) => {
+    logger.warn(`🛑 Rate limit reached: Auth attempts. IP: ${req.ip}, Path: ${req.originalUrl}`);
+  },
 });
 
 /**
@@ -36,4 +55,4 @@ const uploadLimiter = rateLimit({
   message: { error: 'Too many upload requests, please wait before uploading again' },
 });
 
-module.exports = { authLimiter, apiLimiter, uploadLimiter };
+module.exports = { authLimiter, apiLimiter, uploadLimiter, otpLimiter };

@@ -23,6 +23,10 @@ const chatRoutes = require('./routes/chat.routes');
 
 // Initialize Express
 const app = express();
+
+// Trust proxy for correct IP detection behind Nginx/Load Balancers
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 
 // Initialize Socket.io
@@ -36,6 +40,17 @@ const io = new Server(server, {
 });
 
 // ─── Middleware ───
+// Enforce HTTPS in production
+if (config.nodeEnv === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+
 // CORS must be before helmet so preflight requests work
 app.use(cors({
   origin: '*',
@@ -45,10 +60,16 @@ app.use(cors({
 
 // Explicit preflight handler for all routes (ensures tunnel proxies don't strip headers)
 app.options('{*path}', cors());
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   crossOriginOpenerPolicy: false,
-  contentSecurityPolicy: false, // Disable CSP in development
+  contentSecurityPolicy: config.nodeEnv === 'production' ? undefined : false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

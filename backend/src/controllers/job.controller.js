@@ -153,6 +153,11 @@ const getJobs = async (req, res, next) => {
 const getJobById = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
 
     const job = await prisma.job.findUnique({
       where: { id },
@@ -178,8 +183,6 @@ const getJobById = async (req, res) => {
                 ratingAvg: true,
                 skills: true,
                 village: true,
-                latitude: true,
-                longitude: true,
               },
             },
           },
@@ -191,6 +194,43 @@ const getJobById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Job not found' });
     }
 
+    // ── Authorization Logic (IDOR Protection) ───────────────────────
+    const isFarmer = job.farmerId === userId;
+    const userApplication = job.applications.find(app => app.workerId === userId);
+    const isWorker = !!userApplication;
+
+    // 1. If not the farmer and not an assigned worker, restrict data
+    if (!isFarmer && !isWorker) {
+      // If job is no longer pending, hidden it from non-participants entirely
+      if (job.status !== 'pending') {
+        return res.status(403).json({ success: false, message: 'Not authorized to view this job record' });
+      }
+
+      // If pending, allow discovery but sanitize sensitive fields
+      const sanitizedJob = {
+        ...job,
+        farmer: { ...job.farmer, phone: null }, // Hide farmer phone from non-applicants
+        applications: [], // Hide who else applied
+      };
+      
+      return res.status(200).json({
+        success: true,
+        data: sanitizedJob,
+      });
+    }
+
+    // 2. If it's a worker who applied/accepted, they see farmer phone but NOT other applications
+    if (isWorker && !isFarmer) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          ...job,
+          applications: job.applications.filter(app => app.workerId === userId), // Only see their own status
+        }
+      });
+    }
+
+    // 3. Farmer sees everything
     res.status(200).json({
       success: true,
       data: job,

@@ -52,6 +52,25 @@ const submitRating = async (req, res, next) => {
       return res.status(404).json({ error: 'Recipient user not found' });
     }
 
+    // ── Authorization: Verify Participation (Prevent Fake Ratings) ──
+    const participationMatch = await prisma.jobApplication.findFirst({
+      where: {
+        jobId,
+        OR: [
+          { workerId: fromUserId, status: 'accepted' },
+          { workerId: recipientId, status: 'accepted' }
+        ]
+      }
+    });
+
+    // Also check if the 'fromUser' is the farmer who owns the job
+    const isJobOwner = job.farmerId === fromUserId;
+    const isRecipientOwner = job.farmerId === recipientId;
+
+    if (!isJobOwner && !isRecipientOwner && !participationMatch) {
+       return res.status(403).json({ error: 'You can only rate users you have worked with on this job' });
+    }
+
     // Use a transaction to create the rating, then recalculate average from all ratings
     const rating = await prisma.rating.create({
       data: { jobId, fromUserId, toUserId, emoji, stars: stars || null },
@@ -125,8 +144,22 @@ const getUserRatings = async (req, res, next) => {
       take: 50, // Limit to recent 50
     });
 
+    const requesterId = req.user?.id;
+
+    const sanitizedRatings = ratings.map(r => {
+      // Hide phone numbers unless the requester is an admin or the user themselves in the profile
+      const showFromPhone = requesterId === r.fromUser.id;
+      const showToPhone = requesterId === r.toUser.id;
+
+      return {
+        ...r,
+        fromUser: { ...r.fromUser, phone: showFromPhone ? r.fromUser.phone : undefined },
+        toUser: { ...r.toUser, phone: showToPhone ? r.toUser.phone : undefined },
+      };
+    });
+
     res.json({
-      ratings,
+      ratings: sanitizedRatings,
       count: ratings.length,
     });
   } catch (error) {

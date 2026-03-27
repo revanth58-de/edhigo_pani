@@ -116,6 +116,15 @@ const getGroupDetails = async (req, res, next) => {
       return res.status(404).json({ error: 'Group not found' });
     }
 
+    // Authorization: Only leader or member can view details
+    const userId = req.user.id;
+    const isLeader = group.leaderId === userId;
+    const isMember = group.members.some(m => m.workerId === userId && m.status === 'joined');
+
+    if (!isLeader && !isMember) {
+      return res.status(403).json({ error: 'Not authorized to view this group details' });
+    }
+
     // Separate joined members from invited-but-pending members
     const joinedMembers = group.members.filter(m => m.status === 'joined');
     const pendingInvites = group.members.filter(m => m.status === 'invited');
@@ -139,6 +148,11 @@ const getGroupJobs = async (req, res, next) => {
 
     if (!group) {
       return res.status(404).json({ error: 'Group not found' });
+    }
+
+    // Authorization: Only the group leader can browse jobs for the group
+    if (group.leaderId !== req.user.id) {
+       return res.status(403).json({ error: 'Only the group leader can view group-eligible jobs' });
     }
 
     // Find jobs that want group workers and are still pending

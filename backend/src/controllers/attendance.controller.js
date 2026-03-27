@@ -171,7 +171,13 @@ const checkOut = async (req, res, next) => {
     }
 
     if (!targetId) {
-      return res.status(404).json({ success: false, message: 'No active attendance found' });
+      return res.status(404).json({ success: false, message: 'No active attendance found or unauthorized action' });
+    }
+
+    // Authorization: Ensure this record belongs to the checking-out worker
+    const record = await prisma.attendance.findUnique({ where: { id: targetId }, select: { workerId: true } });
+    if (record && record.workerId !== (req.user?.id || workerId)) {
+       return res.status(403).json({ success: false, message: 'Cannot check out for another worker' });
     }
 
     // 1. QR Validation
@@ -262,6 +268,22 @@ const checkOut = async (req, res, next) => {
 const getAttendanceRecords = async (req, res) => {
   try {
     const { jobId } = req.params;
+    const userId = req.user.id;
+
+    // 1. Fetch job to check ownership
+    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { farmerId: true } });
+    if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
+
+    // 2. Check if user is the farmer or a participating worker
+    const isFarmer = job.farmerId === userId;
+    const participationCount = await prisma.attendance.count({
+      where: { jobId, workerId: userId }
+    });
+
+    if (!isFarmer && participationCount === 0) {
+      return res.status(403).json({ success: false, message: 'Not authorized to view these attendance records' });
+    }
+
     const records = await prisma.attendance.findMany({
       where: { jobId },
       include: {

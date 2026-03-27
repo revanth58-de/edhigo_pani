@@ -1,11 +1,21 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const config = require('../config/env');
 const { sendOTPSms } = require('../services/smsService');
+const { logger } = require('../middleware/errorHandler');
 
-// Generate a 4-digit OTP
+// Generate a cryptographically secure 4-digit OTP
 const generateOTP = () => {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+  return crypto.randomInt(1000, 10000).toString();
+};
+
+// Remove sensitive fields from user object before sending to client
+const sanitizeUser = (user) => {
+  if (!user) return null;
+  const { otp, otpExpiresAt, createdAt, updatedAt, ...safeUser } = user;
+  return safeUser;
 };
 
 // Generate JWT tokens and save refresh token to DB
@@ -38,7 +48,7 @@ const sendOTP = async (req, res, next) => {
   try {
     const { phone } = req.body;
 
-    console.log('📞 Send OTP Request for phone:', phone);
+    logger.info(`📞 OTP requested for phone: ${phone}`, { ip: req.ip });
 
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required' });
@@ -55,15 +65,16 @@ const sendOTP = async (req, res, next) => {
     const isExistingUser = !!(existingUser?.name && existingUser?.role);
 
     const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
 
-    console.log('🔑 Generated OTP:', { otp, expiresAt: otpExpiresAt });
+    console.log('🔑 Generated OTP (dev only):', otp);
 
     // Upsert user — create if doesn't exist, update OTP if exists
     await prisma.user.upsert({
       where: { phone },
-      update: { otp, otpExpiresAt },
-      create: { phone, otp, otpExpiresAt },
+      update: { otp: otpHash, otpExpiresAt },
+      create: { phone, otp: otpHash, otpExpiresAt },
     });
 
     console.log('✅ OTP saved. isExistingUser:', isExistingUser);
@@ -100,16 +111,17 @@ const verifyOTP = async (req, res, next) => {
     const user = await prisma.user.findUnique({ where: { phone } });
 
     if (!user) {
-      console.log('❌ User not found for phone:', phone);
+      logger.warn(`❌ Auth Failure: User not found. Phone: ${phone}`, { ip: req.ip });
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check expiry FIRST — an expired OTP should never be matchable
-    if (!user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+    if (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
       return res.status(401).json({ error: 'OTP expired. Please request a new one.' });
     }
 
-    if (user.otp !== otp) {
+    const isMatch = await bcrypt.compare(otp, user.otp);
+    if (!isMatch) {
+      logger.warn(`❌ Auth Failure: Invalid OTP. Phone: ${phone}`, { ip: req.ip });
       return res.status(401).json({ error: 'Invalid OTP' });
     }
 
@@ -129,25 +141,11 @@ const verifyOTP = async (req, res, next) => {
 
     const tokens = await generateTokens(user.id);
 
+    logger.info(`✅ Auth Success: User logged in. ID: ${user.id}, Phone: ${phone}`, { ip: req.ip });
+
     res.json({
       message: 'OTP verified successfully',
-      user: {
-        id: updatedUser.id,
-        phone: updatedUser.phone,
-        name: updatedUser.name,
-        role: updatedUser.role,
-        village: updatedUser.village,
-        age: updatedUser.age,
-        gender: updatedUser.gender,
-        language: updatedUser.language,
-        photoUrl: updatedUser.photoUrl,
-        landAcres: updatedUser.landAcres,
-        animals: updatedUser.animals,
-        skills: updatedUser.skills,
-        ratingAvg: updatedUser.ratingAvg,
-        ratingCount: updatedUser.ratingCount,
-        status: updatedUser.status,
-      },
+      user: sanitizeUser(updatedUser),
       ...tokens,
     });
 
@@ -177,13 +175,7 @@ const setRole = async (req, res, next) => {
 
     res.json({
       message: 'Role set successfully',
-      user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
-        language: user.language,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error) {
     next(error);
@@ -222,21 +214,7 @@ const getMe = async (req, res, next) => {
     });
 
     res.json({
-      user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
-        language: user.language,
-        village: user.village,
-        photoUrl: user.photoUrl,
-        landAcres: user.landAcres,
-        animals: user.animals,
-        skills: user.skills,
-        ratingAvg: user.ratingAvg,
-        ratingCount: user.ratingCount,
-        status: user.status,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error) {
     next(error);
@@ -325,21 +303,7 @@ const updateProfile = async (req, res, next) => {
 
     res.json({
       message: 'Profile updated successfully',
-      user: {
-        id: user.id,
-        phone: user.phone,
-        name: user.name,
-        role: user.role,
-        language: user.language,
-        village: user.village,
-        photoUrl: user.photoUrl,
-        landAcres: user.landAcres,
-        animals: user.animals,
-        skills: user.skills,
-        ratingAvg: user.ratingAvg,
-        ratingCount: user.ratingCount,
-        status: user.status,
-      },
+      user: sanitizeUser(user),
     });
   } catch (error) {
     next(error);

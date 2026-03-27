@@ -1,28 +1,53 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { authAPI, setAuthToken } from '../services/api';
 
-const STORAGE_KEY = 'edhigo_auth';
+const STORAGE_KEY = 'edhigo_auth_meta';
+const ACCESS_TOKEN_KEY = 'edhigo_access_token';
+const REFRESH_TOKEN_KEY = 'edhigo_refresh_token';
 
-// ── Helpers: manual read/write to AsyncStorage ──
+// ── Helpers: Secure & Regular Storage ──
 const saveToStorage = async (data) => {
   try {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (_) { }
+    const { accessToken, refreshToken, ...meta } = data;
+    
+    // Save non-sensitive meta to AsyncStorage
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
+    
+    // Save sensitive tokens to SecureStore
+    if (accessToken) await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+    if (refreshToken) await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  } catch (error) {
+    console.error('Error saving auth to storage:', error);
+  }
 };
 
 const clearStorage = async () => {
   try {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_KEY),
+      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+    ]);
   } catch (_) { }
 };
 
 // Called once on app start (from AppNavigator) to rehydrate state
 export const loadAuthFromStorage = async () => {
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const [rawMeta, accessToken, refreshToken] = await Promise.all([
+      AsyncStorage.getItem(STORAGE_KEY),
+      SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
+      SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
+    ]);
+
+    const meta = rawMeta ? JSON.parse(rawMeta) : {};
+    return {
+      ...meta,
+      accessToken,
+      refreshToken,
+    };
   } catch (_) {
     return null;
   }
@@ -77,17 +102,30 @@ const useAuthStore = create((set, get) => ({
   },
 
   // ── Actions ──
-  setLanguage: (language) => {
+  setLanguage: async (language) => {
     set({ language });
     const s = get();
-    saveToStorage({ user: s.user, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated, language, phone: s.phone });
+    await saveToStorage({ 
+      user: s.user, 
+      accessToken: s.accessToken, 
+      refreshToken: s.refreshToken, 
+      isAuthenticated: s.isAuthenticated, 
+      language, 
+      phone: s.phone 
+    });
   },
 
-  updateUser: (userData) => {
-    set((state) => {
-      const updatedUser = { ...state.user, ...userData };
-      saveToStorage({ user: updatedUser, accessToken: state.accessToken, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated, language: state.language, phone: state.phone });
-      return { user: updatedUser };
+  updateUser: async (userData) => {
+    const state = get();
+    const updatedUser = { ...state.user, ...userData };
+    set({ user: updatedUser });
+    await saveToStorage({ 
+      user: updatedUser, 
+      accessToken: state.accessToken, 
+      refreshToken: state.refreshToken, 
+      isAuthenticated: state.isAuthenticated, 
+      language: state.language, 
+      phone: state.phone 
     });
   },
 
@@ -128,10 +166,18 @@ const useAuthStore = create((set, get) => ({
 
       setAuthToken(accessToken);
 
-      // Persist to AsyncStorage
+      // Persist to Storage
       const mappedUser = mapServerUser(user);
       set({ user: mappedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false, otp: null });
-      saveToStorage({ user: mappedUser, accessToken, refreshToken, isAuthenticated: true, language: get().language, phone });
+      
+      await saveToStorage({ 
+        user: mappedUser, 
+        accessToken, 
+        refreshToken, 
+        isAuthenticated: true, 
+        language: get().language, 
+        phone 
+      });
 
       // Connect socket after auth
       import('../services/socketService').then(s => s.socketService.connect());
@@ -142,7 +188,14 @@ const useAuthStore = create((set, get) => ({
         if (meResponse?.data?.user) {
           const fullUser = mapServerUser({ ...user, ...meResponse.data.user });
           set({ user: fullUser });
-          saveToStorage({ user: fullUser, accessToken, refreshToken, isAuthenticated: true, language: get().language, phone });
+          await saveToStorage({ 
+            user: fullUser, 
+            accessToken, 
+            refreshToken, 
+            isAuthenticated: true, 
+            language: get().language, 
+            phone 
+          });
         }
       } catch (_) { }
 
@@ -160,7 +213,14 @@ const useAuthStore = create((set, get) => ({
       const updatedUser = response.data.user;
       set({ user: updatedUser, isLoading: false });
       const s = get();
-      saveToStorage({ user: updatedUser, accessToken: s.accessToken, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated, language: s.language, phone: s.phone });
+      await saveToStorage({ 
+        user: updatedUser, 
+        accessToken: s.accessToken, 
+        refreshToken: s.refreshToken, 
+        isAuthenticated: s.isAuthenticated, 
+        language: s.language, 
+        phone: s.phone 
+      });
       return response.data;
     } catch (error) {
       set({ isLoading: false });

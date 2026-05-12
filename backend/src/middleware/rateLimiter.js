@@ -9,7 +9,7 @@ const { logger } = require('./errorHandler');
  */
 const otpLimiter = rateLimit({
   windowMs: 30 * 60 * 1000, // 30 minutes
-  max: process.env.NODE_ENV === 'development' ? 100 : 5,
+  max: 100000, // Effectively disabled as per request
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many OTP requests from this IP, please try again in 30 minutes' },
@@ -25,7 +25,7 @@ const otpLimiter = rateLimit({
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 200 : 10,
+  max: process.env.NODE_ENV === 'development' ? 2000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts, please try again in 15 minutes' },

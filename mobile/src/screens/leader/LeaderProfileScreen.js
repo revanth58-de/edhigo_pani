@@ -252,10 +252,19 @@ const LeaderProfileScreen = ({ navigation }) => {
               </TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity style={styles.editBtn} onPress={handleEditToggle}>
-              <MaterialIcons name="edit" size={20} color={colors.primary} />
-              <Text style={styles.editBtnText}>Edit Profile</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.editBtn} onPress={handleEditToggle}>
+                <MaterialIcons name="edit" size={20} color={colors.primary} />
+                <Text style={styles.editBtnText}>Edit Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.editBtn, { marginTop: 12 }]}
+                onPress={() => navigation.navigate('Groups')}
+              >
+                <MaterialIcons name="groups" size={22} color={colors.primary} />
+                <Text style={styles.editBtnText}>My Bookings</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
 

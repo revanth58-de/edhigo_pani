@@ -252,4 +252,8 @@ export default {
     groupAttendance: 'समूह उपस्थिति',
   },
 
+  // ─── Home Shared ───
+  home: {
+    seeAll: 'सभी देखें',
+  },
 };

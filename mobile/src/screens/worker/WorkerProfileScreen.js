@@ -1,5 +1,5 @@
 // Screen 24: Worker Profile - Skills Add+ & Experience Level system
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import BottomNavBar from '../../components/BottomNavBar';
 import { LinearGradient } from 'expo-linear-gradient';
+import { jobAPI } from '../../services/api';
 
 const AVATAR_OPTIONS = [
   { key: 'agriculture', icon: 'agriculture' },
@@ -47,6 +51,61 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, { toValue: 10, duration: 800, useNativeDriver: true }),
+        Animated.timing(arrowAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  // ── Slide to Switch Logic ──
+  const { width } = Dimensions.get('window');
+  const SLIDE_WIDTH = width - 40; // margin 20*2
+  const HANDLE_SIZE = 56;
+  const END_THRESHOLD = SLIDE_WIDTH - HANDLE_SIZE - 20;
+
+  const slideX = useRef(new Animated.Value(0)).current;
+  const isSwitching = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gesture) => {
+        if (isSwitching.current) return;
+        const newX = Math.max(0, Math.min(gesture.dx, SLIDE_WIDTH - HANDLE_SIZE));
+        slideX.setValue(newX);
+      },
+      onPanResponderRelease: async (_, gesture) => {
+        if (isSwitching.current) return;
+        if (gesture.dx >= END_THRESHOLD) {
+          isSwitching.current = true;
+          // Animate to end
+          Animated.timing(slideX, { toValue: SLIDE_WIDTH - HANDLE_SIZE, duration: 100, useNativeDriver: true }).start();
+          
+          // Trigger switch
+          Alert.alert("Switching Mode", "Switching to Farmer Dashboard...");
+          try {
+            const { setRole } = useAuthStore.getState();
+            await setRole('farmer');
+            setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'FarmerHome' }] }), 500);
+          } catch (err) {
+            Alert.alert("Error", "Failed to switch role.");
+            // Reset
+            isSwitching.current = false;
+            Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+          }
+        } else {
+          // Snap back
+          Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
 
   // Editable state
   const [editName, setEditName] = useState(user?.name || '');
@@ -413,21 +472,39 @@ const WorkerProfileScreen = ({ navigation }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => navigation.navigate('WorkerHome', { tab: 'history' })}
+                onPress={() => navigation.navigate('WorkerBookings')}
               >
                 <MaterialIcons name="history" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>History</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('WorkerPaymentHistory')}
-              >
-                <MaterialIcons name="account-balance-wallet" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>Payments</Text>
+                <Text style={styles.actionButtonText}>My Bookings</Text>
               </TouchableOpacity>
             </>
           )}
         </View>
+
+        {/* Role Switcher (Slide to Switch) */}
+        {!isEditing && (
+          <View style={styles.roleSwitchCard}>
+            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.roleSwitchGradient}>
+              {/* Background Text */}
+              <View style={styles.slideTrackTextContainer}>
+                <Text style={styles.slideTrackText}>Slide to Switch to Farmer Mode</Text>
+              </View>
+
+              {/* Draggable Handle */}
+              <Animated.View 
+                {...panResponder.panHandlers}
+                style={[
+                  styles.slideHandle,
+                  { transform: [{ translateX: slideX }] }
+                ]}
+              >
+                <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
+                  <MaterialIcons name="agriculture" size={28} color={colors.primary} />
+                </LinearGradient>
+              </Animated.View>
+            </LinearGradient>
+          </View>
+        )}
 
         {/* Logout Button */}
         <TouchableOpacity
@@ -581,7 +658,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   statusLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: 'bold',
     color: '#9CA3AF',
     letterSpacing: 1,
@@ -617,12 +694,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   statNum: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 22,
+    fontWeight: '800',
     color: '#131811',
   },
   statLabel: {
-    fontSize: 9,
+    fontSize: 13,
     fontWeight: '700',
     color: '#9CA3AF',
     marginTop: 4,
@@ -808,10 +885,55 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FEE2E2',
   },
-  logoutButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#EF4444',
+  logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  roleSwitchCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 18,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  roleSwitchGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    height: 68,
+    position: 'relative',
+  },
+  slideTrackTextContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 40,
+  },
+  slideTrackText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 0.5,
+  },
+  slideHandle: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  handleInner: {
+    flex: 1,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrowContainer: {
+    // Handled by inline transform
   },
 
   avatarPicker: {

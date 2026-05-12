@@ -252,4 +252,8 @@ export default {
     groupAttendance: 'సమూహ హాజరు',
   },
 
+  // ─── Home Shared ───
+  home: {
+    seeAll: 'అన్నీ చూడండి',
+  },
 };

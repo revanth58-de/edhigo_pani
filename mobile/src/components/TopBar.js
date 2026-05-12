@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   },
   iconButtonPlaceholder: { width: 44 },
   title: {
-    fontSize: 20, fontWeight: 'bold', color: '#131811',
+    fontSize: 24, fontWeight: '800', color: '#131811',
     flex: 1, textAlign: 'center', marginHorizontal: 8,
   },
   bellButton: {
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#FFF',
   },
-  badgeText: { fontSize: 9, fontWeight: '900', color: '#FFF' },
+  badgeText: { fontSize: 10, fontWeight: '900', color: '#FFF' },
 });
 
 export default TopBar;

@@ -1,5 +1,5 @@
 // Screen 7: Farmer Profile - Fully editable with image-based view mode
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,9 @@ import {
   Alert,
   Platform,
   ActivityIndicator,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,6 +21,7 @@ import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { authAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
@@ -158,6 +162,61 @@ const FarmerProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const arrowAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowAnim, { toValue: 10, duration: 800, useNativeDriver: true }),
+        Animated.timing(arrowAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  // ── Slide to Switch Logic ──
+  const { width } = Dimensions.get('window');
+  const SLIDE_WIDTH = width - 40; // margin 20*2
+  const HANDLE_SIZE = 56;
+  const END_THRESHOLD = SLIDE_WIDTH - HANDLE_SIZE - 20;
+
+  const slideX = useRef(new Animated.Value(0)).current;
+  const isSwitching = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gesture) => {
+        if (isSwitching.current) return;
+        const newX = Math.max(0, Math.min(gesture.dx, SLIDE_WIDTH - HANDLE_SIZE));
+        slideX.setValue(newX);
+      },
+      onPanResponderRelease: async (_, gesture) => {
+        if (isSwitching.current) return;
+        if (gesture.dx >= END_THRESHOLD) {
+          isSwitching.current = true;
+          // Animate to end
+          Animated.timing(slideX, { toValue: SLIDE_WIDTH - HANDLE_SIZE, duration: 100, useNativeDriver: true }).start();
+          
+          // Trigger switch
+          Alert.alert("Switching Mode", "Switching to Labour Dashboard...");
+          try {
+            const { setRole } = useAuthStore.getState();
+            await setRole('worker');
+            setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'WorkerHome' }] }), 500);
+          } catch (err) {
+            Alert.alert("Error", "Failed to switch role.");
+            // Reset
+            isSwitching.current = false;
+            Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+          }
+        } else {
+          // Snap back
+          Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
 
   // Editable state
   const [editName, setEditName] = useState('');
@@ -526,9 +585,32 @@ const FarmerProfileScreen = ({ navigation }) => {
               style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
               onPress={() => navigation.navigate('FarmerHistory')}
             >
-              <MaterialIcons name="history" size={24} color={colors.primary} />
-              <Text style={[styles.editButtonText, { color: colors.primary }]}>Work History</Text>
+              <MaterialIcons name="history" size={26} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>My Bookings</Text>
             </TouchableOpacity>
+
+            {/* Role Switcher (Slide to Switch) */}
+            <View style={styles.roleSwitchCard}>
+              <LinearGradient colors={['#FACC15', '#EAB308']} style={styles.roleSwitchGradient}>
+                {/* Background Text */}
+                <View style={styles.slideTrackTextContainer}>
+                  <Text style={styles.slideTrackText}>Slide to Switch to Labour Mode</Text>
+                </View>
+
+                {/* Draggable Handle */}
+                <Animated.View 
+                  {...panResponder.panHandlers}
+                  style={[
+                    styles.slideHandle,
+                    { transform: [{ translateX: slideX }] }
+                  ]}
+                >
+                  <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
+                    <MaterialIcons name="engineering" size={28} color="#EAB308" />
+                  </LinearGradient>
+                </Animated.View>
+              </LinearGradient>
+            </View>
 
             <TouchableOpacity
               style={styles.logoutButton}
@@ -634,7 +716,7 @@ const styles = StyleSheet.create({
   },
   avatarOptionSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
 
-  name: { fontSize: 28, fontWeight: 'bold', color: '#131811', marginBottom: 4 },
+  name: { fontSize: 32, fontWeight: 'bold', color: '#131811', marginBottom: 4 },
   nameInput: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -647,8 +729,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     minWidth: 200,
   },
-  phone: { fontSize: 16, color: '#6f8961', marginBottom: 4 },
-  village: { fontSize: 14, color: '#9CA3AF' },
+  phone: { fontSize: 18, color: '#6f8961', marginBottom: 4 },
+  village: { fontSize: 16, color: '#9CA3AF' },
   villageInput: {
     fontSize: 14,
     color: '#131811',
@@ -675,7 +757,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#131811' },
+  statValue: { fontSize: 22, fontWeight: 'bold', color: '#131811' },
   statInput: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -686,7 +768,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
     textAlign: 'center',
   },
-  statLabel: { fontSize: 12, color: '#6f8961', textAlign: 'center' },
+  statLabel: { fontSize: 14, color: '#6f8961', textAlign: 'center' },
 
   // Section
   section: {
@@ -702,7 +784,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#131811' },
+  sectionTitle: { fontSize: 22, fontWeight: '800', color: '#131811' },
 
   // View mode: card grid
   cardGrid: {
@@ -730,7 +812,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipEmoji: { fontSize: 14 },
-  chipText: { fontSize: 13, fontWeight: '600', color: '#131811' },
+  chipText: { fontSize: 15, fontWeight: '700', color: '#131811' },
   chipTextSelected: { color: '#FFFFFF' },
 
   // Edit mode: animal counters
@@ -746,7 +828,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   animalEmoji: { fontSize: 30, marginBottom: 4 },
-  animalLabel: { fontSize: 11, fontWeight: '600', color: '#131811', marginBottom: 8, textAlign: 'center' },
+  animalLabel: { fontSize: 13, fontWeight: '700', color: '#131811', marginBottom: 8, textAlign: 'center' },
   animalCounter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   counterBtn: {
     width: 26,
@@ -824,6 +906,55 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  roleSwitchCard: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    borderRadius: 18,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#EAB308',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+  },
+  roleSwitchGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    height: 68,
+    position: 'relative',
+  },
+  slideTrackTextContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 40,
+  },
+  slideTrackText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 0.5,
+  },
+  slideHandle: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  handleInner: {
+    flex: 1,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  arrowContainer: {
+    // This will be overridden by the inline transform in the component
+  },
 });
 
 export default FarmerProfileScreen;

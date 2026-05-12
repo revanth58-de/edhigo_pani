@@ -1,4 +1,3 @@
-// Screen 17: Worker Home - Fixed and Refactored
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -10,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,639 +17,338 @@ import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import ScrollingBanner from '../../components/ScrollingBanner';
-import { jobAPI, authAPI } from '../../services/api';
+import WeatherLocationHeader from '../../components/WeatherLocationHeader';
+import FloatingGroupIcon from '../../components/FloatingGroupIcon';
+import GlassCard from '../../components/GlassCard';
+import { jobAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
-import * as Location from 'expo-location';
-
-const STATUS_META = {
-  pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
-  accepted: { label: 'Accepted', color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
-  in_progress: { label: 'In Progress', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
-  completed: { label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
-  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
-};
-
-const WORK_ICONS = {
-  Sowing: 'grass',
-  Harvesting: 'agriculture',
-  Irrigation: 'water-drop',
-  Labour: 'engineering',
-  Tractor: 'agriculture',
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const JobCard = ({ job }) => {
-  const status = STATUS_META[job.status] || STATUS_META.pending;
-  const workIcon = WORK_ICONS[job.workType] || 'work';
-
-    <TouchableOpacity style={historyStyles.card} activeOpacity={0.8}>
-      <View style={historyStyles.cardHeader}>
-        <View style={[historyStyles.workIconCircle, { backgroundColor: `${colors.primary}10` }]}>
-          <MaterialIcons name={workIcon} size={28} color={colors.primary} />
-        </View>
-        <View style={historyStyles.cardHeaderText}>
-          <Text style={historyStyles.workType}>{job.workType || 'Farm Work'}</Text>
-          <Text style={historyStyles.jobDate}>{formatDate(job.createdAt)}</Text>
-        </View>
-        <View style={[historyStyles.statusBadge, { backgroundColor: status.bg }]}>
-          <MaterialIcons name={status.icon} size={14} color={status.color} />
-          <Text style={[historyStyles.statusText, { color: status.color }]}>{status.label}</Text>
-        </View>
-      </View>
-
-      <View style={historyStyles.cardDetails}>
-        <View style={historyStyles.detailRow}>
-          <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText} numberOfLines={1}>{job.farmAddress || 'Location'}</Text>
-        </View>
-        <View style={historyStyles.detailRow}>
-          <MaterialIcons name="payments" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText}>₹{job.wagePerDay || job.payPerDay || '500'}</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-};
 
 const WorkerHomeScreen = ({ navigation, route }) => {
-  const { user, logout } = useAuthStore();
+  const { user, refreshProfile, logout } = useAuthStore();
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(true);
   const [searching, setSearching] = useState(false);
-  const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
-  // Store jobs as id-keyed map for O(1) removal when job:taken fires
-  const [jobsMap, setJobsMap] = useState({});
-  const [userLocation, setUserLocation] = useState(null);
   const activeTab = route.params?.tab || 'home';
-  const navigationRef = useRef(navigation);
-
-  // History state
-  const [historyJobs, setHistoryJobs] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
-  // Derived array for MapDashboard
-  const jobs = Object.values(jobsMap);
-
-  const fetchNearbyJobs = useCallback(async () => {
-    try {
-      const response = await jobAPI.getJobs({ status: 'pending' });
-      const jobList = response?.data?.data || [];
-      const newMap = {};
-      jobList.forEach(j => {
-        newMap[j.id] = {
-          id: j.id,
-          latitude: j.farmLatitude || 17.3850,
-          longitude: j.farmLongitude || 78.4867,
-          type: 'job',
-          title: j.workType || 'Farm Job',
-          workType: j.workType,
-          payPerDay: j.payPerDay,
-          farmAddress: j.farmAddress,
-        };
-      });
-      setJobsMap(newMap);
-    } catch (e) {
-      console.warn('Failed to fetch jobs for map');
-    }
-  }, []);
-
-  const { refreshProfile } = useAuthStore();
+  
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
-      fetchNearbyJobs();
-      
-      // GPS update on focus
-      (async () => {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status === 'granted') {
-            const loc = await Location.getCurrentPositionAsync({
-              accuracy: Location.Accuracy.BestForNavigation
-            });
-            setUserLocation(loc.coords);
-            await authAPI.updateProfile({
-              latitude: loc.coords.latitude,
-              longitude: loc.coords.longitude,
-              status: 'available',
-            });
-          }
-        } catch (gpsErr) {
-          console.warn('GPS save failed:', gpsErr.message);
-        }
-      })();
-    }, [fetchNearbyJobs, refreshProfile])
+    }, [refreshProfile])
   );
 
   useEffect(() => {
-
-    // Join personal socket room so backend can send targeted job offers
     if (user?.id) {
       socketService.connect();
       socketService.joinUserRoom(user.id);
     }
-
-    // ── Real-time: job taken by another worker → remove from feed ───
-    const handleJobTaken = ({ jobId }) => {
-      setJobsMap(prev => {
-        const updated = { ...prev };
-        delete updated[jobId];
-        return updated;
-      });
-    };
-
-    // ── Real-time: new job offer or re-opened job → add to feed ──────
-    const handleNewOffer = (offer) => {
-      const distanceText = offer.distanceLabel || 'Nearby';
-
-      // Use actual farm coordinates from the offer; fall back to Hyderabad
-      const farmLat = offer.farmLatitude ?? offer.latitude ?? 17.3850;
-      const farmLng = offer.farmLongitude ?? offer.longitude ?? 78.4867;
-
-      // Add/restore the job in the map feed immediately
-      setJobsMap(prev => ({
-        ...prev,
-        [offer.jobId]: {
-          id: offer.jobId,
-          latitude: farmLat,
-          longitude: farmLng,
-          type: 'job',
-          title: offer.workType || 'Farm Job',
-          workType: offer.workType,
-          payPerDay: offer.payPerDay,
-          farmAddress: offer.farmAddress,
-          farmLatitude: farmLat,
-          farmLongitude: farmLng,
-        },
-      }));
-
-      // Show alert to prompt worker
-      const label = offer.reOpened ? '🔄 Job Available Again!' : '🌾 New Job Offer!';
-      Alert.alert(
-        label,
-        `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
-        [
-          { text: 'Ignore', style: 'cancel' },
-          {
-            text: 'View Offer',
-            onPress: () => navigationRef.current.navigate('JobOffer', { job: { ...offer, id: offer.jobId } }),
-          },
-        ]
-      );
-    };
-
-    socketService.onJobTaken(handleJobTaken);
-    socketService.onNewOffer(handleNewOffer);
-
-    return () => {
-      socketService.offJobTaken();
-      socketService.offNewOffer();
-    };
-  }, [user?.id, fetchNearbyJobs]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab !== 'history') return;
-
-      const fetchHistory = async () => {
-        setHistoryLoading(true);
-        try {
-          const res = await jobAPI.getWorkerJobs();
-          const all = res?.data?.data || [];
-          setHistoryJobs(
-            all
-              .filter(j => ['accepted', 'in_progress', 'completed', 'cancelled'].includes(j.status))
-              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          );
-        } catch (e) {
-          try {
-            const res2 = await jobAPI.getWorkerHistory();
-            const all2 = res2?.data?.data || [];
-            setHistoryJobs(all2.sort((a, b) => new Date(b.checkIn || b.createdAt) - new Date(a.checkIn || a.createdAt)));
-          } catch (e2) {
-            console.warn('Failed to fetch work history', e2);
-          }
-        } finally {
-          setHistoryLoading(false);
-        }
-      };
-
-      fetchHistory();
-    }, [activeTab, user?.id])
-  );
-
-  useEffect(() => {
-    // Voice guidance removed
-  }, []);
+  }, [user?.id]);
 
   const handleStartWork = async () => {
     setSearching(true);
-    // Voice guidance removed
     try {
       const response = await jobAPI.getJobs({ status: 'pending' });
       const jobs = response?.data?.data || [];
       if (jobs.length === 0) {
-        // Voice guidance removed
         Alert.alert('No Jobs', 'No pending jobs found near you. Please try again later.');
         return;
       }
-      // Take the first available pending job
-      const job = jobs[0];
-      // Voice guidance removed
-      navigation.navigate('JobOffer', { job });
+      navigation.navigate('JobOffer', { job: jobs[0] });
     } catch (error) {
-      console.error('Fetch jobs error:', error);
       Alert.alert('Error', 'Could not fetch jobs. Check your connection.');
     } finally {
       setSearching(false);
     }
   };
 
-  const toggleOnlineStatus = async (value) => {
-    setIsOnline(value);
-    // Persist status to backend so matchWorkers sees the correct availability
-    try {
-      await authAPI.updateProfile({ status: value ? 'available' : 'offline' });
-    } catch (e) {
-      console.warn('Failed to update worker status:', e);
-    }
+  const handleHelp = () => {
+    Alert.alert('Support', 'Contacting support at +91 1800-123-456');
   };
 
-  const handleHelp = () => {
-    const phoneNumber = '+911800123456';
-    if (Platform.OS === 'web') {
-      window.alert('📞 Support: +91 1800-123-456');
-    } else {
-      Alert.alert(
-        'Help / సహాయం',
-        '📞 Support: +91 1800-123-456',
-        [{ text: 'OK' }]
-      );
-    }
-  };
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   return (
-    <LinearGradient 
-      colors={['#FDFBF7', colors.backgroundLight]} 
-      style={styles.container}
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      <Animated.ScrollView 
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Premium Hero Section */}
+        <LinearGradient 
+          colors={[colors.primary, colors.primaryDark]} 
+          style={styles.heroSection}
+        >
+          <Animated.View style={[styles.heroTopRow, { opacity: headerOpacity }]}>
+            <View>
+              <Text style={styles.greetingText}>
+                {t('common.namaste') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Worker'}
+              </Text>
+              <Text style={styles.heroSubText}>Ready to work today?</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <MaterialIcons name="notifications-none" size={24} color="#FFF" />
+              <View style={styles.notificationBadge} />
+            </TouchableOpacity>
+          </Animated.View>
+        </LinearGradient>
 
-      {/* Top Bar */}
-      <TopBar title={t('worker.workerHome')} navigation={navigation} />
-
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <Text style={styles.greetingText}>
-            {t('common.namaste')}, {user?.name || t('common.worker')}
-          </Text>
-          <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
-        </View>
+        {/* Weather & Location Widget */}
+        <WeatherLocationHeader />
 
         <ScrollingBanner />
 
-        {/* Massive START WORK Button */}
-        <View style={styles.buttonContainer}>
+        {/* Main Action Area */}
+        <View style={styles.mainActionArea}>
+          <Text style={styles.actionTitle}>Find Nearby Work</Text>
           <TouchableOpacity
-            style={[styles.startBtnTouchable, (!isOnline || searching) && { opacity: 0.7 }]}
+            style={[styles.startBtnTouchable, (!isOnline || searching) && { opacity: 0.8 }]}
             activeOpacity={0.9}
             onPress={handleStartWork}
             disabled={!isOnline || searching}
           >
             <LinearGradient
                colors={isOnline && !searching ? colors.primaryGradient : ['#9CA3AF', '#6B7280']}
-               start={{ x: 0, y: 0 }}
-               end={{ x: 1, y: 1 }}
                style={styles.startButton}
             >
-              {searching ? (
-                <>
-                  <ActivityIndicator color={colors.white} size="large" />
-                  <Text
-                    style={[styles.startButtonText, { color: colors.white }]}
-                    adjustsFontSizeToFit
-                    numberOfLines={1}
-                  >
-                    {t('worker.searching')}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <MaterialIcons name="play-arrow" size={72} color={colors.white} />
-                  <Text
-                    style={[styles.startButtonText, { color: colors.white }]}
-                    adjustsFontSizeToFit
-                    numberOfLines={1}
-                  >
-                    {t('worker.startWork')}
-                  </Text>
-                </>
-              )}
+              <View style={styles.startBtnInner}>
+                {searching ? (
+                  <ActivityIndicator color="#FFF" size="large" />
+                ) : (
+                  <MaterialIcons name="play-arrow" size={80} color="#FFF" />
+                )}
+                <Text style={styles.startButtonText}>
+                  {searching ? t('worker.searching') : t('worker.startWork')}
+                </Text>
+              </View>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => navigation.navigate('Groups')}
-          >
-            <View style={styles.actionIconCircle}>
-              <MaterialIcons name="groups" size={30} color={colors.primary} />
-            </View>
-            <Text style={styles.actionText}>My Groups</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={() => navigation.navigate('QRScanner', { role: 'worker' })}
-          >
-            <View style={styles.actionIconCircle}>
-              <MaterialIcons name="qr-code-scanner" size={30} color={colors.primary} />
-            </View>
-            <Text style={styles.actionText}>{t('qr.scanQR')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard} onPress={handleHelp}>
-            <View style={styles.actionIconCircle}>
-              <MaterialIcons name="support-agent" size={30} color={colors.primary} />
-            </View>
-            <Text style={styles.actionText}>{t('worker.help')}</Text>
-          </TouchableOpacity>
+        {/* Stats Grid */}
+        <View style={styles.statsGrid}>
+          <GlassCard intensity={10} style={styles.statBox}>
+            <MaterialIcons name="event-available" size={24} color={colors.primary} />
+            <Text style={styles.statVal}>Available</Text>
+            <Text style={styles.statLab}>Status</Text>
+          </GlassCard>
+          <GlassCard intensity={10} style={styles.statBox}>
+            <MaterialIcons name="star" size={24} color={colors.accent} />
+            <Text style={styles.statVal}>4.8</Text>
+            <Text style={styles.statLab}>Rating</Text>
+          </GlassCard>
+          <GlassCard intensity={10} style={styles.statBox}>
+            <MaterialIcons name="history" size={24} color={colors.secondary} />
+            <Text style={styles.statVal}>12</Text>
+            <Text style={styles.statLab}>Jobs</Text>
+          </GlassCard>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => {
-            if (Platform.OS === 'web') {
-              if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
-                logout();
-              }
-            } else {
-              Alert.alert(
-                'Logout',
-                'Are you sure you want to logout?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Logout',
-                    style: 'destructive',
-                    onPress: () => logout(),
-                  },
-                ]
-              );
-            }
-          }}
-        >
-          <MaterialIcons name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* History Overlay */}
-      {activeTab === 'history' && (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#F9FAFB', zIndex: 100 }]}>
-          <TopBar
-            title="Work History"
-            showBack
-            navigation={navigation}
-            onHelp={() => navigation.setParams({ tab: 'home' })}
-            onBack={() => navigation.setParams({ tab: 'home' })}
-          />
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-            <View style={historyStyles.summaryRow}>
-              <Text style={historyStyles.summaryText}>Your recent work history</Text>
+        {/* Quick Links */}
+        <View style={styles.quickLinks}>
+          <TouchableOpacity style={styles.linkItem} onPress={() => navigation.navigate('QRScanner')}>
+            <View style={[styles.linkIcon, { backgroundColor: '#E9F5ED' }]}>
+              <MaterialIcons name="qr-code-scanner" size={28} color={colors.primary} />
             </View>
-
-            {historyLoading ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
-            ) : historyJobs.length === 0 ? (
-              <View style={historyStyles.emptyState}>
-                <MaterialIcons name="history" size={56} color="#D1D5DB" />
-                <Text style={historyStyles.emptyText}>No work history yet</Text>
-                <Text style={historyStyles.emptySubText}>Jobs you complete will appear here</Text>
-              </View>
-            ) : (
-              historyJobs.map((job) => <JobCard key={job.id} job={job} />)
-            )}
-
-            <TouchableOpacity
-              style={historyStyles.closeBtn}
-              onPress={() => navigation.setParams({ tab: 'home' })}
-            >
-              <Text style={historyStyles.closeBtnText}>Back to Dashboard</Text>
-            </TouchableOpacity>
-          </ScrollView>
+            <Text style={styles.linkText}>Scan QR</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.linkItem} onPress={handleHelp}>
+            <View style={[styles.linkIcon, { backgroundColor: '#FDF8E1' }]}>
+              <MaterialIcons name="support-agent" size={28} color={colors.accent} />
+            </View>
+            <Text style={styles.linkText}>Help</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.linkItem} onPress={() => logout()}>
+            <View style={[styles.linkIcon, { backgroundColor: '#FEF2F2' }]}>
+              <MaterialIcons name="logout" size={28} color="#EF4444" />
+            </View>
+            <Text style={styles.linkText}>Logout</Text>
+          </TouchableOpacity>
         </View>
-      )}
+      </Animated.ScrollView>
 
-      {/* Bottom Navigation */}
-      <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
-    </LinearGradient>
+      {/* Floating Group Button */}
+      <FloatingGroupIcon />
+
+      <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'Bookings' : 'Home'} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
+    backgroundColor: '#F8F9FA',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
+    paddingBottom: 140,
   },
-  profileHeader: {
-    padding: 16,
-    marginTop: 16,
+  heroSection: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
+    paddingHorizontal: 24,
+    paddingBottom: 60,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
   greetingText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#131811',
-    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFF',
   },
-  subText: {
-    fontSize: 18,
-    color: '#6f8961',
-    marginTop: 4,
-    textAlign: 'center',
+  heroSubText: {
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 6,
   },
-  voicePrompt: {
-    paddingHorizontal: 16,
-    paddingTop: 32,
-    paddingBottom: 8,
-    alignItems: 'center',
-  },
-  voicePromptInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 16,
-  },
-  voicePromptText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  voiceHint: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    letterSpacing: 2,
-  },
-  buttonContainer: {
-    flex: 1,
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 24,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  mainActionArea: {
+    alignItems: 'center',
+    marginTop: 32,
+    paddingHorizontal: 24,
+  },
+  actionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1A1C1E',
+    marginBottom: 20,
   },
   startButton: {
-    width: 260,
-    height: 260,
-    borderRadius: 130,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4,
-    shadowRadius: 40,
-    elevation: 25,
-    borderWidth: 10,
-    borderColor: '#FFFFFF',
+    borderWidth: 8,
+    borderColor: '#FFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: 0.3,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
   },
-  startBtnTouchable: {
-    borderRadius: 130,
+  startBtnInner: {
+    alignItems: 'center',
   },
   startButtonText: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#FFF',
     marginTop: 8,
+    textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginTop: 24,
+  startBtnTouchable: {
+    borderRadius: 120,
   },
-  actionCard: {
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    marginTop: 32,
+    gap: 12,
+  },
+  statBox: {
     flex: 1,
-    minWidth: '30%',
+    padding: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1C1E',
+    marginBottom: 4,
+  },
+  cardDesc: {
+    fontSize: 15,
+    color: '#64748B',
+  },
+  statVal: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1A1C1E',
+    marginTop: 8,
+  },
+  statLab: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  quickLinks: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    marginTop: 32,
+    justifyContent: 'space-between',
+  },
+  linkItem: {
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
-  actionIconCircle: {
-    backgroundColor: '#F2F4F0',
-    padding: 16,
-    borderRadius: 9999,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    height: 52,
-    backgroundColor: '#FEF2F2',
-    marginHorizontal: 16,
-    marginTop: 24,
-    borderRadius: 9999,
+  linkIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-    borderWidth: 1.5,
-    borderColor: '#FECACA',
   },
-  logoutButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#EF4444',
+  linkText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1C1E',
   },
-});
-
-const historyStyles = StyleSheet.create({
-  summaryRow: { marginBottom: 16 },
-  summaryText: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  workIconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  cardHeaderText: { flex: 1 },
-  workType: { fontSize: 16, fontWeight: '700', color: '#131811' },
-  jobDate: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  cardDetails: { gap: 6 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailText: { fontSize: 13, color: '#6B7280' },
-  closeBtn: {
-    marginTop: 24,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  closeBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 12,
-  },
-  emptyText: { fontSize: 18, fontWeight: '700', color: '#9CA3AF' },
-  emptySubText: { fontSize: 14, color: '#D1D5DB' },
 });
 
 export default WorkerHomeScreen;

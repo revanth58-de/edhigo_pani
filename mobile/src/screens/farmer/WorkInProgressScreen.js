@@ -96,7 +96,7 @@ const WorkInProgressScreen = ({ navigation, route }) => {
             <Text style={styles.detailValue}>{job?.workersNeeded || '10'}</Text>
           </View>
           <View style={styles.detailRow}>
-            <MaterialIcons name="payments" size={24} color={colors.primary} />
+            <MaterialIcons name="work" size={24} color={colors.primary} />
             <Text style={styles.detailLabel}>Total Pay:</Text>
             <Text style={styles.detailValue}>₹{(job?.payPerDay || 500) * (job?.workersNeeded || 10)}</Text>
           </View>

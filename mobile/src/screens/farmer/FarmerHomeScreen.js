@@ -1,5 +1,4 @@
-// Screen 6: Farmer Home - Exact match to farmer-home-work-type.html
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,21 +9,22 @@ import {
   Image,
   Animated,
   Platform,
+  TextInput,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import GlassCard from '../../components/GlassCard';
+import WeatherLocationHeader from '../../components/WeatherLocationHeader';
 import { socketService } from '../../services/socketService';
-import { Alert } from 'react-native';
 
 const WorkTypeCard = ({ workType, onPress, index }) => {
-  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  const animatedValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(animatedValue, {
@@ -55,27 +55,22 @@ const WorkTypeCard = ({ workType, onPress, index }) => {
         activeOpacity={0.9}
         onPress={() => onPress(workType.name)}
       >
-        <GlassCard intensity={60} tint="light" style={styles.workTypeGlassCard}>
+        <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
           <View style={styles.imageContainer}>
-            <Image
-              source={{ uri: workType.image }}
-              style={styles.cardImage}
-            />
+            <Image source={{ uri: workType.image }} style={styles.cardImage} />
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.6)']}
+              colors={['transparent', 'rgba(0,0,0,0.7)']}
               style={styles.imageOverlay}
             />
             <View style={styles.cardBadge}>
-              <MaterialIcons name="arrow-forward" size={16} color="#FFF" />
+              <MaterialIcons name="chevron-right" size={24} color="#FFF" />
             </View>
           </View>
           <View style={styles.cardContent}>
-            <Text style={styles.workTypeName} numberOfLines={1}>
-              {workType.name}
-            </Text>
+            <Text style={styles.workTypeName} numberOfLines={1}>{workType.name}</Text>
             <View style={styles.cardFooter}>
               <View style={styles.dot} />
-              <Text style={styles.cardSubText}>Explore Nearby</Text>
+              <Text style={styles.cardSubText}>Find Workers</Text>
             </View>
           </View>
         </GlassCard>
@@ -87,8 +82,33 @@ const WorkTypeCard = ({ workType, onPress, index }) => {
 const FarmerHomeScreen = ({ navigation }) => {
   const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
-  const [workersCount, setWorkersCount] = useState(12); // Mocked for now
-  const [activeJobsCount, setActiveJobsCount] = useState(2); // Mocked for now
+  const [search, setSearch] = useState('');
+  const [isListening, setIsListening] = useState(false);
+
+  const handleVoiceSearch = () => {
+    setIsListening(true);
+    // Simulate listening for 2 seconds
+    setTimeout(() => {
+      setIsListening(false);
+      const heardText = "Harvesting"; // Mocked speech-to-text result
+      setSearch(heardText);
+      
+      // Auto-navigate if exact match found
+      const match = workTypes.find(wt => wt.name.toLowerCase() === heardText.toLowerCase());
+      if (match) {
+        Alert.alert(
+          "🎙️ Voice Search",
+          `I heard "${heardText}". Taking you there...`,
+          [{ text: "OK", onPress: () => handleWorkTypeSelect(match) }]
+        );
+      } else {
+        Alert.alert(
+          "🎙️ Voice Search",
+          `I heard "${heardText}". Filtering list...`
+        );
+      }
+    }, 2000);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -97,37 +117,10 @@ const FarmerHomeScreen = ({ navigation }) => {
   );
 
   useEffect(() => {
-    socketService.connect();
     if (user?.id) {
+      socketService.connect();
       socketService.joinUserRoom(user.id);
     }
-
-    const handleJobAccepted = (data) => {
-      if (data.isFullyStaffed) {
-        Alert.alert(
-          '🎉 All Workers Found!',
-          `Your job is fully staffed.\n${data.workerName || 'Workers'} and others have joined.`,
-          [
-            { text: 'View Details', onPress: () => navigation.navigate('RequestAccepted', { job: { id: data.jobId, ...data } }) },
-            { text: 'OK', style: 'cancel' },
-          ]
-        );
-      } else {
-        const acceptedCount = data.acceptedCount || 1;
-        const needed = data.workersNeeded || '?';
-        Alert.alert(
-          `👷 Worker Joined (${acceptedCount}/${needed})`,
-          `${data.workerName || 'A worker'} accepted your job.\nWaiting for ${needed - acceptedCount} more worker${needed - acceptedCount !== 1 ? 's' : ''}.`,
-          [{ text: 'OK' }]
-        );
-      }
-    };
-
-    socketService.onJobAccepted(handleJobAccepted);
-
-    return () => {
-      socketService.offJobAccepted(handleJobAccepted);
-    };
   }, [user?.id]);
 
   const handleWorkTypeSelect = (workType) => {
@@ -135,31 +128,12 @@ const FarmerHomeScreen = ({ navigation }) => {
   };
 
   const workTypes = [
-    {
-      id: 'sowing',
-      name: t('farmerHome.sowing'),
-      image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 'harvesting',
-      name: t('farmerHome.harvesting'),
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 'irrigation',
-      name: t('farmerHome.irrigation'),
-      image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 'labour',
-      name: t('farmerHome.labour'),
-      image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop',
-    },
-    {
-      id: 'tractor',
-      name: t('farmerHome.tractor'),
-      image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
-    },
+    { id: 'sowing', name: t('farmerHome.sowing'), image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop' },
+    { id: 'harvesting', name: t('farmerHome.harvesting'), image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop' },
+    { id: 'drone', name: 'Drone Service', image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop' },
+    { id: 'drivers', name: 'Drivers/Operators', image: 'https://images.unsplash.com/photo-1591768793355-74d7acd51bd2?q=80&w=800&auto=format&fit=crop' },
+    { id: 'irrigation', name: t('farmerHome.irrigation'), image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop' },
+    { id: 'tractor', name: t('farmerHome.tractor'), image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop' },
   ];
 
   return (
@@ -168,57 +142,102 @@ const FarmerHomeScreen = ({ navigation }) => {
       
       <ScrollView 
         style={styles.content} 
-        contentContainerStyle={styles.contentContainer} 
+        contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
         {/* Premium Hero Section */}
         <LinearGradient 
-          colors={['#1B4332', '#2D6A4F']} 
+          colors={[colors.primary, colors.primaryDark]} 
           style={styles.heroSection}
         >
           <View style={styles.heroTopRow}>
             <View>
               <Text style={styles.greetingText}>
-                {t('common.greeting') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Farmer'}
+                {t('common.namaste') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Farmer'}
               </Text>
-              <Text style={styles.heroSubText}>Ready for today's harvest?</Text>
+              <Text style={styles.heroSubText}>What are we planting today?</Text>
             </View>
-            <TouchableOpacity style={styles.notificationBtn}>
+            <TouchableOpacity 
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate('Notifications')}
+            >
               <MaterialIcons name="notifications-none" size={24} color="#FFF" />
               <View style={styles.notificationBadge} />
             </TouchableOpacity>
           </View>
 
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <GlassCard intensity={20} tint="light" style={styles.statCard}>
-              <Text style={styles.statValue}>{workersCount}</Text>
-              <Text style={styles.statLabel}>Workers Nearby</Text>
-            </GlassCard>
-            <GlassCard intensity={20} tint="light" style={styles.statCard}>
-              <Text style={styles.statValue}>{activeJobsCount}</Text>
-              <Text style={styles.statLabel}>Active Requests</Text>
-            </GlassCard>
+          {/* Search & Voice Search UI */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBar}>
+              <MaterialIcons name="search" size={20} color="#94A3B8" />
+              <TextInput
+                placeholder="Search for workers or services..."
+                placeholderTextColor="#94A3B8"
+                style={styles.searchInput}
+                value={search}
+                onChangeText={setSearch}
+              />
+              <TouchableOpacity 
+                style={styles.micButton} 
+                onPress={handleVoiceSearch}
+                activeOpacity={0.7}
+              >
+                <MaterialIcons 
+                  name="mic" 
+                  size={24} 
+                  color={isListening ? colors.secondary : colors.primary} 
+                />
+                {isListening && <View style={styles.micPulse} />}
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
 
-        {/* Work Selection Grid */}
+        <WeatherLocationHeader />
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('farmerHome.selectWorkType')}</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('WorkCategories')}>
             <Text style={styles.seeAllText}>See All</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.grid}>
-          {workTypes.map((workType, index) => (
-            <WorkTypeCard
-              key={workType.id}
-              index={index}
-              workType={workType}
-              onPress={handleWorkTypeSelect}
-            />
-          ))}
+          {workTypes
+            .filter(wt => wt.name.toLowerCase().includes(search.toLowerCase()))
+            .map((workType, index) => (
+              <WorkTypeCard
+                key={workType.id}
+                index={index}
+                workType={workType}
+                onPress={handleWorkTypeSelect}
+              />
+            ))}
+        </View>
+
+        {/* Video Section */}
+        <View style={styles.videoSection}>
+          <View style={[styles.sectionHeader, { marginBottom: 8 }]}>
+            <Text style={styles.sectionTitle}>Edhigo Pani in Action</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>Watch Tutorial</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.cardSubText, { marginLeft: 24, marginBottom: 16 }]}>See how Edhigo Pani is transforming Indian agriculture</Text>
+          
+          <GlassCard intensity={20} style={styles.videoCard}>
+            <View style={styles.videoWrapper}>
+              <WebView
+                source={{ uri: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }} // Placeholder tutorial video
+                style={styles.webView}
+                allowsFullscreenVideo
+              />
+            </View>
+            <View style={styles.videoFooter}>
+              <Text style={styles.videoTag}>TUTORIAL</Text>
+              <Text style={styles.videoTitle}>How to hire skilled workers in 2 minutes</Text>
+            </View>
+          </GlassCard>
         </View>
       </ScrollView>
 
@@ -241,7 +260,7 @@ const styles = StyleSheet.create({
   heroSection: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
     paddingHorizontal: 24,
-    paddingBottom: 40,
+    paddingBottom: 80,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
@@ -249,18 +268,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   greetingText: {
-    fontSize: 28,
+    fontSize: 34,
     fontWeight: '800',
     color: '#FFF',
-    letterSpacing: -0.5,
   },
   heroSubText: {
-    fontSize: 16,
+    fontSize: 20,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 4,
+    marginTop: 6,
   },
   notificationBtn: {
     width: 44,
@@ -277,48 +295,72 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FFD700',
+    backgroundColor: colors.accent,
     borderWidth: 2,
-    borderColor: '#2D6A4F',
+    borderColor: colors.primary,
   },
-  statsRow: {
+  searchContainer: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'center',
   },
-  statCard: {
+  searchBar: {
     flex: 1,
-    padding: 16,
+    height: 54,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    // Removed borderWidth to avoid "another box" feel
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 18,
+    color: '#1E293B',
+    fontWeight: '500',
+    paddingVertical: 0, // Prevent Android default padding
+    marginLeft: 8,
+  },
+  micButton: {
+    padding: 8,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  micPulse: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-    marginTop: 2,
+    borderWidth: 2,
+    borderColor: colors.secondary,
+    opacity: 0.6,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 16,
+    marginTop: 32,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1A1C1E',
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1E293B',
   },
   seeAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#2D6A4F',
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.primary,
   },
   grid: {
     flexDirection: 'row',
@@ -337,17 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
+    elevation: 4,
   },
   imageContainer: {
     width: '100%',
@@ -364,15 +396,15 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
+    height: 70,
   },
   cardBadge: {
     position: 'absolute',
     top: 12,
     right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -383,9 +415,9 @@ const styles = StyleSheet.create({
   },
   workTypeName: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1C1E',
-    marginBottom: 6,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
   },
   cardFooter: {
     flexDirection: 'row',
@@ -396,12 +428,45 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2D6A4F',
+    backgroundColor: colors.primary,
   },
   cardSubText: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#64748B',
+  },
+  videoSection: {
+    marginTop: 24,
+    paddingBottom: 24,
+  },
+  videoCard: {
+    marginHorizontal: 24,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#FFF',
+    elevation: 4,
+  },
+  videoWrapper: {
+    width: '100%',
+    height: 200,
+  },
+  webView: {
+    flex: 1,
+  },
+  videoFooter: {
+    padding: 16,
+  },
+  videoTag: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: colors.primary,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  videoTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E293B',
   },
 });
 

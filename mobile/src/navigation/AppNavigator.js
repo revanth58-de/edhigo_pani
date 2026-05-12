@@ -55,7 +55,7 @@ import WorkStatusScreen from '../screens/worker/WorkStatusScreen';
 import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
-import WorkerPaymentHistoryScreen from '../screens/worker/WorkerPaymentHistoryScreen';
+import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -78,6 +78,7 @@ import GroupDetailScreen from '../screens/leader/GroupDetailScreen';
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
 import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import WorkCategoriesScreen from '../screens/shared/WorkCategoriesScreen';
 
 // Stores
 import useNotificationStore from '../store/notificationStore';
@@ -111,11 +112,11 @@ const FarmerNavigator = () => (
     <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="WorkInProgress" component={WorkInProgressScreen} />
-    <Stack.Screen name="Payment" component={PaymentScreen} />
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="WorkCategories" component={WorkCategoriesScreen} />
   </Stack.Navigator>
 );
 
@@ -131,7 +132,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
-    <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
+    <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />

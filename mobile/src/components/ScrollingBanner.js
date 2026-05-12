@@ -120,7 +120,7 @@ const ScrollingBanner = () => {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 16,
+    marginVertical: 20,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   card: {
-    height: 140,
+    height: 180,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFF',

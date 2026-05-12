@@ -1,4 +1,3 @@
-// Screen 1: Splash Screen - Exact match to splash-screen.html
 import React, { useEffect, useRef } from 'react';
 import {
   View,
@@ -7,109 +6,62 @@ import {
   Animated,
   Easing,
   StatusBar,
+  Image,
+  Dimensions,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
+const { width } = Dimensions.get('window');
+
 const SplashScreen = ({ navigation }) => {
   const { t } = useTranslation();
-  const spinAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-    // Voice guidance removed
-
-    // Fade in animation
+    // Static fade-in only
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 800,
+      duration: 1000,
       useNativeDriver: true,
     }).start();
 
-    // Scale animation
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 6,
-      useNativeDriver: true,
-    }).start();
-
-    // Spinning loader
-    Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 2000,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
-    // Auto-navigate after 2 seconds
+    // Auto-navigate after 2.5 seconds
     const timer = setTimeout(() => {
       navigation.replace('LanguageSelection');
-    }, 2000);
+    }, 2500);
 
     return () => clearTimeout(timer);
   }, [navigation]);
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
-
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundLight} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Top Spacer */}
-      <View style={styles.topSpacer} />
-
-      {/* Logo Section */}
+      {/* Main Branding Section */}
       <Animated.View
         style={[
-          styles.logoSection,
-          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          styles.brandContainer,
+          { opacity: fadeAnim },
         ]}
       >
-        {/* Outer Glow */}
-        <View style={styles.logoGlow} />
+        <Image 
+          source={require('../../../assets/icon.png')} 
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
 
-        {/* Main Logo Circle */}
-        <View style={styles.logoCircle}>
-          <MaterialIcons name="eco" size={72} color={colors.primary} />
-          <MaterialIcons
-            name="handshake"
-            size={60}
-            color="#4a3728"
-            style={styles.handshakeIcon}
-          />
-        </View>
-
-        {/* Loading Spinner */}
-        <View style={styles.loaderContainer}>
-          <Animated.View
-            style={[styles.spinner, { transform: [{ rotate: spin }] }]}
-          />
-          <Text style={styles.loadingText}>LOADING</Text>
-        </View>
+        <Text style={styles.appName}>Dinasari</Text>
+        <Text style={styles.appTagline}>Dinasari</Text>
       </Animated.View>
 
-      {/* Bottom Voice Guidance Section */}
-      <View style={styles.bottomSection}>
-
-        {/* Voice Button */}
-        <View style={styles.voiceButton}>
-          <Text style={styles.voiceText}>Farmer-Worker Connect</Text>
-        </View>
-
-        {/* Branding */}
-        <Text style={styles.brandText}>Farmer-Worker Connect</Text>
+      {/* Bottom Footer */}
+      <View style={styles.footer}>
+        <View style={styles.divider} />
+        <Text style={styles.poweredBy}>Powered by</Text>
+        <Text style={styles.companyName}>Dinasari</Text>
       </View>
-
-      {/* Bottom Gradient Line */}
-      <View style={styles.bottomGradient} />
     </View>
   );
 };
@@ -117,108 +69,58 @@ const SplashScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
-    paddingVertical: 48,
-    paddingHorizontal: 24,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  topSpacer: {
-    height: 40,
-  },
-  logoSection: {
-    alignItems: 'center',
-    gap: 32,
-  },
-  logoGlow: {
-    position: 'absolute',
-    top: -16,
-    left: -16,
-    right: -16,
-    bottom: -16,
-    backgroundColor: `${colors.primary}33`, // 20% opacity
-    borderRadius: 9999,
-    opacity: 0.3,
-  },
-  logoCircle: {
-    width: 192,
-    height: 192,
-    borderRadius: 96,
     backgroundColor: '#FFFFFF',
-    borderWidth: 4,
-    borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
   },
-  handshakeIcon: {
-    marginTop: -16,
-  },
-  loaderContainer: {
+  brandContainer: {
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
   },
-  spinner: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 4,
-    borderColor: `${colors.primary}33`,
-    borderTopColor: colors.primary,
+  logoImage: {
+    width: 240,
+    height: 240,
+    marginBottom: 32,
   },
-  loadingText: {
-    color: '#4a372866', // earth-brown with 40% opacity
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 2,
+  appName: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: colors.primary,
+    letterSpacing: 3,
+    marginBottom: 4,
     textTransform: 'uppercase',
   },
-  bottomSection: {
-    width: '100%',
-    maxWidth: 384,
-    alignItems: 'center',
-    gap: 24,
-  },
-  voiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    backgroundColor: colors.primary,
-    borderRadius: 9999,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-    minWidth: 84,
-    maxWidth: 480,
-    height: 56,
-  },
-  voiceText: {
-    color: colors.backgroundDark,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  brandText: {
-    color: '#13181180', // 50% opacity
-    fontSize: 14,
+  appTagline: {
+    fontSize: 16,
     fontWeight: '500',
-    textAlign: 'center',
+    color: colors.secondary,
+    letterSpacing: 1,
+    opacity: 0.8,
   },
-  bottomGradient: {
+  footer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: `${colors.primary}4D`, // 30% opacity
+    bottom: 40,
+    alignItems: 'center',
+  },
+  divider: {
+    width: 40,
+    height: 3,
+    backgroundColor: colors.accent,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  poweredBy: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  companyName: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontWeight: '700',
+    marginTop: 4,
   },
 });
 

@@ -110,11 +110,7 @@ export const attendanceAPI = {
 };
 
 // ─── Payment API ───
-export const paymentAPI = {
-    makePayment: (data) => apiClient.post('/payments', data),
-    getHistory: (userId) => apiClient.get(`/payments/history/${userId}`),
-    getDetails: (paymentId) => apiClient.get(`/payments/${paymentId}`),
-};
+// Payment API removed as per request
 
 // ─── Rating API ───
 export const ratingAPI = {

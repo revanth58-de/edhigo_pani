@@ -34,7 +34,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
         } else {
-          navigation.replace('Payment', { job, attendanceData: data });
+          navigation.replace('RateWorker', { job });
         }
       }
     });
@@ -53,8 +53,8 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
   const handleSkipScan = () => {
     if (type === 'out') {
-      // Proceed directly to the payment screen
-      navigation.replace('Payment', { job, attendanceData: { skipped: true } });
+      // Proceed directly to the rating screen
+      navigation.replace('RateWorker', { job });
     }
   };
 
@@ -136,8 +136,8 @@ const QRAttendanceScreen = ({ navigation, route }) => {
             onPress={handleSkipScan}
             activeOpacity={0.8}
           >
-            <MaterialIcons name="payments" size={20} color="#FFFFFF" />
-            <Text style={styles.skipButtonText}>Skip Scan & Proceed to Payment</Text>
+            <MaterialIcons name="done-all" size={20} color="#FFFFFF" />
+            <Text style={styles.skipButtonText}>Skip Scan & Complete Work</Text>
           </TouchableOpacity>
         )}
       </View>

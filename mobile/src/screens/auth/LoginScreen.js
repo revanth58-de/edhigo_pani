@@ -7,10 +7,10 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   ScrollView,
   Modal,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -202,7 +202,7 @@ const LoginScreen = ({ navigation }) => {
                 activeOpacity={0.9}
               >
                 {loading ? (
-                  <ActivityIndicator color={colors.backgroundDark} />
+                  <CustomLoader size={24} color={colors.backgroundDark} />
                 ) : (
                   <>
                     <Text style={styles.continueButtonText}>{t('auth.sendOTP')}</Text>
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   displaySection: { paddingHorizontal: 24, paddingTop: 320, paddingBottom: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  label: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
+  label: { fontSize: 14, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },
   phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 2, paddingVertical: 16 },
   phoneDisplayRow: { flexDirection: 'row', alignItems: 'center', minHeight: 80 },
   activeCursor: { width: 3, height: 40, backgroundColor: colors.primary, borderRadius: 2 },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 16,
   },
   continueButtonDisabled: { opacity: 0.5 },
-  continueButtonText: { fontSize: 20, fontWeight: 'bold', color: colors.backgroundDark },
+  continueButtonText: { fontSize: 22, fontWeight: 'bold', color: colors.backgroundDark },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 32, alignItems: 'center', width: '100%', gap: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.3, shadowRadius: 32, elevation: 20 },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },
 
   registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  registerLinkText: { fontSize: 15, color: '#6f8961' },
+  registerLinkText: { fontSize: 17, color: '#6f8961' },
 });
 
 export default LoginScreen;

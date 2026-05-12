@@ -132,7 +132,7 @@ const WorkerBookingsScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <BottomNavBar role="worker" activeTab="Bookings" />
+      <BottomNavBar role={user?.role} activeTab="Bookings" />
     </View>
   );
 };

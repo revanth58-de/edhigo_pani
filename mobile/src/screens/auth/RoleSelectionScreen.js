@@ -71,7 +71,7 @@ const RoleSelectionScreen = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       
       <View style={styles.header}>
-        <Text style={styles.title}>{t('auth.selectRole') || 'Join as a...'}</Text>
+        <Text style={styles.title}>Join Dinasari as a...</Text>
         <Text style={styles.subtitle}>Choose the role that best fits you</Text>
       </View>
 

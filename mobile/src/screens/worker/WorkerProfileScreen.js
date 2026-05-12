@@ -38,6 +38,47 @@ const ALL_SKILLS = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+const DigitalIDCard = ({ user }) => {
+  return (
+    <View style={styles.idCardContainer}>
+      <LinearGradient
+        colors={['#1F8A3D', '#166534']}
+        style={styles.idCardGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.idCardHeader}>
+          <Text style={styles.idCardBrand}>DINASARI ID</Text>
+          <View style={styles.verifiedChip}>
+            <MaterialIcons name="verified" size={14} color="#FFF" />
+            <Text style={styles.verifiedChipText}>VERIFIED</Text>
+          </View>
+        </View>
+
+        <View style={styles.idCardBody}>
+          <View style={styles.idAvatarWrap}>
+            <View style={styles.idAvatar}>
+              <MaterialIcons name={user?.avatarIcon || 'person'} size={40} color={colors.primary} />
+            </View>
+          </View>
+          <View style={styles.idInfo}>
+            <Text style={styles.idName}>{user?.name?.toUpperCase()}</Text>
+            <Text style={styles.idRole}>PROFESSIONAL {user?.role?.toUpperCase()}</Text>
+            <Text style={styles.idNumber}>ID: DS-{user?.id?.substring(0, 8).toUpperCase()}</Text>
+          </View>
+          <View style={styles.idQRWrap}>
+            <MaterialIcons name="qr-code-2" size={60} color="#FFF" />
+          </View>
+        </View>
+        
+        <View style={styles.idCardFooter}>
+          <Text style={styles.validText}>Valid across all Indian Mandis</Text>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
@@ -51,7 +92,10 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showDigitalID, setShowDigitalID] = useState(false);
   const arrowAnim = useRef(new Animated.Value(0)).current;
+
+  // ... (existing useEffect and Slide to Switch logic)
 
   useEffect(() => {
     Animated.loop(
@@ -210,6 +254,21 @@ const WorkerProfileScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        
+        {/* Digital ID Toggle */}
+        <View style={styles.idToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.idToggleBtn, showDigitalID && styles.idToggleBtnActive]}
+            onPress={() => setShowDigitalID(!showDigitalID)}
+          >
+            <MaterialIcons name="badge" size={20} color={showDigitalID ? '#FFF' : colors.primary} />
+            <Text style={[styles.idToggleText, showDigitalID && styles.idToggleTextActive]}>
+              {showDigitalID ? 'Hide Digital ID' : 'Show Digital ID'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {showDigitalID && <DigitalIDCard user={user} />}
 
         {/* Profile Card */}
         <View style={styles.profileCard}>
@@ -565,12 +624,136 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 1,
   },
-  content: { flex: 1 },
-  contentContainer: { paddingBottom: 120 },
+  // Digital ID Styles
+  idToggleContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  idToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  idToggleBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  idToggleText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  idToggleTextActive: {
+    color: '#FFF',
+  },
+  idCardContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    elevation: 12,
+    shadowColor: '#1F8A3D',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+  },
+  idCardGradient: {
+    borderRadius: 24,
+    padding: 20,
+  },
+  idCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  idCardBrand: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 2,
+  },
+  verifiedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  verifiedChipText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  idCardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  idAvatarWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
+    padding: 2,
+  },
+  idAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  idInfo: {
+    flex: 1,
+  },
+  idName: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  idRole: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  idNumber: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 4,
+  },
+  idQRWrap: {
+    width: 70,
+    height: 70,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  idCardFooter: {
+    marginTop: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  validText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.6)',
+    textAlign: 'center',
+  },
 
   profileCard: {
     backgroundColor: '#FFFFFF',
-    marginTop: -30,
     marginHorizontal: 20,
     borderRadius: 32,
     padding: 24,

@@ -22,7 +22,7 @@ const WORKER_TABS = [
 
 const LEADER_TABS = [
   { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'LeaderHome' },
-  { key: 'Bookings', icon: 'history', labelKey: 'nav.bookings', screen: 'Groups' }, // Points to Groups
+  { key: 'Bookings', icon: 'history', labelKey: 'nav.bookings', screen: 'WorkerBookings' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'GroupQRAttendance' },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'LeaderProfile' },
 ];

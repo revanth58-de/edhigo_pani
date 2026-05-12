@@ -94,10 +94,18 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         >
           <Animated.View style={[styles.heroTopRow, { opacity: headerOpacity }]}>
             <View>
-              <Text style={styles.greetingText}>
-                {t('common.namaste') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Worker'}
-              </Text>
-              <Text style={styles.heroSubText}>Ready to work today?</Text>
+              <Text style={styles.greetingText}>Dinasari</Text>
+              <View style={styles.badgeRow}>
+                <View style={styles.verifiedBadge}>
+                  <MaterialIcons name="verified" size={14} color={colors.accent} />
+                  <Text style={styles.badgeText}>Verified Expert</Text>
+                </View>
+                <View style={[styles.verifiedBadge, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+                  <MaterialIcons name="star" size={14} color={colors.accent} />
+                  <Text style={styles.badgeText}>Top Rated</Text>
+                </View>
+              </View>
+              <Text style={styles.heroSubText}>Ready to work, {user?.fullName?.split(' ')[0] || 'Worker'}?</Text>
             </View>
             <TouchableOpacity 
               style={styles.notificationBtn}
@@ -109,14 +117,69 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           </Animated.View>
         </LinearGradient>
 
+        {/* Earnings Analytics Widget */}
+        <View style={styles.earningsWrapper}>
+          <GlassCard intensity={20} style={styles.earningsCard}>
+            <View style={styles.earningsHeader}>
+              <View>
+                <Text style={styles.earningsLabel}>Daily Earnings</Text>
+                <Text style={styles.earningsValue}>₹350 <Text style={styles.goalText}>/ ₹500</Text></Text>
+              </View>
+              <View style={styles.progressCircle}>
+                <Text style={styles.progressPct}>70%</Text>
+              </View>
+            </View>
+            <View style={styles.progressBarBg}>
+              <View style={[styles.progressBarFill, { width: '70%' }]} />
+            </View>
+            <Text style={styles.earningsNote}>₹150 more to reach your daily goal!</Text>
+          </GlassCard>
+        </View>
+
         {/* Weather & Location Widget */}
         <WeatherLocationHeader />
 
         <ScrollingBanner />
 
+        {/* Nearby Jobs Preview */}
+        <View style={styles.jobsPreviewSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Nearby Opportunities</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>View Map</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jobsScroll}>
+            <GlassCard intensity={10} style={styles.jobPreviewCard}>
+              <View style={styles.jobTypeIcon}>
+                <MaterialIcons name="grass" size={24} color={colors.primary} />
+              </View>
+              <Text style={styles.jobName}>Sowing</Text>
+              <Text style={styles.jobDist}>1.2 km away</Text>
+              <Text style={styles.jobPay}>₹450/day</Text>
+            </GlassCard>
+            <GlassCard intensity={10} style={styles.jobPreviewCard}>
+              <View style={[styles.jobTypeIcon, { backgroundColor: '#FFF7ED' }]}>
+                <MaterialIcons name="agriculture" size={24} color="#F97316" />
+              </View>
+              <Text style={styles.jobName}>Harvesting</Text>
+              <Text style={styles.jobDist}>2.5 km away</Text>
+              <Text style={styles.jobPay}>₹550/day</Text>
+            </GlassCard>
+            <GlassCard intensity={10} style={styles.jobPreviewCard}>
+              <View style={[styles.jobTypeIcon, { backgroundColor: '#EFF6FF' }]}>
+                <MaterialIcons name="water_drop" size={24} color="#3B82F6" />
+              </View>
+              <Text style={styles.jobName}>Irrigation</Text>
+              <Text style={styles.jobDist}>0.8 km away</Text>
+              <Text style={styles.jobPay}>₹400/day</Text>
+            </GlassCard>
+          </ScrollView>
+        </View>
+
         {/* Main Action Area */}
         <View style={styles.mainActionArea}>
-          <Text style={styles.actionTitle}>Find Nearby Work</Text>
+          <Text style={styles.actionTitle}>Instant Hire Mode</Text>
           <TouchableOpacity
             style={[styles.startBtnTouchable, (!isOnline || searching) && { opacity: 0.8 }]}
             activeOpacity={0.9}
@@ -134,7 +197,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
                   <MaterialIcons name="play-arrow" size={80} color="#FFF" />
                 )}
                 <Text style={styles.startButtonText}>
-                  {searching ? t('worker.searching') : t('worker.startWork')}
+                  {searching ? t('worker.searching') : 'Go Online'}
                 </Text>
               </View>
             </LinearGradient>
@@ -205,7 +268,7 @@ const styles = StyleSheet.create({
   heroSection: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
     paddingHorizontal: 24,
-    paddingBottom: 60,
+    paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
@@ -216,13 +279,34 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 34,
+    fontWeight: '900',
+    color: '#FFF',
+    letterSpacing: 1,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  badgeText: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#FFF',
   },
   heroSubText: {
-    fontSize: 20,
+    fontSize: 18,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 6,
+    fontWeight: '600',
+    marginTop: 8,
   },
   notificationBtn: {
     width: 44,
@@ -243,42 +327,171 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
+
+  // Earnings
+  earningsWrapper: {
+    marginTop: -24,
+    paddingHorizontal: 24,
+  },
+  earningsCard: {
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: '#FFF',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  earningsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  earningsLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  earningsValue: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1E293B',
+    marginTop: 4,
+  },
+  goalText: {
+    fontSize: 16,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  progressCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 4,
+    borderColor: colors.primaryMedium,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  progressPct: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  progressBarBg: {
+    height: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 4,
+    marginTop: 16,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  earningsNote: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.primary,
+    marginTop: 12,
+  },
+
+  // Jobs Preview
+  jobsPreviewSection: {
+    marginTop: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E293B',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  jobsScroll: {
+    paddingHorizontal: 24,
+    gap: 16,
+    paddingBottom: 8,
+  },
+  jobPreviewCard: {
+    width: 160,
+    padding: 16,
+    borderRadius: 24,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  jobTypeIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  jobName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  jobDist: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 4,
+  },
+  jobPay: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+    marginTop: 8,
+  },
+
+  // Main Action Area
   mainActionArea: {
     alignItems: 'center',
     marginTop: 32,
     paddingHorizontal: 24,
   },
   actionTitle: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     color: '#1A1C1E',
     marginBottom: 20,
   },
   startButton: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 8,
+    borderWidth: 6,
     borderColor: '#FFF',
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.3,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 12,
-      },
-    }),
+    elevation: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
   },
   startBtnInner: {
     alignItems: 'center',
   },
   startButtonText: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     color: '#FFF',
     marginTop: 8,
@@ -286,8 +499,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   startBtnTouchable: {
-    borderRadius: 120,
+    borderRadius: 110,
   },
+
+  // Stats Grid
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -298,55 +513,48 @@ const styles = StyleSheet.create({
   statBox: {
     flex: 1,
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 24,
     alignItems: 'center',
     backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1A1C1E',
-    marginBottom: 4,
-  },
-  cardDesc: {
-    fontSize: 15,
-    color: '#64748B',
+    elevation: 4,
   },
   statVal: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '900',
     color: '#1A1C1E',
     marginTop: 8,
   },
   statLab: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     color: '#64748B',
     marginTop: 2,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
+
+  // Quick Links
   quickLinks: {
     flexDirection: 'row',
     paddingHorizontal: 24,
-    marginTop: 32,
+    marginTop: 40,
     justifyContent: 'space-between',
   },
   linkItem: {
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   linkIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
   },
   linkText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: '#1A1C1E',
   },
 });

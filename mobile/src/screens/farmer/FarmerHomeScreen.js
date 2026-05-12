@@ -10,6 +10,7 @@ import {
   Animated,
   Platform,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
@@ -21,7 +22,10 @@ import { colors } from '../../theme/colors';
 import BottomNavBar from '../../components/BottomNavBar';
 import GlassCard from '../../components/GlassCard';
 import WeatherLocationHeader from '../../components/WeatherLocationHeader';
+import { MandiPricesWidget, AIAdvisoryBanner } from '../../components/EcosystemWidgets';
 import { socketService } from '../../services/socketService';
+
+const { width } = Dimensions.get('window');
 
 const WorkTypeCard = ({ workType, onPress, index }) => {
   const animatedValue = useRef(new Animated.Value(0)).current;
@@ -31,7 +35,7 @@ const WorkTypeCard = ({ workType, onPress, index }) => {
       toValue: 1,
       tension: 20,
       friction: 7,
-      delay: index * 100,
+      delay: index * 50,
       useNativeDriver: true,
     }).start();
   }, []);
@@ -40,9 +44,9 @@ const WorkTypeCard = ({ workType, onPress, index }) => {
     opacity: animatedValue,
     transform: [
       {
-        translateY: animatedValue.interpolate({
+        scale: animatedValue.interpolate({
           inputRange: [0, 1],
-          outputRange: [50, 0],
+          outputRange: [0.9, 1],
         }),
       },
     ],
@@ -53,27 +57,18 @@ const WorkTypeCard = ({ workType, onPress, index }) => {
       <TouchableOpacity
         style={styles.cardTouch}
         activeOpacity={0.9}
-        onPress={() => onPress(workType.name)}
+        onPress={() => onPress(workType)}
       >
-        <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
-          <View style={styles.imageContainer}>
-            <Image source={{ uri: workType.image }} style={styles.cardImage} />
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)']}
-              style={styles.imageOverlay}
-            />
-            <View style={styles.cardBadge}>
-              <MaterialIcons name="chevron-right" size={24} color="#FFF" />
-            </View>
-          </View>
+        <View style={styles.workTypeCard}>
+          <Image source={{ uri: workType.image }} style={styles.cardImage} />
+          <View style={styles.cardOverlay} />
           <View style={styles.cardContent}>
-            <Text style={styles.workTypeName} numberOfLines={1}>{workType.name}</Text>
-            <View style={styles.cardFooter}>
-              <View style={styles.dot} />
-              <Text style={styles.cardSubText}>Find Workers</Text>
+            <View style={styles.iconCircle}>
+              <MaterialIcons name={workType.icon || 'engineering'} size={20} color="#FFF" />
             </View>
+            <Text style={styles.workTypeName} numberOfLines={1}>{workType.name}</Text>
           </View>
-        </GlassCard>
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -84,57 +79,49 @@ const FarmerHomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('Workforce');
+
+  const categories = ['Workforce', 'Machinery', 'Services'];
+
+  const mandiPrices = [
+    { crop: 'Wheat', price: '2,125', change: '+2.4', trend: 'up' },
+    { crop: 'Cotton', price: '6,450', change: '-1.2', trend: 'down' },
+    { crop: 'Rice', price: '3,800', change: '+0.8', trend: 'up' },
+    { crop: 'Maize', price: '1,950', change: '+1.5', trend: 'up' },
+  ];
+
+  const workTypes = [
+    // Workforce
+    { id: 'sowing', name: 'Sowing', category: 'Workforce', icon: 'grass', image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=400' },
+    { id: 'harvesting', name: 'Harvesting', category: 'Workforce', icon: 'agriculture', image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=400' },
+    { id: 'irrigation', name: 'Irrigation', category: 'Workforce', icon: 'water_drop', image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=400' },
+    // Machinery
+    { id: 'tractor', name: 'Tractor Booking', category: 'Machinery', icon: 'minor_crash', image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=400' },
+    { id: 'drone', name: 'Drone Spraying', category: 'Machinery', icon: 'settings_input_antenna', image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=400' },
+    { id: 'harvester', name: 'Harvester', category: 'Machinery', icon: 'precision_manufacturing', image: 'https://images.unsplash.com/photo-1530507629858-e4977d30e9e0?q=80&w=400' },
+    // Services
+    { id: 'transport', name: 'Farm Transport', category: 'Services', icon: 'local_shipping', image: 'https://images.unsplash.com/photo-1586191582056-94033be1556a?q=80&w=400' },
+    { id: 'soil', name: 'Soil Testing', category: 'Services', icon: 'science', image: 'https://images.unsplash.com/photo-1581093196277-9f608ebab48c?q=80&w=400' },
+    { id: 'advisory', name: 'Crop Advisory', category: 'Services', icon: 'support_agent', image: 'https://images.unsplash.com/photo-1599406561184-a16df086ecaa?q=80&w=400' },
+  ];
 
   const handleVoiceSearch = () => {
     setIsListening(true);
-    // Simulate listening for 2 seconds
-    setTimeout(() => {
-      setIsListening(false);
-      const heardText = "Harvesting"; // Mocked speech-to-text result
-      setSearch(heardText);
-      
-      // Auto-navigate if exact match found
-      const match = workTypes.find(wt => wt.name.toLowerCase() === heardText.toLowerCase());
-      if (match) {
-        Alert.alert(
-          "🎙️ Voice Search",
-          `I heard "${heardText}". Taking you there...`,
-          [{ text: "OK", onPress: () => handleWorkTypeSelect(match) }]
-        );
-      } else {
-        Alert.alert(
-          "🎙️ Voice Search",
-          `I heard "${heardText}". Filtering list...`
-        );
-      }
-    }, 2000);
+    setTimeout(() => setIsListening(false), 2000);
   };
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshProfile();
-    }, [refreshProfile])
-  );
-
-  useEffect(() => {
-    if (user?.id) {
-      socketService.connect();
-      socketService.joinUserRoom(user.id);
-    }
-  }, [user?.id]);
 
   const handleWorkTypeSelect = (workType) => {
-    navigation.navigate('LiveMapDiscovery', { workType });
+    if (workType.category === 'Machinery') {
+      navigation.navigate('MachineryBooking', { machineType: workType.name });
+    } else {
+      navigation.navigate('LiveMapDiscovery', { workType });
+    }
   };
 
-  const workTypes = [
-    { id: 'sowing', name: t('farmerHome.sowing'), image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop' },
-    { id: 'harvesting', name: t('farmerHome.harvesting'), image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop' },
-    { id: 'drone', name: 'Drone Service', image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop' },
-    { id: 'drivers', name: 'Drivers/Operators', image: 'https://images.unsplash.com/photo-1591768793355-74d7acd51bd2?q=80&w=800&auto=format&fit=crop' },
-    { id: 'irrigation', name: t('farmerHome.irrigation'), image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop' },
-    { id: 'tractor', name: t('farmerHome.tractor'), image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop' },
-  ];
+  const filteredWorkTypes = workTypes.filter(wt => 
+    wt.category === activeCategory && 
+    wt.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <View style={styles.container}>
@@ -145,17 +132,15 @@ const FarmerHomeScreen = ({ navigation }) => {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Premium Hero Section */}
+        {/* Premium Header */}
         <LinearGradient 
           colors={[colors.primary, colors.primaryDark]} 
           style={styles.heroSection}
         >
           <View style={styles.heroTopRow}>
             <View>
-              <Text style={styles.greetingText}>
-                {t('common.namaste') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Farmer'}
-              </Text>
-              <Text style={styles.heroSubText}>What are we planting today?</Text>
+              <Text style={styles.greetingText}>Dinasari</Text>
+              <Text style={styles.heroSubText}>Namaste, {user?.fullName?.split(' ')[0] || 'Farmer'}</Text>
             </View>
             <TouchableOpacity 
               style={styles.notificationBtn}
@@ -166,80 +151,93 @@ const FarmerHomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* Search & Voice Search UI */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <MaterialIcons name="search" size={20} color="#94A3B8" />
-              <TextInput
-                placeholder="Search for workers or services..."
-                placeholderTextColor="#94A3B8"
-                style={styles.searchInput}
-                value={search}
-                onChangeText={setSearch}
-              />
-              <TouchableOpacity 
-                style={styles.micButton} 
-                onPress={handleVoiceSearch}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons 
-                  name="mic" 
-                  size={24} 
-                  color={isListening ? colors.secondary : colors.primary} 
-                />
-                {isListening && <View style={styles.micPulse} />}
-              </TouchableOpacity>
-            </View>
+          {/* Search Bar */}
+          <View style={styles.searchBar}>
+            <MaterialIcons name="search" size={20} color="#94A3B8" />
+            <TextInput
+              placeholder="Search services, machinery..."
+              placeholderTextColor="#94A3B8"
+              style={styles.searchInput}
+              value={search}
+              onChangeText={setSearch}
+            />
+            <TouchableOpacity onPress={handleVoiceSearch}>
+              <MaterialIcons name="mic" size={24} color={isListening ? colors.accent : colors.primary} />
+            </TouchableOpacity>
           </View>
         </LinearGradient>
 
         <WeatherLocationHeader />
 
+        {/* Mandi Prices */}
+        <MandiPricesWidget prices={mandiPrices} navigation={navigation} />
+
+        {/* AI Advisory */}
+        <AIAdvisoryBanner 
+          advice="Optimal soil moisture detected. Ideal for Rice sowing today." 
+          navigation={navigation}
+        />
+
+        {/* Categories Header */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t('farmerHome.selectWorkType')}</Text>
+          <Text style={styles.sectionTitle}>Work Categories</Text>
           <TouchableOpacity onPress={() => navigation.navigate('WorkCategories')}>
-            <Text style={styles.seeAllText}>See All</Text>
+            <Text style={styles.seeAllText}>View All</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.grid}>
-          {workTypes
-            .filter(wt => wt.name.toLowerCase().includes(search.toLowerCase()))
-            .map((workType, index) => (
-              <WorkTypeCard
-                key={workType.id}
-                index={index}
-                workType={workType}
-                onPress={handleWorkTypeSelect}
-              />
-            ))}
+        {/* Category Tabs */}
+        <View style={styles.categoryTabs}>
+          {categories.map(cat => (
+            <TouchableOpacity 
+              key={cat}
+              style={[styles.categoryTab, activeCategory === cat && styles.activeTab]}
+              onPress={() => setActiveCategory(cat)}
+            >
+              <Text style={[styles.tabText, activeCategory === cat && styles.activeTabText]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Video Section */}
+        <View style={styles.grid}>
+          {filteredWorkTypes.map((workType, index) => (
+            <WorkTypeCard
+              key={workType.id}
+              index={index}
+              workType={workType}
+              onPress={handleWorkTypeSelect}
+            />
+          ))}
+        </View>
+
+        {/* Video Tutorial Section */}
         <View style={styles.videoSection}>
-          <View style={[styles.sectionHeader, { marginBottom: 8 }]}>
-            <Text style={styles.sectionTitle}>Edhigo Pani in Action</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>Watch Tutorial</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={[styles.cardSubText, { marginLeft: 24, marginBottom: 16 }]}>See how Edhigo Pani is transforming Indian agriculture</Text>
-          
+          <Text style={styles.sectionTitle}>Ecosystem in Action</Text>
           <GlassCard intensity={20} style={styles.videoCard}>
             <View style={styles.videoWrapper}>
               <WebView
-                source={{ uri: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }} // Placeholder tutorial video
+                source={{ uri: 'https://www.youtube.com/embed/dQw4w9WgXcQ' }}
                 style={styles.webView}
                 allowsFullscreenVideo
               />
             </View>
             <View style={styles.videoFooter}>
-              <Text style={styles.videoTag}>TUTORIAL</Text>
-              <Text style={styles.videoTitle}>How to hire skilled workers in 2 minutes</Text>
+              <Text style={styles.videoTitle}>Modernizing Rural Workflows</Text>
             </View>
           </GlassCard>
         </View>
       </ScrollView>
+
+      {/* AI Assistant FAB */}
+      <TouchableOpacity 
+        style={styles.aiFAB}
+        onPress={() => navigation.navigate('AIChatbot')}
+        activeOpacity={0.9}
+      >
+        <LinearGradient colors={['#FACC15', '#EAB308']} style={styles.aiFABGradient}>
+          <MaterialIcons name="psychology" size={32} color="#FFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       <BottomNavBar role="farmer" activeTab="Home" />
     </View>
@@ -255,12 +253,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   heroSection: {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
     paddingHorizontal: 24,
-    paddingBottom: 80,
+    paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
@@ -272,13 +270,15 @@ const styles = StyleSheet.create({
   },
   greetingText: {
     fontSize: 34,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFF',
+    letterSpacing: 1,
   },
   heroSubText: {
-    fontSize: 20,
+    fontSize: 18,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 6,
+    fontWeight: '600',
+    marginTop: 2,
   },
   notificationBtn: {
     width: 44,
@@ -299,50 +299,120 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
   searchBar: {
-    flex: 1,
-    height: 54,
+    height: 56,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    // Removed borderWidth to avoid "another box" feel
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1E293B',
+    fontWeight: '600',
+    marginLeft: 12,
+  },
+
+  // Categories
+  categoryTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    marginTop: 24,
+    gap: 12,
+  },
+  categoryTab: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 99,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  activeTab: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  activeTabText: {
+    color: '#FFF',
+  },
+
+  // Grid
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  workTypeWrapper: {
+    width: '33.33%',
+    padding: 8,
+  },
+  cardTouch: {
+    width: '100%',
+  },
+  workTypeCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    overflow: 'hidden',
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
+    height: 120,
+    justifyContent: 'flex-end',
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 18,
-    color: '#1E293B',
-    fontWeight: '500',
-    paddingVertical: 0, // Prevent Android default padding
-    marginLeft: 8,
+  cardImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
-  micButton: {
-    padding: 8,
-    position: 'relative',
-    justifyContent: 'center',
+  cardOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  cardContent: {
+    padding: 12,
     alignItems: 'center',
   },
-  micPulse: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: colors.secondary,
-    opacity: 0.6,
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    backdropColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  workTypeName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFF',
+    textAlign: 'center',
+  },
+
+  // Video Section
+  videoSection: {
+    marginTop: 32,
+    paddingHorizontal: 24,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1E293B',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -350,101 +420,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     marginTop: 32,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#1E293B',
+    marginBottom: 8,
   },
   seeAllText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.primary,
   },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 18,
-    justifyContent: 'space-between',
-  },
-  workTypeWrapper: {
-    width: '48%',
-    marginBottom: 16,
-  },
-  cardTouch: {
-    width: '100%',
-  },
-  workTypeGlassCard: {
-    borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#FFF',
-    elevation: 4,
-  },
-  imageContainer: {
-    width: '100%',
-    height: 140,
-    position: 'relative',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 70,
-  },
-  cardBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backdropFilter: 'blur(4px)',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  workTypeName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  cardSubText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  videoSection: {
-    marginTop: 24,
-    paddingBottom: 24,
-  },
   videoCard: {
-    marginHorizontal: 24,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#FFF',
-    elevation: 4,
+    elevation: 6,
   },
   videoWrapper: {
     width: '100%',
@@ -456,17 +443,32 @@ const styles = StyleSheet.create({
   videoFooter: {
     padding: 16,
   },
-  videoTag: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: colors.primary,
-    letterSpacing: 1,
-    marginBottom: 4,
-  },
   videoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: '#1E293B',
+  },
+
+  // AI FAB
+  aiFAB: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    elevation: 10,
+    shadowColor: '#EAB308',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+  },
+  aiFABGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

@@ -18,6 +18,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import ScrollingBanner from '../../components/ScrollingBanner';
 import { socketService } from '../../services/socketService';
 
 const STATUS_META = {
@@ -133,6 +134,8 @@ const LeaderHomeScreen = ({ navigation, route }) => {
           <Text style={styles.welcomeTitle}>{t('common.namaste')}, {user?.name || 'Leader'}!</Text>
           <Text style={styles.welcomeSubtitle}>{t('worker.readyToEarn')}</Text>
         </View>
+
+        <ScrollingBanner />
 
 
         {/* Main Action - Create / Manage Group */}

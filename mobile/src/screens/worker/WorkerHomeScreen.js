@@ -19,6 +19,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import ScrollingBanner from '../../components/ScrollingBanner';
 import { jobAPI, authAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
@@ -316,7 +317,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
         </View>
 
-        <View style={{ height: 16 }} />
+        <ScrollingBanner />
 
         {/* Massive START WORK Button */}
         <View style={styles.buttonContainer}>

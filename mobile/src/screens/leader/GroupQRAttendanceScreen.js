@@ -15,6 +15,7 @@ import {
   Easing,
   Platform,
   Dimensions,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CameraView, Camera } from 'expo-camera';
@@ -366,30 +367,34 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
 
       {/* Help Modal */}
       <Modal visible={helpVisible} animationType="slide" transparent>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Scan Instructions</Text>
-              <TouchableOpacity onPress={() => setHelpVisible(false)} style={styles.modalClose}>
-                <MaterialIcons name="close" size={24} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {HELP_STEPS.map((step, idx) => (
-                <View key={idx} style={styles.helpStep}>
-                  <View style={styles.helpStepIconWrap}>
-                    <MaterialIcons name={step.icon} size={24} color={colors.primary} />
-                  </View>
-                  <View style={styles.helpStepText}>
-                    <Text style={styles.helpStepTitle}>{step.title}</Text>
-                    <Text style={styles.helpStepDesc}>{step.desc}</Text>
-                  </View>
+        <TouchableWithoutFeedback onPress={() => setHelpVisible(false)}>
+          <View style={styles.modalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Scan Instructions</Text>
+                  <TouchableOpacity onPress={() => setHelpVisible(false)} style={styles.modalClose}>
+                    <MaterialIcons name="close" size={24} color="#6B7280" />
+                  </TouchableOpacity>
                 </View>
-              ))}
-            </ScrollView>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {HELP_STEPS.map((step, idx) => (
+                    <View key={idx} style={styles.helpStep}>
+                      <View style={styles.helpStepIconWrap}>
+                        <MaterialIcons name={step.icon} size={24} color={colors.primary} />
+                      </View>
+                      <View style={styles.helpStepText}>
+                        <Text style={styles.helpStepTitle}>{step.title}</Text>
+                        <Text style={styles.helpStepDesc}>{step.desc}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -409,8 +414,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingBottom: 24,
+    paddingTop: Platform.OS === 'ios' ? 52 : 48,
+    paddingBottom: 16,
   },
   iconBtn: { padding: 8, margin: -8 },
   headerTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '600' },
@@ -531,6 +536,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 40,
     maxHeight: '80%',
+    width: '100%',
   },
   modalHandle: { width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },

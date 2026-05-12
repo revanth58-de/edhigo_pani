@@ -49,6 +49,7 @@ const createJob = async (req, res, next) => {
         const matchedWorkers = await matchWorkers({
           workType,
           workerType,
+          workersNeeded: parseInt(workersNeeded) || 1,
           farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
           farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
         });
@@ -60,6 +61,8 @@ const createJob = async (req, res, next) => {
           io.to(`user:${worker.id}`).emit('job:new-offer', {
             jobId: job.id,
             workType: job.workType,
+            workerType: job.workerType,
+            groupId: worker.groupId || null,
             payPerDay: job.payPerDay,
             farmAddress: job.farmAddress,
             farmLatitude: job.farmLatitude,
@@ -212,7 +215,7 @@ const getJobById = async (req, res) => {
         farmer: { ...job.farmer, phone: null }, // Hide farmer phone from non-applicants
         applications: [], // Hide who else applied
       };
-      
+
       return res.status(200).json({
         success: true,
         data: sanitizedJob,
@@ -495,6 +498,7 @@ const withdrawJob = async (req, res) => {
         const matchedWorkers = await matchWorkers({
           workType: fullJob?.workType,
           workerType: fullJob?.workerType,
+          workersNeeded: fullJob?.workersNeeded || 1,
           farmLatitude: fullJob?.farmLatitude,
           farmLongitude: fullJob?.farmLongitude,
         });
@@ -506,6 +510,8 @@ const withdrawJob = async (req, res) => {
           io.to(`user:${worker.id}`).emit('job:new-offer', {
             jobId: fullJob.id,
             workType: fullJob.workType,
+            workerType: fullJob.workerType,
+            groupId: worker.groupId || null,
             payPerDay: fullJob.payPerDay,
             farmAddress: fullJob.farmAddress,
             farmLatitude: fullJob.farmLatitude,

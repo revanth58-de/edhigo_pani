@@ -71,9 +71,17 @@ const submitRating = async (req, res, next) => {
        return res.status(403).json({ error: 'You can only rate users you have worked with on this job' });
     }
 
+    // SEC-7 FIX: Prevent duplicate ratings for the same job+from+to combination
+    const duplicate = await prisma.rating.findFirst({
+      where: { jobId, fromUserId, toUserId: recipientId },
+    });
+    if (duplicate) {
+      return res.status(409).json({ error: 'You have already rated this user for this job' });
+    }
+
     // Use a transaction to create the rating, then recalculate average from all ratings
     const rating = await prisma.rating.create({
-      data: { jobId, fromUserId, toUserId, emoji, stars: stars || null },
+      data: { jobId, fromUserId, toUserId: recipientId, emoji: normalizedEmoji, stars: normalizedStars || null },
     });
 
     // Fetch ALL ratings AFTER insert (so the new one is included in the list)
@@ -147,14 +155,12 @@ const getUserRatings = async (req, res, next) => {
     const requesterId = req.user?.id;
 
     const sanitizedRatings = ratings.map(r => {
-      // Hide phone numbers unless the requester is an admin or the user themselves in the profile
+      // Only the owner of the rating (fromUser) sees their own phone
       const showFromPhone = requesterId === r.fromUser.id;
-      const showToPhone = requesterId === r.toUser.id;
 
       return {
         ...r,
         fromUser: { ...r.fromUser, phone: showFromPhone ? r.fromUser.phone : undefined },
-        toUser: { ...r.toUser, phone: showToPhone ? r.toUser.phone : undefined },
       };
     });
 

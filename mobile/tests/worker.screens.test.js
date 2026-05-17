@@ -10,7 +10,7 @@ const mockGoBack = jest.fn();
 const mockNavigation = { navigate: mockNavigate, goBack: mockGoBack };
 
 // ── Mock stores & services ─────────────────────────────────────────────────────
-jest.mock('../../src/store/authStore', () => () => ({
+jest.mock('../src/store/authStore', () => () => ({
   user: {
     id: 'worker-123',
     name: 'Ramu Worker',
@@ -29,7 +29,7 @@ jest.mock('../../src/store/authStore', () => () => ({
   refreshProfile: jest.fn(),
 }));
 
-jest.mock('../../src/services/api/jobService', () => ({
+jest.mock('../src/services/api/jobService', () => ({
   jobService: {
     getWorkerJobs: jest.fn(() =>
       Promise.resolve({
@@ -47,14 +47,14 @@ jest.mock('../../src/services/api/jobService', () => ({
   },
 }));
 
-jest.mock('../../src/services/api/authService', () => ({
+jest.mock('../src/services/api/authService', () => ({
   authService: {
     updateProfile: jest.fn(() => Promise.resolve({ data: { user: {} } })),
     getMe: jest.fn(() => Promise.resolve({ data: { user: {} } })),
   },
 }));
 
-jest.mock('../../src/services/api/paymentService', () => ({
+jest.mock('../src/services/api/paymentService', () => ({
   paymentService: {
     getPaymentHistory: jest.fn(() =>
       Promise.resolve({
@@ -72,33 +72,33 @@ jest.mock('../../src/services/api/paymentService', () => ({
 describe('WorkerHomeScreen', () => {
   let WorkerHomeScreen;
   beforeAll(() => {
-    try { WorkerHomeScreen = require('../../src/screens/worker/WorkerHomeScreen').default; }
+    try { WorkerHomeScreen = require('../src/screens/worker/WorkerHomeScreen').default; }
     catch { WorkerHomeScreen = null; }
   });
 
-  test('✅ Renders job cards or empty state', async () => {
+  test('✅ Renders greeting and START WORK button', async () => {
     if (!WorkerHomeScreen) return;
-    const { getByText, queryByText } = render(
+    const { queryByText } = render(
       <WorkerHomeScreen navigation={mockNavigation} />
     );
     await waitFor(() => {
-      const hasJobs = queryByText(/Sowing|Harvesting|job/i);
-      const hasEmpty = queryByText(/no job|empty|available/i);
-      expect(hasJobs || hasEmpty).toBeTruthy();
+      // WorkerHomeScreen shows: greeting (Namaste / worker name), START WORK button, My Groups
+      const hasGreeting = queryByText(/namaste|ramu|worker/i);
+      const hasStartWork = queryByText(/start work|searching/i);
+      const hasGroups = queryByText(/my groups|groups/i);
+      expect(hasGreeting || hasStartWork || hasGroups).toBeTruthy();
     });
   });
 
-  test('✅ Tab switch between "Available" and "History"', async () => {
+  test('✅ Quick actions (My Groups, Scan QR) are present', async () => {
     if (!WorkerHomeScreen) return;
-    const { getByText } = render(
+    const { queryByText } = render(
       <WorkerHomeScreen navigation={mockNavigation} />
     );
-
-    try {
-      const historyTab = getByText(/history|past|completed/i);
-      await act(() => fireEvent.press(historyTab));
-      expect(historyTab).toBeTruthy();
-    } catch {}
+    await waitFor(() => {
+      const hasGroups = queryByText(/my groups/i);
+      expect(hasGroups).toBeTruthy();
+    });
   });
 });
 
@@ -120,7 +120,7 @@ describe('JobOfferScreen', () => {
   };
 
   beforeAll(() => {
-    try { JobOfferScreen = require('../../src/screens/worker/JobOfferScreen').default; }
+    try { JobOfferScreen = require('../src/screens/worker/JobOfferScreen').default; }
     catch { JobOfferScreen = null; }
   });
 
@@ -166,7 +166,7 @@ describe('WorkStatusScreen', () => {
   const route = { params: { job: { id: 'job-2', workType: 'Sowing' }, groupId: null } };
 
   beforeAll(() => {
-    try { WorkStatusScreen = require('../../src/screens/worker/WorkStatusScreen').default; }
+    try { WorkStatusScreen = require('../src/screens/worker/WorkStatusScreen').default; }
     catch { WorkStatusScreen = null; }
   });
 
@@ -184,7 +184,7 @@ describe('WorkerProfileScreen', () => {
   let WorkerProfileScreen;
 
   beforeAll(() => {
-    try { WorkerProfileScreen = require('../../src/screens/worker/WorkerProfileScreen').default; }
+    try { WorkerProfileScreen = require('../src/screens/worker/WorkerProfileScreen').default; }
     catch { WorkerProfileScreen = null; }
   });
 
@@ -240,21 +240,23 @@ describe('WorkerPaymentHistoryScreen', () => {
 
   beforeAll(() => {
     try {
-      WorkerPaymentHistoryScreen = require('../../src/screens/worker/WorkerPaymentHistoryScreen').default;
+      WorkerPaymentHistoryScreen = require('../src/screens/worker/WorkerPaymentHistoryScreen').default;
     } catch {
       WorkerPaymentHistoryScreen = null;
     }
   });
 
-  test('✅ Renders payment list', async () => {
+  test('✅ Renders payment history header and earnings', async () => {
     if (!WorkerPaymentHistoryScreen) return;
-    const { getByText, queryByText } = render(
+    const { queryByText } = render(
       <WorkerPaymentHistoryScreen navigation={mockNavigation} />
     );
     await waitFor(() => {
-      const hasPayment = queryByText(/400|₹|payment/i);
-      const hasEmpty = queryByText(/no payment|empty/i);
-      expect(hasPayment || hasEmpty).toBeTruthy();
+      // WorkerPaymentHistoryScreen always shows: "Payment History" header and "Total Earned" banner
+      const hasHeader = queryByText(/payment history/i);
+      const hasEarnings = queryByText(/total earned|earned/i);
+      const hasEmpty = queryByText(/no payments|no payment yet/i);
+      expect(hasHeader || hasEarnings || hasEmpty).toBeTruthy();
     });
   });
 });

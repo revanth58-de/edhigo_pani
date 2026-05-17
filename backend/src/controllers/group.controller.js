@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { getIO } = require('../config/socket');
+const { logger } = require('../middleware/errorHandler');
 
 // GET /api/groups/my-groups - Get all groups led by or containing current user
 const getMyGroups = async (req, res, next) => {
@@ -40,7 +41,7 @@ const createGroup = async (req, res, next) => {
     const { name, type, description, photoUrl, memberCount } = req.body;
     const leaderId = req.user.id; // From JWT token
 
-    console.log('👥 Create Group:', { leaderId, name, type, memberCount });
+    logger.info('Creating group', { leaderId, name, type });
 
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
@@ -57,14 +58,14 @@ const createGroup = async (req, res, next) => {
       },
     });
 
-    console.log('✅ Group created:', group.id);
+    logger.info('Group created', { groupId: group.id });
 
     res.status(201).json({
       message: 'Group created successfully',
       group,
     });
   } catch (error) {
-    console.error('💥 Create Group Error:', error);
+    logger.error('Create group error', { message: error.message });
     next(error);
   }
 };
@@ -131,7 +132,7 @@ const getGroupDetails = async (req, res, next) => {
 
     res.json({ group: { ...group, members: joinedMembers, pendingInvites } });
   } catch (error) {
-    console.error('💥 Get Group Details Error:', error);
+    logger.error('Get group details error', { message: error.message });
     next(error);
   }
 };
@@ -141,9 +142,12 @@ const getGroupJobs = async (req, res, next) => {
   try {
     const { groupId } = req.params;
 
-    // Get group to verify it exists
+    // Get group with its joined member count
     const group = await prisma.group.findUnique({
       where: { id: groupId },
+      include: {
+        members: { where: { status: 'joined' }, select: { id: true } },
+      },
     });
 
     if (!group) {
@@ -155,11 +159,18 @@ const getGroupJobs = async (req, res, next) => {
        return res.status(403).json({ error: 'Only the group leader can view group-eligible jobs' });
     }
 
-    // Find jobs that want group workers and are still pending
+    const joinedMemberCount = group.members.length;
+
+    // ── KEY FIX: Only show jobs this group can actually fulfil ────────────────
+    // workersNeeded is the number of PEOPLE needed, not the number of GROUPS.
+    // A job requiring 10 workers should only show to a group with ≥ 10 members.
+    // Previously a group of 10 would see jobs needing 1–200 workers and be counted
+    // as just "1 group" regardless of size — that was wrong.
     const jobs = await prisma.job.findMany({
       where: {
         workerType: 'group',
         status: 'pending',
+        workersNeeded: { lte: joinedMemberCount },  // group must have enough members
       },
       include: {
         farmer: {
@@ -172,9 +183,10 @@ const getGroupJobs = async (req, res, next) => {
     res.json({
       jobs,
       count: jobs.length,
+      groupSize: joinedMemberCount,   // tell the client so it can show "Your group: X members"
     });
   } catch (error) {
-    console.error('💥 Get Group Jobs Error:', error);
+    logger.error('Get group jobs error', { message: error.message });
     next(error);
   }
 };
@@ -184,7 +196,7 @@ const acceptGroupJob = async (req, res, next) => {
   try {
     const { groupId, jobId } = req.body;
 
-    console.log('👥 Group Accept Job:', { groupId, jobId });
+    logger.info('Group accepting job', { groupId, jobId });
 
     if (!groupId || !jobId) {
       return res.status(400).json({ error: 'Group ID and Job ID are required' });
@@ -193,7 +205,9 @@ const acceptGroupJob = async (req, res, next) => {
     // Verify group exists and user is leader
     const group = await prisma.group.findUnique({
       where: { id: groupId },
-      include: { members: true },
+      include: {
+        members: { where: { status: 'joined' } },  // only count members who actually joined
+      },
     });
 
     if (!group) {
@@ -204,24 +218,52 @@ const acceptGroupJob = async (req, res, next) => {
       return res.status(403).json({ error: 'Only the group leader can accept jobs' });
     }
 
-    // Atomic update — only succeeds if the job is still 'pending' (race condition safe)
-    const { count } = await prisma.job.updateMany({
-      where: { id: jobId, status: 'pending' },
-      data: { status: 'matched' },
+    // Load the job to validate group size against workersNeeded
+    const job = await prisma.job.findUnique({
+      where: { id: jobId },
+      select: { id: true, status: true, workersNeeded: true, workerType: true,
+                workType: true, farmAddress: true, payPerDay: true,
+                farmLatitude: true, farmLongitude: true, farmerId: true },
     });
 
-    if (count === 0) {
-      // Either job doesn't exist or it was already taken
-      const existingJob = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
-      if (!existingJob) return res.status(404).json({ error: 'Job not found' });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    if (job.status !== 'pending') {
       return res.status(409).json({ error: 'Job is no longer available', alreadyTaken: true });
     }
 
-    // Create job application for the group
+    // ── KEY FIX: Validate group size ─────────────────────────────────────────
+    // A group must have AT LEAST as many joined members as the farmer needs.
+    // The group counts as the FULL worker requirement — not just 1 slot.
+    const joinedMemberCount = group.members.length;
+    if (joinedMemberCount < job.workersNeeded) {
+      return res.status(400).json({
+        error: `Your group has only ${joinedMemberCount} member(s) but the farmer needs ${job.workersNeeded}. Add more members before accepting.`,
+        groupSize: joinedMemberCount,
+        workersNeeded: job.workersNeeded,
+      });
+    }
+
+    // Atomic update — close the job immediately as 'accepted'.
+    // One qualifying group = entire requirement fulfilled.
+    // Status goes straight to 'accepted' (not 'matched') so the farmer sees it as done.
+    const { count } = await prisma.job.updateMany({
+      where: { id: jobId, status: 'pending' },
+      data: { status: 'accepted' },
+    });
+
+    if (count === 0) {
+      // Race condition — another group grabbed it between our check and update
+      return res.status(409).json({ error: 'Job was just taken by another group', alreadyTaken: true });
+    }
+
+    // Create a single job application representing the whole group
     await prisma.jobApplication.create({
       data: {
         jobId,
-        workerId: req.user.id,
+        workerId: req.user.id,   // leader's id
         groupId,
         status: 'accepted',
       },
@@ -229,14 +271,36 @@ const acceptGroupJob = async (req, res, next) => {
 
     const updatedJob = await prisma.job.findUnique({ where: { id: jobId } });
 
-    console.log('✅ Group accepted job:', { groupId, jobId });
+    logger.info('Group accepted job', { groupId, jobId, memberCount: joinedMemberCount });
+
+    // Notify farmer via socket that their job is fully staffed by the group
+    const io = require('../config/socket').getIO?.() || null;
+    if (io) {
+      io.to(`user:${job.farmerId}`).emit('job:accepted', {
+        jobId,
+        workerId: req.user.id,
+        workerName: group.name,        // show group name to farmer
+        isGroup: true,
+        groupId,
+        groupName: group.name,
+        memberCount: joinedMemberCount,
+        isFullyStaffed: true,
+        acceptedCount: joinedMemberCount,
+        workersNeeded: job.workersNeeded,
+      });
+
+      // Broadcast globally so other leaders know the job is taken
+      io.emit('job:taken', { jobId });
+    }
 
     res.json({
-      message: 'Job accepted by group',
+      message: `Job accepted by group "${group.name}" (${joinedMemberCount} members)`,
       job: updatedJob,
+      groupSize: joinedMemberCount,
+      isFullyStaffed: true,
     });
   } catch (error) {
-    console.error('💥 Accept Group Job Error:', error);
+    logger.error('Accept group job error', { message: error.message });
     next(error);
   }
 };
@@ -247,7 +311,7 @@ const addMember = async (req, res, next) => {
     const { groupId } = req.params;
     const { workerId, name, role } = req.body;
 
-    console.log('➕ Add Member:', { groupId, workerId, name, role });
+    logger.info('Adding member to group', { groupId, workerId });
 
     if (!workerId) {
       return res.status(400).json({ error: 'Worker ID is required' });
@@ -287,7 +351,7 @@ const addMember = async (req, res, next) => {
       },
     });
 
-    console.log('✅ Member added:', member.id);
+    logger.info('Member added to group', { memberId: member.id });
 
     // Notify the worker via socket (if online)
     const io = getIO();
@@ -307,7 +371,7 @@ const addMember = async (req, res, next) => {
       member,
     });
   } catch (error) {
-    console.error('💥 Add Member Error:', error);
+    logger.error('Add member error', { message: error.message });
     next(error);
   }
 };
@@ -318,7 +382,7 @@ const addMemberByPhone = async (req, res, next) => {
     const { groupId } = req.params;
     const { phone, name, role } = req.body;
 
-    console.log('📱 Add Member By Phone:', { groupId, phone, name, role });
+    logger.info('Adding member by phone', { groupId });
 
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required' });
@@ -407,7 +471,7 @@ const removeMember = async (req, res, next) => {
   try {
     const { groupId, workerId } = req.params;
 
-    console.log('➖ Remove Member:', { groupId, workerId });
+    logger.info('Removing member from group', { groupId, workerId });
 
     // Verify user is leader
     const group = await prisma.group.findUnique({ where: { id: groupId } });
@@ -430,7 +494,7 @@ const updateGroupStatus = async (req, res, next) => {
     const { groupId } = req.params;
     const { status } = req.body;
 
-    console.log('🔄 Update Group Status:', { groupId, status });
+    logger.info('Updating group status', { groupId, status });
 
     // Verify group exists and caller is the leader
     const existing = await prisma.group.findUnique({ where: { id: groupId } });

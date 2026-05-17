@@ -32,7 +32,7 @@ const server = http.createServer(app);
 // Initialize Socket.io
 const io = new Server(server, {
   cors: {
-    origin: '*',
+    origin: config.allowedOrigin,
     methods: ['GET', 'POST'],
   },
   pingTimeout: 30000,   // 30s — wait longer before declaring client gone
@@ -53,7 +53,7 @@ if (config.nodeEnv === 'production') {
 
 // CORS must be before helmet so preflight requests work
 app.use(cors({
-  origin: '*',
+  origin: config.allowedOrigin,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'bypass-tunnel-reminder', 'x-admin-secret'],
 }));
@@ -71,8 +71,9 @@ app.use(helmet({
     preload: true,
   },
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body size limit prevents memory-exhaustion attacks (SEC body limit fix)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // ─── Rate Limiting ───
 // General fallback: 60 req/min. Auth routes have stricter limits applied in auth.routes.js.
@@ -103,13 +104,43 @@ app.get('/health', (req, res) => {
 });
 
 // ─── Socket.io ───
-io.on('connection', (socket) => {
-  logger.info(`Socket connected: ${socket.id}`);
+// SEC-2 FIX: Authenticate every socket connection before allowing room joins.
+// This prevents unauthenticated clients from spying on private user rooms.
+const jwt = require('jsonwebtoken');
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+  if (!token) {
+    return next(new Error('Authentication required for socket connection'));
+  }
+  try {
+    const decoded = jwt.verify(token, config.jwtSecret);
+    socket.userId = decoded.userId; // Attach verified userId to socket for use in handlers
+    next();
+  } catch (err) {
+    return next(new Error('Invalid or expired socket token'));
+  }
+});
 
-  // Location updates from workers
+io.on('connection', (socket) => {
+  logger.info(`Socket connected: ${socket.id} (user: ${socket.userId})`);
+
+  // Location updates from workers — emit ONLY to the relevant farmer's room
+  // data must include: { userId, farmerId, latitude, longitude }
   socket.on('location:update', (data) => {
-    // Broadcast to relevant farmer/leader
-    socket.broadcast.emit('location:broadcast', {
+    if (!data.farmerId) {
+      // Fallback: if no farmerId provided, only broadcast to job room
+      if (data.jobId) {
+        io.to(`job:${data.jobId}`).emit('location:broadcast', {
+          userId: data.userId,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          timestamp: new Date().toISOString(),
+        });
+      }
+      return;
+    }
+    // Targeted emit — only the farmer whose userId matches receives this
+    io.to(`user:${data.farmerId}`).emit('location:broadcast', {
       userId: data.userId,
       latitude: data.latitude,
       longitude: data.longitude,
@@ -123,8 +154,13 @@ io.on('connection', (socket) => {
     logger.info(`Socket ${socket.id} joined job:${jobId}`);
   });
 
-  // Join a personal user room for notifications (cancellations, etc.)
+  // Join a personal user room for notifications
+  // SEC-2 FIX: Only allow a user to join THEIR OWN room — verified against JWT identity
   socket.on('user:join', (userId) => {
+    if (userId !== socket.userId) {
+      logger.warn(`Socket ${socket.id} tried to join user:${userId} but is authenticated as ${socket.userId}`);
+      return; // Silently reject — no error to avoid leaking info
+    }
     socket.join(`user:${userId}`);
     logger.info(`Socket ${socket.id} joined user:${userId}`);
   });
@@ -227,9 +263,61 @@ app.use(errorHandler);
 // ─── Start Server ───
 if (require.main === module) {
   server.listen(config.port, '0.0.0.0', () => {
-    logger.info(`🚀 FarmConnect server running on port ${config.port} (bound to 0.0.0.0)`);
+    logger.info(`🚀 DINASARI server running on port ${config.port} (bound to 0.0.0.0)`);
     logger.info(`📡 Environment: ${config.nodeEnv}`);
   });
+
+  // ─── Refresh Token Cleanup Job ─────────────────────────────────────────
+  // Runs once every 24 hours to purge revoked/expired tokens from the DB.
+  // Prevents unbounded table growth as users log in and out over time.
+  const prisma = require('./config/database');
+  const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
+  const runTokenCleanup = async () => {
+    try {
+      const result = await prisma.refreshToken.deleteMany({
+        where: {
+          OR: [
+            { revoked: true },
+            { expiresAt: { lt: new Date() } },
+          ],
+        },
+      });
+      if (result.count > 0) {
+        logger.info(`🧹 Token cleanup: removed ${result.count} expired/revoked refresh tokens`);
+      }
+    } catch (err) {
+      logger.error('Token cleanup job failed', { message: err.message });
+    }
+  };
+  // Run once immediately on startup, then every 24 hours
+  runTokenCleanup();
+  setInterval(runTokenCleanup, CLEANUP_INTERVAL);
+
+  // ─── Graceful Shutdown ──────────────────────────────────────────────────
+  // Ensures active requests complete and DB connections are closed cleanly
+  // when the process is stopped (e.g., during a production deploy).
+  const shutdown = (signal) => {
+    logger.info(`${signal} received — gracefully shutting down...`);
+    server.close(async () => {
+      logger.info('HTTP server closed');
+      try {
+        await prisma.$disconnect();
+        logger.info('Database disconnected');
+      } catch (err) {
+        logger.error('Error disconnecting database', { message: err.message });
+      }
+      process.exit(0);
+    });
+
+    // Force shutdown after 10 seconds if graceful close takes too long
+    setTimeout(() => {
+      logger.error('Forced shutdown after 10s timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT',  () => shutdown('SIGINT'));
 }
 
 module.exports = { app, server, io };

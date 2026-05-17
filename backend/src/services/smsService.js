@@ -20,6 +20,10 @@ const sendOTPSms = async (phone, otp) => {
     return false;
   }
 
+  // Abort if Fast2SMS doesn't respond within 8 seconds
+  const controller = new AbortController();
+  const smsTimeout = setTimeout(() => controller.abort(), 8000);
+
   try {
     const response = await fetch(FAST2SMS_URL, {
       method: 'POST',
@@ -29,24 +33,32 @@ const sendOTPSms = async (phone, otp) => {
       },
       body: JSON.stringify({
         route: 'q',
-        message: `Your Edhigo Pani OTP is: ${otp}. Valid for 5 minutes. Do not share.`,
+        message: `Your DINASARI OTP is: ${otp}. Valid for 5 minutes. Do not share.`,
         language: 'english',
         flash: 0,
         numbers: phone,
       }),
+      signal: controller.signal,
     });
+    clearTimeout(smsTimeout);
 
     const result = await response.json();
 
     if (result.return === true) {
-      console.log(`📱 OTP SMS sent to ${phone}: ${otp}`);
+      // SEC-10 FIX: Never log OTP values — they are security credentials
+      console.log(`📱 OTP SMS sent to ${phone}`);
       return true;
     } else {
       console.error('❌ Fast2SMS error:', result.message);
       return false;
     }
   } catch (err) {
-    console.error('💥 SMS send error:', err.message);
+    clearTimeout(smsTimeout);
+    if (err.name === 'AbortError') {
+      console.error('⏱️  Fast2SMS timed out after 8s — SMS not sent (OTP still valid for dev)');
+    } else {
+      console.error('💥 SMS send error:', err.message);
+    }
     return false;
   }
 };

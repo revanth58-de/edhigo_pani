@@ -51,7 +51,11 @@ const getStats = async (req, res, next) => {
 // ─── GET /api/admin/users ───
 const getUsers = async (req, res, next) => {
   try {
-    const { role, search } = req.query;
+    const { role, search, page = 1, limit = 50 } = req.query;
+    // SEC-9 FIX: Cap page size at 100 to prevent full-table data dumps
+    const take = Math.min(parseInt(limit) || 50, 100);
+    const skip = (Math.max(parseInt(page), 1) - 1) * take;
+
     const where = {};
     if (role) where.role = role;
     if (search) {
@@ -61,18 +65,23 @@ const getUsers = async (req, res, next) => {
         { village: { contains: search } },
       ];
     }
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true, phone: true, name: true, role: true,
-        language: true, village: true, status: true,
-        ratingAvg: true, ratingCount: true, createdAt: true,
-        landAcres: true, photoUrl: true,
-        _count: { select: { jobsPosted: true, attendances: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json({ users, count: users.length });
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true, phone: true, name: true, role: true,
+          language: true, village: true, status: true,
+          ratingAvg: true, ratingCount: true, createdAt: true,
+          landAcres: true, photoUrl: true,
+          _count: { select: { jobsPosted: true, attendances: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.user.count({ where }),
+    ]);
+    res.json({ users, count: users.length, total, page: parseInt(page), pages: Math.ceil(total / take) });
   } catch (err) { next(err); }
 };
 

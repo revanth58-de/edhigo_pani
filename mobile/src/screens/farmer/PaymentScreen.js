@@ -27,6 +27,7 @@ const PaymentScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
 
   const { user, language } = useAuthStore();
+  const [upiLaunched, setUpiLaunched] = useState(false); // tracks if UPI app was opened
   
   // Support either single `worker` or multiple `workers`
   let workerList = workers || (worker ? [worker] : []);
@@ -41,7 +42,8 @@ const PaymentScreen = ({ navigation, route }) => {
     }];
   }
 
-  const workerCount = workerList.length || String(job?.workersNeeded || 1);
+  // SEC-PAYMENT FIX: Always use Number — fallback String would cause string concatenation
+  const workerCount = workerList.length > 0 ? workerList.length : Number(job?.workersNeeded) || 1;
   const totalAmount = (job?.payPerDay || 500) * workerCount;
   // Use farmer's UPI ID from profile, fallback to phone-based UPI
   const upiId = user?.upiId || `${user?.phone || 'farmer'}@upi`;
@@ -64,24 +66,78 @@ const PaymentScreen = ({ navigation, route }) => {
     Speech.speak(textToSpeak, { language: language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN' });
   };
 
-
   const handlePayment = async () => {
     setLoading(true);
     try {
-      const response = await paymentService.makePayment({
-        jobId: job.id,
-        amount: totalAmount,
-        method: paymentMethod,
-      });
-
-      if (response.success) {
-        navigation.navigate('RateWorker', { job, workers: workerList });
+      if (paymentMethod === 'cash') {
+        // Cash: register + complete in one call
+        const response = await paymentService.makePayment({
+          jobId: job.id,
+          amount: totalAmount,
+          method: 'cash',
+        });
+        if (response.success) {
+          navigation.navigate('RateWorker', { job, workers: workerList });
+        } else {
+          Alert.alert('Error', response.message || 'Payment failed');
+        }
       } else {
-        Alert.alert('Error', response.message || 'Payment failed');
+        // UPI Step 1: Register pending payment in backend
+        const response = await paymentService.makePayment({
+          jobId: job.id,
+          amount: totalAmount,
+          method: 'upi',
+          transactionId,
+        });
+        if (!response.success) {
+          // Handle already-paid gracefully
+          if (response.message?.includes('already')) {
+            Alert.alert('Already Paid', 'This job has already been paid. Proceeding to rating.');
+            navigation.navigate('RateWorker', { job, workers: workerList });
+            return;
+          }
+          Alert.alert('Error', response.message || 'Could not initiate payment');
+          return;
+        }
+        // UPI Step 2: Open UPI app via deep link
+        const upiUrl = `upi://pay?pa=${upiId}&pn=DINASARI&am=${totalAmount}&cu=INR&tn=FarmWork+Payment&tr=${transactionId}`;
+        const canOpen = await Linking.canOpenURL(upiUrl);
+        if (canOpen) {
+          await Linking.openURL(upiUrl);
+          setUpiLaunched(true); // Show "confirm" button after UPI app opens
+        } else {
+          Alert.alert(
+            'UPI App Not Found',
+            'No UPI app installed. Please pay cash or install Google Pay / PhonePe.',
+            [{ text: 'Pay Cash Instead', onPress: () => setPaymentMethod('cash') }, { text: 'OK' }]
+          );
+        }
       }
     } catch (error) {
       console.error('Payment Error:', error);
       Alert.alert('Error', 'Failed to process payment. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpiConfirm = async () => {
+    setLoading(true);
+    try {
+      const response = await paymentService.confirmPayment(job.id, transactionId);
+      if (response.success) {
+        navigation.navigate('RateWorker', { job, workers: workerList });
+      } else {
+        // Even if backend confirm fails, let farmer continue to rating
+        Alert.alert(
+          'Payment Noted',
+          'Your confirmation has been recorded. Proceeding to rating.',
+          [{ text: 'OK', onPress: () => navigation.navigate('RateWorker', { job, workers: workerList }) }]
+        );
+      }
+    } catch (error) {
+      console.error('UPI Confirm Error:', error);
+      navigation.navigate('RateWorker', { job, workers: workerList });
     } finally {
       setLoading(false);
     }
@@ -221,27 +277,55 @@ const PaymentScreen = ({ navigation, route }) => {
 
       {/* Bottom Action Button */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.paidButtonWrap}
-          onPress={handlePayment}
-          disabled={loading}
-          activeOpacity={0.9}
-        >
-          <LinearGradient
-            colors={colors.primaryGradient}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.paidButton}
+        {upiLaunched && paymentMethod === 'upi' ? (
+          /* Step 2: After UPI app opened — show "I've Paid" confirm button */
+          <TouchableOpacity
+            style={styles.paidButtonWrap}
+            onPress={handleUpiConfirm}
+            disabled={loading}
+            activeOpacity={0.9}
           >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <>
-                <Text style={styles.paidButtonText}>CONFIRM PAYMENT</Text>
-                <MaterialIcons name="check-circle" size={26} color="#FFFFFF" />
-              </>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#15803D', '#16A34A']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.paidButton}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialIcons name="check-circle" size={26} color="#FFFFFF" />
+                  <Text style={styles.paidButtonText}>I'VE CONFIRMED PAYMENT</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : (
+          /* Step 1: Initial payment button */
+          <TouchableOpacity
+            style={styles.paidButtonWrap}
+            onPress={handlePayment}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={colors.primaryGradient}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+              style={styles.paidButton}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <Text style={styles.paidButtonText}>
+                    {paymentMethod === 'upi' ? 'OPEN UPI & PAY' : 'CONFIRM CASH PAYMENT'}
+                  </Text>
+                  <MaterialIcons name="check-circle" size={26} color="#FFFFFF" />
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
     </LinearGradient>
   );

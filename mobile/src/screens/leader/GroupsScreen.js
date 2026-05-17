@@ -49,33 +49,46 @@ const GroupsScreen = ({ navigation }) => {
 
   const renderGroupItem = ({ item }) => {
     return (
-      <TouchableOpacity
-        style={styles.groupCard}
-        onPress={() => navigation.navigate('GroupDetail', { groupId: item.id, groupName: item.name })}
-        activeOpacity={0.8}
-      >
-        {item.photoUrl ? (
-          <Image source={{ uri: item.photoUrl }} style={styles.groupPhoto} />
-        ) : (
-          <View style={styles.groupPhotoPlaceholder}>
-            <MaterialIcons name="groups" size={32} color={colors.primary} />
-          </View>
-        )}
-        
-        <View style={styles.groupInfo}>
-          <Text style={styles.groupName}>{item.name}</Text>
-          <View style={styles.typeTag}>
-            <Text style={styles.typeText}>{item.type || 'General Work'}</Text>
-          </View>
-          <Text style={styles.memberCount}>
-            {item.members?.length || 0} Members
-          </Text>
-        </View>
+      <View style={styles.groupCard}>
+        <TouchableOpacity
+          style={styles.groupCardMain}
+          onPress={() => navigation.navigate('GroupDetail', { groupId: item.id, groupName: item.name })}
+          activeOpacity={0.8}
+        >
+          {item.photoUrl ? (
+            <Image source={{ uri: item.photoUrl }} style={styles.groupPhoto} />
+          ) : (
+            <View style={styles.groupPhotoPlaceholder}>
+              <MaterialIcons name="groups" size={32} color={colors.primary} />
+            </View>
+          )}
 
-        <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
-      </TouchableOpacity>
+          <View style={styles.groupInfo}>
+            <Text style={styles.groupName}>{item.name}</Text>
+            <View style={styles.typeTag}>
+              <Text style={styles.typeText}>{item.type || 'General Work'}</Text>
+            </View>
+            <Text style={styles.memberCount}>
+              {item.members?.length || 0} Members
+            </Text>
+          </View>
+
+          <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
+        </TouchableOpacity>
+
+        {/* ── Quick Chat Button ── */}
+        <TouchableOpacity
+          style={styles.chatBtn}
+          onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
+          activeOpacity={0.85}
+        >
+          <MaterialIcons name="chat" size={18} color={colors.white} />
+          <Text style={styles.chatBtnText}>Chat</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
+
 
   return (
     <View style={styles.container}>
@@ -149,17 +162,20 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Space for FAB
   },
   groupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 16,
-    padding: 16,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
+    overflow: 'hidden',
+  },
+  groupCardMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
   },
   groupPhoto: {
     width: 64,
@@ -249,6 +265,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
+  },
+  chatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: `${colors.primary}30`,
+  },
+  chatBtnText: {
+    color: colors.white,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
 

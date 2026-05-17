@@ -3,6 +3,47 @@
  * Mocks native modules that can't be tested in a Node environment
  */
 
+// ─── Mock @react-navigation/native ───────────────────────────────────────────
+// Screens using useFocusEffect / useNavigation internally (not via props)
+// will crash without this mock since NavigationContainer is not present in tests.
+const mockNavFn = jest.fn();
+const mockNavGoBack = jest.fn();
+const mockNavObj = { navigate: mockNavFn, goBack: mockNavGoBack, addListener: jest.fn(() => jest.fn()), canGoBack: jest.fn(() => false) };
+
+jest.mock('@react-navigation/native', () => ({
+  // Use React.useEffect so callback fires AFTER mount, not during render.
+  // The synchronous call caused 'renderWithHooksAgain' crash when setState fired mid-render.
+  useFocusEffect: (cb) => {
+    const { useEffect } = require('react');
+    useEffect(() => {
+      let cleanup;
+      try { cleanup = cb(); } catch {}
+      return () => { try { if (typeof cleanup === 'function') cleanup(); } catch {} };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  },
+  useNavigation: jest.fn(() => mockNavObj),
+  useRoute: jest.fn(() => ({ params: {} })),
+  useIsFocused: jest.fn(() => true),
+  NavigationContainer: ({ children }) => children,
+  createNavigatorFactory: jest.fn(),
+  useNavigationContainerRef: jest.fn(),
+  CommonActions: { navigate: jest.fn(), goBack: jest.fn(), reset: jest.fn() },
+}));
+
+jest.mock('@react-navigation/native-stack', () => ({
+  createNativeStackNavigator: jest.fn(() => ({
+    Navigator: ({ children }) => children,
+    Screen: ({ children }) => children,
+  })),
+}));
+
+jest.mock('@react-navigation/bottom-tabs', () => ({
+  createBottomTabNavigator: jest.fn(() => ({
+    Navigator: ({ children }) => children,
+    Screen: ({ children }) => children,
+  })),
+}));
+
 // ─── Mock expo-secure-store ────────────────────────────────────────────────────
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
@@ -125,3 +166,49 @@ jest.mock('expo-constants', () => ({
   appOwnership: 'standalone',
   expoConfig: { extra: { eas: { projectId: 'test-project-id' } } },
 }));
+
+// ─── Mock @sentry/react-native ────────────────────────────────────────────────
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  setUser: jest.fn(),
+  configureScope: jest.fn(),
+  withScope: jest.fn((cb) => cb({ setTag: jest.fn(), setExtra: jest.fn() })),
+  wrap: jest.fn((component) => component),
+  ErrorBoundary: ({ children }) => children,
+}));
+
+// ─── Mock our sentry config helper ────────────────────────────────────────────
+jest.mock('../src/config/sentry', () => ({
+  initSentry: jest.fn(),
+  captureError: jest.fn(),
+  identifySentryUser: jest.fn(),
+  clearSentryUser: jest.fn(),
+}));
+
+// ─── Mock expo-camera ────────────────────────────────────────────────────────
+const mockRequestCameraPermissions = jest.fn(() => Promise.resolve({ status: 'granted' }));
+jest.mock('expo-camera', () => {
+  const React = require('react');
+  const MockCamera = ({ children, ...props }) =>
+    React.createElement('Camera', props, children);
+  // Static method on the Camera class
+  MockCamera.requestCameraPermissionsAsync = mockRequestCameraPermissions;
+  MockCamera.useCameraPermissions = jest.fn(() => [{ granted: true }, jest.fn()]);
+  return {
+    Camera: MockCamera,
+    CameraType: { back: 'back', front: 'front' },
+    CameraView: MockCamera,
+    requestCameraPermissionsAsync: mockRequestCameraPermissions,
+    useCameraPermissions: jest.fn(() => [{ granted: true }, jest.fn()]),
+  };
+});
+
+// ─── Mock expo-image-picker ───────────────────────────────────────────────────
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(() => Promise.resolve({ canceled: true })),
+  MediaTypeOptions: { Images: 'Images' },
+  requestMediaLibraryPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+}));
+

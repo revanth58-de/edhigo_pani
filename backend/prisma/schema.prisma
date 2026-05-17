@@ -210,6 +210,7 @@ model GroupMember {
   group  Group @relation(fields: [groupId], references: [id])
   worker User  @relation(fields: [workerId], references: [id])
 
+  @@unique([groupId, workerId])   // Prevent duplicate membership for same worker+group
   @@map("group_members")
 }
 

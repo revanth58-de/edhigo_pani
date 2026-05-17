@@ -41,8 +41,6 @@ const RateWorkerScreen = ({ navigation, route }) => {
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
-  }, []);
 
   const handleRatingPress = (value) => {
     setRating(value);

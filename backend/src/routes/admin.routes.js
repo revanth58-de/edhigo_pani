@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { adminAuth } = require('../middleware/admin.middleware');
+const { adminAuth, adminRateLimiter } = require('../middleware/admin.middleware');
 const {
   getStats, getUsers, updateUser, deleteUser,
   getJobs, updateJob,
@@ -8,8 +8,11 @@ const {
   getAttendance, getRatings, getGroups,
 } = require('../controllers/admin.controller');
 
-// All routes protected by admin secret key
+// Rate-limit BEFORE auth check — stops brute-force before any comparison runs
+router.use(adminRateLimiter);
+// All routes protected by timing-safe admin secret key
 router.use(adminAuth);
+
 
 router.get('/stats', getStats);
 

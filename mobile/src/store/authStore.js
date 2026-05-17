@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { authAPI, setAuthToken } from '../services/api';
+import { identifySentryUser, clearSentryUser } from '../config/sentry';
 
 const STORAGE_KEY = 'edhigo_auth_meta';
 const ACCESS_TOKEN_KEY = 'edhigo_access_token';
@@ -179,8 +180,9 @@ const useAuthStore = create((set, get) => ({
         phone 
       });
 
-      // Connect socket after auth
+      // Connect socket after auth + identify user in Sentry for crash correlation
       import('../services/socketService').then(s => s.socketService.connect());
+      identifySentryUser(mappedUser?.id, mappedUser?.role);
 
       // Sync full profile from server in background
       try {
@@ -233,6 +235,7 @@ const useAuthStore = create((set, get) => ({
     clearStorage();
     set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, phone: null, _hydrated: true });
     import('../services/socketService').then(s => s.socketService.disconnect());
+    clearSentryUser(); // Remove user context from Sentry on logout
   },
 }));
 

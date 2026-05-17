@@ -16,7 +16,21 @@ export const paymentService = {
       console.error('Payment Error:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Payment failed',
+        message: error.response?.data?.error || error.response?.data?.message || 'Payment failed',
+      };
+    }
+  },
+
+  // Confirm a UPI payment was received (marks pending UPI payments as completed)
+  confirmPayment: async (jobId, upiRef) => {
+    try {
+      const response = await paymentAPI.confirmPayment(jobId, upiRef);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Confirm Payment Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Failed to confirm payment',
       };
     }
   },
@@ -43,3 +57,4 @@ export const paymentService = {
     }
   },
 };
+

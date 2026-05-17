@@ -137,7 +137,7 @@ const RegisterScreen = ({ navigation }) => {
                 gender: gender,
                 role: selectedRole,
                 fromRegister: true,
-                otp: result?.otp,
+                otp: result?.devOtp,
             });
         } catch (error) {
             Alert.alert('Error', 'Could not send OTP. Please try again.');

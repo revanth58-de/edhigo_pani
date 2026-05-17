@@ -154,7 +154,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       {/* Spacer for translucent status bar */}
       <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
-      <TopBar title={t('farmerHome.selectWorkType')} navigation={navigation} />
+      <TopBar title="DINASARI" navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
         

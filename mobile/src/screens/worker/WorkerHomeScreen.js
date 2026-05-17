@@ -19,6 +19,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import EmptyState from '../../components/EmptyState';
 import { jobAPI, authAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
@@ -86,6 +87,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   // Store jobs as id-keyed map for O(1) removal when job:taken fires
   const [jobsMap, setJobsMap] = useState({});
   const [userLocation, setUserLocation] = useState(null);
+  const [jobFetchError, setJobFetchError] = useState(false);
   const activeTab = route.params?.tab || 'home';
   const navigationRef = useRef(navigation);
 
@@ -98,6 +100,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
   const fetchNearbyJobs = useCallback(async () => {
     try {
+      setJobFetchError(false);
       const response = await jobAPI.getJobs({ status: 'pending' });
       const jobList = response?.data?.data || [];
       const newMap = {};
@@ -116,6 +119,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       setJobsMap(newMap);
     } catch (e) {
       console.warn('Failed to fetch jobs for map');
+      setJobFetchError(true);
     }
   }, []);
 
@@ -307,6 +311,17 @@ const WorkerHomeScreen = ({ navigation, route }) => {
       <TopBar title={t('worker.workerHome')} navigation={navigation} />
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+
+        {/* Network Error Banner */}
+        {jobFetchError && (
+          <EmptyState
+            offline
+            title="Can't reach server"
+            subtitle="Check your connection. Backend might not be running."
+            action={{ label: 'Retry', onPress: fetchNearbyJobs }}
+            style={{ paddingVertical: 24 }}
+          />
+        )}
 
         {/* Profile Header */}
         <View style={styles.profileHeader}>

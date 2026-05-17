@@ -1,5 +1,6 @@
 const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
 const { matchWorkers } = require('../services/matchWorkers');
+const { logger } = require('../middleware/errorHandler');
 const {
   notifyWorkersNewJob,
   notifyFarmerJobAccepted,
@@ -49,11 +50,12 @@ const createJob = async (req, res, next) => {
         const matchedWorkers = await matchWorkers({
           workType,
           workerType,
+          workersNeeded,           // ← required for group size filtering
           farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
           farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
         });
 
-        console.log(`🎯 Job ${job.id}: matched ${matchedWorkers.length} workers for workType="${workType}"`);
+        logger.info(`Job ${job.id}: matched ${matchedWorkers.length} workers`, { workType, workerType });
 
         // Emit to each matched worker's personal room (they join it on connect)
         matchedWorkers.forEach((worker) => {
@@ -76,7 +78,7 @@ const createJob = async (req, res, next) => {
         await notifyWorkersNewJob(matchedWorkers, job);
       } catch (matchErr) {
         // Matching errors should not fail the job creation
-        console.error('⚠️ Worker matching error (job still created):', matchErr.message);
+        logger.error('Worker matching error (job still created)', { message: matchErr.message });
       }
     }
 
@@ -86,65 +88,74 @@ const createJob = async (req, res, next) => {
       data: job,
     });
   } catch (error) {
-    console.error('Create Job Error:', error);
+    logger.error('Create job error', { message: error.message });
     next(error);
   }
 };
 
 
-// Get all jobs (with optional filters)
+// Get all jobs (with optional filters + pagination)
 const getJobs = async (req, res, next) => {
   try {
-    const { status, farmerId, id, workerId } = req.query;
+    const { status, farmerId, id, workerId, page = 1, limit = 50, cursor } = req.query;
+    // Cap at 100 per page — prevent memory exhaustion on large datasets
+    const take = Math.min(parseInt(limit) || 50, 100);
+    const skip = cursor ? 1 : (Math.max(parseInt(page), 1) - 1) * take;
 
     const where = {};
     if (id) where.id = id;
     if (status) where.status = status;
     if (farmerId) where.farmerId = farmerId;
-    // Worker history: filter jobs where the worker has an individual application 
-    // OR where they are part of a group that has an application
     if (workerId) {
       where.applications = { some: { workerId } };
     }
 
-    const jobs = await prisma.job.findMany({
+    const queryOptions = {
       where,
       orderBy: { createdAt: 'desc' },
+      take,
+      skip,
       include: {
         farmer: {
           select: {
-            name: true,
-            phone: true,
-            photoUrl: true,
-            ratingAvg: true,
+            name: true, phone: true, photoUrl: true, ratingAvg: true,
           },
         },
         applications: {
           include: {
             worker: {
               select: {
-                id: true,
-                name: true,
-                phone: true,
-                photoUrl: true,
-                ratingAvg: true,
-                skills: true,
-                village: true,
-                latitude: true,
-                longitude: true,
+                id: true, name: true, phone: true, photoUrl: true,
+                ratingAvg: true, skills: true, village: true,
+                latitude: true, longitude: true,
               },
             },
           },
         },
       },
-    });
+    };
+
+    // Use cursor-based pagination when a cursor is provided (more efficient at scale)
+    if (cursor) {
+      queryOptions.cursor = { id: cursor };
+    }
+
+    const jobs = await prisma.job.findMany(queryOptions);
+    const nextCursor = jobs.length === take ? jobs[jobs.length - 1].id : null;
 
     res.status(200).json({
       success: true,
       data: jobs,
+      pagination: {
+        page: parseInt(page),
+        limit: take,
+        count: jobs.length,
+        nextCursor,     // Pass this as ?cursor= on the next request for cursor-based paging
+        hasMore: !!nextCursor,
+      },
     });
   } catch (error) {
-    console.error('Get Jobs Error:', error);
+    logger.error('Get jobs error', { message: error.message });
     next(error);
   }
 };
@@ -236,11 +247,10 @@ const getJobById = async (req, res) => {
       data: job,
     });
   } catch (error) {
-    console.error('Get Job By ID Error:', error);
+    logger.error('Get job by ID error', { message: error.message });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch job',
-      error: error.message,
     });
   }
 };
@@ -277,11 +287,10 @@ const updateJobStatus = async (req, res) => {
       data: job,
     });
   } catch (error) {
-    console.error('Update Job Error:', error);
+    logger.error('Update job status error', { message: error.message });
     res.status(500).json({
       success: false,
       message: 'Failed to update job',
-      error: error.message,
     });
   }
 };
@@ -329,23 +338,38 @@ const acceptJob = async (req, res) => {
         where: { jobId: id, status: 'accepted' },
       });
 
-      if (acceptedCount >= currentJob.workersNeeded) {
-        throw new Error('JOB_FULL');
+      const isGroupJob = currentJob.workerType === 'group';
+      let leaderGroupId = null;
+      if (isGroupJob) {
+        if (acceptedCount >= 1) {
+          throw new Error('JOB_FULL');
+        }
+        // Fetch the leader's active group
+        const group = await tx.group.findFirst({
+          where: { leaderId: workerId, status: { in: ['forming', 'available', 'active'] } },
+        });
+        if (group) {
+          leaderGroupId = group.id;
+        }
+      } else {
+        if (acceptedCount >= currentJob.workersNeeded) {
+          throw new Error('JOB_FULL');
+        }
       }
 
-      // Accept this worker
+      // Accept this worker (and associate group if applicable)
       if (!existingApp) {
         await tx.jobApplication.create({
-          data: { jobId: id, workerId, status: 'accepted' },
+          data: { jobId: id, workerId, status: 'accepted', groupId: leaderGroupId },
         });
       } else {
         await tx.jobApplication.update({
           where: { id: existingApp.id },
-          data: { status: 'accepted' },
+          data: { status: 'accepted', groupId: leaderGroupId },
         });
       }
 
-      const isNowFull = (acceptedCount + 1) >= currentJob.workersNeeded;
+      const isNowFull = isGroupJob ? true : ((acceptedCount + 1) >= currentJob.workersNeeded);
 
       // Close job *only* if required workers are fulfilled
       if (isNowFull) {
@@ -397,7 +421,7 @@ const acceptJob = async (req, res) => {
       // 2️⃣ Broadcast globally ONLY IF the job is fully staffed
       if (isNowFull) {
         io.emit('job:taken', { jobId: id });
-        console.log(`📡 Broadcast job:taken for job ${id} (Full)`);
+        logger.info('job:taken broadcast sent', { jobId: id });
       }
     }
 
@@ -409,7 +433,7 @@ const acceptJob = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Accept Job Error:', error);
+    logger.error('Accept job error', { message: error.message });
 
     if (error.message === 'JOB_UNAVAILABLE' || error.message === 'JOB_FULL') {
       return res.status(409).json({
@@ -471,9 +495,10 @@ const withdrawJob = async (req, res) => {
     const io = req.app.get('io');
     if (io) {
       // 1️⃣ Tell the farmer the worker withdrew
+      // NOTE: must select pushToken here — without it, push notification never fires
       const fullJob = await prisma.job.findUnique({
         where: { id },
-        include: { farmer: { select: { id: true } } },
+        include: { farmer: { select: { id: true, pushToken: true } } },
       });
 
       if (fullJob?.farmer?.id) {
@@ -495,6 +520,7 @@ const withdrawJob = async (req, res) => {
         const matchedWorkers = await matchWorkers({
           workType: fullJob?.workType,
           workerType: fullJob?.workerType,
+          workersNeeded: fullJob?.workersNeeded,  // ← required for group size filtering
           farmLatitude: fullJob?.farmLatitude,
           farmLongitude: fullJob?.farmLongitude,
         });
@@ -519,9 +545,9 @@ const withdrawJob = async (req, res) => {
           });
         });
 
-        console.log(`📡 Re-notified ${matchedWorkers.length} workers that job ${id} is open again.`);
+        logger.info(`Re-notified ${matchedWorkers.length} workers that job ${id} is open again`);
       } catch (matchErr) {
-        console.error('⚠️ Re-matching error after withdrawal:', matchErr.message);
+        logger.error('Re-matching error after withdrawal', { message: matchErr.message });
       }
     }
 
@@ -531,11 +557,10 @@ const withdrawJob = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Withdraw Job Error:', error);
+    logger.error('Withdraw job error', { message: error.message });
     res.status(500).json({
       success: false,
       message: 'Failed to withdraw job',
-      error: error.message,
     });
   }
 };
@@ -558,11 +583,10 @@ const getMyJobs = async (req, res) => {
       data: jobs,
     });
   } catch (error) {
-    console.error('Get My Jobs Error:', error);
+    logger.error('Get my jobs error', { message: error.message });
     res.status(500).json({
       success: false,
       message: 'Failed to fetch your jobs',
-      error: error.message,
     });
   }
 };
@@ -600,8 +624,8 @@ const getWorkerHistory = async (req, res) => {
 
     res.status(200).json({ success: true, data: jobs });
   } catch (error) {
-    console.error('Get Worker History Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch work history', error: error.message });
+    logger.error('Get worker history error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch work history' });
   }
 };
 
@@ -635,8 +659,8 @@ const getWorkerJobs = async (req, res) => {
 
     res.status(200).json({ success: true, data: jobs });
   } catch (error) {
-    console.error('Get Worker Jobs Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch worker jobs', error: error.message });
+    logger.error('Get worker jobs error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch worker jobs' });
   }
 };
 
@@ -681,7 +705,7 @@ const cancelJob = async (req, res, next) => {
 
     res.status(200).json({ success: true, message: 'Job cancelled successfully' });
   } catch (error) {
-    console.error('Cancel Job Error:', error);
+    logger.error('Cancel job error', { message: error.message });
     next(error);
   }
 };
@@ -731,8 +755,8 @@ const getNearbyWorkers = async (req, res) => {
       data: enriched,
     });
   } catch (error) {
-    console.error('Get Nearby Workers Error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch nearby workers', error: error.message });
+    logger.error('Get nearby workers error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch nearby workers' });
   }
 };
 

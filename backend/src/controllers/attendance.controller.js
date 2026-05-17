@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { notifyFarmerAttendanceIn, notifyFarmerAttendanceOut } = require('../services/pushNotification');
+const { logger } = require('../middleware/errorHandler');
 
 // Helper: Calculate distance in meters between two points
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -59,15 +60,8 @@ const checkIn = async (req, res, next) => {
     });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
-    // 3. Geo-fence Check (100m) — only possible when farm has coordinates
-    /* TEMPORARILY DISABLED FOR TESTING — skip if job has no location
-    if (job.farmLatitude == null || job.farmLongitude == null) {
-      return res.status(400).json({
-        success: false,
-        message: 'This job has no farm location set. Check-in is not possible without a farm location.'
-      });
-    }
-    */
+    // 3. Geo-fence Check (100m) — controlled by GEOFENCE_ENABLED env flag
+    const { geofenceEnabled } = require('../config/env');
 
     const distance = getDistance(
       parseFloat(checkInLatitude),
@@ -76,14 +70,20 @@ const checkIn = async (req, res, next) => {
       parseFloat(job.farmLongitude)
     );
 
-    /* TEMPORARILY DISABLED FOR TESTING
-    if (distance > 100) {
-      return res.status(400).json({
-        success: false,
-        message: `Too far from farm. You are ${Math.round(distance)}m away. Limit is 100m.`
-      });
+    if (geofenceEnabled) {
+      if (job.farmLatitude == null || job.farmLongitude == null) {
+        return res.status(400).json({
+          success: false,
+          message: 'This job has no farm location set. Check-in not possible without a farm location.'
+        });
+      }
+      if (distance > 100) {
+        return res.status(400).json({
+          success: false,
+          message: `Too far from farm. You are ${Math.round(distance)}m away. Limit is 100m.`
+        });
+      }
     }
-    */
 
     // 4. QR Validation (30s expiry)
     const qrResult = validateQR(qrCodeIn, jobId);
@@ -140,8 +140,8 @@ const checkIn = async (req, res, next) => {
     res.status(201).json({ success: true, data: attendance });
 
   } catch (error) {
-    console.error('Check-In Error:', error);
-    res.status(500).json({ success: false, message: 'Check-in failed', error: error.message });
+    logger.error('Check-in error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Check-in failed' });
   }
 };
 
@@ -174,9 +174,9 @@ const checkOut = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'No active attendance found or unauthorized action' });
     }
 
-    // Authorization: Ensure this record belongs to the checking-out worker
+    // Authorization: SEC-5 FIX — only trust req.user.id from JWT, never fallback to request body
     const record = await prisma.attendance.findUnique({ where: { id: targetId }, select: { workerId: true } });
-    if (record && record.workerId !== (req.user?.id || workerId)) {
+    if (record && record.workerId !== req.user.id) {
        return res.status(403).json({ success: false, message: 'Cannot check out for another worker' });
     }
 
@@ -193,6 +193,8 @@ const checkOut = async (req, res, next) => {
     });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
+    const { geofenceEnabled } = require('../config/env');
+
     const distance = getDistance(
       parseFloat(checkOutLatitude),
       parseFloat(checkOutLongitude),
@@ -200,14 +202,12 @@ const checkOut = async (req, res, next) => {
       parseFloat(job.farmLongitude)
     );
 
-    /* TEMPORARILY DISABLED FOR TESTING
-    if (distance > 100) {
+    if (geofenceEnabled && distance > 100) {
       return res.status(400).json({
         success: false,
         message: `Too far from farm to check out. You are ${Math.round(distance)}m away.`
       });
     }
-    */
 
     // 3. Fetch check-in time to compute hours before update
     const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
@@ -260,8 +260,8 @@ const checkOut = async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('Check-Out Error:', error);
-    res.status(500).json({ success: false, message: 'Check-out failed', error: error.message });
+    logger.error('Check-out error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Check-out failed' });
   }
 };
 
@@ -293,7 +293,8 @@ const getAttendanceRecords = async (req, res) => {
     });
     res.json({ success: true, data: records, count: records.length });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to fetch attendance', error: error.message });
+    logger.error('Get attendance records error', { message: error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch attendance' });
   }
 };
 

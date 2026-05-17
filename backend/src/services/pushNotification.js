@@ -1,6 +1,37 @@
 const { Expo } = require('expo-server-sdk');
+const prisma = require('../config/database');
+const { logger } = require('../middleware/errorHandler');
 
 const expo = new Expo();
+
+/**
+ * Clean up invalid/expired push tokens from the database.
+ * Called after sending receipts — removes DeviceNotRegistered tokens
+ * so we stop attempting to deliver to dead devices.
+ */
+const cleanupInvalidTokens = async (receiptIds) => {
+  if (!receiptIds || receiptIds.length === 0) return;
+  try {
+    const receiptIdChunks = expo.chunkPushNotificationReceiptIds(receiptIds);
+    for (const chunk of receiptIdChunks) {
+      const receipts = await expo.getPushNotificationReceiptsAsync(chunk);
+      for (const [, receipt] of Object.entries(receipts)) {
+        if (receipt.status === 'error' && receipt.details?.error === 'DeviceNotRegistered') {
+          // Null out the expired token so we never attempt it again
+          if (receipt.to) {
+            await prisma.user.updateMany({
+              where: { pushToken: receipt.to },
+              data: { pushToken: null },
+            });
+            logger.info('Removed expired push token', { token: receipt.to });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error('Push receipt cleanup error', { message: err.message });
+  }
+};
 
 /**
  * Send a push notification using the official Expo SDK
@@ -11,7 +42,7 @@ const sendPush = async (tokens, title, body, data = {}) => {
     const validTokens = tokenList.filter((t) => typeof t === 'string' && Expo.isExpoPushToken(t));
 
     if (validTokens.length === 0) {
-      console.log('📵 No valid push tokens — skipping notification');
+      logger.info('No valid push tokens — skipping notification');
       return;
     }
 
@@ -24,19 +55,27 @@ const sendPush = async (tokens, title, body, data = {}) => {
     }));
 
     const chunks = expo.chunkPushNotifications(messages);
-    const tickets = [];
+    const receiptIds = [];
 
     for (let chunk of chunks) {
       try {
         const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-        console.log(`📲 Push chunk sent. Tickets:`, ticketChunk.length);
-        tickets.push(...ticketChunk);
+        logger.info('Push chunk sent', { count: ticketChunk.length });
+        // Collect receipt IDs from successful tickets for later validation
+        ticketChunk.forEach((ticket) => {
+          if (ticket.status === 'ok' && ticket.id) receiptIds.push(ticket.id);
+        });
       } catch (error) {
-        console.error('💥 Error sending push notification chunk:', error);
+        logger.error('Error sending push notification chunk', { message: error.message });
       }
     }
+
+    // Check receipts in the background — do not await so we don't block the caller
+    if (receiptIds.length > 0) {
+      setTimeout(() => cleanupInvalidTokens(receiptIds), 15 * 60 * 1000); // Wait 15 min for receipts to be ready
+    }
   } catch (err) {
-    console.error('💥 Push notification setup error:', err.message);
+    logger.error('Push notification setup error', { message: err.message });
   }
 };
 
@@ -53,11 +92,11 @@ const sendPushMessages = async (messages) => {
       try {
         await expo.sendPushNotificationsAsync(chunk);
       } catch (err) {
-        console.error('💥 Error sending custom push chunk:', err.message);
+        logger.error('Error sending custom push chunk', { message: err.message });
       }
     }
   } catch (err) {
-    console.error('💥 Push notification batch setup error:', err.message);
+    logger.error('Push notification batch setup error', { message: err.message });
   }
 };
 

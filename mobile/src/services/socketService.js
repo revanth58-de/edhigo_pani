@@ -9,17 +9,26 @@ try {
 
 class SocketService {
     socket = null;
-    _connectionFailed = false; // Suppress repeated errors after max attempts
-    _pendingRooms = []; // Queue rooms to join once socket connects
+    _connectionFailed = false;
+    _pendingRooms = [];
 
     connect() {
         if (this.socket?.connected || !io) return;
-        if (this._connectionFailed) return; // Already gave up — don't spam
+        if (this._connectionFailed) return;
 
-        // Disconnect any stale socket before reconnecting
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
+        }
+
+        // SEC-2 FIX: Read the JWT from the Zustand auth store so the backend
+        // can authenticate this socket connection before allowing room joins.
+        let token = null;
+        try {
+            const useAuthStore = require('../store/authStore').default;
+            token = useAuthStore.getState().accessToken;
+        } catch (e) {
+            console.warn('Could not read auth token for socket connection');
         }
 
         console.log(`📡 Connecting to Socket.io at: ${SOCKET_BASE_URL}`);
@@ -30,6 +39,7 @@ class SocketService {
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
+            auth: { token }, // ← passed to io.use() middleware on the server
         });
 
         this.socket.on('connect', () => {

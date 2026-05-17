@@ -57,7 +57,7 @@ const LoginScreen = ({ navigation }) => {
 
       navigation.navigate('OTP', {
         phone: phone,
-        otp: result?.otp,
+        otp: result?.devOtp,
         fromRegister: false,
       });
     } catch (error) {

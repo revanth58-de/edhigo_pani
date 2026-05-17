@@ -76,11 +76,15 @@ const OTPScreen = ({ navigation, route }) => {
   const handleResendOTP = async () => {
     try {
       const response = await authService.sendOTP(phone);
-      if (response.success) {
-        Alert.alert('Success', 'OTP sent successfully');
+      const newOtp = response?.data?.devOtp;
+      if (newOtp) {
+        console.log('🔑 Resend devOtp:', newOtp);
+        Alert.alert('OTP Resent', `Your new code: ${newOtp}`, [{ text: 'OK' }]);
+      } else {
+        Alert.alert('OTP Resent', 'OTP sent successfully. Check your SMS.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to resend OTP');
+      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
     }
   };
 

@@ -34,7 +34,7 @@ describe('authService', () => {
   let authService;
 
   beforeAll(() => {
-    authService = require('../../src/services/api/authService').authService;
+    authService = require('../src/services/api/authService').authService;
   });
 
   beforeEach(() => {
@@ -52,7 +52,8 @@ describe('authService', () => {
   });
 
   test('verifyOTP → calls POST with phone and otp', async () => {
-    await authService.verifyOTP({ phone: '9876543210', otp: '1234' });
+    // Service signature is verifyOTP(phone, otp) — two separate args
+    await authService.verifyOTP('9876543210', '1234');
     expect(mockPost).toHaveBeenCalledWith(
       expect.stringContaining('verify-otp'),
       expect.objectContaining({ phone: '9876543210', otp: '1234' })
@@ -76,7 +77,7 @@ describe('jobService', () => {
   let jobService;
 
   beforeAll(() => {
-    jobService = require('../../src/services/api/jobService').jobService;
+    jobService = require('../src/services/api/jobService').jobService;
   });
 
   beforeEach(() => {
@@ -125,7 +126,7 @@ describe('groupService', () => {
   let groupService;
 
   beforeAll(() => {
-    groupService = require('../../src/services/api/groupService').groupService;
+    groupService = require('../src/services/api/groupService').groupService;
   });
 
   beforeEach(() => {
@@ -152,8 +153,8 @@ describe('attendanceService', () => {
   let attendanceService;
 
   beforeAll(() => {
-    attendanceService = require('../../src/services/api/attendanceService').attendanceService ||
-      require('../../src/services/api/attendanceService').default;
+    attendanceService = require('../src/services/api/attendanceService').attendanceService ||
+      require('../src/services/api/attendanceService').default;
   });
 
   beforeEach(() => { mockPost.mockClear(); });
@@ -172,8 +173,8 @@ describe('paymentService', () => {
   let paymentService;
 
   beforeAll(() => {
-    paymentService = require('../../src/services/api/paymentService').paymentService ||
-      require('../../src/services/api/paymentService').default;
+    paymentService = require('../src/services/api/paymentService').paymentService ||
+      require('../src/services/api/paymentService').default;
   });
 
   beforeEach(() => {
@@ -191,9 +192,9 @@ describe('paymentService', () => {
 
   test('getPaymentHistory → GET /payments/history/:userId', async () => {
     await paymentService.getPaymentHistory('user-1');
+    // GET with no config object — just the URL
     expect(mockGet).toHaveBeenCalledWith(
-      expect.stringContaining('history/user-1'),
-      expect.anything()
+      expect.stringContaining('history/user-1')
     );
   });
 });
@@ -203,25 +204,27 @@ describe('ratingService', () => {
   let ratingService;
 
   beforeAll(() => {
-    ratingService = require('../../src/services/api/ratingService').ratingService ||
-      require('../../src/services/api/ratingService').default;
+    ratingService = require('../src/services/api/ratingService').ratingService ||
+      require('../src/services/api/ratingService').default;
   });
 
   beforeEach(() => { mockPost.mockClear(); });
 
   test('rateWorker → POST /ratings/worker', async () => {
+    // Service maps: rating → stars, rateeId → toUserId, adds emoji
     await ratingService.rateWorker({ jobId: 'j-1', rateeId: 'w-1', rating: 4 });
     expect(mockPost).toHaveBeenCalledWith(
       expect.stringContaining('worker'),
-      expect.objectContaining({ rating: 4 })
+      expect.objectContaining({ stars: 4, emoji: 'happy', jobId: 'j-1' })
     );
   });
 
   test('rateFarmer → POST /ratings/farmer', async () => {
+    // Service maps: rating → stars, farmerId → toUserId, adds emoji
     await ratingService.rateFarmer({ jobId: 'j-1', farmerId: 'f-1', rating: 5 });
     expect(mockPost).toHaveBeenCalledWith(
       expect.stringContaining('farmer'),
-      expect.objectContaining({ rating: 5 })
+      expect.objectContaining({ stars: 5, emoji: 'happy', jobId: 'j-1', toUserId: 'f-1' })
     );
   });
 });
@@ -229,21 +232,21 @@ describe('ratingService', () => {
 // ─── i18n Tests ───────────────────────────────────────────────────────────────
 describe('i18n useTranslation', () => {
   test('Returns a string for common.worker in English', () => {
-    const en = require('../../src/i18n/en').default || require('../../src/i18n/en');
+    const en = require('../src/i18n/en').default || require('../src/i18n/en');
     expect(typeof en.common?.worker).toBe('string');
   });
 
   test('Hindi has the same key count as English', () => {
-    const en = require('../../src/i18n/en').default || require('../../src/i18n/en');
-    const hi = require('../../src/i18n/hi').default || require('../../src/i18n/hi');
+    const en = require('../src/i18n/en').default || require('../src/i18n/en');
+    const hi = require('../src/i18n/hi').default || require('../src/i18n/hi');
     const enKeys = Object.keys(en).sort();
     const hiKeys = Object.keys(hi).sort();
     expect(hiKeys).toEqual(enKeys);
   });
 
   test('Telugu has the same key count as English', () => {
-    const en = require('../../src/i18n/en').default || require('../../src/i18n/en');
-    const te = require('../../src/i18n/te').default || require('../../src/i18n/te');
+    const en = require('../src/i18n/en').default || require('../src/i18n/en');
+    const te = require('../src/i18n/te').default || require('../src/i18n/te');
     const enKeys = Object.keys(en).sort();
     const teKeys = Object.keys(te).sort();
     expect(teKeys).toEqual(enKeys);

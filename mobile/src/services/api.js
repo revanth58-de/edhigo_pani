@@ -38,15 +38,15 @@ apiClient.interceptors.response.use(
         }
 
         // ── Token refresh on 401 ──────────────────────────────────────────
-        if (
-            status === 401 &&
+        if (status === 401 &&
             !originalRequest._retry &&
             !originalRequest.url?.includes('/auth/')
         ) {
             originalRequest._retry = true;
             try {
-                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-                const raw = await AsyncStorage.getItem('edhigo_auth');
+                // Use SecureStore (encrypted) — not AsyncStorage — for token storage
+                const SecureStore = await import('expo-secure-store');
+                const raw = await SecureStore.getItemAsync('edhigo_auth');
                 const saved = raw ? JSON.parse(raw) : null;
 
                 if (saved?.refreshToken) {
@@ -60,15 +60,15 @@ apiClient.interceptors.response.use(
 
                     // Persist the new token so the next cold-start picks it up
                     const updated = { ...saved, accessToken };
-                    await AsyncStorage.setItem('edhigo_auth', JSON.stringify(updated));
+                    await SecureStore.setItemAsync('edhigo_auth', JSON.stringify(updated));
 
                     return apiClient(originalRequest);
                 }
             } catch (refreshError) {
                 console.error('Token refresh failed — user must re-login:', refreshError);
                 // Clear stored auth so the nav guard redirects to login
-                const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-                await AsyncStorage.removeItem('edhigo_auth');
+                const SecureStore = await import('expo-secure-store');
+                await SecureStore.deleteItemAsync('edhigo_auth');
             }
         }
 
@@ -114,7 +114,9 @@ export const paymentAPI = {
     makePayment: (data) => apiClient.post('/payments', data),
     getHistory: (userId) => apiClient.get(`/payments/history/${userId}`),
     getDetails: (paymentId) => apiClient.get(`/payments/${paymentId}`),
+    confirmPayment: (jobId, upiRef) => apiClient.patch(`/payments/${jobId}/confirm`, { upiRef }),
 };
+
 
 // ─── Rating API ───
 export const ratingAPI = {

@@ -64,13 +64,16 @@ const GroupDetailScreen = ({ route, navigation }) => {
     try {
       setChatLoading(true);
       const res = await groupAPI.getGroupMessages(groupId);
-      setMessages(res.data.messages || res.data || []);
+      // Backend returns { success, data } — support both shapes for resilience
+      const msgs = res.data?.data || res.data?.messages || res.data || [];
+      setMessages(msgs);
     } catch (error) {
       console.warn('Failed to fetch chat messages', error);
     } finally {
       setChatLoading(false);
     }
   }, [groupId]);
+
 
   const loadTabContent = useCallback(() => {
     if (activeTab === 'Jobs') {
@@ -299,6 +302,17 @@ const GroupDetailScreen = ({ route, navigation }) => {
           )
         ) : (
           <View style={styles.chatContainer}>
+            {/* Full Screen Chat Launch Banner */}
+            <TouchableOpacity
+              style={styles.fullChatBanner}
+              onPress={() => navigation.navigate('GroupChat', { groupId, groupName: groupName || group?.name })}
+              activeOpacity={0.85}
+            >
+              <MaterialIcons name="open-in-full" size={18} color={colors.primary} />
+              <Text style={styles.fullChatBannerText}>Open Full Screen Chat</Text>
+              <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
+            </TouchableOpacity>
+
             {chatLoading && messages.length === 0 ? (
               <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
             ) : (
@@ -307,7 +321,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 keyExtractor={(item) => item.id}
                 renderItem={renderChatItem}
                 contentContainerStyle={styles.chatListContent}
-                inverted={false} // Would normally sort by latest, but REST is chronological
                 ListEmptyComponent={
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>Start the conversation with your crew.</Text>
@@ -315,7 +328,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 }
               />
             )}
-            
+
             <View style={styles.chatInputContainer}>
               <TouchableOpacity style={styles.attachBtn}>
                 <MaterialIcons name="add-circle" size={24} color="#9CA3AF" />
@@ -327,8 +340,8 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 placeholder="Message crew..."
                 placeholderTextColor="#9CA3AF"
               />
-              <TouchableOpacity 
-                style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]} 
+              <TouchableOpacity
+                style={[styles.sendBtn, !newMessage.trim() && styles.sendBtnDisabled]}
                 onPress={handleSendMessage}
                 disabled={!newMessage.trim()}
               >
@@ -476,6 +489,24 @@ const styles = StyleSheet.create({
   chatContainer: {
     flex: 1,
     justifyContent: 'space-between',
+  },
+  fullChatBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: `${colors.primary}12`,
+    borderBottomWidth: 1,
+    borderBottomColor: `${colors.primary}25`,
+  },
+  fullChatBannerText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 14,
+    flex: 1,
+    textAlign: 'center',
   },
   chatListContent: {
     padding: 16,

@@ -68,7 +68,7 @@ const sendOTP = async (req, res, next) => {
     const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
 
-    console.log('🔑 Generated OTP (dev only):', otp);
+    // OTP value intentionally NOT logged — devOtp field in response serves dev testing
 
     // Upsert user — create if doesn't exist, update OTP if exists
     await prisma.user.upsert({
@@ -77,13 +77,15 @@ const sendOTP = async (req, res, next) => {
       create: { phone, otp: otpHash, otpExpiresAt },
     });
 
-    console.log('✅ OTP saved. isExistingUser:', isExistingUser);
+    logger.info('OTP saved', { isExistingUser });
 
-    // Send real SMS via Fast2SMS
-    const smsSent = await sendOTPSms(phone, otp);
-    if (!smsSent) {
-      console.warn('⚠️  SMS failed — OTP for dev:', otp);
-    }
+    // Send SMS in background — don't await so the client gets an instant response.
+    // The OTP is already saved in the DB; SMS delivery is a side-effect only.
+    sendOTPSms(phone, otp).then((smsSent) => {
+      if (!smsSent) logger.warn('SMS failed or timed out — OTP is still valid in DB');
+    }).catch((err) => {
+      logger.error('Background SMS error', { message: err.message });
+    });
 
     res.json({
       message: 'OTP sent successfully',
@@ -102,7 +104,7 @@ const verifyOTP = async (req, res, next) => {
   try {
     const { phone, otp, name, village, role, age, gender } = req.body;
 
-    console.log('🔐 OTP Verification Request:', { phone, otp });
+    logger.info('OTP verification attempt', { phone });
 
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone and OTP are required' });
@@ -110,19 +112,16 @@ const verifyOTP = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
-    if (!user) {
-      logger.warn(`❌ Auth Failure: User not found. Phone: ${phone}`, { ip: req.ip });
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-      return res.status(401).json({ error: 'OTP expired. Please request a new one.' });
+    // SEC-4 FIX: Return the same error whether user is not found OR otp is wrong.
+    // Never reveal whether a phone number is registered in this system.
+    if (!user || !user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
     }
 
     const isMatch = await bcrypt.compare(otp, user.otp);
     if (!isMatch) {
       logger.warn(`❌ Auth Failure: Invalid OTP. Phone: ${phone}`, { ip: req.ip });
-      return res.status(401).json({ error: 'Invalid OTP' });
+      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
     }
 
     // Clear OTP and optionally save registration data in one update
@@ -150,10 +149,7 @@ const verifyOTP = async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('💥 OTP Verification Error Detailed:');
-    console.error(error);
-    if (error.code) console.error('Prisma Error Code:', error.code);
-    if (error.meta) console.error('Prisma Error Meta:', error.meta);
+    logger.error('OTP verification error', { message: error.message, code: error.code, meta: error.meta });
     next(error);
   }
 };
@@ -272,7 +268,7 @@ const refreshToken = async (req, res, next) => {
     const tokens = await generateTokens(storedToken.userId);
     res.json(tokens);
   } catch (error) {
-    console.error('💥 Refresh Token Error:', error);
+    logger.error('Refresh token error', { message: error.message });
     return res.status(401).json({ error: 'Authentication failed' });
   }
 };

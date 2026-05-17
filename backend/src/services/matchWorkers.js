@@ -38,19 +38,27 @@ const SKILL_MAP = {
 };
 
 /**
- * Find available workers that match a job's location + work type.
+ * Find available workers/leaders that match a job's location + work type.
  *
- * @param {object} job  - { workType, farmLatitude, farmLongitude, workerType }
- * @returns {Array}     - matched workers with { id, name, skills, distanceKm }
+ * @param {object} job  - { workType, farmLatitude, farmLongitude, workerType, workersNeeded }
+ * @returns {Array}     - matched workers/leaders enriched with { distanceKm, memberCount? }
+ *
+ * GROUP JOBS:
+ *  - Targets leaders (role='leader') instead of individual workers.
+ *  - Each leader represents their group. `memberCount` is attached so callers
+ *    can check whether the group is large enough for the job.
+ *  - A group with memberCount >= workersNeeded satisfies the entire requirement
+ *    on its own — it should NOT be counted as just 1 worker slot.
  */
 const matchWorkers = async (job) => {
-  const { workType, farmLatitude, farmLongitude, workerType } = job;
+  const { workType, farmLatitude, farmLongitude, workerType, workersNeeded } = job;
 
-  // If farm has no location, we can't do distance filtering — fall back to all available workers
+  // If farm has no location, we can't do distance filtering — fall back to all available
   const hasLocation = farmLatitude != null && farmLongitude != null;
 
-  // For group jobs, we match leaders instead of individual workers
-  const roleFilter = workerType === 'group' ? 'leader' : 'worker';
+  // For group jobs, we match leaders; for individual jobs, we match workers
+  const isGroupJob = workerType === 'group';
+  const roleFilter = isGroupJob ? 'leader' : 'worker';
 
   // Fetch all available workers/leaders with a known location
   const candidates = await prisma.user.findMany({
@@ -67,10 +75,25 @@ const matchWorkers = async (job) => {
       longitude: true,
       status: true,
       ratingAvg: true,
+      // For group jobs, pull each leader's group + member count in one query
+      ...(isGroupJob ? {
+        ledGroups: {
+          where: { status: { in: ['forming', 'available'] } },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { members: { where: { status: 'joined' } } } },
+          },
+          take: 1,   // a leader manages one active group at a time
+        },
+      } : {}),
     },
   });
 
+  const requiredWorkers = parseInt(workersNeeded) || 1; // how many workers the farmer needs
+
   const requiredSkills = SKILL_MAP[workType?.toLowerCase()] || [];
+  // (requiredWorkers already computed above)
 
   const matched = [];
 
@@ -102,10 +125,30 @@ const matchWorkers = async (job) => {
 
     if (!skillMatch) continue;
 
-    matched.push({
-      ...worker,
-      distanceKm: distanceKm != null ? Math.round(distanceKm * 10) / 10 : null,
-    });
+    // ── Group size filter ─────────────────────────────────────────
+    // For group jobs: only include leaders whose group has enough members
+    // to fully cover the farmer's requirement.  A group of 10 satisfies a
+    // requirement of 10 — it should NOT be treated as contributing 1 slot.
+    if (isGroupJob) {
+      const group = worker.ledGroups?.[0];
+      const memberCount = group?._count?.members ?? 0;
+      if (memberCount < requiredWorkers) {
+        // Group too small — skip. When workersNeeded=10, only groups with ≥10 members qualify.
+        continue;
+      }
+      matched.push({
+        ...worker,
+        groupId: group?.id || null,
+        groupName: group?.name || null,
+        memberCount,            // how many workers this group brings
+        distanceKm: distanceKm != null ? Math.round(distanceKm * 10) / 10 : null,
+      });
+    } else {
+      matched.push({
+        ...worker,
+        distanceKm: distanceKm != null ? Math.round(distanceKm * 10) / 10 : null,
+      });
+    }
   }
 
   // Sort by distance (closest first), then by rating

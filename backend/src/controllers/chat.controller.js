@@ -13,14 +13,14 @@ const getGroupMessages = async (req, res, next) => {
     });
 
     if (!group) {
-      return res.status(404).json({ error: 'Group not found' });
+      return res.status(404).json({ success: false, error: 'Group not found' });
     }
 
     const isLeader = group.leaderId === userId;
     const isMember = group.members.some(m => m.workerId === userId);
 
     if (!isLeader && !isMember) {
-      return res.status(403).json({ error: 'Not authorized to view this chat' });
+      return res.status(403).json({ success: false, error: 'Not authorized to view this chat' });
     }
 
     const messages = await prisma.groupMessage.findMany({
@@ -31,11 +31,13 @@ const getGroupMessages = async (req, res, next) => {
         }
       },
       orderBy: { createdAt: 'asc' },
+      take: 200, // Return last 200 messages
     });
 
-    res.json({ messages });
+    // Use { success, data } shape to match rest of API
+    res.json({ success: true, data: messages });
   } catch (error) {
-    console.error('💥 Get Chat Messages Error:', error);
+    console.error('Get Chat Messages Error:', error);
     next(error);
   }
 };

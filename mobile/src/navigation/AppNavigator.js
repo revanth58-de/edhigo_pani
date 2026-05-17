@@ -52,6 +52,7 @@ import NavigationScreen from '../screens/worker/NavigationScreen';
 import QRScannerScreen from '../screens/worker/QRScannerScreen';
 import AttendanceConfirmedScreen from '../screens/worker/AttendanceConfirmedScreen';
 import WorkStatusScreen from '../screens/worker/WorkStatusScreen';
+import WorkerStatusScreen from '../screens/worker/WorkerStatusScreen';
 import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
@@ -73,6 +74,7 @@ import GroupNavigationScreen from '../screens/leader/GroupNavigationScreen';
 import GroupCallScreen from '../screens/leader/GroupCallScreen';
 import GroupsScreen from '../screens/leader/GroupsScreen';
 import GroupDetailScreen from '../screens/leader/GroupDetailScreen';
+import GroupChatScreen from '../screens/leader/GroupChatScreen';
 
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
@@ -128,12 +130,14 @@ const WorkerNavigator = () => (
     <Stack.Screen name="QRScanner" component={QRScannerScreen} />
     <Stack.Screen name="AttendanceConfirmed" component={AttendanceConfirmedScreen} />
     <Stack.Screen name="WorkStatus" component={WorkStatusScreen} />
+    <Stack.Screen name="WorkerStatus" component={WorkerStatusScreen} />
     <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+    <Stack.Screen name="GroupChat" component={GroupChatScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
@@ -154,6 +158,7 @@ const LeaderNavigator = () => (
     <Stack.Screen name="ManageGroup" component={ManageGroupScreen} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
+    <Stack.Screen name="GroupChat" component={GroupChatScreen} />
     <Stack.Screen name="AddMember" component={AddMemberScreen} />
     <Stack.Screen name="GroupMap" component={GroupMapScreen} />
     <Stack.Screen name="GroupNavigation" component={GroupNavigationScreen} />

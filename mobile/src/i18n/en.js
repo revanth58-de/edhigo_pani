@@ -29,6 +29,7 @@ export default {
   // ─── Bottom Navigation ───
   nav: {
     discovery: 'Discovery',
+    bookings: 'Bookings',
     history: 'History',
     showQR: 'QR',
     payments: 'Payments',
@@ -253,4 +254,8 @@ export default {
     groupAttendance: 'Group Attendance',
   },
 
+  // ─── Home Shared ───
+  home: {
+    seeAll: 'See All',
+  },
 };

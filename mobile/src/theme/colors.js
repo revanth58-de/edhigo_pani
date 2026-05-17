@@ -2,15 +2,18 @@
 // Primary: #5bec13, Background Light: #f6f8f6, Background Dark: #162210
 
 export const colors = {
-  primary:         '#2D6A4F', // Dark green used for headers, buttons, active icons
-  primaryDark:     '#1B4332',
-  primaryLight:    '#E7F0EB', // Light green background for tags e.g. 'QUICK TASK'
-  primaryMedium:   'rgba(45, 106, 79, 0.2)',
-  primaryGradient: ['#40916c', '#2D6A4F'], // Lighter to darker green
+  primary:         '#1F8A3D', // Production Green
+  primaryDark:     '#145A2D',
+  primaryLight:    '#E9F5ED',
+  primaryMedium:   'rgba(31, 138, 61, 0.2)',
+  primaryGradient: ['#1F8A3D', '#145A2D'],
 
-  secondary:       '#ECAE40', // Yellow/orange used for 'Active Jobs' card and badges
-  secondaryLight:  '#FDF4E6',
-  secondaryGradient: ['#f4a261', '#e76f51'], // Modern warm gradient
+  secondary:       '#8B5E3C', // Earth Brown
+  secondaryLight:  '#F5EFEA',
+  secondaryGradient: ['#8B5E3C', '#6F4B30'],
+
+  accent:          '#F4B400', // Yellow
+  accentLight:     '#FFF8E1',
 
   backgroundLight: '#EAE5E0', // Slightly darker warm beige for better glass contrast
   backgroundDark:  '#162210',

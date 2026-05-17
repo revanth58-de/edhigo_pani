@@ -8,21 +8,21 @@ import { useTranslation } from '../i18n';
 
 const FARMER_TABS = [
   { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'FarmerHome' },
-  { key: 'Discovery', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
+  { key: 'Bookings', icon: 'assignment', labelKey: 'nav.bookings', screen: 'FarmerHistory' }, // Points to FarmerHistory
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'QRAttendance', params: { type: 'in' } },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'FarmerProfile' },
 ];
 
 const WORKER_TABS = [
   { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'WorkerHome' },
-  { key: 'Discovery', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
+  { key: 'Bookings', icon: 'history', labelKey: 'nav.bookings', screen: 'WorkerBookings' }, // Points to WorkerBookings
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'QRScanner' },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'WorkerProfile' },
 ];
 
 const LEADER_TABS = [
   { key: 'Home', icon: 'home', labelKey: 'nav.home', screen: 'LeaderHome' },
-  { key: 'Discovery', icon: 'explore', labelKey: 'nav.discovery', screen: 'LiveMapDiscovery' },
+  { key: 'Bookings', icon: 'history', labelKey: 'nav.bookings', screen: 'WorkerBookings' },
   { key: 'ShowQR', icon: 'qr-code', labelKey: 'nav.showQR', screen: 'GroupQRAttendance' },
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'LeaderProfile' },
 ];
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.primary}1A`,
   },
   navText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
     color: '#9CA3AF',
   },

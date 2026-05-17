@@ -1,4 +1,3 @@
-// Screen 25: Leader Home - Exact match to leader-home-start-group.html
 import React, { useEffect, useCallback } from 'react';
 import {
   View,
@@ -7,81 +6,23 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  Alert,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
-import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import WeatherLocationHeader from '../../components/WeatherLocationHeader';
+import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
 
-const STATUS_META = {
-  pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
-  accepted: { label: 'Accepted', color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
-  in_progress: { label: 'In Progress', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
-  completed: { label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
-  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
-};
-
-const WORK_ICONS = {
-  Sowing: 'grass',
-  Harvesting: 'agriculture',
-  Irrigation: 'water-drop',
-  Labour: 'engineering',
-  Tractor: 'agriculture',
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-
-const JobCard = ({ job }) => {
-  const status = STATUS_META[job.status] || STATUS_META.completed;
-  const workIcon = WORK_ICONS[job.workType] || 'work';
-
-  return (
-    <View style={historyStyles.card}>
-      <View style={historyStyles.cardHeader}>
-        <View style={[historyStyles.workIconCircle, { backgroundColor: `${colors.primary}15` }]}>
-          <MaterialIcons name={workIcon} size={28} color={colors.primary} />
-        </View>
-        <View style={historyStyles.cardHeaderText}>
-          <Text style={historyStyles.workType}>{job.workType || 'Farm Work'}</Text>
-          <Text style={historyStyles.jobDate}>{formatDate(job.createdAt)}</Text>
-        </View>
-        <View style={[historyStyles.statusBadge, { backgroundColor: status.bg }]}>
-          <MaterialIcons name={status.icon} size={14} color={status.color} />
-          <Text style={[historyStyles.statusText, { color: status.color }]}>{status.label}</Text>
-        </View>
-      </View>
-
-      <View style={historyStyles.cardDetails}>
-        <View style={historyStyles.detailRow}>
-          <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText}>{job.village || 'Location'}</Text>
-        </View>
-        <View style={historyStyles.detailRow}>
-          <MaterialIcons name="currency-rupee" size={16} color="#9CA3AF" />
-          <Text style={historyStyles.detailText}>₹{job.wagePerDay || job.payPerDay || '500'}</Text>
-        </View>
-      </View>
-    </View>
-  );
-};
-
 const LeaderHomeScreen = ({ navigation, route }) => {
-  const { user, logout } = useAuthStore();
+  const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
   const activeTab = route.params?.tab || 'home';
-  const { refreshProfile } = useAuthStore();
 
   useFocusEffect(
     useCallback(() => {
@@ -94,122 +35,95 @@ const LeaderHomeScreen = ({ navigation, route }) => {
       socketService.connect();
       socketService.joinUserRoom(user.id);
     }
-
-    const handleNewOffer = (offer) => {
-      const distanceText = offer.distanceLabel || 'Nearby';
-      const label = offer.reOpened ? '🔄 Job Available Again!' : '🌾 New Job Offer!';
-      
-      Alert.alert(
-        label,
-        `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
-        [
-          { text: 'Ignore', style: 'cancel' },
-          {
-            text: 'View Offer',
-            onPress: () => navigation.navigate('GroupJobOffer', { job: { ...offer, id: offer.jobId } }),
-          },
-        ]
-      );
-    };
-
-    socketService.onNewOffer(handleNewOffer);
-
-    return () => {
-      socketService.offNewOffer(handleNewOffer);
-    };
   }, [user?.id]);
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      
+      <ScrollView 
+        style={styles.content} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Premium Hero Section */}
+        <LinearGradient 
+          colors={[colors.primary, colors.primaryDark]} 
+          style={styles.heroSection}
+        >
+          <View style={styles.heroTopRow}>
+            <View>
+              <Text style={styles.greetingText}>
+                {t('common.namaste') || 'Namaste'}, {user?.fullName?.split(' ')[0] || 'Leader'}
+              </Text>
+              <Text style={styles.heroSubText}>Empower your group today.</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <MaterialIcons name="notifications-none" size={24} color="#FFF" />
+              <View style={styles.notificationBadge} />
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
-      {/* Header */}
-      <TopBar title={t('leader.leaderHome')} navigation={navigation} />
+        <WeatherLocationHeader />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
-        {/* Welcome Card */}
-        <View style={styles.welcomeCard}>
-          <MaterialIcons name="emoji-people" size={64} color={colors.primary} />
-          <Text style={styles.welcomeTitle}>{t('common.namaste')}, {user?.name || 'Leader'}!</Text>
-          <Text style={styles.welcomeSubtitle}>{t('worker.readyToEarn')}</Text>
-        </View>
-
-
-        {/* Main Action - Create / Manage Group */}
-        <View style={styles.groupActionsRow}>
-          <TouchableOpacity
-            style={[styles.groupActionBtn, { flex: 1.4 }]}
+        {/* Main Group Actions */}
+        <View style={styles.mainActions}>
+          <TouchableOpacity 
+            style={styles.primaryAction} 
+            activeOpacity={0.9}
             onPress={() => navigation.navigate('GroupSetup')}
-            activeOpacity={0.9}
           >
-            <MaterialIcons name="group-add" size={36} color={colors.backgroundDark} />
-            <Text style={styles.groupActionText}>CREATE{'\n'}GROUP</Text>
+            <LinearGradient colors={colors.primaryGradient} style={styles.actionGradient}>
+              <MaterialIcons name="group-add" size={40} color="#FFF" />
+              <Text style={styles.actionTitle}>CREATE GROUP</Text>
+              <Text style={styles.actionSub}>Bring your team together</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.groupActionBtn, styles.groupActionBtnOutline, { flex: 1 }]}
+          <TouchableOpacity 
+            style={styles.secondaryAction} 
+            activeOpacity={0.9}
             onPress={() => navigation.navigate('Groups')}
-            activeOpacity={0.9}
           >
-            <MaterialIcons name="groups" size={36} color={colors.primary} />
-            <Text style={[styles.groupActionText, { color: colors.primary }]}>MY{'\n'}GROUPS</Text>
+            <MaterialIcons name="groups" size={32} color={colors.primary} />
+            <Text style={styles.secondaryActionTitle}>MY GROUPS</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <MaterialIcons name="groups" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>{user?.groupsLed ?? 0}</Text>
-            <Text style={styles.statLabel}>Active Groups</Text>
-          </View>
-          <View style={styles.statCard}>
-            <MaterialIcons name="work" size={32} color={colors.primary} />
-            <Text style={styles.statValue}>{user?.jobsDone ?? 0}</Text>
-            <Text style={styles.statLabel}>Jobs Done</Text>
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <Text style={styles.sectionTitle}>Performance Overview</Text>
+          <View style={styles.statsGrid}>
+            <GlassCard intensity={10} style={styles.statCard}>
+              <Text style={styles.statVal}>{user?.groupsLed ?? 0}</Text>
+              <Text style={styles.statLab}>Active Groups</Text>
+            </GlassCard>
+            <GlassCard intensity={10} style={styles.statCard}>
+              <Text style={styles.statVal}>{user?.jobsDone ?? 0}</Text>
+              <Text style={styles.statLab}>Jobs Completed</Text>
+            </GlassCard>
           </View>
         </View>
 
-        {/* Help Section */}
-        <View style={styles.helpCard}>
-          <MaterialIcons name="info" size={24} color={colors.primary} />
-          <View style={styles.helpText}>
-            <Text style={styles.helpTitle}>How it works</Text>
-            <Text style={styles.helpDescription}>
-              1. Create a group{'\n'}
-              2. Add workers{'\n'}
-              3. Find jobs together{'\n'}
-              4. Earn more!
+        {/* How it works */}
+        <GlassCard intensity={5} style={styles.infoCard}>
+          <MaterialIcons name="info-outline" size={24} color={colors.primary} />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoTitle}>Guide for Leaders</Text>
+            <Text style={styles.infoDesc}>
+              1. Add workers to your group{'\n'}
+              2. Accept high-paying bulk jobs{'\n'}
+              3. Manage attendance easily
             </Text>
           </View>
-        </View>
+        </GlassCard>
       </ScrollView>
 
-      {/* History Overlay */}
-      {activeTab === 'history' && (
-        <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#F9FAFB', zIndex: 100 }]}>
-          <TopBar title="Group History" showBack navigation={navigation} onHelp={() => navigation.setParams({ tab: 'home' })} />
-          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-            <View style={historyStyles.summaryRow}>
-              <Text style={historyStyles.summaryText}>Recent group work history</Text>
-            </View>
-
-            <JobCard job={{ workType: 'Harvesting', createdAt: new Date().toISOString(), status: 'completed', village: 'Gachibowli', payPerDay: 500 }} />
-            <JobCard job={{ workType: 'Sowing', createdAt: new Date(Date.now() - 86400000).toISOString(), status: 'completed', village: 'Kondapur', payPerDay: 450 }} />
-            <JobCard job={{ workType: 'Irrigation', createdAt: new Date(Date.now() - 172800000).toISOString(), status: 'completed', village: 'Madhapur', payPerDay: 400 }} />
-
-            <TouchableOpacity
-              style={historyStyles.closeBtn}
-              onPress={() => navigation.setParams({ tab: 'home' })}
-            >
-              <Text style={historyStyles.closeBtnText}>Back to Dashboard</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      )}
-
-      {/* Bottom Navigation */}
-      <BottomNavBar role="leader" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
+      <BottomNavBar role="leader" activeTab={activeTab === 'history' ? 'Bookings' : 'Home'} />
     </View>
   );
 };
@@ -217,232 +131,161 @@ const LeaderHomeScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  profilePic: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: `${colors.primary}33`,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#131811',
-    flex: 1,
-    marginLeft: 8,
+    backgroundColor: '#F8F9FA',
   },
   content: {
     flex: 1,
   },
   contentContainer: {
-    paddingBottom: 120,
-    paddingHorizontal: 16,
+    paddingBottom: 100,
   },
-  welcomeCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
-    padding: 32,
-    alignItems: 'center',
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+  heroSection: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
+    paddingHorizontal: 24,
+    paddingBottom: 60,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: '#6f8961',
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  voicePrompt: {
+  heroTopRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    backgroundColor: `${colors.primary}1A`,
-    padding: 16,
-    borderRadius: 24,
-    marginTop: 24,
   },
-  voicePromptText: {
+  greetingText: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  heroSubText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#131811',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 6,
   },
-  groupActionsRow: {
-    flexDirection: 'row',
-    gap: 16,
-    marginTop: 24,
-  },
-  groupActionBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
+  notificationBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
-    gap: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 16,
+    alignItems: 'center',
   },
-  groupActionBtnOutline: {
-    backgroundColor: '#FFFFFF',
+  notificationBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent,
     borderWidth: 2,
     borderColor: colors.primary,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
+  },
+  mainActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    marginTop: 32,
+    gap: 16,
+  },
+  primaryAction: {
+    flex: 1.5,
+    height: 180,
+    borderRadius: 24,
+    overflow: 'hidden',
+    elevation: 8,
+  },
+  actionGradient: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  actionTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFF',
+    marginTop: 12,
+  },
+  actionSub: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 4,
+  },
+  secondaryAction: {
+    flex: 1,
+    height: 180,
+    backgroundColor: '#FFF',
+    borderRadius: 24,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.primary,
     elevation: 4,
   },
-  groupActionText: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: colors.backgroundDark,
+  secondaryActionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.primary,
+    marginTop: 12,
     textAlign: 'center',
-    lineHeight: 20,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 16,
+  statsSection: {
+    paddingHorizontal: 24,
     marginTop: 32,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1A1C1E',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
     padding: 20,
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6f8961',
-    textAlign: 'center',
-  },
-  helpCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    gap: 16,
-    marginTop: 24,
+    borderRadius: 20,
+    backgroundColor: '#FFF',
     borderWidth: 1,
-    borderColor: `${colors.primary}33`,
+    borderColor: '#E2E8F0',
   },
-  helpText: {
-    flex: 1,
-  },
-  helpTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 8,
-  },
-  helpDescription: {
-    fontSize: 14,
-    color: '#6f8961',
-    lineHeight: 22,
-  },
-  bottomNav: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingTop: 12,
-    paddingBottom: 32,
-    paddingHorizontal: 32,
-  },
-  navItem: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  navText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    textTransform: 'uppercase',
-  },
-  navTextActive: {
+  statVal: {
+    fontSize: 30,
+    fontWeight: '800',
     color: colors.primary,
   },
-});
-
-const historyStyles = StyleSheet.create({
-  summaryRow: { marginBottom: 16 },
-  summaryText: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+  statLab: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 4,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  workIconCircle: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  cardHeaderText: { flex: 1 },
-  workType: { fontSize: 16, fontWeight: '700', color: '#131811' },
-  jobDate: { fontSize: 12, color: '#9CA3AF', marginTop: 1 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 9999 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  cardDetails: { gap: 6 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  detailText: { fontSize: 13, color: '#6B7280' },
-  closeBtn: {
+  infoCard: {
+    marginHorizontal: 24,
     marginTop: 24,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    padding: 20,
+    borderRadius: 20,
+    flexDirection: 'row',
+    gap: 16,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: 'rgba(31, 138, 61, 0.1)',
   },
-  closeBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1C1E',
+    marginBottom: 8,
+  },
+  infoDesc: {
+    fontSize: 17,
+    color: '#64748B',
+    lineHeight: 24,
+  },
 });
 
 export default LeaderHomeScreen;

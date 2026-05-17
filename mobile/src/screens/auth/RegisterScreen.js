@@ -10,8 +10,8 @@ import {
     TextInput,
     Alert,
     Modal,
-    ActivityIndicator,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
@@ -78,9 +78,9 @@ const LABELS = {
 };
 
 const ROLES = [
-    { key: 'farmer', icon: 'agriculture', color: '#4CAF50' },
-    { key: 'worker', icon: 'construction', color: '#FF9800' },
-    { key: 'leader', icon: 'groups', color: '#2196F3' },
+    { key: 'farmer', icon: 'agriculture', color: colors.primary },
+    { key: 'worker', icon: 'engineering', color: colors.secondary },
+    { key: 'leader', icon: 'groups', color: colors.accent },
 ];
 
 const GENDERS = [
@@ -373,7 +373,7 @@ const RegisterScreen = ({ navigation }) => {
                         disabled={isLoading}
                     >
                         {isLoading ? (
-                            <ActivityIndicator color="#FFFFFF" size="small" />
+                            <CustomLoader size={24} color="#FFFFFF" />
                         ) : (
                             <>
                                 <Text style={styles.continueBtnText}>{L.continue}</Text>
@@ -406,12 +406,12 @@ const styles = StyleSheet.create({
         backgroundColor: `${colors.primary}1A`, borderWidth: 3, borderColor: colors.primary,
         justifyContent: 'center', alignItems: 'center', marginBottom: 12,
     },
-    title: { fontSize: 28, fontWeight: 'bold', color: '#131811', textAlign: 'center', marginBottom: 4 },
-    subtitle: { fontSize: 14, color: '#6f8961', textAlign: 'center' },
+    title: { fontSize: 32, fontWeight: 'bold', color: '#131811', textAlign: 'center', marginBottom: 4 },
+    subtitle: { fontSize: 16, color: '#6f8961', textAlign: 'center' },
 
     form: { gap: 16, marginTop: 24 },
     fieldGroup: { gap: 8 },
-    label: { fontSize: 15, fontWeight: '600', color: '#131811' },
+    label: { fontSize: 17, fontWeight: '700', color: '#131811' },
     inputRow: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7F8F6',
         borderRadius: 12,
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
         fontSize: 16, fontWeight: '600', color: '#131811', marginRight: 10,
         paddingRight: 10, borderRightWidth: 1, borderRightColor: '#E5E7EB',
     },
-    input: { flex: 1, fontSize: 16, color: '#131811', borderWidth: 0, underlineColorAndroid: 'transparent' },
+    input: { flex: 1, fontSize: 18, color: '#131811', borderWidth: 0 },
 
     roleRow: { flexDirection: 'row', gap: 10 },
     roleCard: {

@@ -7,6 +7,7 @@ import {
   StatusBar,
   TouchableOpacity,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
@@ -33,7 +34,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
         } else {
-          navigation.replace('Payment', { job, attendanceData: data });
+          navigation.replace('RateWorker', { job });
         }
       }
     });
@@ -49,6 +50,13 @@ const QRAttendanceScreen = ({ navigation, route }) => {
     type: type,
     timestamp: Date.now(),
   });
+
+  const handleSkipScan = () => {
+    if (type === 'out') {
+      // Proceed directly to the rating screen
+      navigation.replace('RateWorker', { job });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -120,6 +128,18 @@ const QRAttendanceScreen = ({ navigation, route }) => {
              </View>
           </View>
         )}
+
+        {/* Skip Scan to Payment Button for quick flow (Only for Check-Out) */}
+        {type === 'out' && (
+          <TouchableOpacity 
+            style={styles.skipButton}
+            onPress={handleSkipScan}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="done-all" size={20} color="#FFFFFF" />
+            <Text style={styles.skipButtonText}>Skip Scan & Complete Work</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -135,7 +155,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 50,
+    paddingTop: Platform.OS === 'ios' ? 52 : 48,
     paddingBottom: 16,
     paddingHorizontal: 16,
     elevation: 4,
@@ -272,6 +292,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
+  },
+  skipButton: {
+    marginTop: 24,
+    width: '100%',
+    backgroundColor: '#1E293B', // A sleek dark color for emphasis
+    paddingVertical: 16,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  skipButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });
 

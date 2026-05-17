@@ -17,6 +17,7 @@ import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { jobService } from '../../services/api/jobService';
+import { groupService } from '../../services/api/groupService';
 import { socketService } from '../../services/socketService';
 
 const JobOfferScreen = ({ navigation, route }) => {
@@ -78,7 +79,13 @@ const JobOfferScreen = ({ navigation, route }) => {
     jobTakenHandlerRef.current = null;
 
     try {
-      const response = await jobService.acceptJob(job.id, user.id);
+      let response;
+      if (job.workerType === 'group' && job.groupId) {
+        response = await groupService.acceptGroupJob({ groupId: job.groupId, jobId: job.id });
+      } else {
+        response = await jobService.acceptJob(job.id, user.id);
+      }
+
       if (response.success) {
         navigation.navigate('Navigation', { job });
       } else if (response.alreadyTaken) {

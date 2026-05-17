@@ -21,9 +21,10 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const STATUS_META = {
-    pending: { label: 'Pending', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
+    pending: { label: 'Waiting for Workers', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
     accepted: { label: 'Accepted', color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
-    in_progress: { label: 'In Progress', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
+    in_progress: { label: 'Under Process', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
+    finishing: { label: 'Finishing', color: '#06B6D4', bg: '#CFFAFE', icon: 'done' },
     completed: { label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
     cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
 };
@@ -42,12 +43,20 @@ const formatDate = (dateStr) => {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const JobCard = ({ job }) => {
+const JobCard = ({ job, onUpdateStatus, navigation }) => {
     const status = STATUS_META[job.status] || STATUS_META.pending;
     const workIcon = WORK_ICONS[job.workType] || 'work';
 
+    const handlePress = () => {
+        if (job.status === 'in_progress' || job.status === 'finishing') {
+            navigation.navigate('WorkInProgress', { job });
+        } else if (job.status === 'accepted') {
+            navigation.navigate('SelectWorkers', { job });
+        }
+    };
+
     return (
-        <View style={styles.card}>
+        <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={handlePress}>
             {/* Header row */}
             <View style={styles.cardHeader}>
                 <View style={[styles.workIconCircle, { backgroundColor: `${colors.primary}15` }]}>
@@ -65,26 +74,54 @@ const JobCard = ({ job }) => {
 
             {/* Details */}
             <View style={styles.cardDetails}>
-                {job.village ? (
-                    <View style={styles.detailRow}>
-                        <MaterialIcons name="location-on" size={16} color="#9CA3AF" />
-                        <Text style={styles.detailText}>{job.village}</Text>
-                    </View>
-                ) : null}
-                {job.workerCount ? (
-                    <View style={styles.detailRow}>
-                        <MaterialIcons name="people" size={16} color="#9CA3AF" />
-                        <Text style={styles.detailText}>{job.workerCount} workers</Text>
-                    </View>
-                ) : null}
-                {job.wagePerDay ? (
-                    <View style={styles.detailRow}>
-                        <MaterialIcons name="currency-rupee" size={16} color="#9CA3AF" />
-                        <Text style={styles.detailText}>₹{job.wagePerDay}/day</Text>
-                    </View>
-                ) : null}
+                <View style={styles.detailRow}>
+                    <MaterialIcons name="people" size={16} color="#64748B" />
+                    <Text style={styles.detailText}>{job.workersNeeded || job.workerCount || 0} Workers Required</Text>
+                </View>
+                <View style={styles.detailRow}>
+                    <MaterialIcons name="currency-rupee" size={16} color="#64748B" />
+                    <Text style={styles.detailText}>₹{job.wagePerDay}/day per worker</Text>
+                </View>
             </View>
-        </View>
+
+            {/* Management Actions */}
+            {job.status !== 'completed' && job.status !== 'cancelled' && (
+                <View style={styles.actionRow}>
+                    {job.status === 'accepted' && (
+                        <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                            onPress={() => onUpdateStatus(job.id, 'in_progress')}
+                        >
+                            <Text style={styles.actionBtnText}>Start Work</Text>
+                        </TouchableOpacity>
+                    )}
+                    {job.status === 'in_progress' && (
+                        <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: '#06B6D4' }]}
+                            onPress={() => onUpdateStatus(job.id, 'finishing')}
+                        >
+                            <Text style={styles.actionBtnText}>Mark Finishing</Text>
+                        </TouchableOpacity>
+                    )}
+                    {(job.status === 'finishing' || job.status === 'in_progress') && (
+                        <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
+                            onPress={() => onUpdateStatus(job.id, 'completed')}
+                        >
+                            <Text style={styles.actionBtnText}>Complete Work</Text>
+                        </TouchableOpacity>
+                    )}
+                    {(job.status === 'pending' || job.status === 'matched' || job.status === 'accepted' || job.status === 'in_progress' || job.status === 'finishing') && (
+                        <TouchableOpacity 
+                            style={[styles.actionBtn, { backgroundColor: '#EF4444', marginLeft: 8 }]}
+                            onPress={() => onUpdateStatus(job.id, 'cancelled')}
+                        >
+                            <Text style={styles.actionBtnText}>Cancel Work</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            )}
+        </TouchableOpacity>
     );
 };
 
@@ -102,16 +139,34 @@ const FarmerHistoryScreen = ({ navigation }) => {
             else setLoading(true);
             setError(null);
 
-            // Use authenticated endpoint — reads farmerId from JWT, no client-side id needed
             const response = await jobAPI.getMyJobs();
             const jobList = response?.data?.data || [];
             setJobs(Array.isArray(jobList) ? jobList : []);
         } catch (err) {
             console.error('Fetch jobs error:', err);
-            setError('Could not load job history. Please try again.');
+            setError('Could not load bookings. Please try again.');
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const updateJobStatus = async (jobId, newStatus) => {
+        try {
+            setLoading(true);
+            if (newStatus === 'cancelled') {
+                await jobAPI.cancelJob(jobId);
+                Alert.alert('Success', 'Booking has been cancelled.');
+            } else {
+                await jobAPI.updateStatus(jobId, newStatus);
+                Alert.alert('Success', `Booking status updated to ${newStatus.replace('_', ' ')}`);
+            }
+            fetchJobs();
+        } catch (err) {
+            console.error('Update status error:', err);
+            Alert.alert('Error', 'Failed to update status.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -163,10 +218,10 @@ const FarmerHistoryScreen = ({ navigation }) => {
         return (
             <>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryText}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} posted</Text>
+                    <Text style={styles.summaryText}>{jobs.length} booking{jobs.length !== 1 ? 's' : ''} found</Text>
                 </View>
                 {jobs.map((job, i) => (
-                    <JobCard key={job.id || i} job={job} />
+                    <JobCard key={job.id || i} job={job} onUpdateStatus={updateJobStatus} navigation={navigation} />
                 ))}
             </>
         );
@@ -175,7 +230,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-            <TopBar title={t('history.title')} showBack navigation={navigation} />
+            <TopBar title="Bookings" showBack navigation={navigation} />
 
             <ScrollView
                 style={styles.scroll}
@@ -192,7 +247,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
                 {renderContent()}
             </ScrollView>
 
-            <BottomNavBar role="farmer" activeTab="History" />
+            <BottomNavBar role="farmer" activeTab="Bookings" />
         </View>
     );
 };
@@ -231,8 +286,8 @@ const styles = StyleSheet.create({
         marginRight: 12,
     },
     cardHeaderText: { flex: 1 },
-    workType: { fontSize: 17, fontWeight: '700', color: '#131811' },
-    jobDate: { fontSize: 13, color: '#9CA3AF', marginTop: 2 },
+    workType: { fontSize: 19, fontWeight: '800', color: '#131811' },
+    jobDate: { fontSize: 15, color: '#9CA3AF', marginTop: 2 },
     statusBadge: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -241,11 +296,11 @@ const styles = StyleSheet.create({
         paddingVertical: 5,
         borderRadius: 9999,
     },
-    statusText: { fontSize: 12, fontWeight: '700' },
+    statusText: { fontSize: 13, fontWeight: '800' },
 
     cardDetails: { gap: 6 },
     detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    detailText: { fontSize: 14, color: '#6B7280' },
+    detailText: { fontSize: 16, color: '#6B7280' },
 
     // Empty / Error / Loading
     centeredBox: {
@@ -285,6 +340,33 @@ const styles = StyleSheet.create({
         elevation: 6,
     },
     postJobBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
+
+    // Action Buttons
+    actionRow: {
+        flexDirection: 'row',
+        marginTop: 16,
+        gap: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+        paddingTop: 16,
+    },
+    actionBtn: {
+        flex: 1,
+        height: 48,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    actionBtnText: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+    },
 });
 
 export default FarmerHistoryScreen;

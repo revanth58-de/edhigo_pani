@@ -1,5 +1,4 @@
-// Screen 5: Role Selection - Exact match to role-selection.html
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,42 +7,37 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { authService } from '../../services/api/authService';
+import { LinearGradient } from 'expo-linear-gradient';
+import { authAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const RoleSelectionScreen = ({ navigation }) => {
-  const user = useAuthStore((state) => state.user);
-  const updateUser = useAuthStore((state) => state.updateUser);
+  const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
-  const language = useAuthStore((state) => state.language) || 'en';
 
-  useEffect(() => {
-  }, []);
-
-
-  const handleRoleSelect = async (role, roleName) => {
+  const handleRoleSelect = async (role) => {
     try {
-      const response = await authService.setRole(role);
-
-      if (response.success) {
-        // Update user role in store
-        updateUser({ ...response.data, role });
-
-        // Navigation is handled by AppNavigator based on user.role
-        // Just wait for state update to trigger automatic navigation
-        setTimeout(() => {
-          // AppNavigator will automatically show the right screen
-          console.log('Role set to:', role);
-        }, 500);
-      } else {
-        Alert.alert('Error', response.message || 'Failed to set role');
-      }
+      await authAPI.setRole(role);
+      await refreshProfile();
+      
+      // Navigation is handled automatically by AppNavigator when user.role changes
+      // If not, we can force navigate based on role
+      const screenMap = {
+        farmer: 'FarmerHome',
+        worker: 'WorkerHome',
+        leader: 'LeaderHome',
+      };
+      
+      // Adding a small delay to ensure store update
+      setTimeout(() => {
+        navigation.replace(screenMap[role] || 'Register', { role });
+      }, 500);
     } catch (error) {
-      console.error('Set Role Error:', error);
       Alert.alert('Error', 'Failed to set role. Please try again.');
     }
   };
@@ -51,73 +45,66 @@ const RoleSelectionScreen = ({ navigation }) => {
   const roles = [
     {
       id: 'farmer',
-      name: t('auth.iAmFarmer'),
+      name: t('auth.iAmFarmer') || 'I am a Farmer',
       icon: 'agriculture',
-      description: t('common.farmer'),
+      description: 'Find skilled labour for your farm.',
+      gradient: [colors.primary, colors.primaryDark],
     },
     {
       id: 'worker',
-      name: t('auth.iAmWorker'),
-      icon: 'handyman',
-      description: t('common.worker'),
+      name: t('auth.iAmWorker') || 'I am a Worker',
+      icon: 'engineering',
+      description: 'Find jobs and earn daily wages.',
+      gradient: [colors.secondary, colors.secondaryGradient[1]],
     },
     {
       id: 'leader',
-      name: t('auth.iAmLeader'),
+      name: t('auth.iAmLeader') || 'I am a Leader',
       icon: 'groups',
-      description: t('common.leader'),
+      description: 'Manage groups and take bulk jobs.',
+      gradient: [colors.accent, '#D49B00'],
     },
   ];
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-
-      {/* Top App Bar */}
-      <View style={styles.topBar}>
-        <View style={{ width: 56 }} />
-        <Text style={styles.topBarTitle}>{t('auth.selectRole')}</Text>
-        <TouchableOpacity style={styles.helpButton}>
-          <MaterialIcons name="help" size={28} color="#131811" />
-        </TouchableOpacity>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      
+      <View style={styles.header}>
+        <Text style={styles.title}>Join Dinasari as a...</Text>
+        <Text style={styles.subtitle}>Choose the role that best fits you</Text>
       </View>
 
-      {/* Headline */}
-      <View style={styles.headlineContainer}>
-        <Text style={styles.mainHeadline}>{t('auth.selectRole')}</Text>
-        <Text style={styles.subHeadline}>{t('auth.selectRole')}</Text>
-      </View>
-
-      {/* Role Cards */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.cardsContainer}
+      <ScrollView 
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         {roles.map((role) => (
-          <View key={role.id} style={styles.cardWrapper}>
-            <TouchableOpacity
-              style={styles.roleCard}
-              activeOpacity={0.9}
-              onPress={() => handleRoleSelect(role.id, role.name)}
-            >
+          <TouchableOpacity
+            key={role.id}
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => handleRoleSelect(role.id)}
+          >
+            <LinearGradient colors={role.gradient} style={styles.cardGradient}>
               <View style={styles.iconCircle}>
-                <MaterialIcons name={role.icon} size={48} color={colors.primary} />
+                <MaterialIcons name={role.icon} size={40} color="#FFF" />
               </View>
-              <View style={styles.cardTextContainer}>
+              <View style={styles.cardInfo}>
                 <Text style={styles.roleName}>{role.name}</Text>
-                <Text style={styles.roleDescription}>{role.description}</Text>
+                <Text style={styles.roleDesc}>{role.description}</Text>
               </View>
-              <View style={styles.selectBadge}>
-                <Text style={styles.selectBadgeText}>Select</Text>
+              <View style={styles.arrowCircle}>
+                <MaterialIcons name="chevron-right" size={24} color="#FFF" />
               </View>
-            </TouchableOpacity>
-          </View>
+            </LinearGradient>
+          </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {/* Safe Area Spacer */}
-      <View style={{ height: 32 }} />
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>You can change your role later in settings</Text>
+      </View>
     </View>
   );
 };
@@ -125,118 +112,84 @@ const RoleSelectionScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundLight,
+    backgroundColor: '#F8F9FA',
   },
-  topBar: {
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 80 : 60,
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: -1,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#64748B',
+    marginTop: 8,
+  },
+  content: {
+    paddingHorizontal: 24,
+    gap: 20,
+    paddingBottom: 40,
+  },
+  card: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  cardGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  topBarTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#131811',
-    flex: 1,
-    textAlign: 'center',
-  },
-  helpButton: {
-    width: 56,
-    height: 56,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  headlineContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 16,
-  },
-  mainHeadline: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#131811',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  subHeadline: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#6f8961',
-    textAlign: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  cardsContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 48,
-    gap: 16,
-  },
-  cardWrapper: {
-    padding: 8,
-  },
-  roleCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
     padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    gap: 20,
   },
   iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: `${colors.primary}1A`, // 10% opacity
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
-  cardTextContainer: {
-    alignItems: 'center',
-    gap: 4,
-    width: '100%',
+  cardInfo: {
+    flex: 1,
   },
   roleName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-    marginBottom: 4,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFF',
   },
-  roleDescription: {
-    fontSize: 16,
-    color: '#6f8961',
-  },
-  selectBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 32,
-    paddingVertical: 8,
-    borderRadius: 9999,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  selectBadgeText: {
+  roleDesc: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.backgroundDark,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  arrowCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  footer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontWeight: '500',
   },
 });
 

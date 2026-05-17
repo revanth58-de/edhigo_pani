@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   otpInputSection: { paddingHorizontal: 24, paddingTop: 120, paddingBottom: 24, alignItems: 'center' },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },
+  label: { fontSize: 14, fontWeight: '700', color: '#6f8961', letterSpacing: 2 },
   otpBoxRow: {
     flexDirection: 'row',
     gap: 12,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 16,
   },
   verifyButtonDisabled: { opacity: 0.5 },
-  verifyButtonText: { fontSize: 20, fontWeight: 'bold', color: colors.backgroundDark },
+  verifyButtonText: { fontSize: 22, fontWeight: 'bold', color: colors.backgroundDark },
   resendContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,11 +314,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   resendQuestion: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#6f8961',
   },
   resendButton: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
     color: colors.primary,
     textDecorationLine: 'underline',

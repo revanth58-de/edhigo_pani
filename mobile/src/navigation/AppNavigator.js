@@ -44,6 +44,7 @@ import QRAttendanceScreen from '../screens/farmer/QRAttendanceScreen';
 import WorkInProgressScreen from '../screens/farmer/WorkInProgressScreen';
 import PaymentScreen from '../screens/farmer/PaymentScreen';
 import RateWorkerScreen from '../screens/farmer/RateWorkerScreen';
+import MachineryBookingScreen from '../screens/farmer/MachineryBookingScreen';
 
 // Worker Screens
 import WorkerHomeScreen from '../screens/worker/WorkerHomeScreen';
@@ -56,7 +57,7 @@ import WorkerStatusScreen from '../screens/worker/WorkerStatusScreen';
 import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
-import WorkerPaymentHistoryScreen from '../screens/worker/WorkerPaymentHistoryScreen';
+import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -80,6 +81,8 @@ import GroupChatScreen from '../screens/leader/GroupChatScreen';
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
 import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import WorkCategoriesScreen from '../screens/shared/WorkCategoriesScreen';
+import AIChatbotScreen from '../screens/shared/AIChatbotScreen';
 
 // Stores
 import useNotificationStore from '../store/notificationStore';
@@ -113,11 +116,13 @@ const FarmerNavigator = () => (
     <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="WorkInProgress" component={WorkInProgressScreen} />
-    <Stack.Screen name="Payment" component={PaymentScreen} />
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="WorkCategories" component={WorkCategoriesScreen} />
+    <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
+    <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
   </Stack.Navigator>
 );
 
@@ -134,13 +139,14 @@ const WorkerNavigator = () => (
     <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
-    <Stack.Screen name="WorkerPaymentHistory" component={WorkerPaymentHistoryScreen} />
+    <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="GroupChat" component={GroupChatScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
   </Stack.Navigator>
 );
 
@@ -166,6 +172,8 @@ const LeaderNavigator = () => (
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
+    <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
   </Stack.Navigator>
 );
 

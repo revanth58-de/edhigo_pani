@@ -95,7 +95,7 @@ const ArrivalAlertScreen = ({ navigation, route }) => {
             style={styles.continueButton}
           >
             <Text style={styles.continueButtonText}>SHOW QR CODE</Text>
-            <MaterialIcons name="qr-code- scanner" size={24} color="#FFFFFF" />
+            <MaterialIcons name="qr-code-scanner" size={24} color="#FFFFFF" />
           </LinearGradient>
         </TouchableOpacity>
       </View>

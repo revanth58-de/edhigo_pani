@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -14,31 +15,54 @@ import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
+import { jobService } from '../../services/api/jobService';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
   const { groupId, jobData, workerCount } = route.params || {};
+  const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
 
-  // Example job data if none provided via route
-  const job = jobData || {
-    workType: 'Harvesting',
-    distance: '1.2 km',
-    workerCount: workerCount || 15,
-    pay: 500,
-    farmAddress: 'Mylavaram Road',
-  };
+  // Normalise job data — socket offers use 'jobId', API uses 'id'
+  const job = jobData
+    ? { ...jobData, id: jobData.id || jobData.jobId }
+    : { id: null, workType: 'Harvesting', distance: '1.2 km', workerCount: workerCount || 15, payPerDay: 500, farmAddress: 'Mylavaram Road' };
 
   useEffect(() => {
     playVoicePrompt();
   }, []);
 
   const playVoicePrompt = () => {
-    const message = "Pani request vachindi"; // "Work request received" in Telugu would be better if needed, but following prompt exactly.
+    const message = "Pani request vachindi";
     Speech.speak(message, { language: 'te' });
   };
 
-  const handleAccept = () => {
-    navigation.navigate('GroupNavigation', { job, groupId });
+  const handleAccept = async () => {
+    const jobId = job?.id || job?.jobId;
+    if (!jobId) {
+      Alert.alert('Error', 'Job information is missing.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await jobService.acceptJob(jobId, user?.id);
+      if (result.success) {
+        // Navigate leader to the navigation map
+        navigation.navigate('GroupNavigation', {
+          job: { ...job, id: jobId },
+          groupId: result.data?.groupId || groupId,
+        });
+      } else if (result.alreadyTaken) {
+        Alert.alert('Job Already Taken', 'Another leader accepted this job first.');
+        navigation.goBack();
+      } else {
+        Alert.alert('Error', result.message || 'Could not accept job.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReject = () => {
@@ -113,17 +137,24 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.acceptButtonTouchable}
+          style={[styles.acceptButtonTouchable, loading && { opacity: 0.6 }]}
           onPress={handleAccept}
           activeOpacity={0.9}
+          disabled={loading}
         >
           <LinearGradient
             colors={colors.primaryGradient}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.acceptButton}
           >
-            <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>
-            <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
       </View>

@@ -5,6 +5,7 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
 ---
 
 ## 📋 Table of Contents
+
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
@@ -22,6 +23,7 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
 ## ✨ Features
 
 ### 👨‍🌾 Farmer
+
 - Post jobs and specify the number of workers needed
 - Browse and select individual workers or groups
 - Generate QR codes for worker check-in / check-out attendance
@@ -30,6 +32,7 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
 - Rate workers after job completion
 
 ### 👷 Worker
+
 - Browse and accept available job offers
 - Navigate to farm location via integrated maps
 - Scan QR codes to check in and check out
@@ -37,12 +40,14 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
 - Rate farmers after job completion
 
 ### 👑 Group Leader
+
 - Create and manage a group of workers
 - Accept group jobs on behalf of all members
 - Manage group QR attendance for the entire team
 - View group-level job history and ratings
 
 ### 🌐 Shared
+
 - Real-time notifications via **Socket.IO**
 - Live map discovery to find workers and farmers nearby
 - Multi-language support with voice guidance
@@ -53,31 +58,33 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
 ## 🛠 Tech Stack
 
 ### Backend
-| Technology | Purpose |
-|---|---|
-| **Node.js + Express v5** | REST API server |
-| **Prisma ORM** | Database management |
-| **Socket.IO** | Real-time events & notifications |
-| **JWT + bcryptjs** | Authentication & security |
-| **Multer** | File/image uploads |
-| **QRCode** | QR code generation |
-| **Winston** | Logging |
-| **Helmet + express-rate-limit** | Security hardening |
-| **Expo Server SDK** | Push notifications |
+
+| Technology                      | Purpose                          |
+| ------------------------------- | -------------------------------- |
+| **Node.js + Express v5**        | REST API server                  |
+| **Prisma ORM**                  | Database management              |
+| **Socket.IO**                   | Real-time events & notifications |
+| **JWT + bcryptjs**              | Authentication & security        |
+| **Multer**                      | File/image uploads               |
+| **QRCode**                      | QR code generation               |
+| **Winston**                     | Logging                          |
+| **Helmet + express-rate-limit** | Security hardening               |
+| **Expo Server SDK**             | Push notifications               |
 
 ### Mobile
-| Technology | Purpose |
-|---|---|
+
+| Technology              | Purpose                   |
+| ----------------------- | ------------------------- |
 | **React Native + Expo** | Cross-platform mobile app |
-| **React Navigation** | Screen navigation |
-| **Zustand** | State management |
-| **Axios** | HTTP API requests |
-| **Socket.IO Client** | Real-time communication |
-| **Expo Camera + jsQR** | QR code scanning |
-| **Expo Notifications** | Push notifications |
-| **Expo Location** | GPS/location services |
-| **React Native Maps** | Map display |
-| **Expo Secure Store** | Secure token storage |
+| **React Navigation**    | Screen navigation         |
+| **Zustand**             | State management          |
+| **Axios**               | HTTP API requests         |
+| **Socket.IO Client**    | Real-time communication   |
+| **Expo Camera + jsQR**  | QR code scanning          |
+| **Expo Notifications**  | Push notifications        |
+| **Expo Location**       | GPS/location services     |
+| **React Native Maps**   | Map display               |
+| **Expo Secure Store**   | Secure token storage      |
 
 ---
 
@@ -123,20 +130,25 @@ edhigo_pani/
 ### Backend Setup
 
 1. **Navigate to the backend directory:**
+
    ```sh
    cd backend
    ```
 
 2. **Install dependencies:**
+
    ```sh
    npm install
    ```
 
 3. **Create your environment file:**
+
    ```sh
    cp .env.example .env
    ```
+
    Then fill in the required values in `.env`:
+
    ```env
    DATABASE_URL="your_database_connection_string"
    JWT_SECRET="your_super_secret_jwt_key"
@@ -144,12 +156,14 @@ edhigo_pani/
    ```
 
 4. **Set up the database with Prisma:**
+
    ```sh
    npm run db:generate
    npm run db:push
    ```
 
 5. **Start the backend server:**
+
    ```sh
    # Development mode (with auto-reload)
    npm run dev
@@ -157,7 +171,9 @@ edhigo_pani/
    # Production mode
    npm start
    ```
+
    The server will start on `http://localhost:5000`. You should see:
+
    > `🚀 FarmConnect server running on port 5000`
 
 ---
@@ -165,11 +181,13 @@ edhigo_pani/
 ### Mobile Setup
 
 1. **Navigate to the mobile directory:**
+
    ```sh
    cd mobile
    ```
 
 2. **Install dependencies:**
+
    ```sh
    npm install
    ```
@@ -181,6 +199,7 @@ edhigo_pani/
    > **Having firewall issues?** See [Troubleshooting](#troubleshooting) or `QUICK_FIX.md`.
 
 4. **Start the Expo development server:**
+
    ```sh
    # Standard mode
    npx expo start
@@ -199,23 +218,25 @@ edhigo_pani/
 ## 📜 Development Scripts
 
 ### Backend (`/backend`)
-| Command | Description |
-|---|---|
-| `npm run dev` | Start server with auto-reload (Node.js `--watch`) |
-| `npm start` | Start server in production mode |
-| `npm run db:generate` | Generate Prisma client |
-| `npm run db:push` | Push schema changes to the database |
-| `npm run db:studio` | Open Prisma Studio (visual DB browser) |
-| `npm test` | Run Jest test suite |
+
+| Command               | Description                                       |
+| --------------------- | ------------------------------------------------- |
+| `npm run dev`         | Start server with auto-reload (Node.js `--watch`) |
+| `npm start`           | Start server in production mode                   |
+| `npm run db:generate` | Generate Prisma client                            |
+| `npm run db:push`     | Push schema changes to the database               |
+| `npm run db:studio`   | Open Prisma Studio (visual DB browser)            |
+| `npm test`            | Run Jest test suite                               |
 
 ### Mobile (`/mobile`)
-| Command | Description |
-|---|---|
-| `npx expo start` | Start Expo development server |
-| `npx expo start --android` | Launch on Android emulator |
-| `npx expo start --ios` | Launch on iOS simulator |
-| `npx expo start --tunnel` | Start with ngrok tunnel (bypasses firewall) |
-| `npx expo start --clear` | Start with cleared cache |
+
+| Command                    | Description                                 |
+| -------------------------- | ------------------------------------------- |
+| `npx expo start`           | Start Expo development server               |
+| `npx expo start --android` | Launch on Android emulator                  |
+| `npx expo start --ios`     | Launch on iOS simulator                     |
+| `npx expo start --tunnel`  | Start with ngrok tunnel (bypasses firewall) |
+| `npx expo start --clear`   | Start with cleared cache                    |
 
 ---
 
@@ -223,18 +244,18 @@ edhigo_pani/
 
 The backend runs on `http://localhost:5000`. Key endpoints:
 
-| Endpoint | Description |
-|---|---|
-| `POST /api/auth/send-otp` | Send OTP to phone number |
-| `POST /api/auth/verify-otp` | Verify OTP and issue JWT token |
-| `POST /api/auth/set-role` | Set user role (farmer/worker/leader) |
-| `PUT  /api/auth/profile` | Update user profile |
-| `GET  /api/jobs` | List available jobs |
-| `POST /api/jobs/:id/accept` | Accept a job offer |
-| `POST /api/attendance/check-in` | Record QR check-in |
-| `POST /api/attendance/check-out` | Record QR check-out |
-| `POST /api/ratings` | Submit a rating |
-| `GET  /health` | Server health check |
+| Endpoint                         | Description                          |
+| -------------------------------- | ------------------------------------ |
+| `POST /api/auth/send-otp`        | Send OTP to phone number             |
+| `POST /api/auth/verify-otp`      | Verify OTP and issue JWT token       |
+| `POST /api/auth/set-role`        | Set user role (farmer/worker/leader) |
+| `PUT  /api/auth/profile`         | Update user profile                  |
+| `GET  /api/jobs`                 | List available jobs                  |
+| `POST /api/jobs/:id/accept`      | Accept a job offer                   |
+| `POST /api/attendance/check-in`  | Record QR check-in                   |
+| `POST /api/attendance/check-out` | Record QR check-out                  |
+| `POST /api/ratings`              | Submit a rating                      |
+| `GET  /health`                   | Server health check                  |
 
 ---
 
@@ -245,6 +266,7 @@ A complete testing guide covering all **32 screens** is available:
 📄 **[TESTING_GUIDE.md](./TESTING_GUIDE.md)**
 
 **Quick health check** (PowerShell):
+
 ```powershell
 # Verify backend is running
 Invoke-RestMethod -Uri "http://localhost:5000/health"
@@ -257,6 +279,7 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/auth/send-otp" `
 ```
 
 **Run backend unit tests:**
+
 ```sh
 cd backend && npm test
 ```
@@ -266,22 +289,26 @@ cd backend && npm test
 ## 🔧 Troubleshooting
 
 ### Expo can't connect to backend (Network Error)
+
 This is commonly caused by a Windows Firewall blocking connections from your phone.
 
 **Quick fix:** See **[QUICK_FIX.md](./QUICK_FIX.md)** for step-by-step firewall options.
 
 **Or**, start Expo in tunnel mode which routes traffic through ngrok:
+
 ```sh
 npx expo start --tunnel
 ```
 
 ### App crashes or blank screen
+
 ```sh
 # Clear Expo cache and restart
 npx expo start --clear
 ```
 
 ### Database issues
+
 ```sh
 # Re-sync Prisma schema with the database
 cd backend
@@ -290,12 +317,12 @@ npm run db:push
 
 ### Common errors
 
-| Error | Fix |
-|---|---|
-| `Network Error` on API calls | Check backend is running; check API URL in `api.config.js` |
-| `Unable to resolve module` | Run `npm install` in the relevant directory |
-| Navigation action not handled | Verify screen is registered in `AppNavigator.js` |
-| `500 Internal Server Error` | Check backend terminal for stack trace |
+| Error                         | Fix                                                        |
+| ----------------------------- | ---------------------------------------------------------- |
+| `Network Error` on API calls  | Check backend is running; check API URL in `api.config.js` |
+| `Unable to resolve module`    | Run `npm install` in the relevant directory                |
+| Navigation action not handled | Verify screen is registered in `AppNavigator.js`           |
+| `500 Internal Server Error`   | Check backend terminal for stack trace                     |
 
 ---
 
@@ -305,4 +332,4 @@ ISC — see [LICENSE](./LICENSE) for details.
 
 ---
 
-*Built with ❤️ to empower the agricultural community.*
+_Built with ❤️ to empower the agricultural community._

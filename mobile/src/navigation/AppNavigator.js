@@ -116,6 +116,7 @@ const FarmerNavigator = () => (
     <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="WorkInProgress" component={WorkInProgressScreen} />
+    <Stack.Screen name="Payment" component={PaymentScreen} />
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />

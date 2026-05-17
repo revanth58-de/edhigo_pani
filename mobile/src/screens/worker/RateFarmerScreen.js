@@ -41,7 +41,7 @@ const RateFarmerScreen = ({ navigation, route }) => {
         rating,
       });
 
-      if (response.success) {
+      if (response.success || response.message?.toLowerCase().includes('already rated')) {
         navigation.navigate('WorkerHome');
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');

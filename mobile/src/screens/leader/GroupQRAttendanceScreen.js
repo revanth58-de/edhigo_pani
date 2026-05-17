@@ -18,7 +18,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { CameraView, Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
 import { attendanceService } from '../../services/api/attendanceService';
@@ -60,21 +60,21 @@ const HELP_STEPS = [
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
   const { job, groupId, type } = route.params || { type: 'IN' };
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
+  const hasPermission = permission?.granted ?? null;
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
+  // Ask for camera permission on mount
   useEffect(() => {
-    const checkPermission = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-    };
-    const timer = setTimeout(checkPermission, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    if (!permission) return;
+    if (!permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [permission?.granted]);
 
   // Animate scan line
   useEffect(() => {
@@ -225,19 +225,16 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
       </View>
     );
   }
-  if (hasPermission === false) {
+  if (hasPermission === false || (permission && !permission.granted && !permission.canAskAgain)) {
     return (
       <View style={[styles.container, styles.centered]}>
         <MaterialIcons name="camera-alt" size={64} color="#9CA3AF" />
         <Text style={styles.permissionText}>Camera access is required to scan QR codes.</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync();
-            setHasPermission(status === 'granted');
-          }}
+          onPress={requestPermission}
         >
-          <Text style={styles.retryButtonText}>Grant Permission</Text>
+          <Text style={styles.retryButtonText}>Grant Camera Permission</Text>
         </TouchableOpacity>
       </View>
     );
@@ -267,6 +264,8 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
         style={styles.camera}
         facing="back"
         enableTorch={flashOn}
+        barcodeScannerEnabled={!scanned && !loading}
+        barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
         onBarcodeScanned={scanned || loading ? undefined : handleBarCodeScanned}
       >
         {/* Dark Overlay around Scanner */}

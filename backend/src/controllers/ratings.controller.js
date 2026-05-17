@@ -11,8 +11,19 @@ const submitRating = async (req, res, next) => {
     } = req.body;
     const fromUserId = req.user.id;
 
+    // Check if job exists early to allow inferring recipientId
+    if (jobId) {
+      const job = await prisma.job.findUnique({ where: { id: jobId } });
+      if (!job) return res.status(404).json({ error: 'Job not found' });
+      
+      // If recipient is missing and the user is NOT the farmer, assume they are rating the farmer
+      if (!toUserId && !workerId && !farmerId && fromUserId !== job.farmerId) {
+        req.body.toUserId = job.farmerId; // patch it for the logic below
+      }
+    }
+
     // Normalise recipient ID
-    const recipientId = toUserId || workerId || farmerId;
+    const recipientId = req.body.toUserId || workerId || farmerId;
 
     // Normalise emoji: convert numeric rating → emoji if needed
     const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';
@@ -40,11 +51,8 @@ const submitRating = async (req, res, next) => {
     }
 
 
-    // Check if job exists
+    // (Job existence is now checked earlier)
     const job = await prisma.job.findUnique({ where: { id: jobId } });
-    if (!job) {
-      return res.status(404).json({ error: 'Job not found' });
-    }
 
     // Check if users exist
     const toUser = await prisma.user.findUnique({ where: { id: recipientId } });
@@ -85,7 +93,7 @@ const submitRating = async (req, res, next) => {
     });
 
     // Fetch ALL ratings AFTER insert (so the new one is included in the list)
-    const allRatings = await prisma.rating.findMany({ where: { toUserId } });
+    const allRatings = await prisma.rating.findMany({ where: { toUserId: recipientId } });
 
     // Calculate new average from all ratings (emoji-to-number: happy=5, neutral=3, sad=1)
     const emojiToNumber = { happy: 5, neutral: 3, sad: 1 };
@@ -95,7 +103,7 @@ const submitRating = async (req, res, next) => {
     const avgRating = totalScore / allRatings.length;
 
     await prisma.user.update({
-      where: { id: toUserId },
+      where: { id: recipientId },
       data: { ratingAvg: avgRating, ratingCount: allRatings.length },
     });
 

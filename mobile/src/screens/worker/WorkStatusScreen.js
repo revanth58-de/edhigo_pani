@@ -139,7 +139,7 @@ const WorkStatusScreen = ({ navigation, route }) => {
             style={styles.endButton}
           >
             <Text style={styles.endButtonText}>FINISH WORK & CHECK-OUT</Text>
-            <MaterialIcons name="qr-code- scanner" size={24} color="#FFFFFF" />
+            <MaterialIcons name="qr-code-scanner" size={24} color="#FFFFFF" />
           </LinearGradient>
         </TouchableOpacity>
       </View>

@@ -90,6 +90,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const [jobFetchError, setJobFetchError] = useState(false);
   const activeTab = route.params?.tab || 'home';
   const navigationRef = useRef(navigation);
+  const [pendingOffer, setPendingOffer] = useState(null); // latest individual job offer for banner
 
   // History state
   const [historyJobs, setHistoryJobs] = useState([]);
@@ -117,11 +118,16 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         };
       });
       setJobsMap(newMap);
+      // Show banner for the latest individual job if there is one
+      const latest = jobList.find(j => j.workerType !== 'group');
+      if (latest && !pendingOffer) {
+        setPendingOffer({ jobId: latest.id, workType: latest.workType, payPerDay: latest.payPerDay, farmAddress: latest.farmAddress, ...latest });
+      }
     } catch (e) {
       console.warn('Failed to fetch jobs for map');
       setJobFetchError(true);
     }
-  }, []);
+  }, [pendingOffer]);
 
   const { refreshProfile } = useAuthStore();
 
@@ -196,6 +202,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
       // Show alert to prompt worker
       const label = offer.reOpened ? '🔄 Job Available Again!' : '🌾 New Job Offer!';
+      setPendingOffer({ ...offer });
       Alert.alert(
         label,
         `Work Type: ${offer.workType}\n💰 ₹${offer.payPerDay}/day\n📍 ${distanceText}`,
@@ -323,6 +330,32 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           />
         )}
 
+        {/* Pending Job Offer Banner */}
+        {pendingOffer && (
+          <View style={styles.offerBanner}>
+            <LinearGradient colors={['#FFFBEB', '#FEF3C7']} style={styles.offerBannerGradient}>
+              <View style={styles.offerBannerLeft}>
+                <MaterialIcons name="agriculture" size={22} color="#D97706" />
+                <View>
+                  <Text style={styles.offerBannerTitle}>🌾 Job Available!</Text>
+                  <Text style={styles.offerBannerSub} numberOfLines={1}>
+                    {pendingOffer.workType} • ₹{pendingOffer.payPerDay}/day
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.offerBannerBtn}
+                onPress={() => {
+                  navigation.navigate('JobOffer', { job: { ...pendingOffer, id: pendingOffer.jobId || pendingOffer.id } });
+                  setPendingOffer(null);
+                }}
+              >
+                <Text style={styles.offerBannerBtnText}>VIEW</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+        )}
+
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <Text style={styles.greetingText}>
@@ -384,6 +417,26 @@ const WorkerHomeScreen = ({ navigation, route }) => {
               <MaterialIcons name="groups" size={30} color={colors.primary} />
             </View>
             <Text style={styles.actionText}>My Groups</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => {
+              if (pendingOffer) {
+                navigation.navigate('JobOffer', { job: { ...pendingOffer, id: pendingOffer.jobId || pendingOffer.id } });
+              } else {
+                handleStartWork();
+              }
+            }}
+          >
+            <View style={[styles.actionIconCircle, { backgroundColor: '#FEF3C7', position: 'relative' }]}>
+              {pendingOffer && (
+                <View style={styles.offerDot}>
+                  <Text style={styles.offerDotText}>1</Text>
+                </View>
+              )}
+              <MaterialIcons name="work" size={30} color="#D97706" />
+            </View>
+            <Text style={[styles.actionText, { color: '#D97706' }]}>Job Offers</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.actionCard}
@@ -617,6 +670,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#EF4444',
   },
+  offerBanner: { marginHorizontal: 16, marginBottom: 8, borderRadius: 16, overflow: 'hidden', elevation: 4 },
+  offerBannerGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderWidth: 1.5, borderColor: '#FCD34D', borderRadius: 16 },
+  offerBannerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  offerBannerTitle: { fontSize: 14, fontWeight: '800', color: '#92400E' },
+  offerBannerSub: { fontSize: 12, color: '#B45309', marginTop: 1 },
+  offerBannerBtn: { backgroundColor: '#D97706', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, marginLeft: 8 },
+  offerBannerBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
+  offerDot: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
+  offerDotText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
 });
 
 const historyStyles = StyleSheet.create({

@@ -143,15 +143,14 @@ class SocketService {
 
     emitGroupMessage(data) {
         if (this.socket?.connected) {
-            import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
-                AsyncStorage.getItem('edhigo_auth').then(raw => {
-                     let token = null;
-                     if (raw) {
-                         try { token = JSON.parse(raw).accessToken; } catch(e) {}
-                     }
-                     this.socket.emit('group:message', { ...data, token });
-                });
-            });
+            let token = null;
+            try {
+                const useAuthStore = require('../store/authStore').default;
+                token = useAuthStore.getState().accessToken;
+            } catch (e) {
+                console.warn('Could not read auth token for group message');
+            }
+            this.socket.emit('group:message', { ...data, token });
         }
     }
 

@@ -77,7 +77,7 @@ const matchWorkers = async (job) => {
       ratingAvg: true,
       // For group jobs, pull each leader's group + member count in one query
       ...(isGroupJob ? {
-        ledGroups: {
+        groupsLed: {
           where: { status: { in: ['forming', 'available'] } },
           select: {
             id: true,
@@ -130,7 +130,7 @@ const matchWorkers = async (job) => {
     // to fully cover the farmer's requirement.  A group of 10 satisfies a
     // requirement of 10 — it should NOT be treated as contributing 1 slot.
     if (isGroupJob) {
-      const group = worker.ledGroups?.[0];
+      const group = worker.groupsLed?.[0];
       const memberCount = group?._count?.members ?? 0;
       if (memberCount < requiredWorkers) {
         // Group too small — skip. When workersNeeded=10, only groups with ≥10 members qualify.

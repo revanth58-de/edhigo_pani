@@ -115,8 +115,19 @@ const GroupChatScreen = ({ navigation, route }) => {
     // Listen for incoming messages
     const handleMessage = (msg) => {
       setMessages((prev) => {
-        // Deduplicate by id
+        // Deduplicate by database id
         if (prev.some((m) => m.id === msg.id)) return prev;
+
+        // If it's our own message, replace the optimistic placeholder
+        if (msg.sender?.id === user?.id) {
+            const pendingIndex = prev.findIndex(m => m._pending && m.content === msg.content);
+            if (pendingIndex !== -1) {
+                const newMessages = [...prev];
+                newMessages[pendingIndex] = msg;
+                return newMessages;
+            }
+        }
+
         return [...prev, msg];
       });
       // Auto-scroll to bottom

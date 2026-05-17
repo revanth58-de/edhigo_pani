@@ -14,6 +14,8 @@ import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import { calculateDistance, estimateETA } from '../../utils/location';
 import { LinearGradient } from 'expo-linear-gradient';
+import { socketService } from '../../services/socketService';
+import useAuthStore from '../../store/authStore';
 
 // Dynamically import MapView only on native platforms
 const isWeb = Platform.OS === 'web';
@@ -28,6 +30,7 @@ if (!isWeb) {
 
 const GroupNavigationScreen = ({ navigation, route }) => {
     const { job, groupId } = route.params;
+    const user = useAuthStore((state) => state.user);
     const [userLocation, setUserLocation] = useState(null);
     const [distanceRemaining, setDistanceRemaining] = useState(0);
     const [eta, setEta] = useState(0);
@@ -56,9 +59,7 @@ const GroupNavigationScreen = ({ navigation, route }) => {
                     setDistanceRemaining(dist);
                     setEta(estimateETA(dist));
 
-                    if (dist <= 0.1) { // 100m
-                        handleArrival();
-                    }
+                    // removed auto-arrival to prevent skipping screen during testing/close proximity
                 }
             );
         })();
@@ -68,7 +69,10 @@ const GroupNavigationScreen = ({ navigation, route }) => {
 
     const handleArrival = () => {
         Speech.speak("Meeru thotaku cheraru", { language: 'te' }); // "You have arrived at the farm"
-        navigation.navigate('GroupCall', { job, groupId });
+        // Emit socket event so the farmer knows the group has arrived
+        socketService.socket?.emit('job:arrival', { jobId: job?.id, workerId: user?.id });
+        // Navigate leader to scan the farmer's QR code for group check-in
+        navigation.navigate('GroupQRAttendance', { job, groupId, type: 'IN' });
     };
 
     return (

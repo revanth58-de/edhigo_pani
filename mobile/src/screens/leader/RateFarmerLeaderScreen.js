@@ -38,7 +38,7 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
         farmerId: job?.farmerId || job?.farmer?.id,
         rating,
       });
-      if (response.success) {
+      if (response.success || response.message?.toLowerCase().includes('already rated')) {
         Alert.alert('Thank You!', 'Job completed successfully.');
         navigation.navigate('LeaderHome');
       } else {

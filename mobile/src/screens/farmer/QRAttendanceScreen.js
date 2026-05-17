@@ -34,7 +34,8 @@ const QRAttendanceScreen = ({ navigation, route }) => {
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
         } else {
-          navigation.replace('RateWorker', { job });
+          // After checkout → go to Payment screen first, then rating
+          navigation.replace('Payment', { job });
         }
       }
     });
@@ -53,8 +54,8 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
   const handleSkipScan = () => {
     if (type === 'out') {
-      // Proceed directly to the rating screen
-      navigation.replace('RateWorker', { job });
+      // Skip scan — go to Payment directly
+      navigation.replace('Payment', { job });
     }
   };
 

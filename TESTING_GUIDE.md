@@ -5,12 +5,15 @@ A systematic guide to test all 32 screens and ensure everything is working witho
 ## Pre-Testing Checklist
 
 ### Servers Running
+
 - [ ] **Backend Server**: `npm run dev` in `/backend` → Should show `🚀 FarmConnect server running on port 5000`
 - [ ] **Expo Server**: `npx expo start --tunnel` in `/mobile` → Should show QR code
 - [ ] **App Loaded on iPhone**: Scan QR code, wait for bundle to load
 
 ### Check for Console Errors
+
 Open both terminals and watch for:
+
 - ❌ Red error messages
 - ⚠️ Yellow warning messages
 - ✅ Green success messages
@@ -20,6 +23,7 @@ Open both terminals and watch for:
 ## Testing Methodology
 
 For each screen, check:
+
 1. ✅ **Screen Loads** - No blank/white screen
 2. ✅ **No Console Errors** - Check both terminals
 3. ✅ **UI Renders Correctly** - All elements visible
@@ -33,12 +37,14 @@ For each screen, check:
 ### Auth Flow (5 Screens)
 
 #### 1. Splash Screen
+
 - [ ] Screen loads automatically on app start
 - [ ] Logo/branding displays
 - [ ] Auto-navigates to Language Selection (2-3 seconds)
 - [ ] No errors in console
 
 #### 2. Language Selection Screen
+
 - [ ] Multiple language options visible
 - [ ] Can select a language
 - [ ] Voice guidance plays (if implemented)
@@ -46,6 +52,7 @@ For each screen, check:
 - [ ] Navigates to Login screen
 
 #### 3. Login Screen (Phone Entry)
+
 - [ ] Custom keypad displays
 - [ ] Can enter 10-digit number
 - [ ] Phone number formats correctly (0000 000000)
@@ -58,6 +65,7 @@ For each screen, check:
 - [ ] Navigates to OTP screen with phone number
 
 #### 4. OTP Screen
+
 - [ ] Shows phone number entered
 - [ ] OTP display visible (4-6 digits)
 - [ ] Can enter OTP
@@ -67,6 +75,7 @@ For each screen, check:
 - [ ] Navigates to Role Selection
 
 #### 5. Role Selection Screen
+
 - [ ] Three role cards visible: Farmer, Worker, Leader
 - [ ] Can select a role
 - [ ] "Continue" button works
@@ -81,12 +90,14 @@ For each screen, check:
 **How to Test**: After Role Selection, choose "Farmer"
 
 #### 6. Farmer Home Screen
+
 - [ ] Dashboard displays
 - [ ] Profile button visible
 - [ ] "Find Workers" or "Create Job" button visible
 - [ ] Navigation works
 
 #### 7. Farmer Profile Screen
+
 - [ ] User info displays
 - [ ] Can edit profile fields
 - [ ] Save button works
@@ -94,6 +105,7 @@ For each screen, check:
 - [ ] Check terminal: `PUT /api/auth/profile`
 
 #### 8. Select Workers Screen
+
 - [ ] List of available workers shows
 - [ ] Can filter/search workers
 - [ ] Worker cards display info (name, rating, etc.)
@@ -103,29 +115,34 @@ For each screen, check:
 - [ ] Navigates to Request Sent
 
 #### 9. Request Sent Screen
+
 - [ ] Confirmation message displays
 - [ ] Shows workers requested
 - [ ] "View Status" or "Home" button works
 
 #### 10. Request Accepted Screen
+
 - [ ] Shows accepted workers
 - [ ] Worker details visible
 - [ ] "Continue" or "Generate QR" button works
 - [ ] Navigates to next screen
 
 #### 11. Arrival Alert Screen
+
 - [ ] Alert/notification displays
 - [ ] Worker arrival information shows
 - [ ] Map or location info (if implemented)
 - [ ] "Acknowledge" or "Continue" works
 
 #### 12. QR Attendance Screen
+
 - [ ] QR code generates and displays
 - [ ] QR code is scannable
 - [ ] Instruction text visible
 - [ ] "Done" or "Continue" button works
 
 #### 13. Work In Progress Screen
+
 - [ ] Shows job status
 - [ ] Worker list displays
 - [ ] Time tracking visible
@@ -133,6 +150,7 @@ For each screen, check:
 - [ ] Navigates to Payment screen
 
 #### 14. Payment Screen
+
 - [ ] Payment summary shows
 - [ ] Worker payment breakdown visible
 - [ ] Total amount calculated
@@ -142,6 +160,7 @@ For each screen, check:
 - [ ] Navigates to Rating screen
 
 #### 15. Rate Worker Screen
+
 - [ ] Worker names display
 - [ ] Star rating component works (1-5 stars)
 - [ ] Can add text feedback
@@ -157,12 +176,14 @@ For each screen, check:
 **How to Test**: Logout → Login again → Choose "Worker"
 
 #### 16. Worker Home Screen
+
 - [ ] Dashboard displays
 - [ ] Available jobs list shows
 - [ ] Profile button visible
 - [ ] Can view job details
 
 #### 17. Job Offer Screen
+
 - [ ] Job details display (farmer, location, pay, etc.)
 - [ ] "Accept" and "Reject" buttons work
 - [ ] **API Test**: Accept job
@@ -170,12 +191,14 @@ For each screen, check:
 - [ ] Navigates to Navigation screen
 
 #### 18. Navigation Screen
+
 - [ ] Shows route to farm/job location
 - [ ] Map displays (if implemented)
 - [ ] "Start Navigation" or "Arrived" button works
 - [ ] Navigates to QR Scanner
 
 #### 19. QR Scanner Screen
+
 - [ ] Camera permission requested
 - [ ] Camera view displays
 - [ ] Can scan QR code
@@ -185,12 +208,14 @@ For each screen, check:
 - [ ] Navigates to Attendance Confirmed
 
 #### 20. Attendance Confirmed Screen
+
 - [ ] Confirmation message displays
 - [ ] Check-in time shows
 - [ ] Job details visible
 - [ ] "Start Work" button works
 
 #### 21. Work Status Screen
+
 - [ ] Current job status shows
 - [ ] Time elapsed displays
 - [ ] "Complete Work" button works
@@ -198,6 +223,7 @@ For each screen, check:
 - [ ] Check terminal: `POST /api/attendance/check-out`
 
 #### 22. Rate Farmer Screen
+
 - [ ] Farmer name displays
 - [ ] Star rating works (1-5)
 - [ ] Feedback text field works
@@ -206,6 +232,7 @@ For each screen, check:
 - [ ] Navigates back to Home
 
 #### 23. Worker Profile Screen
+
 - [ ] Worker info displays
 - [ ] Can edit profile
 - [ ] Work history visible
@@ -219,12 +246,14 @@ For each screen, check:
 **How to Test**: Logout → Login again → Choose "Leader"
 
 #### 24. Leader Home Screen
+
 - [ ] Dashboard displays
 - [ ] Group management section visible
 - [ ] Available jobs list shows
 - [ ] "Create Group" or "Manage Group" works
 
 #### 25. Group Setup Screen
+
 - [ ] Can add workers to group
 - [ ] Worker search works
 - [ ] Selected workers list displays
@@ -233,6 +262,7 @@ For each screen, check:
 - [ ] Check terminal: Should see group API calls
 
 #### 26. Group Job Offer Screen
+
 - [ ] Job details for group display
 - [ ] Number of workers needed shows
 - [ ] Group member list visible
@@ -240,18 +270,21 @@ For each screen, check:
 - [ ] **API Test**: Accept job for group
 
 #### 27. Group QR Attendance Screen
+
 - [ ] Group QR code displays
 - [ ] All group members listed
 - [ ] Check-in status for each member
 - [ ] Can scan for group attendance
 
 #### 28. Group Attendance Confirmed Screen
+
 - [ ] Confirmation for all members
 - [ ] List of checked-in workers
 - [ ] Missing workers highlighted
 - [ ] "Continue" button works
 
 #### 29. Rate Farmer (Leader) Screen
+
 - [ ] Similar to worker rating
 - [ ] Can rate on behalf of group
 - [ ] Submit works
@@ -264,6 +297,7 @@ For each screen, check:
 **How to Test**: Accessible from Farmer, Worker, or Leader flows
 
 #### 30. Live Map Discovery Screen
+
 - [ ] Map displays
 - [ ] Shows available workers/farmers in area
 - [ ] Markers on map work
@@ -272,6 +306,7 @@ For each screen, check:
 - [ ] "Call" or "Contact" button works
 
 #### 31. Live Map Call Screen
+
 - [ ] Shows selected person details
 - [ ] Map with route displays
 - [ ] Distance/time info shows
@@ -283,35 +318,46 @@ For each screen, check:
 ## 🔍 Common Issues to Check
 
 ### Runtime Errors
+
 Look for these in terminals:
+
 ```
 ERROR  [error message]
 ```
+
 Common causes:
+
 - Missing API endpoint
 - Network timeout
 - Invalid data format
 - Missing permissions (camera, location)
 
 ### Navigation Errors
+
 ```
 ERROR  The action 'NAVIGATE' with payload {"name":"ScreenName"} was not handled
 ```
+
 Fix: Check `AppNavigator.js` - screen might not be registered
 
 ### API Errors
+
 ```
 ERROR  Send OTP Error: [AxiosError: Network Error]
 ```
+
 Causes:
+
 - Backend server not running
 - Wrong API URL in config
 - Firewall blocking connection
 
 ### Import Errors
+
 ```
 ERROR  Unable to resolve module
 ```
+
 Fix: Check import paths, run `npm install` if package missing
 
 ---
@@ -321,6 +367,7 @@ Fix: Check import paths, run `npm install` if package missing
 Open a new PowerShell terminal and test backend endpoints:
 
 ### Auth Endpoints
+
 ```powershell
 # Test send OTP
 Invoke-RestMethod -Uri "http://localhost:5000/api/auth/send-otp" -Method POST -Body (@{phone="+919876543210"} | ConvertTo-Json) -ContentType "application/json"
@@ -329,12 +376,14 @@ Invoke-RestMethod -Uri "http://localhost:5000/api/auth/send-otp" -Method POST -B
 ```
 
 ### Job Endpoints (requires auth token)
+
 ```powershell
 # Get jobs
 Invoke-RestMethod -Uri "http://localhost:5000/api/jobs" -Method GET
 ```
 
 ### Health Check
+
 ```powershell
 # Test backend is alive
 Invoke-RestMethod -Uri "http://localhost:5000/health"
@@ -353,7 +402,7 @@ Use this to track your testing:
 
 ### Environment
 - Backend: ✅/❌ Running
-- Expo: ✅/❌ Running  
+- Expo: ✅/❌ Running
 - Device: iPhone/Android
 
 ### Screens Tested
@@ -391,22 +440,26 @@ Shared: ✅ 2/2 screens passed
 ## 🔧 Troubleshooting
 
 ### App Crashes
+
 1. Check Expo terminal for error stack trace
 2. Look for red error screen on device
 3. Reload app (shake → reload)
 
 ### Screen Doesn't Load
+
 1. Check import in `AppNavigator.js`
 2. Verify screen is added to correct navigator
 3. Check for syntax errors in screen file
 
 ### API Call Fails
+
 1. Confirm backend running on port 5000
 2. Check API URL in `config/api.config.js`
 3. Verify endpoint exists in backend
 4. Check request payload format
 
 ### Navigation Doesn't Work
+
 1. Verify screen name matches in navigator
 2. Check navigation params are passed correctly
 3. Ensure stack navigator includes the target screen
@@ -416,6 +469,7 @@ Shared: ✅ 2/2 screens passed
 ## ✅ Definition of "Working Properly"
 
 A screen is working properly when:
+
 1. ✅ Loads without errors
 2. ✅ UI renders completely
 3. ✅ User interactions respond

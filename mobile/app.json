@@ -63,6 +63,14 @@
       "expo-secure-store",
       "expo-notifications",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow DINASARI to use your camera to scan QR codes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow DINASARI to use your location."

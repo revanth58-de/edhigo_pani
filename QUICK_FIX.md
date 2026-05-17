@@ -1,6 +1,7 @@
 # Quick Fix Guide: Running App on iPhone
 
 ## Current Status
+
 - ✅ Backend server running (port 5000)
 - ✅ Expo running with tunnel mode
 - ⚠️ Windows Firewall blocking direct connections
@@ -10,7 +11,7 @@
 This is the fastest way to get it working:
 
 1. **Press Windows key**, type "firewall"
-2. Click "**Windows Defender Firewall**"  
+2. Click "**Windows Defender Firewall**"
 3. Click "**Turn Windows Defender Firewall on or off**" (left side)
 4. Select "**Turn off Windows Defender Firewall**" for **Private networks** only
 5. Click OK
@@ -41,6 +42,7 @@ Then restart Expo in regular mode (not tunnel).
 Keep Expo in tunnel mode (already done ✓), but you'll need to:
 
 1. Start a tunnel for backend:
+
    ```powershell
    lt --port 5000
    ```

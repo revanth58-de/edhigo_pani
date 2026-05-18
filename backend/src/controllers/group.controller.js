@@ -392,15 +392,7 @@ const addMemberByPhone = async (req, res, next) => {
     // Find or create user
     let user = await prisma.user.findUnique({ where: { phone } });
     if (!user) {
-      // Create a placeholder user
-      user = await prisma.user.create({
-        data: {
-          phone,
-          name: name || 'Group Member',
-          role:   UserRole.WORKER,
-          status: UserStatus.OFFLINE,
-        },
-      });
+      return res.status(404).json({ error: 'Worker with this phone number not found' });
     }
 
     // Check if group exists and user is leader

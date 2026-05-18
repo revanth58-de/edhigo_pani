@@ -19,6 +19,7 @@ import { useTranslation } from '../../i18n';
 import { jobService } from '../../services/api/jobService';
 import { groupService } from '../../services/api/groupService';
 import { socketService } from '../../services/socketService';
+import * as Haptics from 'expo-haptics'; // M16
 
 const JobOfferScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -87,6 +88,7 @@ const JobOfferScreen = ({ navigation, route }) => {
       }
 
       if (response.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); // M16
         navigation.navigate('Navigation', { job });
       } else if (response.alreadyTaken) {
         Alert.alert(
@@ -115,6 +117,7 @@ const JobOfferScreen = ({ navigation, route }) => {
 
 
   const handleReject = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // M16
     navigation.goBack();
   };
 

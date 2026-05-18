@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { logger } = require('../middleware/errorHandler');
 
 // GET /api/workers/nearby
 // Fetches workers near the group leader, to allow adding them to a group
@@ -67,7 +68,7 @@ const getNearbyWorkers = async (req, res, next) => {
 
     res.json({ workers: workersWithDistance });
   } catch (error) {
-    console.error('💥 Get Nearby Workers Error:', error);
+    logger.error('Get nearby workers error', { message: error.message });
     next(error);
   }
 };

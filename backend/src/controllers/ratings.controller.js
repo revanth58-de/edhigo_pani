@@ -1,4 +1,5 @@
 const prisma = require('../config/database');
+const { logger } = require('../middleware/errorHandler');
 
 const submitRating = async (req, res, next) => {
   try {
@@ -30,7 +31,7 @@ const submitRating = async (req, res, next) => {
     const normalizedEmoji = emoji || (ratingNum ? starsToEmoji(Number(ratingNum)) : null);
     const normalizedStars = stars || (ratingNum ? Number(ratingNum) : null);
 
-    console.log('⭐ Rating Submission:', { fromUserId, recipientId, jobId, normalizedEmoji, normalizedStars });
+    logger.info('Rating submission', { fromUserId, recipientId, jobId, normalizedEmoji, normalizedStars });
 
     // Validation
     if (!jobId || !recipientId || !normalizedEmoji) {
@@ -107,7 +108,7 @@ const submitRating = async (req, res, next) => {
       data: { ratingAvg: avgRating, ratingCount: allRatings.length },
     });
 
-    console.log('✅ Rating submitted successfully:', {
+    logger.info('Rating submitted successfully', {
       ratingId: rating.id,
       newAverage: avgRating.toFixed(2),
       totalRatings: allRatings.length
@@ -127,7 +128,7 @@ const submitRating = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error('💥 Rating Submission Error:', error);
+    logger.error('Rating submission error', { message: error.message });
     next(error);
   }
 };
@@ -177,7 +178,7 @@ const getUserRatings = async (req, res, next) => {
       count: ratings.length,
     });
   } catch (error) {
-    console.error('💥 Get User Ratings Error:', error);
+    logger.error('Get user ratings error', { message: error.message });
     next(error);
   }
 };

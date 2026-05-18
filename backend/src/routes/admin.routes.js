@@ -7,6 +7,7 @@ const {
   getJobs, updateJob,
   getPayments, updatePayment,
   getAttendance, getRatings, getGroups,
+  getAuditLogs,
 } = require('../controllers/admin.controller');
 
 // FIX #1: Public login endpoint — rate-limited but no auth guard.
@@ -22,6 +23,7 @@ router.use(adminAuth);
 router.get('/stats', getStats);
 router.post('/stats/invalidate', invalidateStats);
 router.get('/stats/activity', getActivity);
+router.get('/audit', getAuditLogs);
 
 
 router.get('/users', getUsers);

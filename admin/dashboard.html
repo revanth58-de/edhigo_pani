@@ -3,6 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- S7: Content-Security-Policy — restricts resource origins to prevent XSS and data injection -->
+  <meta http-equiv="Content-Security-Policy"
+    content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      connect-src 'self' http://localhost:3000 https://*.railway.app https://*.render.com https://*.onrender.com;
+      img-src 'self' data: https:;
+      frame-ancestors 'none';
+    "
+  />
   <title>DINASARI — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -45,6 +57,10 @@
       <div class="nav-item" data-page="ratings">
         <span class="nav-item-icon">⭐</span> Ratings
       </div>
+      <div class="nav-section-label">System</div>
+      <div class="nav-item" data-page="audit">
+        <span class="nav-item-icon">🛡️</span> Audit Logs
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -85,6 +101,7 @@
       <div id="page-groups"     class="page"></div>
       <div id="page-attendance" class="page"></div>
       <div id="page-ratings"    class="page"></div>
+      <div id="page-audit"      class="page"></div>
     </main>
   </div>
 </div>
@@ -135,6 +152,7 @@
   import { loadGroups }     from './pages/groups.js';
   import { loadAttendance } from './pages/attendance.js';
   import { loadRatings }    from './pages/ratings.js';
+  import { loadAudit }      from './pages/audit.js';
 
   guardAuth();
 
@@ -146,6 +164,7 @@
     groups:     { load: loadGroups,     title: 'Worker Groups',       sub: 'View all active worker groups' },
     attendance: { load: loadAttendance, title: 'Attendance Records',  sub: 'Check-in and check-out log' },
     ratings:    { load: loadRatings,    title: 'Ratings & Reviews',   sub: 'Platform user feedback' },
+    audit:      { load: loadAudit,      title: 'Audit Logs',          sub: 'System security and action logs' },
   };
 
   let currentPage = 'stats';

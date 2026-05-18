@@ -10,6 +10,7 @@ import {
     ActivityIndicator,
     RefreshControl,
     Platform,
+    Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -131,7 +132,17 @@ const FarmerHistoryScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
+    // M10: Filter state
+    const [workTypeFilter, setWorkTypeFilter] = useState('All');
+    const [statusFilter, setStatusFilter] = useState('All');
     const { t } = useTranslation();
+
+    // M10: Derived filtered list
+    const filteredJobs = jobs.filter(job => {
+        const wtMatch = workTypeFilter === 'All' || job.workType === workTypeFilter;
+        const stMatch = statusFilter === 'All' || job.status === statusFilter;
+        return wtMatch && stMatch;
+    });
 
     const fetchJobs = async (isRefresh = false) => {
         try {
@@ -143,7 +154,6 @@ const FarmerHistoryScreen = ({ navigation }) => {
             const jobList = response?.data?.data || [];
             setJobs(Array.isArray(jobList) ? jobList : []);
         } catch (err) {
-            console.error('Fetch jobs error:', err);
             setError('Could not load bookings. Please try again.');
         } finally {
             setLoading(false);
@@ -163,7 +173,6 @@ const FarmerHistoryScreen = ({ navigation }) => {
             }
             fetchJobs();
         } catch (err) {
-            console.error('Update status error:', err);
             Alert.alert('Error', 'Failed to update status.');
         } finally {
             setLoading(false);
@@ -218,11 +227,20 @@ const FarmerHistoryScreen = ({ navigation }) => {
         return (
             <>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryText}>{jobs.length} booking{jobs.length !== 1 ? 's' : ''} found</Text>
+                    <Text style={styles.summaryText}>
+                        {filteredJobs.length} of {jobs.length} booking{jobs.length !== 1 ? 's' : ''}
+                    </Text>
                 </View>
-                {jobs.map((job, i) => (
+                {filteredJobs.map((job, i) => (
                     <JobCard key={job.id || i} job={job} onUpdateStatus={updateJobStatus} navigation={navigation} />
                 ))}
+                {filteredJobs.length === 0 && (
+                    <View style={styles.centeredBox}>
+                        <MaterialIcons name="filter-list-off" size={48} color="#D1D5DB" />
+                        <Text style={styles.emptyTitle}>No matches</Text>
+                        <Text style={styles.emptySubtitle}>Try a different filter combination.</Text>
+                    </View>
+                )}
             </>
         );
     };
@@ -244,6 +262,34 @@ const FarmerHistoryScreen = ({ navigation }) => {
                     />
                 }
             >
+                {/* M10: WorkType filter chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
+                    {['All', 'Sowing', 'Harvesting', 'Irrigation', 'Labour', 'Tractor'].map(wt => (
+                        <TouchableOpacity
+                            key={wt}
+                            style={[styles.filterChip, workTypeFilter === wt && styles.filterChipActive]}
+                            onPress={() => setWorkTypeFilter(wt)}
+                        >
+                            <Text style={[styles.filterChipText, workTypeFilter === wt && styles.filterChipTextActive]}>{wt}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
+                {/* M10: Status filter chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
+                    {['All', 'pending', 'accepted', 'in_progress', 'completed', 'cancelled'].map(st => (
+                        <TouchableOpacity
+                            key={st}
+                            style={[styles.filterChip, statusFilter === st && styles.filterChipActive]}
+                            onPress={() => setStatusFilter(st)}
+                        >
+                            <Text style={[styles.filterChipText, statusFilter === st && styles.filterChipTextActive]}>
+                                {st === 'All' ? 'All Status' : st.replace('_', ' ')}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+
                 {renderContent()}
             </ScrollView>
 
@@ -256,6 +302,24 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F9FAFB' },
     scroll: { flex: 1 },
     scrollContent: { padding: 16, paddingBottom: 100, flexGrow: 1 },
+
+    // M10: Filter chips
+    filterRow: { flexGrow: 0, marginBottom: 4, backgroundColor: '#F9FAFB' },
+    filterRowContent: { paddingHorizontal: 16, paddingVertical: 6, gap: 8 },
+    filterChip: {
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    filterChipActive: {
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
+    },
+    filterChipText: { fontSize: 13, fontWeight: '600', color: '#4B5563' },
+    filterChipTextActive: { color: '#FFFFFF' },
 
     summaryRow: { marginBottom: 12 },
     summaryText: { fontSize: 14, color: '#6B7280', fontWeight: '600' },

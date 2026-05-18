@@ -258,6 +258,15 @@ const deleteUser = async (req, res, next) => {
       where: { userId: id },
       data:  { revoked: true },
     });
+    // A1: Log action
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'delete_user',
+        targetId: id,
+        details: { status: 'suspended', softDeleted: true }
+      }
+    });
     res.json({ message: 'User suspended and access revoked', userId: id });
   } catch (err) { next(err); }
 };
@@ -282,6 +291,16 @@ const suspendUser = async (req, res, next) => {
         data:  { revoked: true },
       });
     }
+
+    // A1: Log action
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: suspend ? 'suspend_user' : 'reinstate_user',
+        targetId: id,
+        details: { status: suspend ? 'suspended' : 'offline' }
+      }
+    });
 
     res.json({
       message: suspend ? 'User suspended' : 'User reinstated',
@@ -450,6 +469,28 @@ const _withCacheInvalidation = (fn) => async (req, res, next) => {
   invalidateStatsCache();
 };
 
+// ─── GET /api/admin/audit ───
+// A1: Fetch audit logs for dashboard display
+const getAuditLogs = async (req, res, next) => {
+  try {
+    const { take, skip, page } = getPagination(req.query, 100);
+    
+    const [logs, total] = await Promise.all([
+      prisma.auditLog.findMany({
+        include: {
+          admin: { select: { id: true, name: true, phone: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.auditLog.count(),
+    ]);
+
+    res.json({ logs, total, page, pages: Math.ceil(total / take) });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getStats,
   invalidateStats,
@@ -465,4 +506,5 @@ module.exports = {
   getAttendance,
   getRatings,
   getGroups,
+  getAuditLogs,
 };

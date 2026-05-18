@@ -1,4 +1,5 @@
 const config = require('../config/env');
+const { logger } = require('../middleware/errorHandler');
 
 const uploadProfilePicture = (req, res) => {
     try {
@@ -15,7 +16,7 @@ const uploadProfilePicture = (req, res) => {
             url: fileUrl,
         });
     } catch (error) {
-        console.error('Upload error:', error);
+        logger.error('Upload error', { message: error.message });
         res.status(500).json({ error: 'Failed to upload file' });
     }
 };

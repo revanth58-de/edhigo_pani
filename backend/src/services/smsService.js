@@ -5,6 +5,7 @@
  */
 
 const FAST2SMS_URL = 'https://www.fast2sms.com/dev/bulkV2';
+const { logger } = require('../middleware/errorHandler');
 
 /**
  * Send an OTP SMS to an Indian phone number.
@@ -16,7 +17,7 @@ const sendOTPSms = async (phone, otp) => {
   const apiKey = process.env.FAST2SMS_API_KEY;
 
   if (!apiKey) {
-    console.warn('⚠️  FAST2SMS_API_KEY not set — OTP not sent via SMS');
+    logger.warn('FAST2SMS_API_KEY not set — OTP not sent via SMS');
     return false;
   }
 
@@ -46,18 +47,18 @@ const sendOTPSms = async (phone, otp) => {
 
     if (result.return === true) {
       // SEC-10 FIX: Never log OTP values — they are security credentials
-      console.log(`📱 OTP SMS sent to ${phone}`);
+      logger.info('OTP SMS sent', { phone });
       return true;
     } else {
-      console.error('❌ Fast2SMS error:', result.message);
+      logger.error('Fast2SMS error', { message: result.message });
       return false;
     }
   } catch (err) {
     clearTimeout(smsTimeout);
     if (err.name === 'AbortError') {
-      console.error('⏱️  Fast2SMS timed out after 8s — SMS not sent (OTP still valid for dev)');
+      logger.error('Fast2SMS timed out after 8s — SMS not sent (OTP still valid for dev)');
     } else {
-      console.error('💥 SMS send error:', err.message);
+      logger.error('SMS send error', { message: err.message });
     }
     return false;
   }

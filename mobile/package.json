@@ -24,6 +24,7 @@
     "expo-blur": "~15.0.8",
     "expo-camera": "~17.0.10",
     "expo-device": "~8.0.10",
+    "expo-haptics": "~14.0.1",
     "expo-image-picker": "~17.0.10",
     "expo-linear-gradient": "~15.0.8",
     "expo-location": "~19.0.8",

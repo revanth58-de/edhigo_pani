@@ -38,5 +38,5 @@ jest.mock('winston', () => ({
 // Set env vars for testing
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-secret';
-process.env.DATABASE_URL = 'file:./test.db';
+process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost/ci';
 process.env.PORT = '5001'; // Use a different port for tests

@@ -260,14 +260,10 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           onDismiss={() => setPendingOffer(null)}
         />
 
-<<<<<<< HEAD
-        {/* Greeting */}
-=======
         {/* Rapido-style Map for Workers */}
         <View style={styles.mapWrap}>
           <MapDashboard
-            markers={jobs}
-            userLocation={userLocation}
+            markers={Object.values(jobsMap)}
             height={280}
             onMarkerPress={(job) => navigation.navigate('JobOffer', { job })}
           />
@@ -280,9 +276,6 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             </View>
           </View>
         </View>
-
-        {/* Profile Header */}
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
         <View style={styles.profileHeader}>
           <Text style={styles.greetingText}>
             {t('common.namaste')}, {user?.name || t('common.worker')}
@@ -351,19 +344,13 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         />
       )}
 
-<<<<<<< HEAD
-=======
       {activeTab !== 'history' && <FloatingGroupIcon />}
       {/* Bottom Navigation */}
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
       <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
     </LinearGradient>
   );
 };
 
-<<<<<<< HEAD
-// ── Styles ─────────────────────────────────────────────────────────────────────
-=======
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -443,40 +430,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  voicePrompt: {
-    paddingHorizontal: 16,
-    paddingTop: 32,
-    paddingBottom: 8,
-    alignItems: 'center',
-  },
-  voicePromptInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 16,
-  },
-  voicePromptText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
-  voiceHint: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#6f8961',
-    letterSpacing: 2,
-  },
   buttonContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -507,39 +460,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     letterSpacing: 1,
   },
-  actionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  actionCard: {
-    flex: 1,
-    minWidth: '30%',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  actionIconCircle: {
-    backgroundColor: '#F2F4F0',
-    padding: 16,
-    borderRadius: 9999,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#131811',
-  },
   logoutButton: {
     flexDirection: 'row',
     height: 52,
@@ -567,33 +487,6 @@ const styles = StyleSheet.create({
   offerBannerBtnText: { color: '#FFF', fontWeight: '900', fontSize: 12 },
   offerDot: { position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: 9, backgroundColor: '#EF4444', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   offerDotText: { color: '#FFF', fontSize: 10, fontWeight: '900' },
-});
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
-
-const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: colors.backgroundLight },
-  content:          { flex: 1 },
-  contentContainer: { paddingBottom: 120 },
-  profileHeader:    { padding: 16, marginTop: 16, alignItems: 'center' },
-  greetingText:     { fontSize: 28, fontWeight: 'bold', color: '#131811', textAlign: 'center' },
-  subText:          { fontSize: 18, color: '#6f8961', marginTop: 4, textAlign: 'center' },
-  buttonContainer:  { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 24 },
-  startButton: {
-    width: 260, height: 260, borderRadius: 130,
-    justifyContent: 'center', alignItems: 'center',
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.4, shadowRadius: 40, elevation: 25,
-    borderWidth: 10, borderColor: '#FFFFFF',
-  },
-  startBtnTouchable: { borderRadius: 130 },
-  startButtonText:   { fontSize: 28, fontWeight: '900', color: '#FFFFFF', marginTop: 8, letterSpacing: 1 },
-  logoutButton: {
-    flexDirection: 'row', height: 52, backgroundColor: '#FEF2F2',
-    marginHorizontal: 16, marginTop: 24, borderRadius: 9999,
-    justifyContent: 'center', alignItems: 'center', gap: 10,
-    borderWidth: 1.5, borderColor: '#FECACA',
-  },
-  logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
 });
 
 export default WorkerHomeScreen;

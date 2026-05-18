@@ -136,7 +136,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           try {
             const { setRole } = useAuthStore.getState();
             await setRole('farmer');
-            setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'FarmerHome' }] }), 500);
+            // Reactive navigation is handled automatically by AppNavigator when role changes
           } catch (err) {
             Alert.alert("Error", "Failed to switch role.");
             // Reset

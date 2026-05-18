@@ -27,7 +27,6 @@ import { WebView } from 'react-native-webview';
 import { socketService } from '../../services/socketService';
 import { Alert } from 'react-native';
 
-<<<<<<< HEAD
 // ── M2: Shimmer skeleton for a single work-type card ─────────────────────────
 const SkeletonCard = ({ shimmer }) => {
   // shimmer is a shared Animated.Value (0→1) driven by a looping animation
@@ -60,67 +59,6 @@ const SkeletonCard = ({ shimmer }) => {
               ]}
             />
           </View>
-=======
-const AnimatedCard = ({ workType, onPress }) => {
-  const hoverAnim = React.useRef(new Animated.Value(0)).current;
-
-  const handleMouseEnter = () => {
-    Animated.timing(hoverAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleMouseLeave = () => {
-    Animated.timing(hoverAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const translateY = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [300, 0], // Safe offset
-  });
-
-  const scale = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.1],
-  });
-
-  const textColor = hoverAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['#0F172A', '#FFFFFF'],
-  });
-
-  return (
-    <TouchableOpacity
-      style={styles.workTypeWrapper}
-      activeOpacity={0.9}
-      onPress={() => onPress(workType.name)}
-      onMouseEnter={Platform.OS === 'web' ? handleMouseEnter : undefined}
-      onMouseLeave={Platform.OS === 'web' ? handleMouseLeave : undefined}
-    >
-      <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
-        <Animated.View
-          style={[
-            styles.hoverBackground,
-            { transform: [{ translateY }] }
-          ]}
-        />
-        <View style={styles.imageHeader}>
-          <Animated.Image
-            source={{ uri: workType.image }}
-            style={[styles.cardImage, { transform: [{ scale }] }]}
-          />
-        </View>
-        <View style={styles.cardContent}>
-          <Animated.Text style={[styles.workTypeName, { color: textColor }]} numberOfLines={1}>
-            {workType.name}
-          </Animated.Text>
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
         </View>
       </View>
     </View>
@@ -234,13 +172,6 @@ const FarmerHomeScreen = ({ navigation }) => {
   };
 
   const workTypes = [
-<<<<<<< HEAD
-    { id: 'sowing',     name: t('farmerHome.sowing'),     image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop' },
-    { id: 'harvesting', name: t('farmerHome.harvesting'), image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop' },
-    { id: 'irrigation', name: t('farmerHome.irrigation'), image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop' },
-    { id: 'labour',     name: t('farmerHome.labour'),     image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop' },
-    { id: 'tractor',    name: t('farmerHome.tractor'),    image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop' },
-=======
     {
       id: 'sowing',
       name: t('farmerHome.sowing') || 'Sowing',
@@ -281,7 +212,6 @@ const FarmerHomeScreen = ({ navigation }) => {
       name: 'Ploughing',
       image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
     },
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
   ];
 
   return (
@@ -292,7 +222,6 @@ const FarmerHomeScreen = ({ navigation }) => {
       <TopBar title="DINASARI" navigation={navigation} />
       <WeatherLocationHeader />
 
-<<<<<<< HEAD
       <ScrollView
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
@@ -306,15 +235,11 @@ const FarmerHomeScreen = ({ navigation }) => {
           />
         }
       >
-=======
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        
         {/* Dynamic Map Dashboard wrapped with styling for premium look */}
         <View style={styles.mapContainer}>
           <View style={styles.mapWrap}>
             <MapDashboard
               markers={workers}
-              userLocation={userLocation}
               height={320}
               onMarkerPress={(m) => console.log('Marker pressed:', m)}
             />
@@ -331,8 +256,6 @@ const FarmerHomeScreen = ({ navigation }) => {
             </GlassCard>
           </View>
         </View>
-
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
         <View style={styles.headlineContainer}>
           {/* M2: Show a skeleton text placeholder during load */}
           {loading ? (
@@ -352,7 +275,6 @@ const FarmerHomeScreen = ({ navigation }) => {
 
         {/* M2: Show 6 skeleton cards while loading, then real cards */}
         <View style={styles.grid}>
-<<<<<<< HEAD
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <SkeletonCard key={i} shimmer={shimmerAnim} />
@@ -361,15 +283,6 @@ const FarmerHomeScreen = ({ navigation }) => {
                 <WorkTypeCard key={workType.id} workType={workType} onPress={handleWorkTypeSelect} />
               ))
           }
-=======
-          {workTypes.map((workType) => (
-            <AnimatedCard
-              key={workType.id}
-              workType={workType}
-              onPress={handleWorkTypeSelect}
-            />
-          ))}
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
         </View>
 
         {/* How to use the app */}
@@ -392,12 +305,7 @@ const FarmerHomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
-  content:   { flex: 1 },
-  contentContainer: { paddingBottom: 24 },
 
-=======
   container: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -496,7 +404,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#131811',
   },
->>>>>>> 74e51c4318c9ff40b9055c626457f54d7b3872f1
+
   headlineContainer: {
     paddingHorizontal: 24,
     paddingTop: 16,

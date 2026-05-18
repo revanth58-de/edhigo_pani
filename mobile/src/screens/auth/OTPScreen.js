@@ -383,6 +383,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#DC2626',
   },
-};
+});
 
 export default OTPScreen;

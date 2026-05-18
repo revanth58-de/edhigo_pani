@@ -26,13 +26,15 @@ import BottomNavBar from '../../components/BottomNavBar';
 import EmptyState from '../../components/EmptyState';
 import MapDashboard from '../../components/MapDashboard';
 import FloatingGroupIcon from '../../components/FloatingGroupIcon';
-import { jobAPI, authAPI } from '../../services/api';
+import { jobAPI, authAPI, workerAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 
 // M1: Extracted sub-components
 import JobOfferBanner from '../../components/worker/JobOfferBanner';
 import QuickActions   from '../../components/worker/QuickActions';
 import WorkHistory    from '../../components/worker/WorkHistory';
+import WorkerStats    from '../../components/worker/WorkerStats';
+import EarningsCard   from '../../components/worker/EarningsCard';
 
 // ── WorkerHomeScreen ───────────────────────────────────────────────────────────
 
@@ -49,6 +51,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   // History state (owned here, passed into WorkHistory as props)
   const [historyJobs, setHistoryJobs]       = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [earningsSummary, setEarningsSummary] = useState(null);
 
   const activeTab = route.params?.tab || 'home';
   const navigationRef = useRef(navigation);
@@ -106,6 +109,15 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  const fetchEarningsSummary = useCallback(async () => {
+    try {
+      const res = await workerAPI.getEarnings();
+      setEarningsSummary(res?.data?.summary || res?.summary || null);
+    } catch (e) {
+      console.warn('Failed to fetch earnings summary', e);
+    }
+  }, []);
+
   // ── Effects ──────────────────────────────────────────────────────────────────
 
   // Refresh profile + jobs + GPS on every screen focus
@@ -113,6 +125,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
     useCallback(() => {
       refreshProfile();
       fetchNearbyJobs();
+      fetchEarningsSummary();
       (async () => {
         try {
           const { status } = await Location.requestForegroundPermissionsAsync();
@@ -128,7 +141,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           console.warn('GPS save failed:', gpsErr.message);
         }
       })();
-    }, [fetchNearbyJobs, refreshProfile])
+    }, [fetchNearbyJobs, refreshProfile, fetchEarningsSummary])
   );
 
   // Fetch history when history tab is active
@@ -233,7 +246,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await Promise.all([fetchNearbyJobs(), fetchHistory()]);
+              await Promise.all([fetchNearbyJobs(), fetchHistory(), fetchEarningsSummary()]);
               setRefreshing(false);
             }}
             colors={[colors.primary]}
@@ -282,6 +295,13 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           </Text>
           <Text style={styles.subText}>{t('worker.readyToEarn')}</Text>
         </View>
+
+        {/* M1: Worker Stats & Earnings Card */}
+        <WorkerStats user={user} completedJobsCount={historyJobs.length} />
+        <EarningsCard
+          summary={earningsSummary}
+          onViewDashboard={() => navigation.navigate('EarningsDashboard')}
+        />
 
         <View style={{ height: 16 }} />
 

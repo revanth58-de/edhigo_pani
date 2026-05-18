@@ -152,4 +152,13 @@ export const workerAPI = {
     getNearby:   (params = {}) => apiClient.get('/workers/nearby', { params }),
 };
 
+// ─── Upload API (M4) ───
+export const uploadAPI = {
+    uploadProfilePicture: (formData) => apiClient.post('/upload/profile-picture', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    }),
+};
+
 export default apiClient;

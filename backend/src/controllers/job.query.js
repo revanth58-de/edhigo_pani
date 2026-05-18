@@ -51,6 +51,7 @@ const getJobs = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      jobs,
       data: jobs
     });
   } catch (error) {
@@ -113,6 +114,7 @@ const getJobById = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      job,
       data: job
     });
   } catch (error) {
@@ -151,6 +153,7 @@ const getMyJobs = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      jobs,
       data: jobs
     });
   } catch (error) {
@@ -196,6 +199,7 @@ const getWorkerHistory = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      jobs,
       data: jobs
     });
   } catch (error) {
@@ -234,6 +238,7 @@ const getWorkerJobs = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
+      applications,
       data: applications
     });
   } catch (error) {
@@ -293,12 +298,14 @@ const getNearbyWorkers = async (req, res, next) => {
 
       return res.status(200).json({
         success: true,
+        workers: workersWithDistance,
         data: workersWithDistance
       });
     }
 
     res.status(200).json({
       success: true,
+      workers,
       data: workers
     });
   } catch (error) {

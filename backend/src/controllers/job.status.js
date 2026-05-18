@@ -37,6 +37,7 @@ const updateJobStatus = async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Job status updated',
+      job,
       data: job,
     });
   } catch (error) {
@@ -182,6 +183,7 @@ const acceptJob = async (req, res) => {
       success: true,
       message: 'Job accepted successfully',
       isFullyStaffed: isNowFull,
+      job: { ...job, worker: workerDetails },
       data: { ...job, worker: workerDetails },
     });
 

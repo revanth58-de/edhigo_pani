@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { notifyFarmerAttendanceIn, notifyFarmerAttendanceOut } = require('../services/pushNotification');
 const { logger } = require('../middleware/errorHandler');
+const { UserStatus } = require('../config/enums'); // D1
 
 // Helper: Calculate distance in meters between two points
 const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -234,7 +235,7 @@ const checkOut = async (req, res, next) => {
 
     await prisma.user.update({
       where: { id: attendance.workerId },
-      data: { status: 'available' }
+      data: { status: UserStatus.AVAILABLE }
     });
 
     const io = req.app.get('io');

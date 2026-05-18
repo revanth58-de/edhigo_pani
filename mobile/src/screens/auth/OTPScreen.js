@@ -20,9 +20,19 @@ const OTPScreen = ({ navigation, route }) => {
   const { phone, otp: receivedOTP, name, village, role, age, gender, fromRegister } = route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  // M13: Resend cooldown timer (120 seconds matching the backend 2-min window)
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+
+  // M13: Count down the resend timer every second
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
 
   useEffect(() => {
 
@@ -56,17 +66,23 @@ const OTPScreen = ({ navigation, route }) => {
       Alert.alert('Error', 'Please enter a 4-digit OTP');
       return;
     }
-
     setLoading(true);
     try {
-      // Pass registration data (name/village/role/age/gender) only for new registrations
-      const registrationData = fromRegister
-        ? { name, village, role, age, gender }
-        : {};
+      const registrationData = fromRegister ? { name, village, role, age, gender } : {};
       await verifyOTPAction(phone, otpToVerify, registrationData);
+      setAttemptsRemaining(null); // clear on success
     } catch (error) {
-      console.error('Verify OTP Error:', error);
-      Alert.alert('Error', 'Invalid OTP. Please try again.');
+      // M13: Show remaining attempts from server response
+      const serverData = error?.response?.data;
+      if (serverData?.locked) {
+        Alert.alert('🔒 Locked', 'Too many wrong attempts. Please request a new OTP.', [{ text: 'OK' }]);
+        setResendCooldown(0); // allow immediate resend after lockout
+      } else if (serverData?.attemptsRemaining != null) {
+        setAttemptsRemaining(serverData.attemptsRemaining);
+        Alert.alert('Error', `Wrong OTP. ${serverData.attemptsRemaining} attempt${serverData.attemptsRemaining !== 1 ? 's' : ''} remaining.`);
+      } else {
+        Alert.alert('Error', 'Invalid OTP. Please try again.');
+      }
       setOtp('');
     } finally {
       setLoading(false);
@@ -74,17 +90,26 @@ const OTPScreen = ({ navigation, route }) => {
   };
 
   const handleResendOTP = async () => {
+    if (resendCooldown > 0) return; // M13: ignore tap during cooldown
     try {
       const response = await authService.sendOTP(phone);
       const newOtp = response?.data?.devOtp;
+      // M13: Start 120-second cooldown matching backend rate limit
+      setResendCooldown(120);
+      setAttemptsRemaining(null); // reset attempt counter display
       if (newOtp) {
-        console.log('🔑 Resend devOtp:', newOtp);
         Alert.alert('OTP Resent', `Your new code: ${newOtp}`, [{ text: 'OK' }]);
       } else {
         Alert.alert('OTP Resent', 'OTP sent successfully. Check your SMS.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+      const waitSec = error?.response?.data?.retryAfterSeconds;
+      if (waitSec) {
+        setResendCooldown(waitSec);
+        Alert.alert('Too soon', `Please wait ${waitSec}s before requesting a new OTP.`);
+      } else {
+        Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+      }
     }
   };
 
@@ -182,8 +207,18 @@ const OTPScreen = ({ navigation, route }) => {
             ))}
           </View>
 
-          {/* Action Buttons */}
-          <View style={styles.buttonContainer}>
+            {/* Attempts remaining warning */}
+            {attemptsRemaining != null && (
+              <View style={styles.attemptsWarning}>
+                <MaterialIcons name="warning" size={14} color="#DC2626" />
+                <Text style={styles.attemptsWarningText}>
+                  {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left before lockout
+                </Text>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[
                 styles.verifyButton,
@@ -205,8 +240,11 @@ const OTPScreen = ({ navigation, route }) => {
 
             <View style={styles.resendContainer}>
               <Text style={styles.resendQuestion}>Didn't receive code?</Text>
-              <TouchableOpacity onPress={handleResendOTP}>
-                <Text style={styles.resendButton}>Resend OTP</Text>
+              {/* M13: Show countdown instead of tappable link during cooldown */}
+              <TouchableOpacity onPress={handleResendOTP} disabled={resendCooldown > 0}>
+                <Text style={[styles.resendButton, resendCooldown > 0 && styles.resendButtonDisabled]}>
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -323,6 +361,28 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textDecorationLine: 'underline',
   },
-});
+  // M13: Disabled resend style during cooldown
+  resendButtonDisabled: {
+    color: '#9CA3AF',
+    textDecorationLine: 'none',
+  },
+  // S3: Attempts remaining warning bar
+  attemptsWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    marginBottom: 12,
+  },
+  attemptsWarningText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#DC2626',
+  },
+};
 
 export default OTPScreen;

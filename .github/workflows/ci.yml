@@ -1,0 +1,158 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI — Continuous Integration
+# Runs on every pull request targeting `main` and every push to `main`.
+#
+# Jobs (run in parallel where possible):
+#   1. backend-test  → install, lint-check, run Jest tests with a test DB
+#   2. backend-build → verify the Node.js server starts without crashing
+#   3. mobile-test   → install, run Jest/jest-expo unit tests
+#   4. schema-check  → validate prisma schema is valid and in sync
+#
+# Required GitHub Secrets:
+#   DATABASE_URL_TEST  → a separate Neon branch URL for test isolation
+#                        (never use your production DB for tests)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same branch to save minutes
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── 1. Backend Tests ────────────────────────────────────────────────────────
+  backend-test:
+    name: Backend — Jest Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+
+      - name: Run backend tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: ${{ secrets.DATABASE_URL_TEST }}
+          JWT_SECRET: ci-test-jwt-secret-not-production
+          JWT_REFRESH_SECRET: ci-test-refresh-secret
+          ADMIN_JWT_SECRET: ci-test-admin-jwt-secret
+          PORT: 5001
+
+  # ── 2. Backend Build Check ──────────────────────────────────────────────────
+  backend-build:
+    name: Backend — Build Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for syntax errors
+        run: node --check src/server.js
+
+      - name: Verify all routes import cleanly
+        run: |
+          node -e "
+            process.env.DATABASE_URL='postgresql://localhost/ci';
+            process.env.JWT_SECRET='ci-secret';
+            process.env.JWT_REFRESH_SECRET='ci-refresh';
+            process.env.ADMIN_JWT_SECRET='ci-admin';
+            // Just require the routes to check for import errors — don't start the server
+            try { require('./src/routes/auth.routes.js'); } catch(e) { if (!e.message.includes('connect')) throw e; }
+            try { require('./src/routes/job.routes.js'); } catch(e) { if (!e.message.includes('connect')) throw e; }
+            try { require('./src/routes/payment.routes.js'); } catch(e) { if (!e.message.includes('connect')) throw e; }
+            console.log('✅ All routes import cleanly');
+          "
+
+  # ── 3. Prisma Schema Validation ─────────────────────────────────────────────
+  schema-check:
+    name: Prisma — Schema Validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+        env:
+          DATABASE_URL: postgresql://localhost/ci   # URL just for schema parsing (no real connection needed)
+
+      - name: Check Prisma Client can be generated
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://localhost/ci
+
+  # ── 4. Mobile Tests ──────────────────────────────────────────────────────────
+  mobile-test:
+    name: Mobile — Jest Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run mobile tests
+        run: npm test
+        env:
+          CI: true    # Disables interactive mode in jest-expo

@@ -146,4 +146,10 @@ export const groupAPI = {
     getPendingInvites: () => apiClient.get('/groups/pending-invites'),
 };
 
+// ─── Worker API (F1) ───
+export const workerAPI = {
+    getEarnings: () => apiClient.get('/workers/earnings'),
+    getNearby:   (params = {}) => apiClient.get('/workers/nearby', { params }),
+};
+
 export default apiClient;

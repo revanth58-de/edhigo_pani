@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -27,7 +28,8 @@ const LeaderHomeScreen = ({ navigation, route }) => {
   const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
   const activeTab = route.params?.tab || 'home';
-  const [pendingJob, setPendingJob] = useState(null);
+  const [pendingJob, setPendingJob]   = useState(null);
+  const [refreshing, setRefreshing]   = useState(false); // M6
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Fetch available group jobs from the server (for manual browse / poll fallback)
@@ -130,6 +132,18 @@ const LeaderHomeScreen = ({ navigation, route }) => {
         style={styles.content} 
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              setRefreshing(true);
+              await Promise.all([refreshProfile(), fetchGroupJobs()]);
+              setRefreshing(false);
+            }}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
         {/* Premium Hero Section */}
         <LinearGradient 

@@ -1,6 +1,7 @@
 const prisma = require('../config/database');
 const { getIO } = require('../config/socket');
 const { logger } = require('../middleware/errorHandler');
+const { JobStatus, GroupStatus, MemberStatus, ApplicationStatus, UserStatus, WorkerType, UserRole } = require('../config/enums'); // D1
 
 // GET /api/groups/my-groups - Get all groups led by or containing current user
 const getMyGroups = async (req, res, next) => {
@@ -14,7 +15,7 @@ const getMyGroups = async (req, res, next) => {
             members: {
               some: {
                 workerId: userId,
-                status: { not: 'invited' }, // joined, checked_in, checked_out
+                status: { not: MemberStatus.INVITED }, // joined, checked_in, checked_out
               },
             },
           },
@@ -54,7 +55,7 @@ const createGroup = async (req, res, next) => {
         type,
         description,
         photoUrl,
-        status: 'forming',
+        status: GroupStatus.FORMING,
       },
     });
 
@@ -75,7 +76,7 @@ const getMyPendingInvites = async (req, res, next) => {
   try {
     const workerId = req.user.id;
     const invites = await prisma.groupMember.findMany({
-      where: { workerId, status: 'invited' },
+      where: { workerId, status: MemberStatus.INVITED },
       include: {
         group: {
           select: {
@@ -120,15 +121,15 @@ const getGroupDetails = async (req, res, next) => {
     // Authorization: Only leader or member can view details
     const userId = req.user.id;
     const isLeader = group.leaderId === userId;
-    const isMember = group.members.some(m => m.workerId === userId && m.status === 'joined');
+    const isMember = group.members.some(m => m.workerId === userId && m.status === MemberStatus.JOINED);
 
     if (!isLeader && !isMember) {
       return res.status(403).json({ error: 'Not authorized to view this group details' });
     }
 
     // Separate joined members from invited-but-pending members
-    const joinedMembers = group.members.filter(m => m.status === 'joined');
-    const pendingInvites = group.members.filter(m => m.status === 'invited');
+    const joinedMembers  = group.members.filter(m => m.status === MemberStatus.JOINED);
+    const pendingInvites = group.members.filter(m => m.status === MemberStatus.INVITED);
 
     res.json({ group: { ...group, members: joinedMembers, pendingInvites } });
   } catch (error) {
@@ -168,8 +169,8 @@ const getGroupJobs = async (req, res, next) => {
     // as just "1 group" regardless of size — that was wrong.
     const jobs = await prisma.job.findMany({
       where: {
-        workerType: 'group',
-        status: 'pending',
+        workerType: WorkerType.GROUP,
+        status: JobStatus.PENDING,
         workersNeeded: { lte: joinedMemberCount },  // group must have enough members
       },
       include: {
@@ -230,7 +231,7 @@ const acceptGroupJob = async (req, res, next) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    if (job.status !== 'pending') {
+    if (job.status !== JobStatus.PENDING) {
       return res.status(409).json({ error: 'Job is no longer available', alreadyTaken: true });
     }
 
@@ -250,8 +251,8 @@ const acceptGroupJob = async (req, res, next) => {
     // One qualifying group = entire requirement fulfilled.
     // Status goes straight to 'accepted' (not 'matched') so the farmer sees it as done.
     const { count } = await prisma.job.updateMany({
-      where: { id: jobId, status: 'pending' },
-      data: { status: 'accepted' },
+      where: { id: jobId, status: JobStatus.PENDING },
+      data:  { status: 'accepted' },
     });
 
     if (count === 0) {
@@ -265,7 +266,7 @@ const acceptGroupJob = async (req, res, next) => {
         jobId,
         workerId: req.user.id,   // leader's id
         groupId,
-        status: 'accepted',
+        status: ApplicationStatus.ACCEPTED,
       },
     });
 
@@ -347,7 +348,7 @@ const addMember = async (req, res, next) => {
         workerId,
         name: name || worker.name,
         role: role || 'Member',
-        status: 'invited',   // Worker must accept — not joined yet
+        status: MemberStatus.INVITED,   // Worker must accept — not joined yet
       },
     });
 
@@ -396,8 +397,8 @@ const addMemberByPhone = async (req, res, next) => {
         data: {
           phone,
           name: name || 'Group Member',
-          role: 'worker',
-          status: 'offline',
+          role:   UserRole.WORKER,
+          status: UserStatus.OFFLINE,
         },
       });
     }
@@ -421,7 +422,7 @@ const addMemberByPhone = async (req, res, next) => {
         workerId: user.id,
         name: name || user.name,
         role: role || 'Member',
-        status: 'invited',   // Worker must accept — not joined yet
+        status: MemberStatus.INVITED,   // Worker must accept — not joined yet
       },
     });
 
@@ -501,7 +502,7 @@ const updateGroupStatus = async (req, res, next) => {
     if (!existing) return res.status(404).json({ error: 'Group not found' });
     if (existing.leaderId !== req.user.id) return res.status(403).json({ error: 'Not authorized to update this group' });
 
-    const validStatuses = ['forming', 'available', 'working', 'inactive'];
+    const validStatuses = GroupStatus.VALID;
     if (!status || !validStatuses.includes(status)) {
       return res.status(400).json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
     }
@@ -556,7 +557,7 @@ module.exports = {
       // Accept — update status to 'joined'
       await prisma.groupMember.update({
         where: { id: member.id },
-        data: { status: 'joined', joinedAt: new Date() },
+        data: { status: MemberStatus.JOINED, joinedAt: new Date() },
       });
 
       res.json({ message: 'You have joined the group' });

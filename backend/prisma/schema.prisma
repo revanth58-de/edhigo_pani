@@ -28,12 +28,14 @@ model User {
   longitude   Float?
   status      String   @default("offline") // "available" | "working" | "on_break" | "offline"
   pushToken   String?  // Expo push notification token
-  otp         String?
-  otpExpiresAt DateTime?
-  experience  Int?     // Years of farming experience (set by worker)
+  otp           String?
+  otpExpiresAt  DateTime?
+  otpFailCount  Int      @default(0)  // S3: tracks consecutive wrong OTP attempts (max 5)
+  experience    Int?     // Years of farming experience (set by worker)
   avatarIcon  String?  // Profile icon key e.g. 'person', 'agriculture'
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // S4: soft-delete — set instead of destroying the row
 
   // Relations
   jobsPosted       Job[]             @relation("FarmerJobs")
@@ -47,6 +49,7 @@ model User {
   applications     JobApplication[]
   groupMessages    GroupMessage[]
   refreshTokens    RefreshToken[]
+  auditLogs        AuditLog[]        // Actions performed if user is an admin
 
   @@map("users")
 }
@@ -75,6 +78,7 @@ model Job {
   farmLatitude  Float?
   farmLongitude Float?
   farmAddress   String?
+  description   String?  // FIX #14: Free-text job instructions (e.g. "Bring your own tools, report at 6am")
   status        String   @default("pending") // "pending" | "matched" | "in_progress" | "completed" | "cancelled"
   startTime     DateTime?
   endTime       DateTime?
@@ -115,7 +119,6 @@ model Attendance {
   job    Job  @relation(fields: [jobId], references: [id])
   worker User @relation(fields: [workerId], references: [id])
 
-  @@unique([jobId, workerId])   // Prevent double check-in for same worker/job
   @@index([jobId])              // Fetch all attendances for a job
   @@index([workerId])           // Fetch a worker's attendance history
   @@map("attendances")
@@ -139,6 +142,7 @@ model Payment {
   worker User @relation("WorkerPayments", fields: [workerId], references: [id])
 
   @@index([farmerId, workerId])  // Payment history for farmer or worker
+  @@index([upiRef])              // FIX #9: Fast duplicate UPI transaction check
   @@map("payments")
 }
 
@@ -186,7 +190,9 @@ model GroupMessage {
   groupId   String
   senderId  String
   content   String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   // Relations
   group  Group @relation(fields: [groupId], references: [id])
@@ -231,4 +237,21 @@ model JobApplication {
   @@index([workerId])          // Worker's application history
   @@index([jobId])             // All applicants for a job
   @@map("job_applications")
+}
+
+// A1: Audit log for tracking administrative actions
+model AuditLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  action    String   // "suspend_user", "reinstate_user", "delete_user", etc.
+  targetId  String?  // ID of the user/job that was modified
+  details   Json?    // Optional extra context
+  createdAt DateTime @default(now())
+
+  // Relations
+  admin     User     @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+  @@index([action])
+  @@map("audit_logs")
 }

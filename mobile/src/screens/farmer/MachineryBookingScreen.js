@@ -37,6 +37,12 @@ const MachineryBookingScreen = ({ navigation, route }) => {
         </View>
       </LinearGradient>
 
+      {/* FIX #11: Coming Soon banner — machinery booking has no backend yet */}
+      <View style={styles.comingSoonBanner}>
+        <MaterialIcons name="construction" size={16} color="#92400E" />
+        <Text style={styles.comingSoonText}>  Machinery booking is coming soon — preview only</Text>
+      </View>
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.machineImageCard}>
           <Image 
@@ -100,12 +106,15 @@ const MachineryBookingScreen = ({ navigation, route }) => {
         <TouchableOpacity 
           style={styles.bookBtn}
           onPress={() => {
-            Alert.alert("Success", "Your booking request has been sent to the owner.");
-            navigation.navigate('FarmerHome');
+            Alert.alert(
+              '🚧 Coming Soon',
+              'Machinery booking is not yet available. We are working on it and will notify you when it launches!',
+              [{ text: 'OK', style: 'default' }]
+            );
           }}
         >
-          <LinearGradient colors={colors.primaryGradient} style={styles.bookBtnGradient}>
-            <Text style={styles.bookBtnText}>Confirm Booking</Text>
+          <LinearGradient colors={['#94A3B8', '#64748B']} style={styles.bookBtnGradient}>
+            <Text style={styles.bookBtnText}>Coming Soon</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -114,6 +123,20 @@ const MachineryBookingScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
+  comingSoonBanner: {
+    backgroundColor: '#FEF3C7',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDE68A',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  comingSoonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#92400E',
+  },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',

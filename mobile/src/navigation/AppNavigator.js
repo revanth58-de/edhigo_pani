@@ -58,6 +58,7 @@ import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
+import EarningsDashboard from '../screens/worker/EarningsDashboard'; // F1
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -141,6 +142,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="EarningsDashboard" component={EarningsDashboard} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="GroupChat" component={GroupChatScreen} />

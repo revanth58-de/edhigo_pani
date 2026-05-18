@@ -21,11 +21,38 @@ const adminRoutes = require('./routes/admin.routes');
 const workerRoutes = require('./routes/worker.routes');
 const chatRoutes = require('./routes/chat.routes');
 
+const Sentry = require('@sentry/node');
+// NOTE: @sentry/profiling-node is excluded — it requires a native binary that
+// is not yet available for Node.js v24. Error monitoring still works fully.
+// Re-enable once https://github.com/getsentry/sentry-javascript/issues ships a v24 build.
+
+// Initialize Sentry crash reporting
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    environment: process.env.NODE_ENV || 'development',
+  });
+}
+
 // Initialize Express
 const app = express();
 
+
 // Trust proxy for correct IP detection behind Nginx/Load Balancers
 app.set('trust proxy', 1);
+
+// FIX #18: Health check endpoint — required by Cloud Run, Kubernetes, and load
+// balancers to verify the service is alive before routing traffic to it.
+// Must be registered BEFORE the rate limiter to avoid throttling infra checks.
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+    version: process.env.npm_package_version || '1.0.0',
+  });
+});
 
 const server = http.createServer(app);
 
@@ -148,10 +175,34 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Join a job room for real-time updates
-  socket.on('job:join', (jobId) => {
-    socket.join(`job:${jobId}`);
-    logger.info(`Socket ${socket.id} joined job:${jobId}`);
+  // S1 FIX: Verify job membership before joining the job room.
+  // Only the job's farmer or an applicant/worker can receive job events.
+  socket.on('job:join', async (jobId) => {
+    try {
+      const prisma = require('./config/database');
+      const job = await prisma.job.findUnique({
+        where: { id: jobId },
+        select: {
+          farmerId: true,
+          applications: { where: { workerId: socket.userId }, select: { id: true } },
+          attendances:  { where: { workerId: socket.userId }, select: { id: true } },
+        },
+      });
+      if (!job) return; // Job doesn't exist — silently ignore
+
+      const isFarmer    = job.farmerId === socket.userId;
+      const hasApplied  = job.applications.length > 0;
+      const hasAttended = job.attendances.length > 0;
+
+      if (!isFarmer && !hasApplied && !hasAttended) {
+        logger.warn(`Socket ${socket.id} tried to join job:${jobId} without authorization`);
+        return; // Silently reject
+      }
+      socket.join(`job:${jobId}`);
+      logger.info(`Socket ${socket.id} joined job:${jobId}`);
+    } catch (err) {
+      logger.error(`job:join error: ${err.message}`);
+    }
   });
 
   // Join a personal user room for notifications
@@ -166,32 +217,59 @@ io.on('connection', (socket) => {
   });
 
   // ─── Group Chat ───
-  socket.on('group:join', (groupId) => {
-    socket.join(`group:${groupId}`);
-    logger.info(`Socket ${socket.id} joined group:${groupId}`);
+  // S1 FIX: Verify group membership before allowing socket to join the group room.
+  // Without this, any authenticated user could join any group's chat.
+  socket.on('group:join', async (groupId) => {
+    try {
+      const prisma = require('./config/database');
+      const group = await prisma.group.findUnique({
+        where: { id: groupId },
+        select: { leaderId: true, members: { where: { workerId: socket.userId }, select: { id: true } } },
+      });
+      if (!group) return; // Group doesn't exist — silently ignore
+      const isLeader = group.leaderId === socket.userId;
+      const isMember = group.members.length > 0;
+      if (!isLeader && !isMember) {
+        logger.warn(`Socket ${socket.id} tried to join group:${groupId} but is not a member`);
+        return; // Silently reject — no error to avoid leaking group existence
+      }
+      socket.join(`group:${groupId}`);
+      logger.info(`Socket ${socket.id} joined group:${groupId}`);
+    } catch (err) {
+      logger.error(`group:join error: ${err.message}`);
+    }
   });
 
   socket.on('group:message', async (data) => {
-    // Expected args: groupId, content, token
-    const { groupId, content, token } = data;
+    const { groupId, content } = data;
+    // S1 FIX: Use socket.userId (verified at connection) instead of re-verifying a token.
+    // The io.use() middleware already validated the JWT before this handler runs.
+    const senderId = socket.userId;
     try {
-      const jwt = require('jsonwebtoken');
       const prisma = require('./config/database');
-      
-      if (!token) throw new Error('No auth token provided for message');
-      
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const senderId = decoded.userId;
-      
+
+      // Verify sender is actually in this group before persisting the message
+      const membership = await prisma.group.findFirst({
+        where: {
+          id: groupId,
+          OR: [{ leaderId: senderId }, { members: { some: { workerId: senderId } } }],
+        },
+        select: { id: true },
+      });
+      if (!membership) {
+        logger.warn(`Socket ${socket.id} tried to message group:${groupId} without membership`);
+        return;
+      }
+
       const message = await prisma.groupMessage.create({
         data: {
           content,
           group: { connect: { id: groupId } },
-          sender: { connect: { id: senderId } }
+          sender: { connect: { id: senderId } },
         },
         include: {
-          sender: { select: { id: true, name: true, photoUrl: true, role: true } }
-        }
+          sender: { select: { id: true, name: true, photoUrl: true, role: true } },
+        },
       });
 
       // Broadcast to everyone in the room
@@ -258,6 +336,9 @@ app.set('io', io);
 setIO(io);
 
 // ─── Error Handler (must be last) ───
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 app.use(errorHandler);
 
 // ─── Start Server ───
@@ -292,6 +373,33 @@ if (require.main === module) {
   // Run once immediately on startup, then every 24 hours
   runTokenCleanup();
   setInterval(runTokenCleanup, CLEANUP_INTERVAL);
+
+  // ─── B9: Worker Status Heartbeat Cleanup ───────────────────────────────
+  // Runs every 1 minute to auto-set workers to 'offline' if they haven't
+  // updated their location/status (updatedAt) in the last 10 minutes.
+  const HEARTBEAT_INTERVAL = 60 * 1000; // 1 minute
+  const TEN_MINUTES_AGO = 10 * 60 * 1000;
+  const runWorkerHeartbeat = async () => {
+    try {
+      const cutoffTime = new Date(Date.now() - TEN_MINUTES_AGO);
+      const result = await prisma.user.updateMany({
+        where: {
+          role: 'worker',
+          status: 'available',
+          updatedAt: { lt: cutoffTime },
+        },
+        data: {
+          status: 'offline',
+        },
+      });
+      if (result.count > 0) {
+        logger.info(`💓 Heartbeat: auto-set ${result.count} inactive workers to offline`);
+      }
+    } catch (err) {
+      logger.error('Worker heartbeat job failed', { message: err.message });
+    }
+  };
+  setInterval(runWorkerHeartbeat, HEARTBEAT_INTERVAL);
 
   // ─── Graceful Shutdown ──────────────────────────────────────────────────
   // Ensures active requests complete and DB connections are closed cleanly

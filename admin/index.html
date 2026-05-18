@@ -43,34 +43,52 @@
 </div>
 
 <script type="module">
-  import { saveSession, isLoggedIn } from './auth.js';
+  import { saveSession, isLoggedIn, loginWithSecret } from './auth.js';
 
   if (isLoggedIn()) window.location.href = 'dashboard.html';
+
+  // A2 FIX: Show "Session expired" banner when redirected by the 401 handler
+  const reason = new URLSearchParams(window.location.search).get('reason');
+  if (reason === 'expired') {
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '⏱ Your session expired. Please sign in again.';
+    errEl.style.display = 'block';
+    errEl.style.background = 'rgba(251,191,36,0.15)';
+    errEl.style.borderColor = '#F59E0B';
+    errEl.style.color = '#92400E';
+  }
 
   const savedUrl = localStorage.getItem('admin_last_url') || 'http://localhost:5000';
   document.getElementById('backendUrl').value = savedUrl;
 
   document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const url = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
+    const url    = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
     const secret = document.getElementById('adminSecret').value.trim();
-    const errEl = document.getElementById('loginError');
-    const spinner = document.getElementById('loginSpinner');
-    const btnText = document.getElementById('loginBtnText');
+    const errEl  = document.getElementById('loginError');
+    const spinner  = document.getElementById('loginSpinner');
+    const btnText  = document.getElementById('loginBtnText');
 
     errEl.style.display = 'none';
     spinner.style.display = 'inline-block';
     btnText.textContent = 'Signing in...';
 
     try {
-      const res = await fetch(`${url}/api/admin/stats`, {
-        headers: { 'x-admin-secret': secret }
-      });
-      if (!res.ok) throw new Error('Invalid credentials');
-      saveSession(secret, url);
+      // FIX #1: Call the JWT login endpoint instead of embedding the raw secret.
+      // On success, saveSession stores the JWT token (not the secret itself).
+      const result = await loginWithSecret(secret, url);
+
+      if (!result.ok) {
+        errEl.textContent = result.error || 'Invalid credentials or server unreachable.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      saveSession(result.token, url);
       localStorage.setItem('admin_last_url', url);
       window.location.href = 'dashboard.html';
-    } catch {
+    } catch (err) {
+      errEl.textContent = `Error: ${err.message}`;
       errEl.style.display = 'block';
     } finally {
       spinner.style.display = 'none';

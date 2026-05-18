@@ -8,21 +8,35 @@ export async function loadStats() {
 
   try {
     const data = await api.getStats();
-    const u = data.users, j = data.jobs, p = data.payments;
-    const farmers   = u.byRole?.farmer  || 0;
-    const workers   = u.byRole?.worker  || 0;
-    const leaders   = u.byRole?.leader  || 0;
-    const openJobs  = j.byStatus?.open  || 0;
-    const doneJobs  = j.byStatus?.completed || 0;
-    const revenue   = p.revenue || 0;
+    const u = data.users, j = data.jobs, p = data.payments, g = data.growth || {};
+    const farmers = u.byRole?.farmer || 0;
+    const workers = u.byRole?.worker || 0;
+    const leaders = u.byRole?.leader || 0;
+    // FIX #5 (frontend): Use correct status keys. Schema uses 'pending'/'matched'/'in_progress'
+    // NOT 'open'. Sum all "live" statuses for the KPI card.
+    const openJobs = (j.byStatus?.pending || 0) + (j.byStatus?.matched || 0) + (j.byStatus?.in_progress || 0);
+    const doneJobs = j.byStatus?.completed || 0;
+    const revenue  = p.revenue || 0;
+
+    // FIX #5: Use real growth data from the backend.
+    // pctChange is null when previous week had 0 records (avoid divide-by-zero).
+    const fmtPct = (v) => v === null ? 'New' : (v >= 0 ? `+${v}%` : `${v}%`);
+    const jobsPct    = fmtPct(g.jobs?.pctChange ?? null);
+    const workersPct = fmtPct(g.users?.pctChange ?? null);
+    const revPct     = fmtPct(g.revenue?.pctChange ?? null);
+    const usersPct   = fmtPct(g.users?.pctChange ?? null);
+    const jobsUp    = (g.jobs?.pctChange    ?? 0) >= 0;
+    const workersUp = (g.users?.pctChange   ?? 0) >= 0;
+    const revUp     = (g.revenue?.pctChange ?? 0) >= 0;
+    const usersUp   = (g.users?.pctChange   ?? 0) >= 0;
 
     el.innerHTML = `
       <!-- KPI Row -->
       <div class="stats-grid">
-        ${kpi('💼', '#F0FDF4', openJobs, 'Active Jobs', '+12.5%', true)}
-        ${kpi('👤', '#EFF6FF', workers, 'Online Workers', '+5.2%', true)}
-        ${kpi('₹', '#FFF5F5', '₹' + revenue.toLocaleString('en-IN'), 'Total Revenue', '-2.4%', false)}
-        ${kpi('⏳', '#FFFBEB', u.total, 'Total Users', '+18.1%', true)}
+        ${kpi('💼', openJobs, 'Active Jobs', jobsPct, jobsUp)}
+        ${kpi('👷', workers, 'Total Workers', workersPct, workersUp)}
+        ${kpi('₹', '₹' + revenue.toLocaleString('en-IN'), 'Total Revenue', revPct, revUp)}
+        ${kpi('👥', u.total, 'Total Users', usersPct, usersUp)}
       </div>
 
       <!-- Charts + Live Jobs -->
@@ -40,7 +54,11 @@ export async function loadStats() {
             </div>
           </div>
           <div class="card-body">
-            <div class="chart-area" id="chartArea"></div>
+            <!-- Cached-at timestamp so admins know data freshness -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <div style="font-size:12px;color:var(--text-muted)">Last 7 days vs prior 7 days</div>
+              ${data._cachedAt ? `<div style="font-size:11px;color:var(--text-dim)">Cached: ${new Date(data._cachedAt).toLocaleTimeString()}</div>` : ''}
+            </div>
             <div style="display:flex;gap:8px;margin-top:8px">
               ${DAYS.map(d => `<div style="flex:1;text-align:center;font-size:11px;color:var(--text-muted);font-weight:600">${d}</div>`).join('')}
             </div>
@@ -85,7 +103,7 @@ export async function loadStats() {
       </div>
     `;
 
-    // Draw chart
+    // Draw chart with real data
     drawChart();
 
     // Load live jobs
@@ -99,12 +117,12 @@ export async function loadStats() {
   }
 }
 
-function kpi(icon, bg, value, label, change, up) {
+function kpi(icon, value, label, change, up) {
   return `
     <div class="stat-card">
       <div class="stat-card-header">
-        <div class="stat-icon" style="background:${bg}">${icon}</div>
-        <div class="stat-change ${up?'up':'down'}">${up?'↑':'↓'} ${change}</div>
+        <div class="stat-icon">${icon}</div>
+        <div class="stat-change ${up ? 'up' : 'down'}">${up ? '↑' : '↓'} ${change}</div>
       </div>
       <div class="stat-value">${value}</div>
       <div class="stat-label">${label}</div>
@@ -122,15 +140,35 @@ function miniCard(icon, bg, label, value) {
     </div>`;
 }
 
-function drawChart() {
+// FIX #6: Real chart — fetches actual daily job counts from /stats/activity.
+async function drawChart() {
   const area = document.getElementById('chartArea');
   if (!area) return;
-  const heights = [40, 60, 45, 80, 65, 100, 75];
-  const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-  area.innerHTML = heights.map((h, i) => `
-    <div class="chart-bar-wrap">
-      <div class="chart-bar ${i === todayIdx ? 'active' : ''}" style="height:${h}%"></div>
-    </div>`).join('');
+
+  // Show a subtle loading state while fetching
+  area.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:12px">Loading…</div>';
+
+  try {
+    const { activity } = await api.getActivity(7);
+    const maxJobs = Math.max(...activity.map(d => d.jobs), 1); // avoid divide-by-0
+
+    area.innerHTML = activity.map(d => {
+      const h = Math.round((d.jobs / maxJobs) * 100);
+      const tooltip = `${d.label}: ${d.jobs} job${d.jobs !== 1 ? 's' : ''}`;
+      return `
+        <div class="chart-bar-wrap" title="${tooltip}">
+          <div class="chart-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(h, 4)}%"></div>
+        </div>`;
+    }).join('');
+  } catch {
+    // Fallback to placeholder bars if the activity endpoint is unavailable
+    const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+    const heights = [40, 60, 45, 80, 65, 100, 75];
+    area.innerHTML = heights.map((h, i) => `
+      <div class="chart-bar-wrap">
+        <div class="chart-bar ${i === todayIdx ? 'active' : ''}" style="height:${h}%"></div>
+      </div>`).join('');
+  }
 }
 
 async function loadLiveJobs(byStatus) {

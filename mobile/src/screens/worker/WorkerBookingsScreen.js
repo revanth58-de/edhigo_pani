@@ -1,4 +1,4 @@
-// WorkerBookingsScreen - View jobs accepted and completed by the worker
+// WorkerBookingsScreen - M9: Tabbed view (Active / Completed / Cancelled)
 import React, { useState, useCallback } from 'react';
 import {
   View,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,15 +20,37 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const STATUS_META = {
-  pending: { label: 'Waiting', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
-  accepted: { label: 'Accepted', color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
-  in_progress: { label: 'Under Process', color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
-  finishing: { label: 'Finishing', color: '#06B6D4', bg: '#CFFAFE', icon: 'done' },
-  completed: { label: 'Completed', color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
-  cancelled: { label: 'Cancelled', color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
+  pending:     { label: 'Waiting',      color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
+  accepted:    { label: 'Accepted',     color: '#3B82F6', bg: '#EFF6FF', icon: 'check-circle' },
+  in_progress: { label: 'Under Process',color: '#8B5CF6', bg: '#F5F3FF', icon: 'play-circle' },
+  finishing:   { label: 'Finishing',    color: '#06B6D4', bg: '#CFFAFE', icon: 'done' },
+  completed:   { label: 'Completed',    color: '#10B981', bg: '#D1FAE5', icon: 'task-alt' },
+  cancelled:   { label: 'Cancelled',    color: '#EF4444', bg: '#FEE2E2', icon: 'cancel' },
 };
 
-const JobBookingCard = ({ job, navigation }) => {
+// M9: Tab definitions — which statuses belong to each tab
+const TABS = [
+  {
+    key: 'active',
+    label: 'Active',
+    icon: 'work',
+    statuses: ['pending', 'accepted', 'in_progress', 'finishing'],
+  },
+  {
+    key: 'completed',
+    label: 'Completed',
+    icon: 'task-alt',
+    statuses: ['completed'],
+  },
+  {
+    key: 'cancelled',
+    label: 'Cancelled',
+    icon: 'cancel',
+    statuses: ['cancelled'],
+  },
+];
+
+const JobBookingCard = ({ job, navigation, onWithdraw }) => {
   const status = STATUS_META[job.status] || STATUS_META.pending;
 
   const handlePress = () => {
@@ -61,22 +84,7 @@ const JobBookingCard = ({ job, navigation }) => {
          </View>
          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             {(job.status === 'accepted' || job.status === 'pending') && (
-              <TouchableOpacity 
-                onPress={async () => {
-                  Alert.alert('Withdraw', 'Are you sure you want to withdraw from this job?', [
-                    { text: 'No', style: 'cancel' },
-                    { text: 'Yes', style: 'destructive', onPress: async () => {
-                      try {
-                        await jobAPI.withdrawJob(job.id);
-                        Alert.alert('Withdrawn', 'You have successfully withdrawn from this job.');
-                        loadBookings();
-                      } catch (e) {
-                        Alert.alert('Error', 'Could not withdraw from job.');
-                      }
-                    }},
-                  ]);
-                }}
-              >
+              <TouchableOpacity onPress={() => onWithdraw(job.id)}>
                 <Text style={{ color: '#EF4444', fontWeight: '800', fontSize: 13 }}>WITHDRAW</Text>
               </TouchableOpacity>
             )}
@@ -89,45 +97,119 @@ const JobBookingCard = ({ job, navigation }) => {
 
 const WorkerBookingsScreen = ({ navigation }) => {
   const { user } = useAuthStore();
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab]   = useState('active'); // M9
+
+  const loadBookings = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    try {
+      const response = await jobAPI.getWorkerJobs();
+      setBookings(response?.data?.data || []);
+    } catch (e) {
+      console.error('Load bookings error:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useFocusEffect(
-    useCallback(() => {
-      const loadBookings = async () => {
-        setLoading(true);
-        try {
-          const response = await jobAPI.getWorkerJobs(); 
-          const list = response?.data?.data || [];
-          setBookings(list);
-        } catch (e) {
-          console.error('Load bookings error:', e);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadBookings();
-    }, [])
+    useCallback(() => { loadBookings(); }, [loadBookings])
   );
+
+  const handleWithdraw = (jobId) => {
+    Alert.alert('Withdraw', 'Are you sure you want to withdraw from this job?', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes', style: 'destructive', onPress: async () => {
+          try {
+            await jobAPI.withdrawJob(jobId);
+            Alert.alert('Withdrawn', 'You have successfully withdrawn from this job.');
+            loadBookings();
+          } catch {
+            Alert.alert('Error', 'Could not withdraw from job.');
+          }
+        },
+      },
+    ]);
+  };
+
+  // M9: Filter bookings by active tab's statuses
+  const currentTab   = TABS.find(t => t.key === activeTab);
+  const filtered     = bookings.filter(j => currentTab.statuses.includes(j.status));
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <TopBar title="My Bookings" showBack navigation={navigation} />
 
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+      {/* M9: Tab Bar */}
+      <View style={styles.tabBar}>
+        {TABS.map(tab => {
+          const count   = bookings.filter(j => tab.statuses.includes(j.status)).length;
+          const isActive = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons
+                name={tab.icon}
+                size={16}
+                color={isActive ? colors.primary : '#9CA3AF'}
+              />
+              <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
+                {tab.label}
+              </Text>
+              {count > 0 && (
+                <View style={[styles.tabBadge, isActive && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, isActive && styles.tabBadgeTextActive]}>
+                    {count}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadBookings(true)}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
-        ) : bookings.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <View style={styles.emptyState}>
-            <MaterialIcons name="event-note" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No bookings found</Text>
-            <Text style={styles.emptySubText}>Your job bookings will appear here</Text>
+            <MaterialIcons name={currentTab.icon} size={64} color="#D1D5DB" />
+            <Text style={styles.emptyText}>No {currentTab.label.toLowerCase()} bookings</Text>
+            <Text style={styles.emptySubText}>
+              {activeTab === 'active'
+                ? 'Accept a job offer to see it here'
+                : `Your ${currentTab.label.toLowerCase()} jobs will appear here`}
+            </Text>
           </View>
         ) : (
-          bookings.map((job) => (
-            <JobBookingCard key={job.id} job={job} navigation={navigation} />
+          filtered.map((job) => (
+            <JobBookingCard
+              key={job.id}
+              job={job}
+              navigation={navigation}
+              onWithdraw={handleWithdraw}
+            />
           ))
         )}
       </ScrollView>
@@ -139,6 +221,54 @@ const WorkerBookingsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
+
+  // M9: Tab bar
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    paddingHorizontal: 12,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomColor: colors.primary,
+  },
+  tabLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#9CA3AF',
+  },
+  tabLabelActive: {
+    color: colors.primary,
+  },
+  tabBadge: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 99,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  tabBadgeActive: {
+    backgroundColor: `${colors.primary}1A`,
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#9CA3AF',
+  },
+  tabBadgeTextActive: {
+    color: colors.primary,
+  },
+
   content: { flex: 1 },
   contentContainer: { padding: 16, paddingBottom: 100 },
   card: {
@@ -174,14 +304,14 @@ const styles = StyleSheet.create({
     borderRadius: 99,
   },
   statusText: { fontSize: 13, fontWeight: '800' },
-  cardBottom: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  cardBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingTop: 12,
-    marginTop: 4
+    marginTop: 4,
   },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailText: { fontSize: 16, color: '#64748B' },
@@ -193,7 +323,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   emptyText: { fontSize: 20, fontWeight: '800', color: '#9CA3AF' },
-  emptySubText: { fontSize: 15, color: '#D1D5DB', textAlign: 'center' },
+  emptySubText: { fontSize: 15, color: '#D1D5DB', textAlign: 'center', paddingHorizontal: 32 },
 });
 
 export default WorkerBookingsScreen;

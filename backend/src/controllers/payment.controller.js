@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { logger } = require('../middleware/errorHandler');
+const { PaymentStatus, PaymentMethod } = require('../config/enums'); // D1
 
 // POST /api/payments - Make a payment
 const makePayment = async (req, res, next) => {
@@ -16,7 +17,7 @@ const makePayment = async (req, res, next) => {
       });
     }
 
-    const validMethods = ['cash', 'upi'];
+    const validMethods = Object.values(PaymentMethod); // D1: derived from enum, not hardcoded
     if (!validMethods.includes(method)) {
       return res.status(400).json({
         error: `Invalid method. Must be one of: ${validMethods.join(', ')}`,
@@ -34,25 +35,55 @@ const makePayment = async (req, res, next) => {
       return res.status(403).json({ error: 'Not authorized to make payment for this job' });
     }
 
-    // SEC-8 FIX: Prevent duplicate payments — reject if payment already completed for this job
-    const existingPayment = await prisma.payment.findFirst({
-      where: { jobId, farmerId, status: 'completed' },
-    });
-    if (existingPayment) {
-      return res.status(409).json({ error: 'Payment has already been processed for this job' });
+    // FIX #4: Validate amount is not absurdly low.
+    // The submitted amount must be at least payPerDay per worker to prevent
+    // farmers from submitting ₹0.01 payments that pass silently.
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'Amount must be a positive number' });
+    }
+    const minExpectedAmount = job.payPerDay; // at least 1 day's pay for 1 worker
+    if (parsedAmount < minExpectedAmount) {
+      return res.status(400).json({
+        error: `Amount ₹${parsedAmount} is below the minimum of ₹${minExpectedAmount} (job rate: ₹${job.payPerDay}/day)`,
+      });
     }
 
-    // Find worker(s) for this job via attendance records
+    // Ensure we only pay each unique worker once per payment request
     const attendances = await prisma.attendance.findMany({
       where: { jobId },
       select: { workerId: true },
+      distinct: ['workerId'],
     });
 
     if (attendances.length === 0) {
       return res.status(400).json({ error: 'No workers found for this job' });
     }
 
-    // Create payment records for each worker
+    // Check if we already created a pending UPI payment for this transaction reference
+    if (transactionId) {
+      const duplicateUPI = await prisma.payment.findFirst({
+        where: { jobId, upiRef: transactionId }
+      });
+      if (duplicateUPI) {
+         return res.status(409).json({ error: 'A payment with this UPI reference already exists' });
+      }
+    }
+
+    // B5 FIX: Guard against double-payment for the same job+farmer combination.
+    // Without this, a farmer double-tapping "Pay" would create two full payment batches.
+    const existingCompleted = await prisma.payment.findFirst({
+      where: { jobId, farmerId, status: PaymentStatus.COMPLETED },
+      select: { id: true, createdAt: true },
+    });
+    if (existingCompleted) {
+      return res.status(409).json({
+        error: 'Payment already completed for this job. Use the confirm endpoint to update UPI status.',
+        existingPaymentId: existingCompleted.id,
+      });
+    }
+
+    // Create payment records for each distinct worker
     const payments = [];
     const rawPerWorker = amount / attendances.length;
     const perWorkerAmount = Math.round(rawPerWorker * 100) / 100; // round to 2 decimal places
@@ -66,7 +97,7 @@ const makePayment = async (req, res, next) => {
           amount: perWorkerAmount,
           method,
           upiRef: transactionId || null,
-          status: method === 'cash' ? 'completed' : 'pending',
+          status: method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING,
           paidAt: method === 'cash' ? new Date() : null,
         },
       });
@@ -179,10 +210,10 @@ const confirmPayment = async (req, res, next) => {
 
     // Mark all pending UPI payments for this job as completed
     const result = await prisma.payment.updateMany({
-      where: { jobId, farmerId, status: 'pending', method: 'upi' },
+      where: { jobId, farmerId, status: PaymentStatus.PENDING, method: PaymentMethod.UPI },
       data: {
-        status: 'completed',
-        paidAt: new Date(),
+        status:  PaymentStatus.COMPLETED,
+        paidAt:  new Date(),
         ...(upiRef && { upiRef }),
       },
     });

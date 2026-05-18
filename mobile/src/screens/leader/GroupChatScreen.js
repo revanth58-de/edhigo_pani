@@ -1,5 +1,6 @@
 /**
  * GroupChatScreen — In-app group text chat
+ * B2: Cursor-based pagination — scroll to top loads 50 older messages at a time.
  * Backend: GroupMessage model + socket events are already live.
  * Flow: GroupDetail → GroupChat
  */
@@ -78,36 +79,70 @@ const DateDivider = ({ date }) => (
   </View>
 );
 
+// ── Load-more header (shown while fetching older pages) ───────────────────────
+const LoadMoreHeader = () => (
+  <View style={styles.loadMoreHeader}>
+    <ActivityIndicator size="small" color={colors.primary} />
+    <Text style={styles.loadMoreText}>Loading older messages…</Text>
+  </View>
+);
+
 // ── Main Screen ───────────────────────────────────────────────────────────────
 const GroupChatScreen = ({ navigation, route }) => {
   const { groupId, groupName } = route.params || {};
   const user = useAuthStore((state) => state.user);
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+
+  const [messages, setMessages]     = useState([]);
+  const [inputText, setInputText]   = useState('');
+  const [loading, setLoading]       = useState(true);
+  const [sending, setSending]       = useState(false);
+
+  // B2: pagination state
+  const [nextCursor, setNextCursor]   = useState(null);  // ID of oldest loaded message
+  const [hasMore, setHasMore]         = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const flatListRef = useRef(null);
 
-  // ── Load message history from REST ─────────────────────────────────────────
-  const loadMessages = useCallback(async () => {
+  // ── Fetch a page of messages ─────────────────────────────────────────────
+  // B2: cursor = undefined → latest page; cursor = messageId → page before that message
+  const fetchMessages = useCallback(async (cursor = undefined) => {
     if (!groupId) return;
     try {
-      // Read access token from the correct SecureStore key used by authStore
       const accessToken = await SecureStore.getItemAsync('edhigo_access_token');
-      const res = await axios.get(`${API_BASE_URL}/chats/${groupId}/messages`, {
+      const url = cursor
+        ? `${API_BASE_URL}/chats/${groupId}/messages?before=${cursor}`
+        : `${API_BASE_URL}/chats/${groupId}/messages`;
+
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      const msgs = res?.data?.data || [];
-      setMessages(msgs);
+
+      const page    = res?.data?.data || [];
+      const meta    = res?.data?.meta || {};
+
+      if (cursor) {
+        // Prepend older messages — keep list order chronological
+        setMessages(prev => [...page, ...prev]);
+      } else {
+        setMessages(page);
+      }
+
+      setNextCursor(meta.nextCursor || null);
+      setHasMore(!!meta.hasMore);
     } catch (e) {
       console.warn('Failed to load group messages:', e?.message);
-    } finally {
-      setLoading(false);
     }
   }, [groupId]);
 
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    loadMessages();
+    const init = async () => {
+      setLoading(true);
+      await fetchMessages();
+      setLoading(false);
+    };
+    init();
 
     // Join group socket room
     socketService.joinGroupRoom(groupId);
@@ -115,22 +150,19 @@ const GroupChatScreen = ({ navigation, route }) => {
     // Listen for incoming messages
     const handleMessage = (msg) => {
       setMessages((prev) => {
-        // Deduplicate by database id
         if (prev.some((m) => m.id === msg.id)) return prev;
 
-        // If it's our own message, replace the optimistic placeholder
+        // Replace optimistic placeholder if it's our own message
         if (msg.sender?.id === user?.id) {
-            const pendingIndex = prev.findIndex(m => m._pending && m.content === msg.content);
-            if (pendingIndex !== -1) {
-                const newMessages = [...prev];
-                newMessages[pendingIndex] = msg;
-                return newMessages;
-            }
+          const pendingIndex = prev.findIndex(m => m._pending && m.content === msg.content);
+          if (pendingIndex !== -1) {
+            const updated = [...prev];
+            updated[pendingIndex] = msg;
+            return updated;
+          }
         }
-
         return [...prev, msg];
       });
-      // Auto-scroll to bottom
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     };
     socketService.onGroupMessage(handleMessage);
@@ -138,7 +170,15 @@ const GroupChatScreen = ({ navigation, route }) => {
     return () => {
       socketService.offGroupMessage(handleMessage);
     };
-  }, [groupId, loadMessages]);
+  }, [groupId, fetchMessages]);
+
+  // ── B2: Load older page when user scrolls to top ──────────────────────────
+  const handleScrollToTop = useCallback(async () => {
+    if (!hasMore || loadingMore || !nextCursor) return;
+    setLoadingMore(true);
+    await fetchMessages(nextCursor);
+    setLoadingMore(false);
+  }, [hasMore, loadingMore, nextCursor, fetchMessages]);
 
   // ── Send message ────────────────────────────────────────────────────────────
   const handleSend = async () => {
@@ -159,7 +199,6 @@ const GroupChatScreen = ({ navigation, route }) => {
     setMessages((prev) => [...prev, optimistic]);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
-    // Emit via socket
     socketService.emitGroupMessage({ groupId, content: text });
     setSending(false);
   };
@@ -169,8 +208,7 @@ const GroupChatScreen = ({ navigation, route }) => {
     const isOwn = item.sender?.id === user?.id;
     const showDivider =
       index === 0 ||
-      formatDateDivider(item.createdAt) !==
-        formatDateDivider(messages[index - 1]?.createdAt);
+      formatDateDivider(item.createdAt) !== formatDateDivider(messages[index - 1]?.createdAt);
 
     return (
       <>
@@ -228,6 +266,10 @@ const GroupChatScreen = ({ navigation, route }) => {
           contentContainerStyle={styles.messagesList}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           showsVerticalScrollIndicator={false}
+          // B2: load older messages on scroll to top
+          onStartReached={handleScrollToTop}
+          onStartReachedThreshold={0.1}
+          ListHeaderComponent={loadingMore ? <LoadMoreHeader /> : null}
         />
       )}
 
@@ -293,6 +335,16 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.gray500 },
   emptySubtitle: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+
+  // ── Load-more header ──
+  loadMoreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadMoreText: { fontSize: 13, color: colors.textMuted },
 
   // ── Messages ──
   messagesList: { padding: 12, paddingBottom: 8 },

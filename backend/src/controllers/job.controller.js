@@ -1,6 +1,7 @@
-const prisma = require('../config/database'); // shared singleton — avoids connection pool exhaustion
+const prisma = require('../config/database');
 const { matchWorkers } = require('../services/matchWorkers');
 const { logger } = require('../middleware/errorHandler');
+const { JobStatus, WorkerType, UserStatus, ApplicationStatus, GroupStatus } = require('../config/enums'); // D1
 const {
   notifyWorkersNewJob,
   notifyFarmerJobAccepted,
@@ -19,6 +20,7 @@ const createJob = async (req, res, next) => {
       farmLatitude,
       farmLongitude,
       farmAddress,
+      description,  // FIX #14: optional free-text instructions for workers
     } = req.body;
 
     // Always use the authenticated user's ID — not from body
@@ -37,7 +39,8 @@ const createJob = async (req, res, next) => {
         farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
         farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
         farmAddress,
-        status: 'pending',
+        description: description || null,
+        status: JobStatus.PENDING,
       },
     });
 
@@ -213,7 +216,7 @@ const getJobById = async (req, res) => {
     // 1. If not the farmer and not an assigned worker, restrict data
     if (!isFarmer && !isWorker) {
       // If job is no longer pending, hidden it from non-participants entirely
-      if (job.status !== 'pending') {
+      if (job.status !== JobStatus.PENDING) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this job record' });
       }
 
@@ -320,7 +323,7 @@ const acceptJob = async (req, res) => {
         },
       });
 
-      if (!currentJob || currentJob.status !== 'pending') {
+      if (!currentJob || currentJob.status !== JobStatus.PENDING) {
         throw new Error('JOB_UNAVAILABLE');
       }
 
@@ -346,7 +349,7 @@ const acceptJob = async (req, res) => {
         }
         // Fetch the leader's active group
         const group = await tx.group.findFirst({
-          where: { leaderId: workerId, status: { in: ['forming', 'available', 'active'] } },
+          where: { leaderId: workerId, status: { in: [GroupStatus.FORMING, 'available', GroupStatus.ACTIVE] } },
         });
         if (group) {
           leaderGroupId = group.id;
@@ -487,7 +490,7 @@ const withdrawJob = async (req, res) => {
     const [job] = await prisma.$transaction([
       prisma.job.update({
         where: { id },
-        data: { status: 'pending' },
+        data: { status: JobStatus.PENDING },
       }),
       prisma.jobApplication.delete({ where: { id: app.id } }),
     ]);

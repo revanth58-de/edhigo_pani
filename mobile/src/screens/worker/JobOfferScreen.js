@@ -162,6 +162,18 @@ const JobOfferScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.divider} />
+          {/* M11: Show job description if farmer added one */}
+          {job?.description ? (
+            <View style={styles.descriptionBox}>
+              <View style={styles.descriptionIconWrap}>
+                <MaterialIcons name="notes" size={18} color={colors.primary} />
+              </View>
+              <View style={styles.descriptionTextWrap}>
+                <Text style={styles.descriptionLabel}>FARMER'S INSTRUCTIONS</Text>
+                <Text style={styles.descriptionValue}>{job.description}</Text>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
@@ -383,6 +395,40 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
     lineHeight: 18,
+  },
+  // M11: Description box styles
+  descriptionBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#F8FBF5',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: `${colors.primary}20`,
+  },
+  descriptionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  descriptionTextWrap: { flex: 1 },
+  descriptionLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#9CA3AF',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  descriptionValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    lineHeight: 20,
   },
   footer: {
     padding: 20,

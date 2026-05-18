@@ -47,7 +47,7 @@ const GroupNavigationScreen = ({ navigation, route }) => {
             if (status !== 'granted') return;
 
             subscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 10 },
+                { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
                 (loc) => {
                     const current = loc.coords;
                     setUserLocation(current);

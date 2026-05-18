@@ -5,6 +5,7 @@ const prisma = require('../config/database');
 const config = require('../config/env');
 const { sendOTPSms } = require('../services/smsService');
 const { logger } = require('../middleware/errorHandler');
+const { UserRole, Gender, Language } = require('../config/enums'); // D1
 
 // Generate a cryptographically secure 4-digit OTP
 const generateOTP = () => {
@@ -14,7 +15,7 @@ const generateOTP = () => {
 // Remove sensitive fields from user object before sending to client
 const sanitizeUser = (user) => {
   if (!user) return null;
-  const { otp, otpExpiresAt, createdAt, updatedAt, ...safeUser } = user;
+  const { otp, otpExpiresAt, deletedAt, createdAt, updatedAt, ...safeUser } = user;
   return safeUser;
 };
 
@@ -64,6 +65,23 @@ const sendOTP = async (req, res, next) => {
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const isExistingUser = !!(existingUser?.name && existingUser?.role);
 
+    // FIX #12: Per-phone OTP rate limit — prevent SMS flooding without Redis.
+    // If an OTP was issued less than 2 minutes ago, reject the request.
+    // The OTP TTL is already stored in otpExpiresAt; we check the inverse window.
+    const OTP_RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    if (existingUser?.otpExpiresAt) {
+      const otpIssuedAt = new Date(existingUser.otpExpiresAt.getTime() - config.otpExpiryMinutes * 60 * 1000);
+      const msSinceLastOtp = Date.now() - otpIssuedAt.getTime();
+      if (msSinceLastOtp < OTP_RESEND_COOLDOWN_MS) {
+        const waitSec = Math.ceil((OTP_RESEND_COOLDOWN_MS - msSinceLastOtp) / 1000);
+        logger.warn('OTP rate limit hit', { phone, waitSec });
+        return res.status(429).json({
+          error: `Please wait ${waitSec} seconds before requesting a new OTP.`,
+          retryAfterSeconds: waitSec,
+        });
+      }
+    }
+
     const otp = generateOTP();
     const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
@@ -90,11 +108,10 @@ const sendOTP = async (req, res, next) => {
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      // Expose OTP only in development so testing is easy without SMS
       ...(config.nodeEnv === 'development' && { devOtp: otp }),
     });
   } catch (error) {
-    console.error('💥 Send OTP Error:', error);
+    logger.error('Send OTP error', { message: error.message }); // S3: use structured logger
     next(error);
   }
 };
@@ -112,6 +129,16 @@ const verifyOTP = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
+    // S4: Block suspended/soft-deleted users from logging in.
+    // If an admin set deletedAt, they should not be able to re-authenticate.
+    if (user?.deletedAt) {
+      logger.warn('Login attempt by suspended user', { phone, ip: req.ip });
+      return res.status(403).json({
+        error: 'This account has been suspended. Please contact support.',
+        suspended: true,
+      });
+    }
+
     // SEC-4 FIX: Return the same error whether user is not found OR otp is wrong.
     // Never reveal whether a phone number is registered in this system.
     if (!user || !user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
@@ -120,21 +147,50 @@ const verifyOTP = async (req, res, next) => {
 
     const isMatch = await bcrypt.compare(otp, user.otp);
     if (!isMatch) {
-      logger.warn(`❌ Auth Failure: Invalid OTP. Phone: ${phone}`, { ip: req.ip });
-      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
+      // S3 FIX: Track consecutive OTP failures. After 5 wrong attempts,
+      // invalidate the OTP so the attacker must request a fresh one.
+      // This prevents brute-forcing a 4-digit OTP (10,000 combinations).
+      const MAX_OTP_ATTEMPTS = 5;
+      const failCount = (user.otpFailCount || 0) + 1;
+
+      if (failCount >= MAX_OTP_ATTEMPTS) {
+        // Wipe the OTP so they must call send-otp again
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { otp: null, otpExpiresAt: null, otpFailCount: 0 },
+        });
+        logger.warn('OTP brute force lockout triggered', { phone, attempts: failCount, ip: req.ip });
+        return res.status(429).json({
+          error: 'Too many incorrect attempts. Please request a new OTP.',
+          locked: true,
+        });
+      }
+
+      // Record the failure
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { otpFailCount: failCount },
+      });
+
+      logger.warn(`❌ Auth Failure: Invalid OTP (attempt ${failCount}/${MAX_OTP_ATTEMPTS}). Phone: ${phone}`, { ip: req.ip });
+      return res.status(401).json({
+        error: 'Invalid or expired OTP. Please request a new one.',
+        attemptsRemaining: MAX_OTP_ATTEMPTS - failCount,
+      });
     }
 
-    // Clear OTP and optionally save registration data in one update
+    // Clear OTP, reset fail counter, and optionally save registration data in one update
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        otp: null,
+        otp:          null,
         otpExpiresAt: null,
-        ...(name && { name }),
+        otpFailCount: 0,  // S3: reset on success
+        ...(name    && { name }),
         ...(village && { village }),
-        ...(role && ['farmer', 'worker', 'leader'].includes(role) && { role }),
-        ...(age && { age: parseInt(age, 10) }),
-        ...(gender && { gender }),
+        ...(role    && UserRole.VALID.includes(role) && { role }),
+        ...(age     && { age: parseInt(age, 10) }),
+        ...(gender  && { gender }),
       },
     });
 

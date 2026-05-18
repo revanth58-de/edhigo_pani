@@ -20,6 +20,8 @@ import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import EmptyState from '../../components/EmptyState';
+import MapDashboard from '../../components/MapDashboard';
+import FloatingGroupIcon from '../../components/FloatingGroupIcon';
 import { jobAPI, authAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
@@ -356,6 +358,24 @@ const WorkerHomeScreen = ({ navigation, route }) => {
           </View>
         )}
 
+        {/* Rapido-style Map for Workers */}
+        <View style={styles.mapWrap}>
+          <MapDashboard
+            markers={jobs}
+            userLocation={userLocation}
+            height={280}
+            onMarkerPress={(job) => navigation.navigate('JobOffer', { job })}
+          />
+          <View style={styles.mapOverlay}>
+            <View style={styles.statusBadgeWrap}>
+              <View style={[styles.onlineStatusBadge, { backgroundColor: isOnline ? colors.primary : '#9CA3AF' }]}>
+                <View style={[styles.onlineDot, { backgroundColor: isOnline ? '#FFF' : '#666' }]} />
+                <Text style={styles.onlineLabel}>{isOnline ? 'Online' : 'Offline'}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <Text style={styles.greetingText}>
@@ -521,6 +541,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
         </View>
       )}
 
+      {activeTab !== 'history' && <FloatingGroupIcon />}
       {/* Bottom Navigation */}
       <BottomNavBar role="worker" activeTab={activeTab === 'history' ? 'History' : 'Home'} />
     </LinearGradient>
@@ -537,6 +558,57 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 120,
+  },
+  mapWrap: {
+    height: 280,
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  mapOverlay: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    zIndex: 10,
+  },
+  statusBadgeWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9999,
+    padding: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  onlineStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 9999,
+  },
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  onlineLabel: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#FFF',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   profileHeader: {
     padding: 16,

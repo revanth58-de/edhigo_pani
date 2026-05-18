@@ -101,7 +101,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
             <View style={styles.qrCodeContainer}>
               <QRCode
                 value={qrData}
-                size={width * 0.6}
+                size={Math.min(width * 0.55, 220)}
                 color="#000000"
                 backgroundColor="#FFFFFF"
               />

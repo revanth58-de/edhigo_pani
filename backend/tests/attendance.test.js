@@ -23,8 +23,8 @@ beforeAll(async () => {
       payPerDay: 300,
       startTime: new Date(),
       farmAddress: 'Test Farm',
-      latitude: 16.5,
-      longitude: 80.6,
+      farmLatitude: 16.5,
+      farmLongitude: 80.6,
       status: 'accepted',
     },
   });

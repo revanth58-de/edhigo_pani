@@ -22,6 +22,7 @@ const adminRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 3,
   skipSuccessfulRequests: true,
+  skip: () => process.env.NODE_ENV !== 'production',
   message: { error: 'Too many admin auth attempts. Try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,

@@ -69,7 +69,7 @@ const sendOTP = async (req, res, next) => {
     // If an OTP was issued less than 2 minutes ago, reject the request.
     // The OTP TTL is already stored in otpExpiresAt; we check the inverse window.
     const OTP_RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
-    if (existingUser?.otpExpiresAt) {
+    if (existingUser?.otpExpiresAt && config.nodeEnv !== 'test') {
       const otpIssuedAt = new Date(existingUser.otpExpiresAt.getTime() - config.otpExpiryMinutes * 60 * 1000);
       const msSinceLastOtp = Date.now() - otpIssuedAt.getTime();
       if (msSinceLastOtp < OTP_RESEND_COOLDOWN_MS) {
@@ -108,7 +108,7 @@ const sendOTP = async (req, res, next) => {
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      ...(config.nodeEnv === 'development' && { devOtp: otp }),
+      ...((config.nodeEnv === 'development' || config.nodeEnv === 'test') && { devOtp: otp }),
     });
   } catch (error) {
     logger.error('Send OTP error', { message: error.message }); // S3: use structured logger

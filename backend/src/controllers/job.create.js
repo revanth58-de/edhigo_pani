@@ -19,8 +19,12 @@ const createJob = async (req, res, next) => {
       payPerDay,
       farmLatitude,
       farmLongitude,
+      latitude,
+      longitude,
       farmAddress,
       description,  // FIX #14: optional free-text instructions for workers
+      startTime,
+      startDate,
     } = req.body;
 
     // Always use the authenticated user's ID — not from body
@@ -29,6 +33,10 @@ const createJob = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
+    const finalLatitude = farmLatitude || latitude;
+    const finalLongitude = farmLongitude || longitude;
+    const finalStartTime = startTime || startDate || new Date();
+
     const job = await prisma.job.create({
       data: {
         farmerId,
@@ -36,9 +44,10 @@ const createJob = async (req, res, next) => {
         workerType: workerType || 'individual',
         workersNeeded: parseInt(workersNeeded) || 1,
         payPerDay: parseFloat(payPerDay),
-        farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
-        farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
+        farmLatitude: finalLatitude ? parseFloat(finalLatitude) : null,
+        farmLongitude: finalLongitude ? parseFloat(finalLongitude) : null,
         farmAddress,
+        startTime: new Date(finalStartTime),
         description: description || null,
         status: JobStatus.PENDING,
       },
@@ -54,8 +63,8 @@ const createJob = async (req, res, next) => {
           workType,
           workerType,
           workersNeeded,           // ← required for group size filtering
-          farmLatitude: farmLatitude ? parseFloat(farmLatitude) : null,
-          farmLongitude: farmLongitude ? parseFloat(farmLongitude) : null,
+          farmLatitude: finalLatitude ? parseFloat(finalLatitude) : null,
+          farmLongitude: finalLongitude ? parseFloat(finalLongitude) : null,
         });
 
         logger.info(`Job ${job.id}: matched ${matchedWorkers.length} workers`, { workType, workerType });
@@ -88,6 +97,7 @@ const createJob = async (req, res, next) => {
     res.status(201).json({
       success: true,
       message: 'Job created successfully',
+      job,
       data: job,
     });
   } catch (error) {

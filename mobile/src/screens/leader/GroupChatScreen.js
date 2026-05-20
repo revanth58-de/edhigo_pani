@@ -24,7 +24,6 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 import { API_BASE_URL } from '../../config/api.config';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatTime = (dateStr) => {
@@ -91,6 +90,8 @@ const LoadMoreHeader = () => (
 const GroupChatScreen = ({ navigation, route }) => {
   const { groupId, groupName } = route.params || {};
   const user = useAuthStore((state) => state.user);
+  // Read token from in-memory store — avoids SecureStore native calls in Expo Go
+  const accessToken = useAuthStore((state) => state.accessToken);
 
   const [messages, setMessages]     = useState([]);
   const [inputText, setInputText]   = useState('');
@@ -109,7 +110,6 @@ const GroupChatScreen = ({ navigation, route }) => {
   const fetchMessages = useCallback(async (cursor = undefined) => {
     if (!groupId) return;
     try {
-      const accessToken = await SecureStore.getItemAsync('edhigo_access_token');
       const url = cursor
         ? `${API_BASE_URL}/chats/${groupId}/messages?before=${cursor}`
         : `${API_BASE_URL}/chats/${groupId}/messages`;

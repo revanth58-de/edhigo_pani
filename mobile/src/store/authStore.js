@@ -8,17 +8,64 @@ const STORAGE_KEY = 'edhigo_auth_meta';
 const ACCESS_TOKEN_KEY = 'edhigo_access_token';
 const REFRESH_TOKEN_KEY = 'edhigo_refresh_token';
 
+// ── SecureStorage shim ──────────────────────────────────────────────────────
+// expo-secure-store requires a native build (custom dev client / standalone).
+// In Expo Go the native module is not bridged, so setValueWithKeyAsync throws.
+// This shim checks availability first and falls back to AsyncStorage, ensuring
+// the auth flow works in both Expo Go (dev) and production builds.
+const SecureStorage = {
+  async set(key, value) {
+    try {
+      const available = await SecureStore.isAvailableAsync();
+      if (available) {
+        await SecureStore.setItemAsync(key, value);
+      } else {
+        await AsyncStorage.setItem(key, value);
+      }
+    } catch (err) {
+      // Last-resort fallback — never crash the auth flow
+      console.warn(`SecureStorage.set fallback for ${key}:`, err.message);
+      await AsyncStorage.setItem(key, value);
+    }
+  },
+  async get(key) {
+    try {
+      const available = await SecureStore.isAvailableAsync();
+      if (available) {
+        return await SecureStore.getItemAsync(key);
+      }
+      return await AsyncStorage.getItem(key);
+    } catch (err) {
+      console.warn(`SecureStorage.get fallback for ${key}:`, err.message);
+      return await AsyncStorage.getItem(key);
+    }
+  },
+  async remove(key) {
+    try {
+      const available = await SecureStore.isAvailableAsync();
+      if (available) {
+        await SecureStore.deleteItemAsync(key);
+      } else {
+        await AsyncStorage.removeItem(key);
+      }
+    } catch (err) {
+      console.warn(`SecureStorage.remove fallback for ${key}:`, err.message);
+      await AsyncStorage.removeItem(key);
+    }
+  },
+};
+
 // ── Helpers: Secure & Regular Storage ──
 const saveToStorage = async (data) => {
   try {
     const { accessToken, refreshToken, ...meta } = data;
-    
+
     // Save non-sensitive meta to AsyncStorage
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
-    
-    // Save sensitive tokens to SecureStore
-    if (accessToken) await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-    if (refreshToken) await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+
+    // Save sensitive tokens via shim (SecureStore w/ AsyncStorage fallback)
+    if (accessToken) await SecureStorage.set(ACCESS_TOKEN_KEY, accessToken);
+    if (refreshToken) await SecureStorage.set(REFRESH_TOKEN_KEY, refreshToken);
   } catch (error) {
     console.error('Error saving auth to storage:', error);
   }
@@ -28,8 +75,8 @@ const clearStorage = async () => {
   try {
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY),
-      SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY),
-      SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY),
+      SecureStorage.remove(ACCESS_TOKEN_KEY),
+      SecureStorage.remove(REFRESH_TOKEN_KEY),
     ]);
   } catch (_) { }
 };
@@ -39,8 +86,8 @@ export const loadAuthFromStorage = async () => {
   try {
     const [rawMeta, accessToken, refreshToken] = await Promise.all([
       AsyncStorage.getItem(STORAGE_KEY),
-      SecureStore.getItemAsync(ACCESS_TOKEN_KEY),
-      SecureStore.getItemAsync(REFRESH_TOKEN_KEY),
+      SecureStorage.get(ACCESS_TOKEN_KEY),
+      SecureStorage.get(REFRESH_TOKEN_KEY),
     ]);
 
     const meta = rawMeta ? JSON.parse(rawMeta) : {};
@@ -82,6 +129,15 @@ const useAuthStore = create((set, get) => ({
   rehydrate: async () => {
     const saved = await loadAuthFromStorage();
     if (saved) {
+      // Guard: meta says "authenticated" but no token was actually persisted
+      // (e.g. SecureStore crashed on a previous session). Force clean logout
+      // so the user is sent to login instead of being stuck in a 401 loop.
+      if (saved.isAuthenticated && !saved.accessToken) {
+        await clearStorage();
+        set({ _hydrated: true, isAuthenticated: false });
+        return;
+      }
+
       if (saved.accessToken) setAuthToken(saved.accessToken);
       const mappedUser = mapServerUser(saved.user);
       set({

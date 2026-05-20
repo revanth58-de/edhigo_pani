@@ -22,8 +22,15 @@ const WorkInProgressScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
+  // Ensure socket is alive and farmer is in the job room so work:done can be emitted
   useEffect(() => {
+    socketService.connect();
+    if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+  }, [job?.id]);
 
+  useEffect(() => {
     let seconds = 0;
     const interval = setInterval(() => {
       seconds++;
@@ -39,21 +46,33 @@ const WorkInProgressScreen = ({ navigation, route }) => {
   }, []);
 
   const handleEndWork = () => {
+    if (!job) {
+      Alert.alert('Error', 'Job data is missing. Please go back and try again.');
+      return;
+    }
+
     Alert.alert(
-      'End Work',
-      'Are you sure you want to end the work session? Workers will be prompted to scan the check-out QR.',
+      'End Work Session',
+      'Workers will be asked to scan the check-out QR code. Do you want to continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'End Work',
           style: 'destructive',
           onPress: () => {
-            // Notify all workers in this job to open checkout QR scanner
-            socketService.socket?.emit('work:done', {
-              jobId: job?.id,
-              farmerId: job?.farmerId,
-            });
-            navigation.navigate('QRAttendance', { job, type: 'out' });
+            // Notify all workers in this job to open checkout QR scanner (best-effort)
+            try {
+              if (socketService.socket?.connected) {
+                socketService.socket.emit('work:done', {
+                  jobId: job.id,
+                  farmerId: job.farmerId,
+                });
+              }
+            } catch (e) {
+              console.warn('Socket emit failed (non-fatal):', e.message);
+            }
+            // Always navigate regardless of socket state
+            navigation.navigate('QRAttendanceOUT', { job });
           },
         },
       ]

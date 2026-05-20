@@ -40,15 +40,22 @@ const GroupDetailScreen = ({ route, navigation }) => {
     try {
       setLoading(true);
       const res = await groupAPI.getGroupDetails(groupId);
-      setGroup(res.data.group || res.data);
+      const groupData = res.data.group || res.data;
+      setGroup(groupData);
+      // Pass freshly fetched group so fetchJobs can check leaderId before state settles
+      if (activeTab === 'Jobs') fetchJobs(groupData);
     } catch (error) {
       console.warn('Failed to fetch group details:', error);
     } finally {
       setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, activeTab, fetchJobs]);
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (groupData) => {
+    // Only the group leader is allowed to view group-eligible jobs (backend enforces 403)
+    const currentGroup = groupData || group;
+    if (!currentGroup || currentGroup.leaderId !== user?.id) return;
+
     try {
       setJobsLoading(true);
       const res = await groupAPI.getGroupJobs(groupId);
@@ -58,7 +65,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     } finally {
       setJobsLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, group, user?.id]);
 
   const fetchChat = useCallback(async () => {
     try {
@@ -77,7 +84,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
   const loadTabContent = useCallback(() => {
     if (activeTab === 'Jobs') {
-      fetchJobs();
+      fetchJobs(); // guard inside checks leader status using current group state
     } else if (activeTab === 'Chat') {
       fetchChat();
     }
@@ -86,8 +93,8 @@ const GroupDetailScreen = ({ route, navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchGroupDetails();
-      loadTabContent();
-    }, [fetchGroupDetails, loadTabContent])
+      if (activeTab === 'Chat') fetchChat(); // Jobs loaded inside fetchGroupDetails
+    }, [fetchGroupDetails, fetchChat, activeTab])
   );
 
   // Handle real-time incoming messages

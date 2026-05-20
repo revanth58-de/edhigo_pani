@@ -41,6 +41,7 @@ import RequestSentScreen from '../screens/farmer/RequestSentScreen';
 import RequestAcceptedScreen from '../screens/farmer/RequestAcceptedScreen';
 import ArrivalAlertScreen from '../screens/farmer/ArrivalAlertScreen';
 import QRAttendanceScreen from '../screens/farmer/QRAttendanceScreen';
+import QRAttendanceOUTScreen from '../screens/farmer/QRAttendanceOUTScreen';
 import WorkInProgressScreen from '../screens/farmer/WorkInProgressScreen';
 import PaymentScreen from '../screens/farmer/PaymentScreen';
 import RateWorkerScreen from '../screens/farmer/RateWorkerScreen';
@@ -116,6 +117,7 @@ const FarmerNavigator = () => (
     <Stack.Screen name="RequestAccepted" component={RequestAcceptedScreen} />
     <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
+    <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
     <Stack.Screen name="WorkInProgress" component={WorkInProgressScreen} />
     <Stack.Screen name="Payment" component={PaymentScreen} />
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />

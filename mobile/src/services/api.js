@@ -1,4 +1,5 @@
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../config/api.config';
 
 const apiClient = axios.create({
@@ -16,6 +17,34 @@ export const setAuthToken = (token) => {
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
         delete apiClient.defaults.headers.common['Authorization'];
+    }
+};
+
+// ── SecureStore shim (mirrors authStore.js) ────────────────────────────────
+// expo-secure-store requires a native build. In Expo Go the native module is
+// not bridged, so we check availability first and fall back to AsyncStorage.
+const getTokenSafe = async (key) => {
+    try {
+        const SecureStore = await import('expo-secure-store');
+        const available = await SecureStore.isAvailableAsync();
+        if (available) return await SecureStore.getItemAsync(key);
+        return await AsyncStorage.getItem(key);
+    } catch {
+        return await AsyncStorage.getItem(key);
+    }
+};
+
+const deleteTokenSafe = async (key) => {
+    try {
+        const SecureStore = await import('expo-secure-store');
+        const available = await SecureStore.isAvailableAsync();
+        if (available) {
+            await SecureStore.deleteItemAsync(key);
+        } else {
+            await AsyncStorage.removeItem(key);
+        }
+    } catch {
+        await AsyncStorage.removeItem(key);
     }
 };
 
@@ -38,37 +67,44 @@ apiClient.interceptors.response.use(
         }
 
         // ── Token refresh on 401 ──────────────────────────────────────────
+        // Keys must match what authStore.js writes: separate keys per token.
         if (status === 401 &&
             !originalRequest._retry &&
             !originalRequest.url?.includes('/auth/')
         ) {
             originalRequest._retry = true;
             try {
-                // Use SecureStore (encrypted) — not AsyncStorage — for token storage
-                const SecureStore = await import('expo-secure-store');
-                const raw = await SecureStore.getItemAsync('edhigo_auth');
-                const saved = raw ? JSON.parse(raw) : null;
+                const refreshToken = await getTokenSafe('edhigo_refresh_token');
 
-                if (saved?.refreshToken) {
+                if (refreshToken) {
                     const resp = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-                        refreshToken: saved.refreshToken,
+                        refreshToken,
                     });
 
                     const { accessToken } = resp.data;
                     setAuthToken(accessToken);
                     originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
 
-                    // Persist the new token so the next cold-start picks it up
-                    const updated = { ...saved, accessToken };
-                    await SecureStore.setItemAsync('edhigo_auth', JSON.stringify(updated));
+                    // Persist the new access token under the correct key
+                    try {
+                        const SecureStore = await import('expo-secure-store');
+                        const available = await SecureStore.isAvailableAsync();
+                        if (available) {
+                            await SecureStore.setItemAsync('edhigo_access_token', accessToken);
+                        } else {
+                            await AsyncStorage.setItem('edhigo_access_token', accessToken);
+                        }
+                    } catch {
+                        await AsyncStorage.setItem('edhigo_access_token', accessToken);
+                    }
 
                     return apiClient(originalRequest);
                 }
             } catch (refreshError) {
                 console.error('Token refresh failed — user must re-login:', refreshError);
-                // Clear stored auth so the nav guard redirects to login
-                const SecureStore = await import('expo-secure-store');
-                await SecureStore.deleteItemAsync('edhigo_auth');
+                // Clear stored tokens so the nav guard redirects to login
+                await deleteTokenSafe('edhigo_access_token');
+                await deleteTokenSafe('edhigo_refresh_token');
             }
         }
 

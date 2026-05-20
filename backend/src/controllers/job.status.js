@@ -100,7 +100,7 @@ const acceptJob = async (req, res) => {
         }
         // Fetch the leader's active group
         const group = await tx.group.findFirst({
-          where: { leaderId: workerId, status: { in: [GroupStatus.FORMING, 'available', GroupStatus.ACTIVE] } },
+          where: { leaderId: workerId, status: { in: [GroupStatus.FORMING, GroupStatus.ACTIVE] } },
         });
         if (group) {
           leaderGroupId = group.id;

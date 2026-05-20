@@ -14,8 +14,7 @@ class SocketService {
 
     connect() {
         if (this.socket?.connected || !io) return;
-        if (this._connectionFailed) return;
-
+        // Allow retrying even after previous failure (network may have recovered)
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
@@ -68,9 +67,16 @@ class SocketService {
 
         this.socket.on('reconnect_failed', () => {
             this._connectionFailed = true;
-            console.warn('ℹ️ Socket.io gave up reconnecting. Real-time features disabled. Restart app when on same WiFi as server.');
-            this.socket.disconnect();
-            this.socket = null;
+            console.warn('ℹ️ Socket.io gave up reconnecting. Will retry in 10s...');
+            // Schedule a recovery attempt — don't kill permanently
+            setTimeout(() => {
+                this._connectionFailed = false;
+                if (this.socket) {
+                    this.socket.disconnect();
+                    this.socket = null;
+                }
+                this.connect();
+            }, 10000);
         });
 
         this.socket.on('reconnect', () => {

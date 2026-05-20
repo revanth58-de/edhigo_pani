@@ -1,62 +1,106 @@
-// Screen 19: Navigation - Exact match to navigation-worker.html
-import React, { useState, useEffect } from 'react';
+// Screen 19: Navigation - Real-time In-App Navigation with Route Overlay and native expo-linking deep links
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Linking,
   Alert,
+  Platform,
+  Animated,
+  Linking,
 } from 'react-native';
-import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import { socketService } from '../../services/socketService';
-import MapDashboard from '../../components/MapDashboard';
 import useAuthStore from '../../store/authStore';
 import { calculateDistance, estimateETA } from '../../utils/location';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform } from 'react-native';
 
+// Dynamically import MapView only on native platforms
+const isWeb = Platform.OS === 'web';
+let MapView, Marker, Polyline;
+
+if (!isWeb) {
+  const Maps = require('react-native-maps');
+  MapView = Maps.default;
+  Marker = Maps.Marker;
+  Polyline = Maps.Polyline;
+}
+
+// ─── Web Simulated MapView Stub Component ───
+const WebMapStub = ({ userLocation, farmCoords, job }) => {
+  const pulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.3, duration: 1000, useNativeDriver: false }),
+        Animated.timing(pulse, { toValue: 1, duration: 1000, useNativeDriver: false }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.webStubContainer}>
+      <LinearGradient
+        colors={['#1F2937', '#111827']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      {/* Simulated Map Grid */}
+      <View style={styles.webGridOverlay} />
+
+      {/* SVG Path Route overlay simulator */}
+      <View style={styles.webSvgWrapper}>
+        <Text style={styles.webRouteHint}>In-App Navigation Active</Text>
+      </View>
+
+      {/* Simulated Route Banner */}
+      <View style={styles.webRouteCard}>
+        <MaterialIcons name="navigation" size={24} color={colors.primary} style={styles.webNavIcon} />
+        <View style={styles.webNavTextWrap}>
+          <Text style={styles.webNavTitle}>Head North on Malkapur Road</Text>
+          <Text style={styles.webNavSub}>Walk straight towards {job?.farmAddress || 'Farm'}</Text>
+        </View>
+      </View>
+
+      {/* Destination Farm Marker */}
+      <View style={[styles.webMarker, styles.webFarmMarker]}>
+        <View style={styles.webMarkerPulse}>
+          <MaterialIcons name="agriculture" size={22} color="#FFFFFF" />
+        </View>
+        <Text style={styles.webMarkerLabel}>{job?.farmAddress || 'Farm Location'}</Text>
+      </View>
+
+      {/* Worker Marker */}
+      <View style={[styles.webMarker, styles.webWorkerMarker]}>
+        <Animated.View style={[styles.webWorkerPulse, { transform: [{ scale: pulse }] }]}>
+          <View style={styles.webWorkerDot} />
+        </Animated.View>
+        <Text style={styles.webMarkerLabel}>Your Location</Text>
+      </View>
+    </View>
+  );
+};
+
+// ─── Main Screen Component ───
 const NavigationScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const [distance, setDistance] = useState(t('common.calculating') || '...');
   const [eta, setETA] = useState('--');
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
-  // Haversine formula — returns distance in km
-  const haversineKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  };
-
-  const updateDistanceETA = (latitude, longitude) => {
-    const farmLat = job?.farmLatitude;
-    const farmLon = job?.farmLongitude;
-    if (!farmLat || !farmLon) return;
-    const km = haversineKm(latitude, longitude, farmLat, farmLon);
-    const displayDist = km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
-    // Assume average travel speed: <500m walk (4 km/h), else auto (30 km/h)
-    const speedKmh = km < 0.5 ? 4 : 30;
-    const minutes = Math.max(1, Math.round((km / speedKmh) * 60));
-    const displayETA = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
-    setDistance(displayDist);
-    setETA(displayETA);
+  const farmCoords = {
+    latitude: job?.farmLatitude || 17.385044,
+    longitude: job?.farmLongitude || 78.486671,
   };
 
   useEffect(() => {
-
     // Connect socket
     socketService.connect();
 
@@ -86,32 +130,33 @@ const NavigationScreen = ({ navigation, route }) => {
     let locationSubscription;
     const startTracking = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
+      if (status !== 'granted') {
+        Alert.alert('Permission denied', 'Location permissions are required to show route overlays.');
+        return;
+      }
 
       locationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
         (location) => {
           const { latitude, longitude } = location.coords;
-          setCurrentLocation([longitude, latitude]);
+          setUserLocation({ latitude, longitude });
 
-          // Dynamic calculation
-          if (job?.farmLatitude && job?.farmLongitude) {
-            const d = calculateDistance(latitude, longitude, job.farmLatitude, job.farmLongitude);
-            if (d !== null) {
-              setDistance(d < 1 ? `${Math.round(d * 1000)}m` : `${d.toFixed(1)} km`);
-              const e = estimateETA(d);
-              setETA(e < 1 ? '< 1 min' : `${e} min`);
+          // Dynamic Haversine calculation
+          const d = calculateDistance(latitude, longitude, farmCoords.latitude, farmCoords.longitude);
+          if (d !== null) {
+            setDistance(d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`);
+            const e = estimateETA(d);
+            setETA(e < 1 ? '< 1 min' : `${e} min`);
 
-              // Emit update with calculated fields
-              socketService.emitLocation({
-                userId: user?.id,
-                jobId: job?.id,
-                latitude,
-                longitude,
-                distance: d,
-                eta: `${e} min`,
-              });
-            }
+            // Emit live location updates to the socket server
+            socketService.emitLocation({
+              userId: user?.id,
+              jobId: job?.id,
+              latitude,
+              longitude,
+              distance: d,
+              eta: `${e} min`,
+            });
           }
         }
       );
@@ -122,26 +167,34 @@ const NavigationScreen = ({ navigation, route }) => {
     return () => {
       socketService.offJobCancelled();
       if (locationSubscription) {
-        if (typeof locationSubscription.remove === 'function') {
-          locationSubscription.remove();
-        } else if (typeof locationSubscription.stop === 'function') {
-          locationSubscription.stop();
-        }
+        locationSubscription.remove();
       }
     };
   }, []);
 
+  // Open native navigation application using deep linking without losing user session
   const handleOpenMaps = async () => {
-    const destination = `${job?.farmLatitude || 17.385044},${job?.farmLongitude || 78.486671}`;
-    const label = job?.farmAddress || 'Farm Location';
+    const lat = farmCoords.latitude;
+    const lng = farmCoords.longitude;
+    const label = encodeURIComponent(job?.farmAddress || 'Farm Location');
 
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&destination_place_id=${label}`;
+    const scheme = Platform.select({
+      ios: `maps:0,0?q=${label}@${lat},${lng}`,
+      android: `geo:0,0?q=${lat},${lng}(${label})`,
+      default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    });
 
-    const supported = await Linking.canOpenURL(url);
-    if (supported) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert('Error', 'Unable to open maps');
+    try {
+      const supported = await Linking.canOpenURL(scheme);
+      if (supported) {
+        await Linking.openURL(scheme);
+      } else {
+        const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      console.error('Error opening map deep link:', error);
+      Alert.alert('Error', 'Unable to launch map deep link.');
     }
   };
 
@@ -154,22 +207,49 @@ const NavigationScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* live MapDashboard */}
+      {/* live in-app Map View */}
       <View style={styles.mapContainer}>
-        <MapDashboard
-          height="100%"
-          userLocation={currentLocation}
-          markers={[{
-            id: job.id,
-            latitude: job.farmLatitude || 17.385044,
-            longitude: job.farmLongitude || 78.486671,
-            type: 'job',
-            active: true
-          }]}
-        />
+        {isWeb ? (
+          <WebMapStub userLocation={userLocation} farmCoords={farmCoords} job={job} />
+        ) : (
+          <MapView
+            style={StyleSheet.absoluteFill}
+            initialRegion={{
+              ...farmCoords,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            showsUserLocation
+            showsMyLocationButton={false}
+          >
+            {/* Route Overlay between User location and Farm coords */}
+            {userLocation && (
+              <Polyline
+                coordinates={[userLocation, farmCoords]}
+                strokeColor={colors.primary}
+                strokeWidth={5}
+                lineDashPattern={[5, 5]}
+              />
+            )}
+
+            {/* Farm Marker */}
+            <Marker coordinate={farmCoords} title="Farm Location">
+              <View style={styles.markerBorder}>
+                <View style={styles.markerInner}>
+                  <MaterialIcons name="agriculture" size={18} color="#FFFFFF" />
+                </View>
+              </View>
+            </Marker>
+          </MapView>
+        )}
       </View>
 
-      {/* Navigation Info Card */}
+      {/* Floating Action Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <MaterialIcons name="arrow-back" size={24} color="#131811" />
+      </TouchableOpacity>
+
+      {/* Navigation Info Card Overlay */}
       <View style={styles.infoCard}>
         <View style={styles.infoCardContent}>
           <View style={styles.topRow}>
@@ -196,14 +276,14 @@ const NavigationScreen = ({ navigation, route }) => {
             <View style={styles.locTextWrap}>
               <Text style={styles.locLabel}>DESTINATION</Text>
               <Text style={styles.locValue} numberOfLines={1}>
-                {job?.farmAddress || 'Malkapur Farm, Hyderabad'}
+                {job?.farmAddress || 'Farm Location'}
               </Text>
             </View>
           </View>
 
           <TouchableOpacity style={styles.mapsButton} onPress={handleOpenMaps} activeOpacity={0.8}>
             <MaterialIcons name="directions" size={20} color={colors.primary} />
-            <Text style={styles.mapsButtonText}>OPEN IN GOOGLE MAPS</Text>
+            <Text style={styles.mapsButtonText}>DEEP LINK TO MAP APP</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -241,11 +321,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F3F4F6',
   },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 44,
+    left: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+    zIndex: 999,
+  },
   infoCard: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
+    top: Platform.OS === 'ios' ? 124 : 108,
     left: 20,
     right: 20,
+    zIndex: 100,
   },
   infoCardContent: {
     backgroundColor: '#FFFFFF',
@@ -354,6 +452,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 20,
     paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    zIndex: 100,
   },
   arrivedButtonWrap: {
     borderRadius: 24,
@@ -376,6 +475,130 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 1,
+  },
+
+  // Premium Native Marker Styling
+  markerBorder: {
+    width: 44,
+    height: 44,
+    borderRadius: 18,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  markerInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+
+  // Premium Web Simulated Map Stub Styling
+  webStubContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  webGridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.1,
+    borderWidth: 1,
+    borderColor: '#4B5563',
+  },
+  webRouteHint: {
+    fontSize: 16,
+    color: '#34D399',
+    fontWeight: '800',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    opacity: 0.8,
+  },
+  webRouteCard: {
+    position: 'absolute',
+    bottom: 120,
+    left: 20,
+    right: 20,
+    backgroundColor: '#1F2937',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  webNavIcon: {
+    marginRight: 12,
+    transform: [{ rotate: '45deg' }],
+  },
+  webNavTextWrap: {
+    flex: 1,
+  },
+  webNavTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  webNavSub: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  webMarker: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  webFarmMarker: {
+    top: '25%',
+    right: '25%',
+  },
+  webWorkerMarker: {
+    bottom: '40%',
+    left: '25%',
+  },
+  webMarkerPulse: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  webWorkerPulse: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(59, 130, 246, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  webWorkerDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#3B82F6',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  webMarkerLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 4,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
   },
 });
 

@@ -52,9 +52,10 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
     socketService.connect();
     if (job?.id) socketService.joinJobRoom(job.id);
 
-    socketService.socket?.on('job:arrival', (data) => {
+    const handleArrival = (data) => {
       if (data.jobId === job?.id) navigation.navigate('ArrivalAlert', { job });
-    });
+    };
+    socketService.on('job:arrival', handleArrival);
 
     socketService.onLocationUpdate((data) => {
       if (data.jobId === job?.id || data.workerId) {
@@ -73,7 +74,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
     });
 
     return () => {
-      socketService.socket?.off('job:arrival');
+      socketService.off('job:arrival', handleArrival);
       socketService.offLocationUpdate();
     };
   }, [job?.id]);

@@ -52,9 +52,9 @@ const ManageGroupScreen = ({ navigation, route }) => {
             Alert.alert('Group Deleted', 'This group has been deleted.');
             navigation.replace('Groups');
         };
-        if (socketService.socket) socketService.socket.on('group:deleted', handleDeleted);
+        socketService.on('group:deleted', handleDeleted);
         return () => {
-            if (socketService.socket) socketService.socket.off('group:deleted', handleDeleted);
+            socketService.off('group:deleted', handleDeleted);
         };
     }, [resolvedGroupId]);
 

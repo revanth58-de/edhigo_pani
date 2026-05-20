@@ -35,6 +35,14 @@ const RateWorkerScreen = ({ navigation, route }) => {
     }];
   }
 
+  // Fallback 2: Extract workers from job's applications if any are accepted
+  if (workerList.length === 0 && job?.applications) {
+    workerList = job.applications
+      .filter(app => app.status === 'accepted')
+      .map(app => app.worker)
+      .filter(Boolean);
+  }
+
   const displayWorker = workerList[0];
   const isMultiple = workerList.length > 1;
   const [rating, setRating] = useState(0);

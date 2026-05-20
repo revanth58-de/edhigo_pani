@@ -11,6 +11,42 @@ class SocketService {
     socket = null;
     _connectionFailed = false;
     _pendingRooms = [];
+    _listeners = {};
+
+    on(event, callback) {
+        if (!this._listeners[event]) {
+            this._listeners[event] = [];
+        }
+        if (!this._listeners[event].includes(callback)) {
+            this._listeners[event].push(callback);
+        }
+        if (this.socket) {
+            this.socket.on(event, callback);
+        }
+    }
+
+    off(event, callback) {
+        if (!this._listeners[event]) return;
+        if (callback) {
+            this._listeners[event] = this._listeners[event].filter(cb => cb !== callback);
+            if (this.socket) {
+                this.socket.off(event, callback);
+            }
+        } else {
+            delete this._listeners[event];
+            if (this.socket) {
+                this.socket.off(event);
+            }
+        }
+    }
+
+    emit(event, data) {
+        if (this.socket?.connected) {
+            this.socket.emit(event, data);
+        } else {
+            console.warn(`⚠️ Socket not connected. Cannot emit ${event}`);
+        }
+    }
 
     connect() {
         if (this.socket?.connected || !io) return;
@@ -39,6 +75,13 @@ class SocketService {
             reconnectionAttempts: 5,
             reconnectionDelay: 3000,
             auth: { token }, // ← passed to io.use() middleware on the server
+        });
+
+        // Re-register all active listeners on the new socket object
+        Object.entries(this._listeners).forEach(([event, callbacks]) => {
+            callbacks.forEach(callback => {
+                this.socket.on(event, callback);
+            });
         });
 
         this.socket.on('connect', () => {
@@ -126,25 +169,19 @@ class SocketService {
     }
 
     onGroupInvite(callback) {
-        if (this.socket) this.socket.on('group:invite', callback);
+        this.on('group:invite', callback);
     }
 
     offGroupInvite(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('group:invite', callback);
-            else this.socket.off('group:invite');
-        }
+        this.off('group:invite', callback);
     }
 
     onGroupMessage(callback) {
-        if (this.socket) this.socket.on('group:message', callback);
+        this.on('group:message', callback);
     }
 
     offGroupMessage(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('group:message', callback);
-            else this.socket.off('group:message');
-        }
+        this.off('group:message', callback);
     }
 
     emitGroupMessage(data) {
@@ -163,114 +200,81 @@ class SocketService {
     // ── Farmer Notifications ─────────────────────────────────────────
 
     onJobAccepted(callback) {
-        if (this.socket) this.socket.on('job:accepted', callback);
+        this.on('job:accepted', callback);
     }
 
     offJobAccepted(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('job:accepted', callback);
-            else this.socket.off('job:accepted');
-        }
+        this.off('job:accepted', callback);
     }
 
     onJobWithdrawn(callback) {
-        if (this.socket) this.socket.on('job:withdrawn', callback);
+        this.on('job:withdrawn', callback);
     }
 
     offJobWithdrawn(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('job:withdrawn', callback);
-            else this.socket.off('job:withdrawn');
-        }
+        this.off('job:withdrawn', callback);
     }
 
     // ── Worker Notifications ─────────────────────────────────────────
 
     // job:taken → fired when another worker accepts a job (remove from feed)
     onJobTaken(callback) {
-        if (this.socket) this.socket.on('job:taken', callback);
+        this.on('job:taken', callback);
     }
 
     offJobTaken(callback) {
-        if (this.socket) {
-            // Pass the specific callback so only this screen's listener is removed
-            if (callback) this.socket.off('job:taken', callback);
-            else this.socket.off('job:taken');
-        }
+        this.off('job:taken', callback);
     }
 
     // job:new-offer → new job available (or job re-opened after withdrawal)
     onNewOffer(callback) {
-        if (this.socket) this.socket.on('job:new-offer', callback);
+        this.on('job:new-offer', callback);
     }
 
     offNewOffer(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('job:new-offer', callback);
-            else this.socket.off('job:new-offer');
-        }
+        this.off('job:new-offer', callback);
     }
 
     onJobCancelled(callback) {
-        if (this.socket) {
-            this.socket.on('job:cancelled', callback);
-            this.socket.on('worker:job_cancelled', callback);
-        }
+        this.on('job:cancelled', callback);
+        this.on('worker:job_cancelled', callback);
     }
 
     offJobCancelled(callback) {
-        if (this.socket) {
-            if (callback) {
-                this.socket.off('job:cancelled', callback);
-                this.socket.off('worker:job_cancelled', callback);
-            } else {
-                this.socket.off('job:cancelled');
-                this.socket.off('worker:job_cancelled');
-            }
-        }
+        this.off('job:cancelled', callback);
+        this.off('worker:job_cancelled', callback);
     }
 
     onWorkDone(callback) {
-        if (this.socket) this.socket.on('work:done', callback);
+        this.on('work:done', callback);
     }
 
     offWorkDone(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('work:done', callback);
-            else this.socket.off('work:done');
-        }
+        this.off('work:done', callback);
     }
 
     // ── Attendance ───────────────────────────────────────────────────
 
     onAttendanceConfirmed(callback) {
-        if (this.socket) this.socket.on('attendance:confirmed', callback);
+        this.on('attendance:confirmed', callback);
     }
 
     offAttendanceConfirmed(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('attendance:confirmed', callback);
-            else this.socket.off('attendance:confirmed');
-        }
+        this.off('attendance:confirmed', callback);
     }
 
     // ── Location ─────────────────────────────────────────────────────
 
     onLocationUpdate(callback) {
-        if (this.socket) this.socket.on('location:broadcast', callback);
+        this.on('location:broadcast', callback);
     }
 
     offLocationUpdate(callback) {
-        if (this.socket) {
-            if (callback) this.socket.off('location:broadcast', callback);
-            else this.socket.off('location:broadcast');
-        }
+        this.off('location:broadcast', callback);
     }
 
     emitLocation(data) {
-        if (this.socket?.connected) {
-            this.socket.emit('location:update', data);
-        }
+        this.emit('location:update', data);
     }
 }
 

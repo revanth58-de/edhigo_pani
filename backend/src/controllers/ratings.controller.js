@@ -6,7 +6,7 @@ const submitRating = async (req, res, next) => {
     // Accept both field naming conventions from different frontend versions
     const {
       jobId,
-      toUserId,   workerId,   farmerId,   // fields names for recipient
+      toUserId,   workerId,   farmerId,   rateeId, // fields names for recipient
       emoji,      rating: ratingNum,   // rename to avoid conflict with prisma.rating variable below
       stars,      feedback,            // optional extras
     } = req.body;
@@ -18,13 +18,13 @@ const submitRating = async (req, res, next) => {
       if (!job) return res.status(404).json({ error: 'Job not found' });
       
       // If recipient is missing and the user is NOT the farmer, assume they are rating the farmer
-      if (!toUserId && !workerId && !farmerId && fromUserId !== job.farmerId) {
+      if (!toUserId && !workerId && !farmerId && !rateeId && fromUserId !== job.farmerId) {
         req.body.toUserId = job.farmerId; // patch it for the logic below
       }
     }
 
     // Normalise recipient ID
-    const recipientId = req.body.toUserId || workerId || farmerId;
+    const recipientId = req.body.toUserId || workerId || farmerId || rateeId;
 
     // Normalise emoji: convert numeric rating → emoji if needed
     const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';

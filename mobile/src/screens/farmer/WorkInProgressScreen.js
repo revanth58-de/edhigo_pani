@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Platform } from 'react-native';
 
 const WorkInProgressScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route?.params || {};
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
@@ -62,12 +62,10 @@ const WorkInProgressScreen = ({ navigation, route }) => {
           onPress: () => {
             // Notify all workers in this job to open checkout QR scanner (best-effort)
             try {
-              if (socketService.socket?.connected) {
-                socketService.socket.emit('work:done', {
-                  jobId: job.id,
-                  farmerId: job.farmerId,
-                });
-              }
+              socketService.emit('work:done', {
+                jobId: job.id,
+                farmerId: job.farmerId,
+              });
             } catch (e) {
               console.warn('Socket emit failed (non-fatal):', e.message);
             }

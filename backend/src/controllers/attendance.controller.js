@@ -20,38 +20,77 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Helper: Validate QR Code (JSON payload: { jobId, type, timestamp })
+// Helper: Validate QR Code (JSON payload: { jobId, type, timestamp } or string: SECURE_ATTENDANCE|jobId|timestamp|lat|lon|type)
 const validateQR = (qrString, jobId) => {
   try {
+    if (typeof qrString === 'string' && qrString.startsWith('SECURE_ATTENDANCE|')) {
+      const parts = qrString.split('|');
+      const qJobId = parts[1];
+      const timestamp = parts[2];
+      const qType = parts[5]; // IN or OUT
+      
+      if (qJobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
+      
+      const qrTime = parseInt(timestamp);
+      const now = Date.now();
+      const expiry = 30 * 60 * 1000;
+      if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
+      
+      return { valid: true, type: qType ? qType.toLowerCase() : 'in' };
+    }
+
     const qrData = JSON.parse(qrString);
     if (qrData.jobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
 
     const qrTime = parseInt(qrData.timestamp);
     const now = Date.now();
-    const expiry = 30 * 60 * 1000; // 30 minutes — enough time for worker to navigate to scanner
+    const expiry = 30 * 60 * 1000; // 30 minutes
 
     if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
 
     return { valid: true, type: qrData.type };
   } catch (error) {
-    return { valid: false, message: 'Invalid QR format. Expected JSON.' };
+    return { valid: false, message: 'Invalid QR format.' };
   }
 };
 
 // Worker Check-In
 const checkIn = async (req, res, next) => {
   try {
-    const {
+    let {
       jobId,
       workerId,
       qrCodeIn, // Format: jobId|timestamp
       checkInLatitude,
-      checkInLongitude
+      checkInLongitude,
+      qrData,
+      latitude,
+      longitude,
     } = req.body;
+
+    if (!qrCodeIn && qrData) qrCodeIn = qrData;
+    if (checkInLatitude == null && latitude != null) checkInLatitude = latitude;
+    if (checkInLongitude == null && longitude != null) checkInLongitude = longitude;
+    if (!workerId && req.user?.id) workerId = req.user.id;
+
+    if (!jobId && qrCodeIn) {
+      try {
+        if (typeof qrCodeIn === 'string' && qrCodeIn.startsWith('SECURE_ATTENDANCE|')) {
+          jobId = qrCodeIn.split('|')[1];
+        } else {
+          const parsed = JSON.parse(qrCodeIn);
+          jobId = parsed.jobId;
+        }
+      } catch (_) {}
+    }
 
     // 1. Basic Validation
     if (req.user?.id !== workerId) {
       return res.status(403).json({ success: false, message: 'Cannot check in for another worker' });
+    }
+
+    if (!jobId) {
+      return res.status(400).json({ success: false, message: 'Job ID is required' });
     }
 
     // 2. Job & Location Validation
@@ -149,7 +188,33 @@ const checkIn = async (req, res, next) => {
 // Worker Check-Out
 const checkOut = async (req, res, next) => {
   try {
-    const { attendanceId, jobId, workerId, qrCodeOut, checkOutLatitude, checkOutLongitude } = req.body;
+    let {
+      attendanceId,
+      jobId,
+      workerId,
+      qrCodeOut,
+      checkOutLatitude,
+      checkOutLongitude,
+      qrData,
+      latitude,
+      longitude,
+    } = req.body;
+
+    if (!qrCodeOut && qrData) qrCodeOut = qrData;
+    if (checkOutLatitude == null && latitude != null) checkOutLatitude = latitude;
+    if (checkOutLongitude == null && longitude != null) checkOutLongitude = longitude;
+    if (!workerId && req.user?.id) workerId = req.user.id;
+
+    if (!jobId && qrCodeOut) {
+      try {
+        if (typeof qrCodeOut === 'string' && qrCodeOut.startsWith('SECURE_ATTENDANCE|')) {
+          jobId = qrCodeOut.split('|')[1];
+        } else {
+          const parsed = JSON.parse(qrCodeOut);
+          jobId = parsed.jobId;
+        }
+      } catch (_) {}
+    }
 
     // Validate required fields before any QR or DB checks
     if (!qrCodeOut) {

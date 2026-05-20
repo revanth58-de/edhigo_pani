@@ -50,11 +50,19 @@ const makePayment = async (req, res, next) => {
     }
 
     // Ensure we only pay each unique worker once per payment request
-    const attendances = await prisma.attendance.findMany({
+    let attendances = await prisma.attendance.findMany({
       where: { jobId },
       select: { workerId: true },
       distinct: ['workerId'],
     });
+
+    if (attendances.length === 0) {
+      const applications = await prisma.jobApplication.findMany({
+        where: { jobId, status: 'accepted' },
+        select: { workerId: true },
+      });
+      attendances = applications;
+    }
 
     if (attendances.length === 0) {
       return res.status(400).json({ error: 'No workers found for this job' });

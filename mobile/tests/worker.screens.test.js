@@ -78,26 +78,26 @@ describe('WorkerHomeScreen', () => {
 
   test('✅ Renders greeting and START WORK button', async () => {
     if (!WorkerHomeScreen) return;
-    const { queryByText } = render(
+    const { queryAllByText } = render(
       <WorkerHomeScreen navigation={mockNavigation} />
     );
     await waitFor(() => {
       // WorkerHomeScreen shows: greeting (Namaste / worker name), START WORK button, My Groups
-      const hasGreeting = queryByText(/namaste|ramu|worker/i);
-      const hasStartWork = queryByText(/start work|searching/i);
-      const hasGroups = queryByText(/my groups|groups/i);
-      expect(hasGreeting || hasStartWork || hasGroups).toBeTruthy();
+      const greetingElements = queryAllByText(/namaste|ramu|worker/i);
+      const startWorkElements = queryAllByText(/start work|searching/i);
+      const groupsElements = queryAllByText(/my groups|groups/i);
+      expect(greetingElements.length > 0 || startWorkElements.length > 0 || groupsElements.length > 0).toBeTruthy();
     });
   });
 
   test('✅ Quick actions (My Groups, Scan QR) are present', async () => {
     if (!WorkerHomeScreen) return;
-    const { queryByText } = render(
+    const { queryAllByText } = render(
       <WorkerHomeScreen navigation={mockNavigation} />
     );
     await waitFor(() => {
-      const hasGroups = queryByText(/my groups/i);
-      expect(hasGroups).toBeTruthy();
+      const groupsElements = queryAllByText(/my groups/i);
+      expect(groupsElements.length).toBeGreaterThan(0);
     });
   });
 });
@@ -172,9 +172,9 @@ describe('WorkStatusScreen', () => {
 
   test('✅ Shows a running timer', async () => {
     if (!WorkStatusScreen) return;
-    const { getByText } = render(<WorkStatusScreen navigation={mockNavigation} route={route} />);
+    const { getAllByText } = render(<WorkStatusScreen navigation={mockNavigation} route={route} />);
     await waitFor(() => {
-      expect(getByText(/00:00:|elapsed|time/i)).toBeTruthy();
+      expect(getAllByText(/00:00:|elapsed|time/i).length).toBeGreaterThan(0);
     });
   });
 });
@@ -190,8 +190,8 @@ describe('WorkerProfileScreen', () => {
 
   test('✅ Renders worker name, phone, and skills', () => {
     if (!WorkerProfileScreen) return;
-    const { getByText } = render(<WorkerProfileScreen navigation={mockNavigation} />);
-    expect(getByText(/Ramu Worker|9876543211/i)).toBeTruthy();
+    const { getAllByText } = render(<WorkerProfileScreen navigation={mockNavigation} />);
+    expect(getAllByText(/Ramu Worker|9876543211/i).length).toBeGreaterThan(0);
   });
 
   test('✅ Edit button toggles to edit mode (shows inputs)', async () => {

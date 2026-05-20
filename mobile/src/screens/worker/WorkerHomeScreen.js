@@ -53,7 +53,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [earningsSummary, setEarningsSummary] = useState(null);
 
-  const activeTab = route.params?.tab || 'home';
+  const activeTab = route?.params?.tab || 'home';
   const navigationRef = useRef(navigation);
 
   // ── Data fetching ────────────────────────────────────────────────────────────

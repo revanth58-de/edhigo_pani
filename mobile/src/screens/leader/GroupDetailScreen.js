@@ -106,7 +106,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       Alert.alert('Group Dissolved', 'The leader has deleted this group.');
       navigation.goBack();
     };
-    if (socketService.socket) socketService.socket.on('group:deleted', handleGroupDeleted);
+    socketService.on('group:deleted', handleGroupDeleted);
 
     const handleNewMessage = (message) => {
       setMessages(prev => {
@@ -128,7 +128,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
     return () => {
       socketService.offGroupMessage(handleNewMessage);
-      if (socketService.socket) socketService.socket.off('group:deleted', handleGroupDeleted);
+      socketService.off('group:deleted', handleGroupDeleted);
     };
   }, [groupId]);
 

@@ -33,6 +33,10 @@ const createJob = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
+    if (!workType || payPerDay === undefined || !farmAddress) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
     const finalLatitude = farmLatitude || latitude;
     const finalLongitude = farmLongitude || longitude;
     const finalStartTime = startTime || startDate || new Date();

@@ -7,6 +7,7 @@ export const paymentService = {
     try {
       const response = await paymentAPI.makePayment({
         jobId: data.jobId,
+        workerId: data.workerId,
         amount: data.amount,
         method: data.method, // 'cash' or 'upi'
         transactionId: data.transactionId,

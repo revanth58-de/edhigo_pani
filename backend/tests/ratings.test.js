@@ -82,7 +82,7 @@ describe('POST /api/ratings/farmer', () => {
   test('❌ Missing rateeId → 400', async () => {
     const res = await request(app)
       .post('/api/ratings/farmer')
-      .set('Authorization', `Bearer ${workerToken}`)
+      .set('Authorization', `Bearer ${farmerToken}`)
       .send({ jobId: ratingJobId, rating: 3 });
     expect(res.statusCode).toBe(400);
   });

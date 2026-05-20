@@ -42,6 +42,14 @@ const PaymentScreen = ({ navigation, route }) => {
     }];
   }
 
+  // Fallback 2: Extract workers from job's applications if any are accepted
+  if (workerList.length === 0 && job?.applications) {
+    workerList = job.applications
+      .filter(app => app.status === 'accepted')
+      .map(app => app.worker)
+      .filter(Boolean);
+  }
+
   // SEC-PAYMENT FIX: Always use Number — fallback String would cause string concatenation
   const workerCount = workerList.length > 0 ? workerList.length : Number(job?.workersNeeded) || 1;
   const totalAmount = (job?.payPerDay || 500) * workerCount;

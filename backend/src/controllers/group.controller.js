@@ -2,6 +2,7 @@ const prisma = require('../config/database');
 const { getIO } = require('../config/socket');
 const { logger } = require('../middleware/errorHandler');
 const { JobStatus, GroupStatus, MemberStatus, ApplicationStatus, UserStatus, WorkerType, UserRole } = require('../config/enums'); // D1
+const { isValidPhotoUrl } = require('../utils/urlGuard');
 
 // GET /api/groups/my-groups - Get all groups led by or containing current user
 const getMyGroups = async (req, res, next) => {
@@ -46,6 +47,10 @@ const createGroup = async (req, res, next) => {
 
     if (!name) {
       return res.status(400).json({ error: 'Group name is required' });
+    }
+
+    if (photoUrl && !isValidPhotoUrl(photoUrl)) {
+      return res.status(400).json({ error: 'Invalid photo URL' });
     }
 
     const group = await prisma.group.create({

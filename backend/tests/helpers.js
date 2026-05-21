@@ -73,6 +73,8 @@ async function cleanupTestUsers() {
     await prisma.group.deleteMany({});
     await prisma.job.deleteMany({});
     await prisma.refreshToken.deleteMany({});
+    await prisma.userLocation.deleteMany({});
+    await prisma.userAnimal.deleteMany({});
     await prisma.user.deleteMany({
       where: { phone: { startsWith: TEST_PHONE_PREFIX } }
     });

@@ -255,8 +255,7 @@ const getNearbyWorkers = async (req, res, next) => {
     const workers = await prisma.user.findMany({
       where: {
         role: { in: ['worker', 'leader'] },
-        latitude: { not: null },
-        longitude: { not: null },
+        location: { isNot: null },
         deletedAt: null, // respect soft-delete
       },
       select: {
@@ -266,18 +265,28 @@ const getNearbyWorkers = async (req, res, next) => {
         photoUrl: true,
         ratingAvg: true,
         skills: true,
-        latitude: true,
-        longitude: true,
+        location: true,
         status: true,
         experience: true,
       }
+    });
+
+    const mappedWorkers = workers.map(worker => {
+      const latVal = worker.location ? worker.location.latitude : null;
+      const lngVal = worker.location ? worker.location.longitude : null;
+      const { location, ...safeWorker } = worker;
+      return {
+        ...safeWorker,
+        latitude: latVal,
+        longitude: lngVal
+      };
     });
 
     if (latitude && longitude) {
       const lat1 = parseFloat(latitude);
       const lon1 = parseFloat(longitude);
 
-      const workersWithDistance = workers.map(worker => {
+      const workersWithDistance = mappedWorkers.map(worker => {
         const lat2 = worker.latitude;
         const lon2 = worker.longitude;
 
@@ -305,8 +314,8 @@ const getNearbyWorkers = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      workers,
-      data: workers
+      workers: mappedWorkers,
+      data: mappedWorkers
     });
   } catch (error) {
     logger.error('Get nearby workers query error', { message: error.message });

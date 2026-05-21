@@ -275,14 +275,13 @@ const checkOut = async (req, res, next) => {
       });
     }
 
-    // 3. Fetch check-in time to compute hours before update
+    // 3. Fetch check-in record to confirm existence
     const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
     if (!existing) return res.status(404).json({ success: false, message: 'Attendance record not found' });
 
     const checkOutTime = new Date();
-    const hoursWorked = (checkOutTime - new Date(existing.checkIn)) / (1000 * 60 * 60);
 
-    // 4. Single update with all fields including hoursWorked
+    // 4. Single update with all fields (hoursWorked is computed by DB BEFORE UPDATE trigger)
     const attendance = await prisma.attendance.update({
       where: { id: targetId },
       data: {
@@ -290,13 +289,14 @@ const checkOut = async (req, res, next) => {
         checkOut: checkOutTime,
         checkOutLatitude: parseFloat(checkOutLatitude),
         checkOutLongitude: parseFloat(checkOutLongitude),
-        hoursWorked,
       },
       include: { 
         job: true,
         worker: { select: { name: true } }
       }
     });
+
+    const hoursWorked = attendance.hoursWorked;
 
     await prisma.user.update({
       where: { id: attendance.workerId },
@@ -322,7 +322,7 @@ const checkOut = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Checked out successfully',
-      data: { ...attendance, hoursWorked }
+      data: attendance
     });
 
   } catch (error) {

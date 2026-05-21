@@ -2,9 +2,11 @@ import { api } from '../api.js';
 
 const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-export async function loadStats() {
+export async function loadStats(isSilent = false) {
   const el = document.getElementById('page-stats');
-  el.innerHTML = `<div class="table-loading"><div class="spinner"></div></div>`;
+  if (!isSilent) {
+    el.innerHTML = `<div class="table-loading"><div class="spinner"></div></div>`;
+  }
 
   try {
     const data = await api.getStats();
@@ -46,7 +48,10 @@ export async function loadStats() {
           <div class="card-header">
             <div>
               <div class="card-title">Weekly Activity</div>
-              <div class="card-sub">Jobs &amp; Engagement</div>
+              <div style="display:flex;gap:12px;font-size:12px;margin-top:4px;color:var(--text-muted)">
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:var(--primary)"></span> Jobs</span>
+                <span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></span> Revenue</span>
+              </div>
             </div>
             <div style="text-align:right">
               <div style="font-size:24px;font-weight:900;color:var(--primary)">${(u.total/1000).toFixed(1)}k</div>
@@ -59,6 +64,9 @@ export async function loadStats() {
               <div style="font-size:12px;color:var(--text-muted)">Last 7 days vs prior 7 days</div>
               ${data._cachedAt ? `<div style="font-size:11px;color:var(--text-dim)">Cached: ${new Date(data._cachedAt).toLocaleTimeString()}</div>` : ''}
             </div>
+            
+            <div id="chartArea"></div>
+
             <div style="display:flex;gap:8px;margin-top:8px">
               ${DAYS.map(d => `<div style="flex:1;text-align:center;font-size:11px;color:var(--text-muted);font-weight:600">${d}</div>`).join('')}
             </div>
@@ -141,6 +149,7 @@ function miniCard(icon, bg, label, value) {
 }
 
 // FIX #6: Real chart — fetches actual daily job counts from /stats/activity.
+// Displays both Jobs count and Revenue trend side-by-side.
 async function drawChart() {
   const area = document.getElementById('chartArea');
   if (!area) return;
@@ -151,22 +160,31 @@ async function drawChart() {
   try {
     const { activity } = await api.getActivity(7);
     const maxJobs = Math.max(...activity.map(d => d.jobs), 1); // avoid divide-by-0
+    const maxRevenue = Math.max(...activity.map(d => d.revenue), 1);
 
     area.innerHTML = activity.map(d => {
-      const h = Math.round((d.jobs / maxJobs) * 100);
-      const tooltip = `${d.label}: ${d.jobs} job${d.jobs !== 1 ? 's' : ''}`;
+      const jobsH = Math.round((d.jobs / maxJobs) * 100);
+      const revH = Math.round((d.revenue / maxRevenue) * 100);
+      const tooltip = `${d.label} | Jobs: ${d.jobs} | Revenue: ₹${d.revenue.toLocaleString('en-IN')}`;
       return `
         <div class="chart-bar-wrap" title="${tooltip}">
-          <div class="chart-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(h, 4)}%"></div>
+          <div class="chart-bar-group">
+            <div class="chart-bar jobs-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(jobsH, 4)}%"></div>
+            <div class="chart-bar revenue-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(revH, 4)}%"></div>
+          </div>
         </div>`;
     }).join('');
   } catch {
     // Fallback to placeholder bars if the activity endpoint is unavailable
     const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
-    const heights = [40, 60, 45, 80, 65, 100, 75];
-    area.innerHTML = heights.map((h, i) => `
+    const heightsJobs = [40, 60, 45, 80, 65, 100, 75];
+    const heightsRev = [30, 50, 70, 40, 80, 90, 60];
+    area.innerHTML = heightsJobs.map((h, i) => `
       <div class="chart-bar-wrap">
-        <div class="chart-bar ${i === todayIdx ? 'active' : ''}" style="height:${h}%"></div>
+        <div class="chart-bar-group">
+          <div class="chart-bar jobs-bar ${i === todayIdx ? 'active' : ''}" style="height:${h}%"></div>
+          <div class="chart-bar revenue-bar ${i === todayIdx ? 'active' : ''}" style="height:${heightsRev[i]}%"></div>
+        </div>
       </div>`).join('');
   }
 }

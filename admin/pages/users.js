@@ -13,6 +13,9 @@ export async function loadUsers() {
         <div class="section-title">User Management</div>
         <div class="section-sub">Control access and verify status for all network participants.</div>
       </div>
+      <div class="section-controls">
+        <button class="btn btn-outline btn-sm" id="exportUsersCsvBtn">⬇ Export CSV</button>
+      </div>
     </div>
 
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
@@ -50,6 +53,7 @@ export async function loadUsers() {
   el.querySelector('#userSearch').addEventListener('input', () => { page=1; renderUsers(); });
   el.querySelector('#userRoleFilter').addEventListener('change', () => { page=1; renderUsers(); });
   el.querySelector('#userStatusFilter').addEventListener('change', () => { page=1; renderUsers(); });
+  el.querySelector('#exportUsersCsvBtn').addEventListener('click', exportUsersCsv);
 
   try {
     const data = await api.getUsers();
@@ -196,3 +200,22 @@ window._deleteUser = async (id, name) => {
     window.showToast('User removed from platform');
   } catch(e) { window.showToast(e.message,'error'); }
 };
+
+function exportUsersCsv() {
+  const rows = [['ID', 'Name', 'Phone', 'Role', 'Status', 'Village', 'Rating']];
+  allUsers.forEach(u => rows.push([
+    `"${u.id}"`,
+    `"${(u.name || '').replace(/"/g, '""')}"`,
+    `"${u.phone || ''}"`,
+    `"${u.role || ''}"`,
+    `"${u.status || 'active'}"`,
+    `"${(u.village || '').replace(/"/g, '""')}"`,
+    u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : ''
+  ]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = `data:text/csv,${encodeURIComponent(csv)}`;
+  a.download = `users_${Date.now()}.csv`;
+  a.click();
+  window.showToast('CSV exported');
+}

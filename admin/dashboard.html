@@ -168,6 +168,7 @@
   };
 
   let currentPage = 'stats';
+  let statsInterval = null;
 
   function navigate(page) {
     if (!pages[page]) return;
@@ -178,7 +179,19 @@
     document.getElementById('topbarSub').textContent = pages[page].sub;
     document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
     document.getElementById(`page-${page}`).classList.add('active');
+    
+    if (statsInterval) {
+      clearInterval(statsInterval);
+      statsInterval = null;
+    }
+    
     pages[page].load();
+
+    if (page === 'stats') {
+      statsInterval = setInterval(() => {
+        pages.stats.load(true);
+      }, 30000);
+    }
   }
 
   document.querySelectorAll('.nav-item').forEach(el => {

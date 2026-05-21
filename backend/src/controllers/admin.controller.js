@@ -58,6 +58,7 @@ const getStats = async (req, res, next) => {
       jobsByStatus,
       totalPayments,
       paymentStats,
+      pendingPaymentStats,
       totalAttendance,
       totalRatings,
       totalGroups,
@@ -76,6 +77,7 @@ const getStats = async (req, res, next) => {
       prisma.job.groupBy({ by: ['status'], _count: true }),
       prisma.payment.count(),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.COMPLETED } }),
+      prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.PENDING } }),
       prisma.attendance.count(),
       prisma.rating.count(),
       prisma.group.count(),
@@ -106,6 +108,7 @@ const getStats = async (req, res, next) => {
       payments: {
         total: totalPayments,
         revenue: paymentStats._sum.amount || 0,
+        pending: pendingPaymentStats._sum.amount || 0,
       },
       attendance: totalAttendance,
       ratings: totalRatings,
@@ -226,12 +229,13 @@ const updateUser = async (req, res, next) => {
     if (!existing) {
       return res.status(404).json({ error: 'User not found' });
     }
+    const mappedStatus = status === 'active' ? 'available' : status;
     const user = await prisma.user.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(role !== undefined && { role }),
-        ...(status !== undefined && { status }),
+        ...(status !== undefined && { status: mappedStatus }),
         ...(village !== undefined && { village }),
         ...(landAcres !== undefined && { landAcres: parseFloat(landAcres) }),
       },

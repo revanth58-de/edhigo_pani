@@ -138,9 +138,15 @@ const acceptJob = async (req, res) => {
         select: {
           id: true, name: true, phone: true, photoUrl: true,
           ratingAvg: true, skills: true, village: true,
-          latitude: true, longitude: true,
+          location: true,
         },
       });
+
+      if (workerDetails) {
+        workerDetails.latitude = workerDetails.location?.latitude ?? null;
+        workerDetails.longitude = workerDetails.location?.longitude ?? null;
+        delete workerDetails.location;
+      }
 
       const farmerFull = await tx.user.findUnique({
         where: { id: currentJob.farmer.id },

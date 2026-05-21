@@ -6,6 +6,7 @@ const config = require('../config/env');
 const { sendOTPSms } = require('../services/smsService');
 const { logger } = require('../middleware/errorHandler');
 const { UserRole, Gender, Language } = require('../config/enums'); // D1
+const { isValidPhotoUrl } = require('../utils/urlGuard');
 
 // Generate a cryptographically secure 4-digit OTP
 const generateOTP = () => {
@@ -15,7 +16,24 @@ const generateOTP = () => {
 // Remove sensitive fields from user object before sending to client
 const sanitizeUser = (user) => {
   if (!user) return null;
-  const { otp, otpExpiresAt, deletedAt, createdAt, updatedAt, ...safeUser } = user;
+  const { otp, otpExpiresAt, deletedAt, createdAt, updatedAt, location, animals, ...safeUser } = user;
+  
+  if (location) {
+    safeUser.latitude = location.latitude;
+    safeUser.longitude = location.longitude;
+  } else {
+    safeUser.latitude = null;
+    safeUser.longitude = null;
+  }
+
+  const animalsObj = {};
+  if (animals && Array.isArray(animals)) {
+    for (const animal of animals) {
+      animalsObj[animal.type] = animal.count;
+    }
+  }
+  safeUser.animals = animalsObj;
+
   return safeUser;
 };
 
@@ -192,6 +210,10 @@ const verifyOTP = async (req, res, next) => {
         ...(age     && { age: parseInt(age, 10) }),
         ...(gender  && { gender }),
       },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     const tokens = await generateTokens(user.id);
@@ -223,6 +245,10 @@ const setRole = async (req, res, next) => {
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { role },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -247,6 +273,10 @@ const setLanguage = async (req, res, next) => {
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { language },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -263,6 +293,10 @@ const getMe = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -329,7 +363,6 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-// PUT /api/auth/profile
 const updateProfile = async (req, res, next) => {
   try {
     const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon } = req.body;
@@ -337,20 +370,80 @@ const updateProfile = async (req, res, next) => {
     const dataToUpdate = {};
     if (name !== undefined) dataToUpdate.name = name;
     if (village !== undefined) dataToUpdate.village = village;
-    if (photoUrl !== undefined) dataToUpdate.photoUrl = photoUrl;
+    if (photoUrl !== undefined) {
+      if (photoUrl !== null && photoUrl !== '' && !isValidPhotoUrl(photoUrl)) {
+        return res.status(400).json({ error: 'Invalid photo URL' });
+      }
+      dataToUpdate.photoUrl = photoUrl;
+    }
     if (landAcres !== undefined) dataToUpdate.landAcres = parseFloat(landAcres);
-    if (animals !== undefined) dataToUpdate.animals = animals;
     if (skills !== undefined) dataToUpdate.skills = skills;
-    if (status !== undefined) dataToUpdate.status = status;
+    if (status !== undefined) dataToUpdate.status = status === 'active' ? 'available' : status;
     if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
-    if (latitude !== undefined) dataToUpdate.latitude = parseFloat(latitude);
-    if (longitude !== undefined) dataToUpdate.longitude = parseFloat(longitude);
     if (experience !== undefined) dataToUpdate.experience = parseInt(experience, 10);
     if (avatarIcon !== undefined) dataToUpdate.avatarIcon = avatarIcon;
+
+    if (latitude !== undefined || longitude !== undefined) {
+      if (latitude === null || longitude === null || latitude === '' || longitude === '') {
+        await prisma.userLocation.deleteMany({ where: { userId: req.user.id } });
+      } else {
+        const parsedLat = parseFloat(latitude);
+        const parsedLng = parseFloat(longitude);
+        if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+          dataToUpdate.location = {
+            upsert: {
+              create: {
+                latitude: parsedLat,
+                longitude: parsedLng,
+              },
+              update: {
+                latitude: parsedLat,
+                longitude: parsedLng,
+              }
+            }
+          };
+        }
+      }
+    }
+
+    if (animals !== undefined) {
+      await prisma.userAnimal.deleteMany({ where: { userId: req.user.id } });
+
+      if (animals !== null && animals !== '') {
+        let animalsObj = {};
+        if (typeof animals === 'string') {
+          try {
+            animalsObj = JSON.parse(animals);
+          } catch (e) {
+            animalsObj = {};
+          }
+        } else if (typeof animals === 'object') {
+          animalsObj = animals;
+        }
+
+        const animalData = Object.entries(animalsObj)
+          .filter(([_, count]) => count !== null && count !== undefined && count > 0)
+          .map(([type, count]) => ({
+            userId: req.user.id,
+            type,
+            count: parseInt(count, 10),
+          }));
+
+        if (animalData.length > 0) {
+          await prisma.userAnimal.createMany({
+            data: animalData,
+          });
+        }
+      }
+    }
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: dataToUpdate,
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({

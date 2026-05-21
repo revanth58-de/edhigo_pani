@@ -13,20 +13,17 @@ model User {
   id          String   @id @default(uuid())
   phone       String   @unique
   name        String?
-  role        String?  // "farmer" | "worker" | "leader"
+  role        Role?
   language    String   @default("te") // "te" | "hi" | "en"
   village     String?
   age         Int?     // Age of the user (must be >= 18 for workers)
   gender      String?  // "male" | "female" | "other"
   photoUrl    String?
   landAcres   Float?
-  animals     Json?    // { cow: 2, buffalo: 1, hen: 10 }
   skills      Json?    // ["plowing", "seeding"]
   ratingAvg   Float    @default(0)
   ratingCount Int      @default(0)
-  latitude    Float?
-  longitude   Float?
-  status      String   @default("offline") // "available" | "working" | "on_break" | "offline"
+  status      Status   @default(offline)
   pushToken   String?  // Expo push notification token
   otp           String?
   otpExpiresAt  DateTime?
@@ -36,6 +33,10 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime? // S4: soft-delete — set instead of destroying the row
+
+  // Isolated Location and Normalized Animals relations
+  location    UserLocation?
+  animals     UserAnimal[]
 
   // Relations
   jobsPosted       Job[]             @relation("FarmerJobs")
@@ -82,6 +83,7 @@ model Job {
   status        String   @default("pending") // "pending" | "matched" | "in_progress" | "completed" | "cancelled"
   startTime     DateTime?
   endTime       DateTime?
+  durationDays  Int?     // D5: duration of the job in days
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -125,16 +127,18 @@ model Attendance {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
-  jobId     String
-  farmerId  String
-  workerId  String
-  amount    Float
-  method    String   // "cash" | "upi"
-  upiRef    String?
-  status    String   @default("pending") // "pending" | "completed" | "failed"
-  paidAt    DateTime?
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  jobId      String
+  farmerId   String
+  workerId   String
+  amount     Float
+  method     String   // "cash" | "upi"
+  upiRef     String?
+  status     String   @default("pending") // "pending" | "completed" | "failed"
+  paidAt     DateTime?
+  notes      String?  // D4: additional payment context/notes
+  receiptUrl String?  // D4: link to cash receipt image/doc
+  createdAt  DateTime @default(now())
 
   // Relations
   job    Job  @relation(fields: [jobId], references: [id])
@@ -151,8 +155,7 @@ model Rating {
   jobId      String
   fromUserId String
   toUserId   String
-  emoji      String   // "happy" | "neutral" | "sad"
-  stars      Int?     // 1-5
+  stars      Int      // D6: 1-5 stars only (emoji is dynamically mapped on read/write)
   createdAt  DateTime @default(now())
 
   // Relations
@@ -255,4 +258,44 @@ model AuditLog {
   @@index([adminId])
   @@index([action])
   @@map("audit_logs")
+}
+
+// ─── NEW NORMALIZED MODELS & ENUMS ───
+
+enum Role {
+  farmer
+  worker
+  leader
+}
+
+enum Status {
+  available
+  working
+  on_break
+  offline
+  suspended
+  online
+}
+
+model UserLocation {
+  userId    String   @id
+  latitude  Float
+  longitude Float
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_locations")
+}
+
+model UserAnimal {
+  id     String @id @default(uuid())
+  userId String
+  type   String
+  count  Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("user_animals")
 }

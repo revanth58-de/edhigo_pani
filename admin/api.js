@@ -42,4 +42,5 @@ export const api = {
   getAttendance:  ()           => call('/attendance'),
   getRatings:     ()           => call('/ratings'),
   getGroups:      ()           => call('/groups'),
+  getAuditLogs:   ()           => call('/audit'),
 };

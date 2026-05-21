@@ -86,21 +86,21 @@ const matchWorkers = async (job) => {
       role: roleFilter,
       status: { in: UserStatus.ONLINE },  // D1: 'available' + 'online' (legacy back-compat)
       ...(hasLocation && bbox ? {
-        latitude:  { gte: bbox.minLat, lte: bbox.maxLat },
-        longitude: { gte: bbox.minLng, lte: bbox.maxLng },
+        location: {
+          latitude:  { gte: bbox.minLat, lte: bbox.maxLat },
+          longitude: { gte: bbox.minLng, lte: bbox.maxLng },
+        }
       } : {
         // No farm location: still require workers to have *some* location so
         // we can compute distance later (avoids null distanceKm surprises)
-        latitude:  { not: null },
-        longitude: { not: null },
+        location: { isNot: null },
       }),
     },
     select: {
       id: true,
       name: true,
       skills: true,
-      latitude: true,
-      longitude: true,
+      location: true,
       status: true,
       ratingAvg: true,
       ...(isGroupJob ? {
@@ -117,11 +117,22 @@ const matchWorkers = async (job) => {
     },
   });
 
+  const mappedCandidates = candidates.map(worker => {
+    const latVal = worker.location ? worker.location.latitude : null;
+    const lngVal = worker.location ? worker.location.longitude : null;
+    const { location, ...safeWorker } = worker;
+    return {
+      ...safeWorker,
+      latitude: latVal,
+      longitude: lngVal
+    };
+  });
+
   const requiredWorkers = parseInt(workersNeeded) || 1;
   const requiredSkills  = SKILL_MAP[workType?.toLowerCase()] || [];
   const matched = [];
 
-  for (const worker of candidates) {
+  for (const worker of mappedCandidates) {
     // ── Precise Haversine check ─────────────────────────────────────────────
     // The bounding box is a square — workers in the corners are slightly beyond
     // MAX_DISTANCE_KM. The Haversine check here culls those corner cases.

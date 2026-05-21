@@ -8,7 +8,6 @@ import {
   StatusBar,
   ScrollView,
   TextInput,
-  ActivityIndicator,
   Alert,
   Platform,
   Animated,
@@ -19,6 +18,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Application from 'expo-application';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -26,6 +26,7 @@ import BottomNavBar from '../../components/BottomNavBar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { jobAPI, uploadAPI } from '../../services/api';
 import DigitalIDCard from '../../components/worker/DigitalIDCard';
+import CustomLoader from '../../components/CustomLoader';
 
 const AVATAR_OPTIONS = [
   { key: 'agriculture', icon: 'agriculture' },
@@ -70,6 +71,7 @@ const SkillChip = React.memo(({ skill, isSelected, onPress, isEditing, onRemove 
 
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser, refreshProfile } = useAuthStore();
+  const appVersion = Application.nativeApplicationVersion || '1.0.0';
   const { t } = useTranslation();
   
   useFocusEffect(
@@ -345,7 +347,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           <View style={styles.avatarOuter}>
             <View style={styles.avatarInner}>
               {isUploadingPhoto ? (
-                <ActivityIndicator size="small" color={colors.primary} />
+                <CustomLoader size={32} color={colors.primary} />
               ) : (isEditing ? selectedPhotoUrl : user?.photoUrl) ? (
                 <Image
                   source={{ uri: isEditing ? selectedPhotoUrl : user.photoUrl }}
@@ -594,7 +596,7 @@ const WorkerProfileScreen = ({ navigation }) => {
                     disabled={isSaving}
                   >
                     {isSaving ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <CustomLoader size={24} color="#FFFFFF" />
                     ) : (
                       <>
                         <MaterialIcons name="check" size={24} color="#FFFFFF" />
@@ -664,6 +666,9 @@ const WorkerProfileScreen = ({ navigation }) => {
               <MaterialIcons name="logout" size={22} color="#EF4444" />
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
+
+            {/* App Version */}
+            <Text style={styles.versionText}>Version {appVersion}</Text>
 
             <View style={{ height: 100 }} />
           </>
@@ -1156,6 +1161,7 @@ const styles = StyleSheet.create({
     borderColor: '#FEE2E2',
   },
   logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  versionText: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 20 },
   roleSwitchCard: {
     marginHorizontal: 20,
     marginTop: 24,

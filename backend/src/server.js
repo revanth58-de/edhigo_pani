@@ -279,6 +279,45 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Group location updates from a member of a group
+  socket.on('group:location_update', async (data) => {
+    const { groupId, latitude, longitude } = data;
+    const senderId = socket.userId;
+    try {
+      const prisma = require('./config/database');
+
+      // Verify sender is in this group
+      const membership = await prisma.group.findFirst({
+        where: {
+          id: groupId,
+          OR: [{ leaderId: senderId }, { members: { some: { workerId: senderId } } }],
+        },
+        select: { id: true },
+      });
+      if (!membership) {
+        logger.warn(`Socket ${socket.id} tried to update group location for group:${groupId} without membership`);
+        return;
+      }
+
+      // Upsert to UserLocation table
+      await prisma.userLocation.upsert({
+        where: { userId: senderId },
+        update: { latitude, longitude },
+        create: { userId: senderId, latitude, longitude },
+      });
+
+      // Broadcast to other members in the group room
+      io.to(`group:${groupId}`).emit('group:location_broadcast', {
+        userId: senderId,
+        latitude,
+        longitude,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      logger.error(`Error in group:location_update: ${err.message}`);
+    }
+  });
+
   // Worker arrives at farm
   socket.on('job:arrival', async (data) => {
     const { jobId, workerId } = data;

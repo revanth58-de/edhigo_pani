@@ -10,7 +10,6 @@ import {
   TextInput,
   Alert,
   Platform,
-  ActivityIndicator,
   Animated,
   PanResponder,
   Dimensions,
@@ -24,7 +23,9 @@ import { authAPI, uploadAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Application from 'expo-application';
 import BottomNavBar from '../../components/BottomNavBar';
+import CustomLoader from '../../components/CustomLoader';
 
 // ─── Animal Data with emoji ───
 const ANIMALS = [
@@ -153,6 +154,7 @@ const cardStyles = StyleSheet.create({
 const FarmerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
+  const appVersion = Application.nativeApplicationVersion || '1.0.0';
 
   const language = useAuthStore((state) => state.language) || 'te';
   const setLanguage = useAuthStore((state) => state.setLanguage);
@@ -496,7 +498,7 @@ const FarmerProfileScreen = ({ navigation }) => {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               {isUploadingPhoto ? (
-                <ActivityIndicator size="small" color={colors.primary} />
+                <CustomLoader size={32} color={colors.primary} />
               ) : (isEditing ? selectedPhotoUrl : user?.photoUrl) ? (
                 <Image
                   source={{ uri: isEditing ? selectedPhotoUrl : user.photoUrl }}
@@ -803,7 +805,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               disabled={isSaving}
             >
               {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <CustomLoader size={24} color="#FFFFFF" />
               ) : (
                 <>
                   <MaterialIcons name="check" size={22} color="#FFFFFF" />
@@ -882,6 +884,9 @@ const FarmerProfileScreen = ({ navigation }) => {
                   <MaterialIcons name="logout" size={22} color="#EF4444" />
                   <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
                 </TouchableOpacity>
+
+                {/* App Version */}
+                <Text style={styles.versionText}>Version {appVersion}</Text>
               </>
             )}
           </>
@@ -1234,6 +1239,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  versionText: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 20 },
   roleSwitchCard: {
     marginHorizontal: 20,
     marginTop: 24,

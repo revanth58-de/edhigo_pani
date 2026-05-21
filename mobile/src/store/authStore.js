@@ -58,7 +58,8 @@ const SecureStorage = {
 // ── Helpers: Secure & Regular Storage ──
 const saveToStorage = async (data) => {
   try {
-    const { accessToken, refreshToken, ...meta } = data;
+    const { accessToken, refreshToken, user, isAuthenticated, language, phone, cameraPermission } = data;
+    const meta = { user, isAuthenticated, language, phone, cameraPermission };
 
     // Save non-sensitive meta to AsyncStorage
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
@@ -123,6 +124,7 @@ const useAuthStore = create((set, get) => ({
   language: 'te',
   otp: null,
   phone: null,
+  cameraPermission: null, // 'granted' | 'denied' | null
   _hydrated: false,
 
   // ── Rehydrate from AsyncStorage (called once on startup) ──
@@ -147,6 +149,7 @@ const useAuthStore = create((set, get) => ({
         isAuthenticated: saved.isAuthenticated ?? false,
         language: saved.language ?? 'te',
         phone: saved.phone ?? null,
+        cameraPermission: saved.cameraPermission ?? null,
         _hydrated: true,
       });
 
@@ -161,41 +164,29 @@ const useAuthStore = create((set, get) => ({
   // ── Actions ──
   setLanguage: async (language) => {
     set({ language });
-    const s = get();
-    await saveToStorage({ 
-      user: s.user, 
-      accessToken: s.accessToken, 
-      refreshToken: s.refreshToken, 
-      isAuthenticated: s.isAuthenticated, 
-      language, 
-      phone: s.phone 
-    });
+    await saveToStorage(get());
+  },
+
+  setCameraPermission: async (status) => {
+    set({ cameraPermission: status });
+    await saveToStorage(get());
   },
 
   updateUser: async (userData) => {
     const state = get();
     const updatedUser = { ...state.user, ...userData };
     set({ user: updatedUser });
-    await saveToStorage({ 
-      user: updatedUser, 
-      accessToken: state.accessToken, 
-      refreshToken: state.refreshToken, 
-      isAuthenticated: state.isAuthenticated, 
-      language: state.language, 
-      phone: state.phone 
-    });
+    await saveToStorage(get());
   },
 
   refreshProfile: async () => {
     try {
       const meResponse = await authAPI.getMe();
       if (meResponse?.data?.user) {
-        set((state) => {
-          // Merge to avoid losing state properties not returned by getMe
-          const fullUser = mapServerUser({ ...state.user, ...meResponse.data.user });
-          saveToStorage({ user: fullUser, accessToken: state.accessToken, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated, language: state.language, phone: state.phone });
-          return { user: fullUser };
-        });
+        const state = get();
+        const fullUser = mapServerUser({ ...state.user, ...meResponse.data.user });
+        set({ user: fullUser });
+        await saveToStorage(get());
       }
     } catch (error) {
       console.error('Failed to refresh profile:', error);
@@ -227,14 +218,7 @@ const useAuthStore = create((set, get) => ({
       const mappedUser = mapServerUser(user);
       set({ user: mappedUser, accessToken, refreshToken, isAuthenticated: true, isLoading: false, otp: null });
       
-      await saveToStorage({ 
-        user: mappedUser, 
-        accessToken, 
-        refreshToken, 
-        isAuthenticated: true, 
-        language: get().language, 
-        phone 
-      });
+      await saveToStorage(get());
 
       // Connect socket after auth + identify user in Sentry for crash correlation
       import('../services/socketService').then(s => s.socketService.connect());
@@ -246,14 +230,7 @@ const useAuthStore = create((set, get) => ({
         if (meResponse?.data?.user) {
           const fullUser = mapServerUser({ ...user, ...meResponse.data.user });
           set({ user: fullUser });
-          await saveToStorage({ 
-            user: fullUser, 
-            accessToken, 
-            refreshToken, 
-            isAuthenticated: true, 
-            language: get().language, 
-            phone 
-          });
+          await saveToStorage(get());
         }
       } catch (_) { }
 
@@ -270,15 +247,7 @@ const useAuthStore = create((set, get) => ({
       const response = await authAPI.setRole(role);
       const updatedUser = response.data.user;
       set({ user: updatedUser, isLoading: false });
-      const s = get();
-      await saveToStorage({ 
-        user: updatedUser, 
-        accessToken: s.accessToken, 
-        refreshToken: s.refreshToken, 
-        isAuthenticated: s.isAuthenticated, 
-        language: s.language, 
-        phone: s.phone 
-      });
+      await saveToStorage(get());
       return response.data;
     } catch (error) {
       set({ isLoading: false });
@@ -289,7 +258,7 @@ const useAuthStore = create((set, get) => ({
   logout: () => {
     setAuthToken(null);
     clearStorage();
-    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, phone: null, _hydrated: true });
+    set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, phone: null, cameraPermission: null, _hydrated: true });
     import('../services/socketService').then(s => s.socketService.disconnect());
     clearSentryUser(); // Remove user context from Sentry on logout
   },

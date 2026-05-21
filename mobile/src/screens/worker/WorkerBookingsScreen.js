@@ -7,7 +7,6 @@ import {
   StyleSheet,
   StatusBar,
   ScrollView,
-  ActivityIndicator,
   Alert,
   RefreshControl,
 } from 'react-native';
@@ -18,6 +17,8 @@ import { colors } from '../../theme/colors';
 import useAuthStore from '../../store/authStore';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import CustomLoader from '../../components/CustomLoader';
+import EmptyState from '../../components/EmptyState';
 
 const STATUS_META = {
   pending:     { label: 'Waiting',      color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
@@ -191,17 +192,19 @@ const WorkerBookingsScreen = ({ navigation }) => {
         }
       >
         {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 60 }} />
-        ) : filtered.length === 0 ? (
-          <View style={styles.emptyState}>
-            <MaterialIcons name={currentTab.icon} size={64} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No {currentTab.label.toLowerCase()} bookings</Text>
-            <Text style={styles.emptySubText}>
-              {activeTab === 'active'
-                ? 'Accept a job offer to see it here'
-                : `Your ${currentTab.label.toLowerCase()} jobs will appear here`}
-            </Text>
+          <View style={{ marginTop: 60, alignItems: 'center' }}>
+            <CustomLoader size={48} color={colors.primary} />
           </View>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={currentTab.icon}
+            title={`No ${currentTab.label.toLowerCase()} bookings`}
+            subtitle={
+              activeTab === 'active'
+                ? 'Accept a job offer to see it here'
+                : `Your ${currentTab.label.toLowerCase()} jobs will appear here`
+            }
+          />
         ) : (
           filtered.map((job) => (
             <JobBookingCard

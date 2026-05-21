@@ -7,7 +7,6 @@ import {
     StyleSheet,
     StatusBar,
     ScrollView,
-    ActivityIndicator,
     RefreshControl,
     Platform,
     Alert,
@@ -20,6 +19,8 @@ import { jobAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
+import CustomLoader from '../../components/CustomLoader';
+import EmptyState from '../../components/EmptyState';
 
 const STATUS_META = {
     pending: { label: 'Waiting for Workers', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
@@ -189,7 +190,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
         if (loading) {
             return (
                 <View style={styles.centeredBox}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                    <CustomLoader size={48} color={colors.primary} />
                     <Text style={styles.loadingText}>Loading your jobs...</Text>
                 </View>
             );
@@ -209,18 +210,12 @@ const FarmerHistoryScreen = ({ navigation }) => {
 
         if (jobs.length === 0) {
             return (
-                <View style={styles.centeredBox}>
-                    <MaterialIcons name="history" size={72} color={`${colors.primary}44`} />
-                    <Text style={styles.emptyTitle}>No Jobs Posted Yet</Text>
-                    <Text style={styles.emptySubtitle}>Your posted jobs will appear here once you start hiring workers.</Text>
-                    <TouchableOpacity
-                        style={styles.postJobBtn}
-                        onPress={() => navigation.navigate('FarmerHome')}
-                    >
-                        <MaterialIcons name="add" size={20} color="#FFFFFF" />
-                        <Text style={styles.postJobBtnText}>Post a Job</Text>
-                    </TouchableOpacity>
-                </View>
+                <EmptyState
+                    icon="history"
+                    title="No Jobs Posted Yet"
+                    subtitle="Your posted jobs will appear here once you start hiring workers."
+                    action={{ label: 'Post a Job', onPress: () => navigation.navigate('FarmerHome') }}
+                />
             );
         }
 

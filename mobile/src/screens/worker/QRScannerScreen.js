@@ -8,7 +8,6 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   Modal,
   ScrollView,
   Animated,
@@ -26,6 +25,7 @@ import useAuthStore from '../../store/authStore';
 import * as Location from 'expo-location';
 import BottomNavBar from '../../components/BottomNavBar';
 import { LinearGradient } from 'expo-linear-gradient';
+import CustomLoader from '../../components/CustomLoader';
 
 const { width } = Dimensions.get('window');
 const SCAN_BOX_SIZE = width * 0.7;
@@ -60,7 +60,16 @@ const HELP_STEPS = [
 
 const QRScannerScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
-  const [hasPermission, setHasPermission] = useState(null);
+  
+  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
+
+  const [hasPermission, setHasPermission] = useState(() => {
+    if (cachedPermission === 'granted') return true;
+    if (cachedPermission === 'denied') return false;
+    return null;
+  });
+
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -69,11 +78,20 @@ const QRScannerScreen = ({ navigation, route }) => {
 
   useEffect(() => {
     const checkPermission = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        let permission = await Camera.getCameraPermissionsAsync();
+        let status = permission.status;
+        if (status === 'undetermined') {
+          const requestResult = await Camera.requestCameraPermissionsAsync();
+          status = requestResult.status;
+        }
+        setCachedPermission(status);
+        setHasPermission(status === 'granted');
+      } catch (err) {
+        console.error('Error checking camera permissions:', err);
+      }
     };
-    const timer = setTimeout(checkPermission, 100);
-    return () => clearTimeout(timer);
+    checkPermission();
   }, []);
 
   // Animate scan line
@@ -218,7 +236,7 @@ const QRScannerScreen = ({ navigation, route }) => {
   if (hasPermission === null) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <CustomLoader size={48} color={colors.primary} />
       </View>
     );
   }
@@ -231,6 +249,7 @@ const QRScannerScreen = ({ navigation, route }) => {
           style={styles.retryButton}
           onPress={async () => {
             const { status } = await Camera.requestCameraPermissionsAsync();
+            setCachedPermission(status);
             setHasPermission(status === 'granted');
           }}
         >
@@ -295,7 +314,7 @@ const QRScannerScreen = ({ navigation, route }) => {
 
                 {loading && (
                   <View style={styles.loadingBox}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                    <CustomLoader size={48} color={colors.primary} />
                   </View>
                 )}
               </View>

@@ -197,6 +197,18 @@ class SocketService {
         }
     }
 
+    onGroupLocationBroadcast(callback) {
+        this.on('group:location_broadcast', callback);
+    }
+
+    offGroupLocationBroadcast(callback) {
+        this.off('group:location_broadcast', callback);
+    }
+
+    emitGroupLocationUpdate(data) {
+        this.emit('group:location_update', data);
+    }
+
     // ── Farmer Notifications ─────────────────────────────────────────
 
     onJobAccepted(callback) {

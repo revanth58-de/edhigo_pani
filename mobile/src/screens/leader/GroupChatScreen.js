@@ -15,7 +15,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  ActivityIndicator,
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -24,6 +23,8 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 import { API_BASE_URL } from '../../config/api.config';
 import axios from 'axios';
+import useChatStore from '../../store/chatStore';
+import CustomLoader from '../../components/CustomLoader';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const formatTime = (dateStr) => {
@@ -81,7 +82,7 @@ const DateDivider = ({ date }) => (
 // ── Load-more header (shown while fetching older pages) ───────────────────────
 const LoadMoreHeader = () => (
   <View style={styles.loadMoreHeader}>
-    <ActivityIndicator size="small" color={colors.primary} />
+    <CustomLoader size={24} color={colors.primary} />
     <Text style={styles.loadMoreText}>Loading older messages…</Text>
   </View>
 );
@@ -93,9 +94,13 @@ const GroupChatScreen = ({ navigation, route }) => {
   // Read token from in-memory store — avoids SecureStore native calls in Expo Go
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  const [messages, setMessages]     = useState([]);
+  const cachedMessages = useChatStore((state) => state.groupMessages[groupId] || []);
+  const setCachedMessages = useChatStore((state) => state.setMessagesForGroup);
+  const addMessageToCachedGroup = useChatStore((state) => state.addMessageToGroup);
+
+  const [messages, setMessages]     = useState(cachedMessages);
   const [inputText, setInputText]   = useState('');
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading]       = useState(cachedMessages.length === 0);
   const [sending, setSending]       = useState(false);
 
   // B2: pagination state
@@ -126,6 +131,7 @@ const GroupChatScreen = ({ navigation, route }) => {
         setMessages(prev => [...page, ...prev]);
       } else {
         setMessages(page);
+        setCachedMessages(groupId, page);
       }
 
       setNextCursor(meta.nextCursor || null);
@@ -133,12 +139,14 @@ const GroupChatScreen = ({ navigation, route }) => {
     } catch (e) {
       console.warn('Failed to load group messages:', e?.message);
     }
-  }, [groupId]);
+  }, [groupId, accessToken, setCachedMessages]);
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
-      setLoading(true);
+      if (cachedMessages.length === 0) {
+        setLoading(true);
+      }
       await fetchMessages();
       setLoading(false);
     };
@@ -149,6 +157,9 @@ const GroupChatScreen = ({ navigation, route }) => {
 
     // Listen for incoming messages
     const handleMessage = (msg) => {
+      // Add to store cache
+      addMessageToCachedGroup(groupId, msg);
+
       setMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev;
 
@@ -170,7 +181,7 @@ const GroupChatScreen = ({ navigation, route }) => {
     return () => {
       socketService.offGroupMessage(handleMessage);
     };
-  }, [groupId, fetchMessages]);
+  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id, cachedMessages.length]);
 
   // ── B2: Load older page when user scrolls to top ──────────────────────────
   const handleScrollToTop = useCallback(async () => {
@@ -248,7 +259,7 @@ const GroupChatScreen = ({ navigation, route }) => {
       {/* Messages */}
       {loading ? (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <CustomLoader size={48} color={colors.primary} />
           <Text style={styles.loadingText}>Loading messages…</Text>
         </View>
       ) : messages.length === 0 ? (
@@ -292,7 +303,7 @@ const GroupChatScreen = ({ navigation, route }) => {
           activeOpacity={0.8}
         >
           {sending ? (
-            <ActivityIndicator size="small" color={colors.white} />
+            <CustomLoader size={22} color={colors.white} />
           ) : (
             <MaterialIcons name="send" size={22} color={colors.white} />
           )}

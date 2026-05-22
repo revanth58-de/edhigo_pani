@@ -27,6 +27,8 @@ import useChatStore from '../../store/chatStore';
 import CustomLoader from '../../components/CustomLoader';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+const EMPTY_ARRAY = [];
+
 const formatTime = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -94,7 +96,7 @@ const GroupChatScreen = ({ navigation, route }) => {
   // Read token from in-memory store — avoids SecureStore native calls in Expo Go
   const accessToken = useAuthStore((state) => state.accessToken);
 
-  const cachedMessages = useChatStore((state) => state.groupMessages[groupId] || []);
+  const cachedMessages = useChatStore((state) => state.groupMessages[groupId]) || EMPTY_ARRAY;
   const setCachedMessages = useChatStore((state) => state.setMessagesForGroup);
   const addMessageToCachedGroup = useChatStore((state) => state.addMessageToGroup);
 
@@ -104,20 +106,32 @@ const GroupChatScreen = ({ navigation, route }) => {
   const [sending, setSending]       = useState(false);
 
   // B2: pagination state
-  const [nextCursor, setNextCursor]   = useState(null);  // ID of oldest loaded message
-  const [hasMore, setHasMore]         = useState(false);
+  const [nextCursor, setNextCursor]   = useState(cachedMessages[0]?.id || null);
+  const [hasMore, setHasMore]         = useState(cachedMessages.length >= 50);
   const [loadingMore, setLoadingMore] = useState(false);
 
   const flatListRef = useRef(null);
 
+  // Ref to track if we have messages in the cache initially to avoid full-screen loader on updates
+  const hasMessagesRef = useRef(cachedMessages.length > 0);
+  useEffect(() => {
+    hasMessagesRef.current = cachedMessages.length > 0;
+  }, [cachedMessages]);
+
   // ── Fetch a page of messages ─────────────────────────────────────────────
-  // B2: cursor = undefined → latest page; cursor = messageId → page before that message
-  const fetchMessages = useCallback(async (cursor = undefined) => {
+  // options: { cursor, delta }
+  // cursor = messageId → load messages preceding that ID (paging older)
+  // delta = messageId  → load messages succeeding that ID (syncing new)
+  const fetchMessages = useCallback(async (options = {}) => {
     if (!groupId) return;
+    const { cursor, delta } = options;
     try {
-      const url = cursor
-        ? `${API_BASE_URL}/chats/${groupId}/messages?before=${cursor}`
-        : `${API_BASE_URL}/chats/${groupId}/messages`;
+      let url = `${API_BASE_URL}/chats/${groupId}/messages`;
+      if (cursor) {
+        url += `?before=${cursor}`;
+      } else if (delta) {
+        url += `?after=${delta}`;
+      }
 
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -128,14 +142,37 @@ const GroupChatScreen = ({ navigation, route }) => {
 
       if (cursor) {
         // Prepend older messages — keep list order chronological
-        setMessages(prev => [...page, ...prev]);
+        setMessages(prev => {
+          const merged = [...page, ...prev];
+          const unique = merged.filter((msg, index, self) => 
+            self.findIndex(m => m.id === msg.id) === index
+          );
+          return unique;
+        });
+        setNextCursor(meta.nextCursor || null);
+        setHasMore(!!meta.hasMore);
+      } else if (delta) {
+        // Delta mode: merge incoming deltas with cached messages
+        setMessages(prev => {
+          const merged = [...prev, ...page];
+          const unique = merged.filter((msg, index, self) => 
+            self.findIndex(m => m.id === msg.id) === index
+          );
+          const finalMessages = unique.slice(-50);
+          setCachedMessages(groupId, finalMessages);
+          
+          if (finalMessages.length > 0) {
+            setNextCursor(finalMessages[0].id);
+          }
+          return finalMessages;
+        });
       } else {
+        // Standard full load
         setMessages(page);
         setCachedMessages(groupId, page);
+        setNextCursor(meta.nextCursor || null);
+        setHasMore(!!meta.hasMore);
       }
-
-      setNextCursor(meta.nextCursor || null);
-      setHasMore(!!meta.hasMore);
     } catch (e) {
       console.warn('Failed to load group messages:', e?.message);
     }
@@ -144,10 +181,17 @@ const GroupChatScreen = ({ navigation, route }) => {
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     const init = async () => {
-      if (cachedMessages.length === 0) {
+      if (hasMessagesRef.current) {
+        const lastMsg = cachedMessages[cachedMessages.length - 1];
+        if (lastMsg) {
+          await fetchMessages({ delta: lastMsg.id });
+        } else {
+          await fetchMessages();
+        }
+      } else {
         setLoading(true);
+        await fetchMessages();
       }
-      await fetchMessages();
       setLoading(false);
     };
     init();
@@ -181,13 +225,13 @@ const GroupChatScreen = ({ navigation, route }) => {
     return () => {
       socketService.offGroupMessage(handleMessage);
     };
-  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id, cachedMessages.length]);
+  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id]);
 
   // ── B2: Load older page when user scrolls to top ──────────────────────────
   const handleScrollToTop = useCallback(async () => {
     if (!hasMore || loadingMore || !nextCursor) return;
     setLoadingMore(true);
-    await fetchMessages(nextCursor);
+    await fetchMessages({ cursor: nextCursor });
     setLoadingMore(false);
   }, [hasMore, loadingMore, nextCursor, fetchMessages]);
 

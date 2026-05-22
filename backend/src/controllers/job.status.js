@@ -279,6 +279,8 @@ const withdrawJob = async (req, res) => {
       // 2️⃣ Re-run smart matching and re-notify matched workers (Radio System)
       try {
         const matchedWorkers = await matchWorkers({
+          farmerId: fullJob?.farmerId,
+          radiusKm: fullJob?.radiusKm,
           workType: fullJob?.workType,
           workerType: fullJob?.workerType,
           workersNeeded: fullJob?.workersNeeded,  // ← required for group size filtering

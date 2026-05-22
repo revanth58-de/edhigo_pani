@@ -20,8 +20,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, StatusBar, Platform, RefreshControl,
+  StatusBar, Platform, RefreshControl,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -191,7 +192,7 @@ const EarningsDashboard = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <CustomLoader size={48} color={colors.primary} />
           <Text style={styles.loadingText}>Loading earnings...</Text>
         </View>
       ) : error ? (

@@ -365,7 +365,7 @@ const refreshToken = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon } = req.body;
+    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon, matchingRadius } = req.body;
 
     const dataToUpdate = {};
     if (name !== undefined) dataToUpdate.name = name;
@@ -382,6 +382,7 @@ const updateProfile = async (req, res, next) => {
     if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
     if (experience !== undefined) dataToUpdate.experience = parseInt(experience, 10);
     if (avatarIcon !== undefined) dataToUpdate.avatarIcon = avatarIcon;
+    if (matchingRadius !== undefined) dataToUpdate.matchingRadius = matchingRadius !== null && matchingRadius !== '' ? parseFloat(matchingRadius) : null;
 
     if (latitude !== undefined || longitude !== undefined) {
       if (latitude === null || longitude === null || latitude === '' || longitude === '') {

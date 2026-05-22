@@ -8,7 +8,6 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   Modal,
   ScrollView,
   Animated,
@@ -17,6 +16,7 @@ import {
   Dimensions,
   TouchableWithoutFeedback,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -221,7 +221,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
   if (hasPermission === null) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <CustomLoader size={48} color={colors.primary} />
       </View>
     );
   }
@@ -297,7 +297,7 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
 
                 {loading && (
                   <View style={styles.loadingBox}>
-                    <ActivityIndicator size="large" color={colors.primary} />
+                    <CustomLoader size={48} color={colors.primary} />
                   </View>
                 )}
               </View>

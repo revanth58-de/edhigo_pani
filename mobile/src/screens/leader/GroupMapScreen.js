@@ -23,50 +23,86 @@ const GroupMapScreen = ({ navigation, route }) => {
 
     // Store watch subscription so we can call .remove() on unmount
     const watcherRef = useRef(null);
+    const isMounted = useRef(true);
 
     useEffect(() => {
+        isMounted.current = true;
         startTracking();
         setupSocket();
         return () => {
+            isMounted.current = false;
             stopTracking();
         };
     }, []);
 
     const startTracking = async () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
+        if (!isMounted.current) return;
         if (status !== 'granted') {
             Alert.alert('Permission denied', 'Location access is required for map mode.');
             return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.BestForNavigation
-        });
-        setLocation(loc.coords);
-
-        // Emit initial location
-        if (groupId) {
-            socketService.emitGroupLocationUpdate({
-                groupId,
-                latitude: loc.coords.latitude,
-                longitude: loc.coords.longitude,
+        try {
+            const loc = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.BestForNavigation
             });
+            if (!isMounted.current) return;
+            setLocation(loc.coords);
+
+            // Emit initial location
+            if (groupId) {
+                socketService.emitGroupLocationUpdate({
+                    groupId,
+                    latitude: loc.coords.latitude,
+                    longitude: loc.coords.longitude,
+                });
+            }
+        } catch (e) {
+            console.warn('Error getting initial location:', e);
         }
 
-        // Watch location — store subscription ref for cleanup
-        watcherRef.current = await Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
-            (newLoc) => {
-                setLocation(newLoc.coords);
-                if (groupId) {
-                    socketService.emitGroupLocationUpdate({
-                        groupId,
-                        latitude: newLoc.coords.latitude,
-                        longitude: newLoc.coords.longitude,
-                    });
+        try {
+            // Watch location — store subscription ref for cleanup
+            const sub = await Location.watchPositionAsync(
+                { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+                (newLoc) => {
+                    if (!isMounted.current) return;
+                    setLocation(newLoc.coords);
+                    if (groupId) {
+                        socketService.emitGroupLocationUpdate({
+                            groupId,
+                            latitude: newLoc.coords.latitude,
+                            longitude: newLoc.coords.longitude,
+                        });
+                    }
                 }
+            );
+
+            if (!isMounted.current) {
+                sub.remove();
+            } else {
+                watcherRef.current = sub;
             }
-        );
+        } catch (e) {
+            console.warn('Error setting up location watcher:', e);
+        }
+    };
+
+    const handleJobRequest = (data) => {
+        if (!isMounted.current) return;
+        navigation.navigate('GroupRequest', { jobData: data, groupId });
+    };
+
+    const handleLocationBroadcast = (data) => {
+        if (!isMounted.current) return;
+        const { userId, latitude, longitude, timestamp } = data;
+        // Don't show the current user's own marker
+        if (userId === user?.id) return;
+        setMemberLocations((prev) => ({
+            ...prev,
+            [userId]: { latitude, longitude, timestamp },
+        }));
     };
 
     const setupSocket = () => {
@@ -74,22 +110,10 @@ const GroupMapScreen = ({ navigation, route }) => {
         if (groupId) socketService.joinGroupRoom(groupId);
 
         // Listen for job requests (navigate to GroupRequest screen)
-        if (socketService.socket) {
-            socketService.socket.on('job:request', (data) => {
-                navigation.navigate('GroupRequest', { jobData: data, groupId });
-            });
-        }
+        socketService.on('job:request', handleJobRequest);
 
         // Listen for other group members' locations
-        socketService.onGroupLocationBroadcast((data) => {
-            const { userId, latitude, longitude, timestamp } = data;
-            // Don't show the current user's own marker
-            if (userId === user?.id) return;
-            setMemberLocations((prev) => ({
-                ...prev,
-                [userId]: { latitude, longitude, timestamp },
-            }));
-        });
+        socketService.onGroupLocationBroadcast(handleLocationBroadcast);
     };
 
     const stopTracking = () => {
@@ -98,8 +122,9 @@ const GroupMapScreen = ({ navigation, route }) => {
             watcherRef.current.remove();
             watcherRef.current = null;
         }
-        // Unsubscribe from socket location broadcasts
-        socketService.offGroupLocationBroadcast();
+        // Unsubscribe from socket events
+        socketService.off('job:request', handleJobRequest);
+        socketService.offGroupLocationBroadcast(handleLocationBroadcast);
     };
 
     // Convert memberLocations map to markers array for MapDashboard

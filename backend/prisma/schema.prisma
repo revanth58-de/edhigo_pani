@@ -30,6 +30,7 @@ model User {
   otpFailCount  Int      @default(0)  // S3: tracks consecutive wrong OTP attempts (max 5)
   experience    Int?     // Years of farming experience (set by worker)
   avatarIcon  String?  // Profile icon key e.g. 'person', 'agriculture'
+  matchingRadius Float?   // B10: custom matching radius preference (in km)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime? // S4: soft-delete — set instead of destroying the row
@@ -84,6 +85,7 @@ model Job {
   startTime     DateTime?
   endTime       DateTime?
   durationDays  Int?     // D5: duration of the job in days
+  radiusKm      Float?    // B10: custom matching radius for this job (in km)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

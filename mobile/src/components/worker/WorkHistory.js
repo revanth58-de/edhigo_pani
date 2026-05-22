@@ -16,9 +16,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import CustomLoader from '../CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import TopBar from '../TopBar';
@@ -111,7 +111,7 @@ const WorkHistory = ({ jobs, loading, navigation, onClose, onRefresh }) => (
       <Text style={styles.summaryText}>Your recent work history</Text>
 
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+        <CustomLoader size={48} color={colors.primary} style={{ marginTop: 40 }} />
       ) : jobs.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialIcons name="history" size={56} color="#D1D5DB" />

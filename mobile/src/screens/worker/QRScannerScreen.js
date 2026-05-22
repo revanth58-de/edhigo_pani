@@ -77,6 +77,10 @@ const QRScannerScreen = ({ navigation, route }) => {
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (cachedPermission === 'granted' || cachedPermission === 'denied') {
+      return;
+    }
+
     const checkPermission = async () => {
       try {
         let permission = await Camera.getCameraPermissionsAsync();
@@ -92,7 +96,7 @@ const QRScannerScreen = ({ navigation, route }) => {
       }
     };
     checkPermission();
-  }, []);
+  }, [cachedPermission]);
 
   // Animate scan line
   useEffect(() => {

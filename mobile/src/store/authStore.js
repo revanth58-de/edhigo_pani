@@ -200,8 +200,9 @@ const useAuthStore = create((set, get) => ({
     const now = Date.now();
     const cooldownDuration = 60000; // 60 seconds in milliseconds
 
-    // Check if user is still in cooldown period
-    if (state.lastOTPRequestTime) {
+    // Check if user is still in cooldown period (skip in development or if bypassed via env)
+    const bypassCooldown = (typeof __DEV__ !== 'undefined' && __DEV__) || process.env.EXPO_PUBLIC_BYPASS_OTP_COOLDOWN === 'true';
+    if (state.lastOTPRequestTime && !bypassCooldown) {
       const timeSinceLastRequest = now - state.lastOTPRequestTime;
       if (timeSinceLastRequest < cooldownDuration) {
         const remainingSeconds = Math.ceil((cooldownDuration - timeSinceLastRequest) / 1000);

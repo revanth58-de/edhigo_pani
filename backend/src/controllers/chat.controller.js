@@ -11,7 +11,7 @@ const PAGE_SIZE = 50;
 const getGroupMessages = async (req, res, next) => {
   try {
     const { groupId } = req.params;
-    const { before } = req.query; // cursor: load messages before this message ID
+    const { before, after } = req.query; // cursor: load messages before or after this message ID
     const userId = req.user.id;
 
     // Authorization: user must be leader or member of this group
@@ -33,8 +33,8 @@ const getGroupMessages = async (req, res, next) => {
 
     // B2: Build cursor clause — if `before` is given, fetch messages with a
     // createdAt strictly earlier than the referenced message's timestamp.
-    // This is more stable than offset-based pagination (avoids duplicates on
-    // concurrent inserts shifting rows during scroll).
+    // If `after` is given, fetch messages with a createdAt strictly later.
+    // This is more stable than offset-based pagination.
     let cursorFilter = {};
     if (before) {
       const pivot = await prisma.groupMessage.findUnique({
@@ -43,6 +43,14 @@ const getGroupMessages = async (req, res, next) => {
       });
       if (pivot) {
         cursorFilter = { createdAt: { lt: pivot.createdAt } };
+      }
+    } else if (after) {
+      const pivot = await prisma.groupMessage.findUnique({
+        where: { id: after },
+        select: { createdAt: true },
+      });
+      if (pivot) {
+        cursorFilter = { createdAt: { gt: pivot.createdAt } };
       }
     }
 

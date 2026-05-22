@@ -76,10 +76,25 @@ const matchWorkers = async (job) => {
   const isGroupJob  = workerType === 'group';
   const roleFilter  = isGroupJob ? 'leader' : 'worker';
 
+  // B10: Dynamic matching radius resolution
+  let maxDistanceKm = job.radiusKm || job.matchingRadius;
+  if (maxDistanceKm == null && job.farmerId) {
+    const farmer = await prisma.user.findUnique({
+      where: { id: job.farmerId },
+      select: { matchingRadius: true }
+    });
+    if (farmer && farmer.matchingRadius != null) {
+      maxDistanceKm = farmer.matchingRadius;
+    }
+  }
+  if (maxDistanceKm == null) {
+    maxDistanceKm = MAX_DISTANCE_KM;
+  }
+
   // B1 FIX: Compute a lat/lng bounding box and push the distance filter into SQL.
   // Previously this fetched every available worker, then filtered in JS.
   // Now Postgres only returns rows inside the bounding box (a fraction of the table).
-  const bbox = getBoundingBox(parseFloat(farmLatitude), parseFloat(farmLongitude), MAX_DISTANCE_KM);
+  const bbox = getBoundingBox(parseFloat(farmLatitude), parseFloat(farmLongitude), maxDistanceKm);
 
   const candidates = await prisma.user.findMany({
     where: {
@@ -135,7 +150,7 @@ const matchWorkers = async (job) => {
   for (const worker of mappedCandidates) {
     // ── Precise Haversine check ─────────────────────────────────────────────
     // The bounding box is a square — workers in the corners are slightly beyond
-    // MAX_DISTANCE_KM. The Haversine check here culls those corner cases.
+    // maxDistanceKm. The Haversine check here culls those corner cases.
     let distanceKm = null;
     if (hasLocation && worker.latitude != null && worker.longitude != null) {
       distanceKm = haversineKm(
@@ -144,7 +159,7 @@ const matchWorkers = async (job) => {
         worker.latitude,
         worker.longitude,
       );
-      if (distanceKm > MAX_DISTANCE_KM) continue; // corner of bounding box — skip
+      if (distanceKm > maxDistanceKm) continue; // corner of bounding box — skip
     }
 
     // ── Skill filter ────────────────────────────────────────────────────────

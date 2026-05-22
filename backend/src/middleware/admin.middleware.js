@@ -18,6 +18,9 @@ const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (process.env.NODE_ENV =
 if (!ADMIN_JWT_SECRET) {
   throw new Error('CRITICAL SECURITY ERROR: ADMIN_JWT_SECRET must be explicitly set when running in production mode!');
 }
+if (process.env.NODE_ENV === 'production' && ADMIN_JWT_SECRET === process.env.JWT_SECRET) {
+  throw new Error('CRITICAL SECURITY ERROR: ADMIN_JWT_SECRET must not be identical to JWT_SECRET in production mode!');
+}
 const ADMIN_JWT_TTL    = '2h';
 
 // ── Strict rate limiter: 3 wrong attempts per 15 min per IP ──────────────────

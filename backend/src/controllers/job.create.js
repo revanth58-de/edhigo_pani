@@ -25,6 +25,7 @@ const createJob = async (req, res, next) => {
       description,  // FIX #14: optional free-text instructions for workers
       startTime,
       startDate,
+      radiusKm, // B10: custom matching radius (in km)
     } = req.body;
 
     // Always use the authenticated user's ID — not from body
@@ -54,6 +55,7 @@ const createJob = async (req, res, next) => {
         startTime: new Date(finalStartTime),
         description: description || null,
         status: JobStatus.PENDING,
+        radiusKm: radiusKm !== undefined && radiusKm !== null ? parseFloat(radiusKm) : null,
       },
     });
 
@@ -64,6 +66,8 @@ const createJob = async (req, res, next) => {
     if (io) {
       try {
         const matchedWorkers = await matchWorkers({
+          farmerId,
+          radiusKm: job.radiusKm,
           workType,
           workerType,
           workersNeeded,           // ← required for group size filtering

@@ -7,10 +7,10 @@ import {
   StatusBar,
   FlatList,
   Alert,
-  ActivityIndicator,
   TextInput,
   Image,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
@@ -193,7 +193,9 @@ const AddMemberScreen = ({ navigation, route }) => {
 
       {/* List */}
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+        <View style={{ marginTop: 40, alignItems: 'center' }}>
+          <CustomLoader size={48} color={colors.primary} />
+        </View>
       ) : (
         <FlatList
           data={filteredWorkers}
@@ -222,7 +224,7 @@ const AddMemberScreen = ({ navigation, route }) => {
           activeOpacity={0.9}
         >
           {adding ? (
-            <ActivityIndicator color={colors.backgroundDark} />
+            <CustomLoader size={24} color={colors.backgroundDark} />
           ) : (
             <>
               <MaterialIcons name="group-add" size={24} color={colors.backgroundDark} />

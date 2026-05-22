@@ -5,13 +5,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
   TextInput,
   Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -27,6 +27,14 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Use a ref to store the group data so that fetchJobs and other callbacks
+  // do not need to depend on the reactive 'group' state itself, breaking the focus effect loop.
+  const groupRef = React.useRef(null);
+  const updateGroup = useCallback((data) => {
+    setGroup(data);
+    groupRef.current = data;
+  }, []);
+
   // Jobs state
   const [jobs, setJobs] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(false);
@@ -41,7 +49,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       setLoading(true);
       const res = await groupAPI.getGroupDetails(groupId);
       const groupData = res.data.group || res.data;
-      setGroup(groupData);
+      updateGroup(groupData);
       // Pass freshly fetched group so fetchJobs can check leaderId before state settles
       if (activeTab === 'Jobs') fetchJobs(groupData);
     } catch (error) {
@@ -49,11 +57,11 @@ const GroupDetailScreen = ({ route, navigation }) => {
     } finally {
       setLoading(false);
     }
-  }, [groupId, activeTab, fetchJobs]);
+  }, [groupId, activeTab, fetchJobs, updateGroup]);
 
   const fetchJobs = useCallback(async (groupData) => {
     // Only the group leader is allowed to view group-eligible jobs (backend enforces 403)
-    const currentGroup = groupData || group;
+    const currentGroup = groupData || groupRef.current;
     if (!currentGroup || currentGroup.leaderId !== user?.id) return;
 
     try {
@@ -65,7 +73,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     } finally {
       setJobsLoading(false);
     }
-  }, [groupId, group, user?.id]);
+  }, [groupId, user?.id]);
 
   const fetchChat = useCallback(async () => {
     try {
@@ -254,12 +262,21 @@ const GroupDetailScreen = ({ route, navigation }) => {
 
         {/* Show settings (manage) for leader, exit button for members */}
         {user?.role === 'leader' ? (
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
-          >
-            <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: group?.members?.length || 0 })}
+              testID="group-map-btn"
+            >
+              <MaterialIcons name="map" size={24} color={colors.backgroundDark} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('ManageGroup', { groupId, groupName: group?.name })}
+            >
+              <MaterialIcons name="settings" size={24} color={colors.backgroundDark} />
+            </TouchableOpacity>
+          </View>
         ) : (
           <TouchableOpacity
             style={[styles.iconBtn, styles.exitBtn]}
@@ -292,7 +309,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       <View style={styles.contentArea}>
         {activeTab === 'Jobs' ? (
           jobsLoading ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+            <CustomLoader size={48} color={colors.primary} style={{ marginTop: 40 }} />
           ) : (
             <FlatList
               data={jobs}
@@ -321,7 +338,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
             </TouchableOpacity>
 
             {chatLoading && messages.length === 0 ? (
-              <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+              <CustomLoader size={48} color={colors.primary} style={{ marginTop: 40 }} />
             ) : (
               <FlatList
                 data={messages}

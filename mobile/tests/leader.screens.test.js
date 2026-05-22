@@ -45,6 +45,61 @@ jest.mock('../src/services/api/groupService', () => ({
   },
 }));
 
+jest.mock('../src/services/api', () => ({
+  groupAPI: {
+    getGroupDetails: jest.fn(() =>
+      Promise.resolve({
+        data: {
+          group: {
+            id: 'g-1',
+            name: 'Rice Harvesters',
+            leaderId: 'leader-123',
+            status: 'available',
+            members: [
+              { id: 'm-1', workerId: 'w-1', name: 'Worker 1', role: 'Member' },
+              { id: 'm-2', workerId: 'w-2', name: 'Worker 2', role: 'Member' }
+            ],
+            pendingInvites: []
+          }
+        }
+      })
+    ),
+    getGroupJobs: jest.fn(() => Promise.resolve({ data: { jobs: [] } })),
+    getGroupMessages: jest.fn(() => Promise.resolve({ data: { messages: [] } })),
+    getMyGroups: jest.fn(() => Promise.resolve({ data: { groups: [{ id: 'g-1', name: 'Rice Harvesters' }] } })),
+    deleteGroup: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    exitGroup: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    removeMember: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    updateMember: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    updateGroupStatus: jest.fn(() => Promise.resolve({ data: { success: true } })),
+  },
+  authAPI: {
+    updateProfile: jest.fn(() => Promise.resolve({ data: { success: true } })),
+  },
+  jobAPI: {
+    getJobs: jest.fn(() => Promise.resolve({ data: { data: [] } })),
+  }
+}));
+
+const mockSocketService = {
+  joinGroupRoom: jest.fn(),
+  onGroupLocationBroadcast: jest.fn(),
+  offGroupLocationBroadcast: jest.fn(),
+  emitGroupLocationUpdate: jest.fn(),
+  onGroupMessage: jest.fn(),
+  offGroupMessage: jest.fn(),
+  emitGroupMessage: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+  socket: {
+    on: jest.fn(),
+    off: jest.fn(),
+  }
+};
+jest.mock('../src/services/socketService', () => ({
+  socketService: mockSocketService
+}));
+
 const mockJob = {
   id: 'job-3',
   workType: 'Harvesting',
@@ -260,5 +315,205 @@ describe('RateFarmerLeaderScreen', () => {
         expect(ratingService.rateFarmer).toHaveBeenCalled();
       });
     } catch {}
+  });
+});
+
+// ─── Group Map Screen ─────────────────────────────────────────────────────────
+describe('GroupMapScreen', () => {
+  let GroupMapScreen;
+  let Location;
+  const route = { params: { groupId: 'g-1', workerCount: 15 } };
+  let watchCallback = null;
+  const mockRemove = jest.fn();
+
+  beforeAll(() => {
+    try {
+      GroupMapScreen = require('../src/screens/leader/GroupMapScreen').default;
+      Location = require('expo-location');
+    } catch {
+      GroupMapScreen = null;
+    }
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    watchCallback = null;
+    mockRemove.mockClear();
+
+    if (Location) {
+      Location.watchPositionAsync.mockImplementation((options, callback) => {
+        watchCallback = callback;
+        return Promise.resolve({ remove: mockRemove });
+      });
+      Location.getCurrentPositionAsync.mockResolvedValue({
+        coords: { latitude: 12.34, longitude: 56.78 }
+      });
+    }
+  });
+
+  test('✅ Renders MapDashboard and overlays', async () => {
+    if (!GroupMapScreen) return;
+    const { getByText } = render(
+      <GroupMapScreen navigation={mockNavigation} route={route} />
+    );
+
+    await waitFor(() => {
+      expect(getByText(/Group Map Mode/i)).toBeTruthy();
+      expect(getByText(/Waiting for requests/i)).toBeTruthy();
+    });
+  });
+
+  test('✅ Emits group location update and watches position on mount', async () => {
+    if (!GroupMapScreen) return;
+    render(<GroupMapScreen navigation={mockNavigation} route={route} />);
+
+    await waitFor(() => {
+      expect(mockSocketService.joinGroupRoom).toHaveBeenCalledWith('g-1');
+      expect(mockSocketService.emitGroupLocationUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          groupId: 'g-1',
+          latitude: 12.34,
+          longitude: 56.78
+        })
+      );
+      expect(Location.watchPositionAsync).toHaveBeenCalled();
+    });
+  });
+
+  test('✅ Receives group members location broadcast and updates marker count', async () => {
+    if (!GroupMapScreen) return;
+    
+    // Find the callback passed to onGroupLocationBroadcast
+    let broadcastCallback = null;
+    mockSocketService.onGroupLocationBroadcast.mockImplementation((cb) => {
+      broadcastCallback = cb;
+    });
+
+    const { getByText } = render(<GroupMapScreen navigation={mockNavigation} route={route} />);
+
+    await waitFor(() => {
+      expect(broadcastCallback).not.toBeNull();
+    });
+
+    // Simulate location broadcast from another member
+    act(() => {
+      broadcastCallback({
+        userId: 'member-456',
+        latitude: 12.35,
+        longitude: 56.79,
+        timestamp: Date.now()
+      });
+    });
+
+    // Count should be updated to 2 (user + member-456)
+    await waitFor(() => {
+      expect(getByText('2')).toBeTruthy();
+    });
+  });
+
+  test('✅ Navigates to GroupRequest screen on job:request socket event', async () => {
+    if (!GroupMapScreen) return;
+
+    let jobRequestCallback = null;
+    mockSocketService.on.mockImplementation((event, cb) => {
+      if (event === 'job:request') {
+        jobRequestCallback = cb;
+      }
+    });
+
+    render(<GroupMapScreen navigation={mockNavigation} route={route} />);
+
+    await waitFor(() => {
+      expect(jobRequestCallback).not.toBeNull();
+    });
+
+    mockNavigate.mockClear();
+    act(() => {
+      jobRequestCallback({ id: 'job-123', workType: 'Weeding' });
+    });
+
+    expect(mockNavigate).toHaveBeenCalledWith('GroupRequest', {
+      jobData: { id: 'job-123', workType: 'Weeding' },
+      groupId: 'g-1'
+    });
+  });
+
+  test('✅ Cleans up GPS watch and socket listeners on unmount', async () => {
+    if (!GroupMapScreen) return;
+
+    const { unmount } = render(<GroupMapScreen navigation={mockNavigation} route={route} />);
+
+    // Wait for async startTracking to complete and set watcherRef
+    await waitFor(() => {
+      expect(Location.watchPositionAsync).toHaveBeenCalled();
+    });
+
+    unmount();
+
+    expect(mockRemove).toHaveBeenCalled();
+    expect(mockSocketService.off).toHaveBeenCalledWith('job:request', expect.any(Function));
+    expect(mockSocketService.offGroupLocationBroadcast).toHaveBeenCalledWith(expect.any(Function));
+  });
+});
+
+// ─── Group Detail Screen Map Navigation ───────────────────────────────────────
+describe('GroupDetailScreen Map Navigation', () => {
+  let GroupDetailScreen;
+  const route = { params: { groupId: 'g-1', groupName: 'Rice Harvesters' } };
+
+  beforeAll(() => {
+    try {
+      GroupDetailScreen = require('../src/screens/leader/GroupDetailScreen').default;
+    } catch {
+      GroupDetailScreen = null;
+    }
+  });
+
+  test('✅ Renders Map button and navigates to GroupMap', async () => {
+    if (!GroupDetailScreen) return;
+    mockNavigate.mockClear();
+
+    const { getByTestId } = render(
+      <GroupDetailScreen navigation={mockNavigation} route={route} />
+    );
+
+    // Wait for the detail fetch to complete and UI to update
+    await waitFor(() => {
+      const mapBtn = getByTestId('group-map-btn');
+      expect(mapBtn).toBeTruthy();
+      fireEvent.press(mapBtn);
+      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 2 });
+    });
+  });
+});
+
+// ─── Manage Group Screen Map Navigation ───────────────────────────────────────
+describe('ManageGroupScreen Map Navigation', () => {
+  let ManageGroupScreen;
+  const route = { params: { groupId: 'g-1', groupName: 'Rice Harvesters' } };
+
+  beforeAll(() => {
+    try {
+      ManageGroupScreen = require('../src/screens/leader/ManageGroupScreen').default;
+    } catch {
+      ManageGroupScreen = null;
+    }
+  });
+
+  test('✅ Renders Map button and navigates to GroupMap', async () => {
+    if (!ManageGroupScreen) return;
+    mockNavigate.mockClear();
+
+    const { getByTestId } = render(
+      <ManageGroupScreen navigation={mockNavigation} route={route} />
+    );
+
+    // Wait for members list to load
+    await waitFor(() => {
+      const mapBtn = getByTestId('group-map-btn');
+      expect(mapBtn).toBeTruthy();
+      fireEvent.press(mapBtn);
+      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 2 });
+    });
   });
 });

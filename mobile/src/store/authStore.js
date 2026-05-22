@@ -126,6 +126,8 @@ const useAuthStore = create((set, get) => ({
   phone: null,
   cameraPermission: null, // 'granted' | 'denied' | null
   _hydrated: false,
+  lastOTPRequestTime: null, // Timestamp of last OTP request
+  otpCooldownSeconds: 0, // Remaining cooldown in seconds
 
   // ── Rehydrate from AsyncStorage (called once on startup) ──
   rehydrate: async () => {
@@ -194,11 +196,32 @@ const useAuthStore = create((set, get) => ({
   },
 
   sendOTP: async (phone) => {
+    const state = get();
+    const now = Date.now();
+    const cooldownDuration = 60000; // 60 seconds in milliseconds
+
+    // Check if user is still in cooldown period
+    if (state.lastOTPRequestTime) {
+      const timeSinceLastRequest = now - state.lastOTPRequestTime;
+      if (timeSinceLastRequest < cooldownDuration) {
+        const remainingSeconds = Math.ceil((cooldownDuration - timeSinceLastRequest) / 1000);
+        const error = new Error(`Please wait ${remainingSeconds} seconds before requesting another OTP`);
+        error.code = 'RATE_LIMIT_COOLDOWN';
+        error.remainingSeconds = remainingSeconds;
+        throw error;
+      }
+    }
+
     set({ isLoading: true });
     try {
       const response = await authAPI.sendOTP(phone);
       // NOTE: OTP is NOT stored in state for security — it goes via SMS only
-      set({ phone, isLoading: false });
+      set({ 
+        phone, 
+        isLoading: false, 
+        lastOTPRequestTime: now,
+        otpCooldownSeconds: 0 
+      });
       return response.data;
     } catch (error) {
       set({ isLoading: false });

@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { authService } from '../../services/api/authService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -24,6 +23,7 @@ const OTPScreen = ({ navigation, route }) => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
+  const sendOTPAction = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 
@@ -92,8 +92,8 @@ const OTPScreen = ({ navigation, route }) => {
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return; // M13: ignore tap during cooldown
     try {
-      const response = await authService.sendOTP(phone);
-      const newOtp = response?.data?.devOtp;
+      const response = await sendOTPAction(phone);
+      const newOtp = response?.devOtp;
       // M13: Start 120-second cooldown matching backend rate limit
       setResendCooldown(120);
       setAttemptsRemaining(null); // reset attempt counter display
@@ -103,10 +103,10 @@ const OTPScreen = ({ navigation, route }) => {
         Alert.alert('OTP Resent', 'OTP sent successfully. Check your SMS.');
       }
     } catch (error) {
-      const waitSec = error?.response?.data?.retryAfterSeconds;
-      if (waitSec) {
-        setResendCooldown(waitSec);
-        Alert.alert('Too soon', `Please wait ${waitSec}s before requesting a new OTP.`);
+      // Handle rate limit cooldown from store
+      if (error.code === 'RATE_LIMIT_COOLDOWN') {
+        setResendCooldown(error.remainingSeconds);
+        Alert.alert('Too soon', `Please wait ${error.remainingSeconds}s before requesting a new OTP.`);
       } else {
         Alert.alert('Error', 'Failed to resend OTP. Please try again.');
       }

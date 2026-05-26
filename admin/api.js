@@ -39,6 +39,8 @@ export const api = {
   updateJob:      (id, data)   => call(`/jobs/${id}`, 'PATCH', data),
   getPayments:    (q = '')     => call(`/payments${q}`),
   updatePayment:  (id, data)   => call(`/payments/${id}`, 'PATCH', data),
+  getSettlements: (q = '')     => call(`/settlements${q}`),
+  settlePayment:  (id)         => call(`/settlements/${id}/settle`, 'POST'),
   getAttendance:  ()           => call('/attendance'),
   getRatings:     ()           => call('/ratings'),
   getGroups:      ()           => call('/groups'),

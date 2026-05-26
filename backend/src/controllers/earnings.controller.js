@@ -54,6 +54,8 @@ const getEarnings = async (req, res, next) => {
     let totalEarned = 0;
     let thisMonth   = 0;
     let thisWeek    = 0;
+    let pendingSettlement = 0;
+    let settledAmount = 0;
     const workTypeMap = {};  // workType → { total, count }
     const monthMap    = {};  // 'YYYY-MM' → total
 
@@ -65,6 +67,12 @@ const getEarnings = async (req, res, next) => {
       totalEarned += amount;
       if (paidAt >= startOfMonth) thisMonth += amount;
       if (paidAt >= startOfWeek)  thisWeek  += amount;
+
+      if (p.settlementStatus === 'settled') {
+        settledAmount += p.workerAmount || 0;
+      } else {
+        pendingSettlement += p.workerAmount || 0;
+      }
 
       // By work type
       if (!workTypeMap[wt]) workTypeMap[wt] = { total: 0, count: 0 };
@@ -113,12 +121,17 @@ const getEarnings = async (req, res, next) => {
         totalJobs,
         avgPerJob,
         pendingAmount: Math.round(pendingAmount * 100) / 100,
+        pendingSettlement: Math.round(pendingSettlement * 100) / 100,
+        settledAmount: Math.round(settledAmount * 100) / 100,
       },
       byWorkType,
       byMonth,
       recentPayments: payments.slice(0, 20).map(p => ({
         id:          p.id,
         amount:      p.amount,
+        commissionAmount: p.commissionAmount,
+        workerAmount: p.workerAmount,
+        settlementStatus: p.settlementStatus,
         method:      p.method,
         paidAt:      p.paidAt,
         createdAt:   p.createdAt,

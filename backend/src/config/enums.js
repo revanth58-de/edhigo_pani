@@ -86,6 +86,8 @@ const PaymentStatus = Object.freeze({
 const PaymentMethod = Object.freeze({
   CASH: 'cash',
   UPI:  'upi',
+  CARD: 'card',
+  NETBANKING: 'netbanking',
 });
 
 // ── Group ──────────────────────────────────────────────────────────────────────

@@ -499,6 +499,82 @@ const getAuditLogs = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /api/admin/settlements
+const getSettlements = async (req, res, next) => {
+  try {
+    const { status } = req.query;
+    const { take, skip, page } = getPagination(req.query);
+
+    const where = {};
+    if (status) where.status = status;
+
+    const [settlements, total] = await Promise.all([
+      prisma.settlement.findMany({
+        where,
+        include: {
+          worker: { select: { id: true, name: true, phone: true, upiId: true } },
+          payment: {
+            include: {
+              job: { select: { id: true, workType: true } },
+              farmer: { select: { id: true, name: true } },
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.settlement.count({ where }),
+    ]);
+
+    res.json({ settlements, count: settlements.length, total, page, pages: Math.ceil(total / take) });
+  } catch (err) { next(err); }
+};
+
+// POST /api/admin/settlements/:id/settle
+const settlePayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const settlement = await prisma.settlement.findUnique({
+      where: { id }
+    });
+
+    if (!settlement) {
+      return res.status(404).json({ error: 'Settlement not found' });
+    }
+
+    // Update settlement to settled
+    const updatedSettlement = await prisma.settlement.update({
+      where: { id },
+      data: {
+        status: 'settled',
+        settledAt: new Date(),
+      }
+    });
+
+    // Also update the corresponding payment's settlementStatus to settled
+    await prisma.payment.update({
+      where: { id: settlement.paymentId },
+      data: {
+        settlementStatus: 'settled',
+      }
+    });
+
+    // Log the manual settlement in audit log
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'manual_settlement',
+        targetId: settlement.id,
+        details: { amount: settlement.amount, workerId: settlement.workerId }
+      }
+    });
+
+    res.json({ message: 'Settlement processed successfully', settlement: updatedSettlement });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getStats,
   invalidateStats,
@@ -515,4 +591,6 @@ module.exports = {
   getRatings,
   getGroups,
   getAuditLogs,
+  getSettlements,
+  settlePayment: _withCacheInvalidation(settlePayment),
 };

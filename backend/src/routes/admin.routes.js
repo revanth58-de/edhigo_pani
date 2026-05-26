@@ -7,7 +7,7 @@ const {
   getJobs, updateJob,
   getPayments, updatePayment,
   getAttendance, getRatings, getGroups,
-  getAuditLogs,
+  getAuditLogs, getSettlements, settlePayment,
 } = require('../controllers/admin.controller');
 
 // FIX #1: Public login endpoint — rate-limited but no auth guard.
@@ -36,6 +36,9 @@ router.patch('/jobs/:id', updateJob);
 
 router.get('/payments', getPayments);
 router.patch('/payments/:id', updatePayment);
+
+router.get('/settlements', getSettlements);
+router.post('/settlements/:id/settle', settlePayment);
 
 router.get('/attendance', getAttendance);
 router.get('/ratings', getRatings);

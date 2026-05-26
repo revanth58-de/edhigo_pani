@@ -1,26 +1,26 @@
 /**
  * EarningsDashboard.js
- * F1: Worker Earnings Dashboard
+ * F1: Worker Earnings & Wallet Dashboard
  *
- * Shows a worker their complete earnings picture:
- *  ┌─────────────────────────────────────┐
- *  │  Total Earned   This Month  This Wk │  ← Summary cards
- *  ├─────────────────────────────────────┤
- *  │  ▇▇▂▃▅▇  6-month earnings trend    │  ← Bar chart (pure RN, no library)
- *  ├─────────────────────────────────────┤
- *  │  Work Type breakdown (pie-style)    │  ← Progress bars per work type
- *  ├─────────────────────────────────────┤
- *  │  Recent Payments list              │  ← Last 20 payments
- *  └─────────────────────────────────────┘
- *
- * Pure React Native — no charting library dependency.
- * All visualizations are built with View/width math.
+ * Provides a highly secure, readable, and premium financial interface.
+ * Shows:
+ *  - Total Earnings
+ *  - Settled share vs Pending Settlements
+ *  - Week breakdown
+ *  - Visual progress
+ *  - Recent logs with direct detail navigation
  */
 
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  StatusBar, Platform, RefreshControl,
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  StatusBar,
+  Platform,
+  RefreshControl,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -30,7 +30,6 @@ import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import { workerAPI } from '../../services/api';
 
-// ── Work type colors ───────────────────────────────────────────────────────────
 const WORK_TYPE_CONFIG = {
   Sowing:     { color: '#10B981', icon: 'grass' },
   Harvesting: { color: '#F59E0B', icon: 'agriculture' },
@@ -43,7 +42,6 @@ const WORK_TYPE_CONFIG = {
 const getWorkConfig = (workType) =>
   WORK_TYPE_CONFIG[workType] || WORK_TYPE_CONFIG.Other;
 
-// ── Formatters ─────────────────────────────────────────────────────────────────
 const formatINR = (n) =>
   '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -53,110 +51,6 @@ const formatDate = (dateStr) => {
     day: '2-digit', month: 'short', year: 'numeric',
   });
 };
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-// Summary card at the top
-const StatCard = ({ label, value, icon, accent, small }) => (
-  <View style={[styles.statCard, small && styles.statCardSmall]}>
-    <MaterialIcons name={icon} size={small ? 18 : 22} color={accent} />
-    <Text style={[styles.statValue, small && styles.statValueSmall]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
-// Pure RN bar chart — no library
-const BarChart = ({ data }) => {
-  const maxVal = Math.max(...data.map(d => d.total), 1);
-  return (
-    <View style={styles.chartContainer}>
-      <Text style={styles.sectionTitle}>6-Month Trend</Text>
-      <View style={styles.barRow}>
-        {data.map((d, i) => {
-          const heightPct = d.total / maxVal;
-          const barH = Math.max(heightPct * 100, 4); // min 4px for zero bars
-          return (
-            <View key={i} style={styles.barCol}>
-              <Text style={styles.barAmount}>{d.total > 0 ? formatINR(d.total) : ''}</Text>
-              <View style={styles.barTrack}>
-                <LinearGradient
-                  colors={d.total > 0 ? [colors.primary, `${colors.primary}80`] : ['#E5E7EB', '#E5E7EB']}
-                  style={[styles.bar, { height: barH }]}
-                  start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                />
-              </View>
-              <Text style={styles.barLabel}>{d.label}</Text>
-            </View>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
-
-// Work type breakdown — horizontal progress bars
-const WorkTypeBreakdown = ({ data }) => {
-  if (!data || data.length === 0) return null;
-  return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>By Work Type</Text>
-      {data.map((item) => {
-        const cfg = getWorkConfig(item.workType);
-        return (
-          <View key={item.workType} style={styles.breakdownRow}>
-            <View style={styles.breakdownLeft}>
-              <View style={[styles.breakdownIconCircle, { backgroundColor: `${cfg.color}15` }]}>
-                <MaterialIcons name={cfg.icon} size={16} color={cfg.color} />
-              </View>
-              <View>
-                <Text style={styles.breakdownType}>{item.workType}</Text>
-                <Text style={styles.breakdownCount}>{item.count} job{item.count !== 1 ? 's' : ''}</Text>
-              </View>
-            </View>
-            <View style={styles.breakdownRight}>
-              <Text style={[styles.breakdownAmount, { color: cfg.color }]}>{formatINR(item.total)}</Text>
-              <Text style={styles.breakdownPercent}>{item.percent}%</Text>
-            </View>
-            {/* Progress bar */}
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${item.percent}%`, backgroundColor: cfg.color }]} />
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-};
-
-// Recent payment row
-const PaymentRow = ({ payment }) => {
-  const cfg = getWorkConfig(payment.workType);
-  const isUPI = payment.method === 'upi';
-  return (
-    <View style={styles.paymentRow}>
-      <View style={[styles.paymentIconCircle, { backgroundColor: `${cfg.color}15` }]}>
-        <MaterialIcons name={cfg.icon} size={20} color={cfg.color} />
-      </View>
-      <View style={styles.paymentInfo}>
-        <Text style={styles.paymentType}>{payment.workType}</Text>
-        <Text style={styles.paymentMeta} numberOfLines={1}>
-          {payment.farmerName} • {formatDate(payment.paidAt || payment.createdAt)}
-        </Text>
-        <Text style={styles.paymentAddress} numberOfLines={1}>{payment.farmAddress}</Text>
-      </View>
-      <View style={styles.paymentAmountCol}>
-        <Text style={styles.paymentAmount}>{formatINR(payment.amount)}</Text>
-        <View style={[styles.methodBadge, isUPI && styles.methodBadgeUPI]}>
-          <Text style={[styles.methodText, isUPI && styles.methodTextUPI]}>
-            {isUPI ? 'UPI' : 'CASH'}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-};
-
-// ── EarningsDashboard ──────────────────────────────────────────────────────────
 
 const EarningsDashboard = ({ navigation }) => {
   const [data, setData]       = useState(null);
@@ -188,17 +82,17 @@ const EarningsDashboard = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
-      <TopBar title="My Earnings" navigation={navigation} />
+      <TopBar title="Worker Wallet" navigation={navigation} />
 
       {loading ? (
         <View style={styles.centered}>
           <CustomLoader size={48} color={colors.primary} />
-          <Text style={styles.loadingText}>Loading earnings...</Text>
+          <Text style={styles.loadingText}>Loading wallet...</Text>
         </View>
       ) : error ? (
         <View style={styles.centered}>
           <MaterialIcons name="wifi-off" size={56} color="#D1D5DB" />
-          <Text style={styles.errorText}>Couldn't load earnings</Text>
+          <Text style={styles.errorText}>Couldn't load wallet details</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={fetchEarnings}>
             <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>
@@ -209,57 +103,76 @@ const EarningsDashboard = ({ navigation }) => {
           refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchEarnings} colors={[colors.primary]} />}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Hero total ─────────────────────────────────────────────── */}
+          {/* Wallet Header balance card */}
           <LinearGradient
-            colors={[colors.primary, `${colors.primary}CC`]}
+            colors={['#15803D', '#16A34A']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.heroCard}
           >
-            <Text style={styles.heroLabel}>TOTAL EARNED</Text>
+            <View style={styles.walletHeaderRow}>
+              <MaterialIcons name="account-balance-wallet" size={24} color="#FFFFFF" />
+              <Text style={styles.heroLabel}>NET WALLET BALANCES</Text>
+            </View>
             <Text style={styles.heroAmount}>{formatINR(summary.totalEarned)}</Text>
-            <Text style={styles.heroSub}>{summary.totalJobs || 0} jobs completed</Text>
-            {summary.pendingAmount > 0 && (
-              <View style={styles.pendingBadge}>
-                <MaterialIcons name="pending" size={14} color="#FEF3C7" />
-                <Text style={styles.pendingText}>{formatINR(summary.pendingAmount)} pending (UPI)</Text>
-              </View>
-            )}
+            <Text style={styles.heroSub}>{summary.totalJobs || 0} jobs successfully completed</Text>
+
+            <TouchableOpacity 
+              style={styles.historyShortcut} 
+              onPress={() => navigation.navigate('EarningsHistory')}
+            >
+              <Text style={styles.historyShortcutText}>View Full Earning History</Text>
+              <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
+            </TouchableOpacity>
           </LinearGradient>
 
-          {/* ── Stat row ───────────────────────────────────────────────── */}
-          <View style={styles.statRow}>
-            <StatCard
-              label="This Month"
-              value={formatINR(summary.thisMonth)}
-              icon="calendar-today"
-              accent="#3B82F6"
-              small
-            />
-            <StatCard
-              label="This Week"
-              value={formatINR(summary.thisWeek)}
-              icon="date-range"
-              accent="#10B981"
-              small
-            />
-            <StatCard
-              label="Avg / Job"
-              value={formatINR(summary.avgPerJob)}
-              icon="trending-up"
-              accent="#F59E0B"
-              small
-            />
+          {/* ── SETTLEMENT BREAKDOWN TILES ── */}
+          <View style={styles.breakdownContainer}>
+            <View style={styles.breakdownRow}>
+              {/* Settled Card */}
+              <View style={[styles.breakdownCard, styles.breakdownCardSettled]}>
+                <View style={styles.cardHeaderIcon}>
+                  <MaterialIcons name="check-circle" size={18} color="#059669" />
+                  <Text style={styles.tileLabel}>Settled</Text>
+                </View>
+                <Text style={styles.tileVal}>{formatINR(summary.settledAmount || 0)}</Text>
+                <Text style={styles.tileSub}>Paid to Bank</Text>
+              </View>
+
+              {/* Pending Settlement Card */}
+              <View style={[styles.breakdownCard, styles.breakdownCardPending]}>
+                <View style={styles.cardHeaderIcon}>
+                  <MaterialIcons name="pending" size={18} color="#D97706" />
+                  <Text style={[styles.tileLabel, { color: '#D97706' }]}>Pending</Text>
+                </View>
+                <Text style={[styles.tileVal, { color: '#D97706' }]}>{formatINR(summary.pendingAmount || summary.pendingSettlement || 0)}</Text>
+                <Text style={styles.tileSub}>Locked in verification</Text>
+              </View>
+            </View>
           </View>
 
-          {/* ── 6-month bar chart ─────────────────────────────────────── */}
-          {data?.byMonth?.length > 0 && <BarChart data={data.byMonth} />}
+          {/* Stat row */}
+          <View style={styles.statRow}>
+            <View style={styles.statCard}>
+              <MaterialIcons name="date-range" size={20} color="#3B82F6" />
+              <Text style={styles.statValue}>{formatINR(summary.thisWeek)}</Text>
+              <Text style={styles.statLabel}>This Week</Text>
+            </View>
+            <View style={styles.statCard}>
+              <MaterialIcons name="trending-up" size={20} color="#F59E0B" />
+              <Text style={styles.statValue}>{formatINR(summary.avgPerJob)}</Text>
+              <Text style={styles.statLabel}>Avg Per Job</Text>
+            </View>
+          </View>
 
-          {/* ── Work type breakdown ───────────────────────────────────── */}
-          <WorkTypeBreakdown data={data?.byWorkType} />
-
-          {/* ── Recent payments ───────────────────────────────────────── */}
+          {/* ── Recent payments list ── */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Payments</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Payments</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('EarningsHistory')}>
+                <Text style={styles.viewAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+
             {data?.recentPayments?.length === 0 ? (
               <View style={styles.emptyPayments}>
                 <MaterialIcons name="payments" size={40} color="#D1D5DB" />
@@ -267,7 +180,38 @@ const EarningsDashboard = ({ navigation }) => {
                 <Text style={styles.emptySubText}>Accept a job to start earning</Text>
               </View>
             ) : (
-              data?.recentPayments?.map(p => <PaymentRow key={p.id} payment={p} />)
+              data?.recentPayments?.slice(0, 10).map((p) => {
+                const cfg = getWorkConfig(p.workType);
+                const isUPI = p.method === 'upi';
+                const isSettled = p.settlementStatus === 'settled';
+
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={styles.paymentRow}
+                    onPress={() => navigation.navigate('WorkerPaymentDetails', { payment: p })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.paymentIconCircle, { backgroundColor: `${cfg.color}15` }]}>
+                      <MaterialIcons name={cfg.icon} size={20} color={cfg.color} />
+                    </View>
+                    <View style={styles.paymentInfo}>
+                      <Text style={styles.paymentType}>{p.workType}</Text>
+                      <Text style={styles.paymentMeta} numberOfLines={1}>
+                        {p.farmerName} • {formatDate(p.paidAt || p.createdAt)}
+                      </Text>
+                    </View>
+                    <View style={styles.paymentAmountCol}>
+                      <Text style={styles.paymentAmount}>{formatINR(p.workerAmount || p.amount)}</Text>
+                      <View style={[styles.statusBadge, isSettled ? styles.statusBadgeSettled : styles.statusBadgePending]}>
+                        <Text style={[styles.statusText, isSettled ? styles.statusTextSettled : styles.statusTextPending]}>
+                          {isSettled ? 'Settled' : 'Pending'}
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
 
@@ -278,8 +222,6 @@ const EarningsDashboard = ({ navigation }) => {
   );
 };
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scroll: { paddingBottom: 40 },
@@ -287,67 +229,114 @@ const styles = StyleSheet.create({
 
   // Hero
   heroCard: {
-    marginHorizontal: 16, marginTop: 16, borderRadius: 28, padding: 28,
+    marginHorizontal: 16, marginTop: 16, borderRadius: 28, padding: 24,
     alignItems: 'center',
-    shadowColor: colors.primary, shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35, shadowRadius: 24, elevation: 18,
+    shadowColor: '#16A34A', shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2, shadowRadius: 20, elevation: 12,
   },
-  heroLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginBottom: 8 },
-  heroAmount: { fontSize: 48, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
-  heroSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  pendingBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 6, marginTop: 12,
+  walletHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
   },
-  pendingText: { color: '#FEF3C7', fontSize: 12, fontWeight: '700' },
+  heroLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(255,255,255,0.7)', letterSpacing: 2 },
+  heroAmount: { fontSize: 44, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
+  heroSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4, textAlign: 'center' },
+  historyShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginTop: 18,
+  },
+  historyShortcutText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Breakdown Card
+  breakdownContainer: {
+    paddingHorizontal: 16,
+    marginTop: 16,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  breakdownCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  breakdownCardSettled: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#10B981',
+  },
+  breakdownCardPending: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
+  },
+  cardHeaderIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  tileLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#059669',
+    textTransform: 'uppercase',
+  },
+  tileVal: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#10B981',
+    marginTop: 8,
+  },
+  tileSub: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    marginTop: 2,
+    fontWeight: '600',
+  },
 
   // Stat row
-  statRow: { flexDirection: 'row', gap: 10, marginHorizontal: 16, marginTop: 14 },
+  statRow: { flexDirection: 'row', gap: 12, marginHorizontal: 16, marginTop: 14 },
   statCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 18, padding: 14,
-    alignItems: 'center', gap: 6,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16,
+    alignItems: 'center', gap: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03, shadowRadius: 10, elevation: 2,
   },
-  statCardSmall: { padding: 12 },
   statValue: { fontSize: 18, fontWeight: '900', color: '#131811' },
-  statValueSmall: { fontSize: 15 },
-  statLabel: { fontSize: 10, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.5, textAlign: 'center' },
-
-  // Bar chart
-  chartContainer: {
-    margin: 16, backgroundColor: '#FFFFFF', borderRadius: 22, padding: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
-  },
-  barRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginTop: 16, height: 130 },
-  barCol: { flex: 1, alignItems: 'center', gap: 4 },
-  barAmount: { fontSize: 8, fontWeight: '700', color: colors.primary, textAlign: 'center' },
-  barTrack: { flex: 1, width: '100%', justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: 6 },
-  barLabel: { fontSize: 9, color: '#9CA3AF', fontWeight: '600', textAlign: 'center' },
+  statLabel: { fontSize: 11, fontWeight: '700', color: '#9CA3AF' },
 
   // Section
   section: {
-    marginHorizontal: 16, marginTop: 14, backgroundColor: '#FFFFFF',
-    borderRadius: 22, padding: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
+    marginHorizontal: 16, marginTop: 16, backgroundColor: '#FFFFFF',
+    borderRadius: 24, padding: 20,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03, shadowRadius: 10, elevation: 2,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: '#131811', marginBottom: 16 },
-
-  // Breakdown
-  breakdownRow: { marginBottom: 14 },
-  breakdownLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  breakdownIconCircle: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  breakdownType: { fontSize: 14, fontWeight: '700', color: '#131811' },
-  breakdownCount: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
-  breakdownRight: { position: 'absolute', right: 0, top: 0, alignItems: 'flex-end' },
-  breakdownAmount: { fontSize: 15, fontWeight: '800' },
-  breakdownPercent: { fontSize: 11, color: '#9CA3AF', marginTop: 1 },
-  progressTrack: { height: 6, backgroundColor: '#F3F4F6', borderRadius: 3, marginTop: 8 },
-  progressFill: { height: 6, borderRadius: 3 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: { fontSize: 15, fontWeight: '900', color: '#131811' },
+  viewAllText: { fontSize: 12, fontWeight: '800', color: colors.primary },
 
   // Payment rows
   paymentRow: {
@@ -358,15 +347,16 @@ const styles = StyleSheet.create({
   paymentInfo: { flex: 1 },
   paymentType: { fontSize: 14, fontWeight: '700', color: '#131811' },
   paymentMeta: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-  paymentAddress: { fontSize: 11, color: '#D1D5DB', marginTop: 1 },
   paymentAmountCol: { alignItems: 'flex-end', gap: 4 },
-  paymentAmount: { fontSize: 16, fontWeight: '900', color: '#131811' },
-  methodBadge: {
-    backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
+  paymentAmount: { fontSize: 15, fontWeight: '900', color: '#131811' },
+  statusBadge: {
+    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6,
   },
-  methodBadgeUPI: { backgroundColor: '#EFF6FF' },
-  methodText: { fontSize: 10, fontWeight: '800', color: '#6B7280' },
-  methodTextUPI: { color: '#3B82F6' },
+  statusBadgePending: { backgroundColor: '#FFF9E6' },
+  statusBadgeSettled: { backgroundColor: '#ECFDF5' },
+  statusText: { fontSize: 10, fontWeight: '800' },
+  statusTextPending: { color: '#D97706' },
+  statusTextSettled: { color: '#059669' },
 
   // Empty / error
   emptyPayments: { alignItems: 'center', paddingVertical: 32, gap: 8 },

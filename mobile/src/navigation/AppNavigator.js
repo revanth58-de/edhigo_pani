@@ -62,6 +62,9 @@ import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
 import EarningsDashboard from '../screens/worker/EarningsDashboard'; // F1
+import EarningsHistoryScreen from '../screens/worker/EarningsHistoryScreen';
+import SettlementStatusScreen from '../screens/worker/SettlementStatusScreen';
+import WorkerPaymentDetailsScreen from '../screens/worker/WorkerPaymentDetailsScreen';
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -147,6 +150,9 @@ const WorkerNavigator = () => (
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
     <Stack.Screen name="EarningsDashboard" component={EarningsDashboard} />
+    <Stack.Screen name="EarningsHistory" component={EarningsHistoryScreen} />
+    <Stack.Screen name="SettlementStatus" component={SettlementStatusScreen} />
+    <Stack.Screen name="WorkerPaymentDetails" component={WorkerPaymentDetailsScreen} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="GroupChat" component={GroupChatScreen} />

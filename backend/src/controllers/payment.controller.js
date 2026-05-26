@@ -96,19 +96,39 @@ const makePayment = async (req, res, next) => {
     const rawPerWorker = amount / attendances.length;
     const perWorkerAmount = Math.round(rawPerWorker * 100) / 100; // round to 2 decimal places
 
+    const commissionAmount = Math.round((perWorkerAmount * 0.05) * 100) / 100;
+    const workerAmount = Math.round((perWorkerAmount - commissionAmount) * 100) / 100;
+
     for (const att of attendances) {
+      const isCompleted = method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING;
       const payment = await prisma.payment.create({
         data: {
           jobId,
           farmerId,
           workerId: att.workerId,
           amount: perWorkerAmount,
+          commissionAmount,
+          workerAmount,
           method,
           upiRef: transactionId || null,
-          status: method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING,
-          paidAt: method === 'cash' ? new Date() : null,
+          status: isCompleted,
+          settlementStatus: 'pending',
+          paidAt: isCompleted === PaymentStatus.COMPLETED ? new Date() : null,
         },
       });
+
+      // If already completed (cash), create the Settlement record immediately
+      if (isCompleted === PaymentStatus.COMPLETED) {
+        await prisma.settlement.create({
+          data: {
+            workerId: att.workerId,
+            paymentId: payment.id,
+            amount: workerAmount,
+            status: 'pending',
+          },
+        });
+      }
+
       payments.push(payment);
     }
 
@@ -216,25 +236,54 @@ const confirmPayment = async (req, res, next) => {
       return res.status(403).json({ error: 'Not authorized to confirm payment for this job' });
     }
 
-    // Mark all pending UPI payments for this job as completed
-    const result = await prisma.payment.updateMany({
-      where: { jobId, farmerId, status: PaymentStatus.PENDING, method: PaymentMethod.UPI },
-      data: {
-        status:  PaymentStatus.COMPLETED,
-        paidAt:  new Date(),
-        ...(upiRef && { upiRef }),
+    // Find all pending payments for this job and farmer
+    const pendingPayments = await prisma.payment.findMany({
+      where: {
+        jobId,
+        farmerId,
+        status: PaymentStatus.PENDING,
+        method: { in: [PaymentMethod.UPI, PaymentMethod.CARD, PaymentMethod.NETBANKING] }
       },
     });
 
-    if (result.count === 0) {
-      return res.status(404).json({ error: 'No pending UPI payments found for this job' });
+    if (pendingPayments.length === 0) {
+      return res.status(404).json({ error: 'No pending payments found for this job' });
     }
 
-    logger.info('UPI payments confirmed', { jobId, farmerId, count: result.count });
+    const updatedPayments = [];
+    for (const payment of pendingPayments) {
+      const updated = await prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.COMPLETED,
+          paidAt: new Date(),
+          ...(upiRef && { upiRef }),
+        },
+      });
+
+      // Check if a Settlement already exists for this payment (to prevent duplicates)
+      const existingSettlement = await prisma.settlement.findFirst({
+        where: { paymentId: payment.id }
+      });
+
+      if (!existingSettlement) {
+        await prisma.settlement.create({
+          data: {
+            workerId: payment.workerId,
+            paymentId: payment.id,
+            amount: payment.workerAmount,
+            status: 'pending',
+          },
+        });
+      }
+      updatedPayments.push(updated);
+    }
+
+    logger.info('Payments confirmed and settlements created', { jobId, farmerId, count: updatedPayments.length });
 
     res.json({
-      message: `${result.count} UPI payment(s) confirmed successfully`,
-      confirmedCount: result.count,
+      message: `${updatedPayments.length} payment(s) confirmed successfully`,
+      confirmedCount: updatedPayments.length,
     });
   } catch (error) {
     logger.error('Confirm payment error', { message: error.message });

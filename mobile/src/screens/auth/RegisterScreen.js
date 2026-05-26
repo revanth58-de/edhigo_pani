@@ -1,5 +1,5 @@
 // RegisterScreen - User registration after language selection
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -103,6 +103,24 @@ const RegisterScreen = ({ navigation }) => {
     const [gender, setGender] = useState('');
     const [selectedRole, setSelectedRole] = useState('');
     const [showExistsModal, setShowExistsModal] = useState(false);
+    const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
+
+    // Handle OTP cooldown countdown
+    useEffect(() => {
+        if (otpCooldownSeconds <= 0) return;
+
+        const timer = setInterval(() => {
+            setOtpCooldownSeconds((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [otpCooldownSeconds]);
 
     const handleContinue = async () => {
         if (!name.trim() || !phone.trim() || !village.trim() || !selectedRole || !age.trim() || !gender) {
@@ -140,7 +158,16 @@ const RegisterScreen = ({ navigation }) => {
                 otp: result?.devOtp,
             });
         } catch (error) {
-            Alert.alert('Error', 'Could not send OTP. Please try again.');
+            // Handle rate limit cooldown specifically
+            if (error.code === 'RATE_LIMIT_COOLDOWN') {
+                setOtpCooldownSeconds(error.remainingSeconds);
+                Alert.alert(
+                    'Please Wait',
+                    `You can request a new OTP in ${error.remainingSeconds} seconds. This helps prevent overloading our servers.`
+                );
+            } else {
+                Alert.alert('Error', 'Could not send OTP. Please try again.');
+            }
         }
     };
 
@@ -368,12 +395,17 @@ const RegisterScreen = ({ navigation }) => {
 
                     {/* Continue Button */}
                     <TouchableOpacity
-                        style={[styles.continueBtn, isLoading && { opacity: 0.7 }]}
+                        style={[styles.continueBtn, (isLoading || otpCooldownSeconds > 0) && { opacity: 0.7 }]}
                         onPress={handleContinue}
-                        disabled={isLoading}
+                        disabled={isLoading || otpCooldownSeconds > 0}
                     >
                         {isLoading ? (
                             <CustomLoader size={24} color="#FFFFFF" />
+                        ) : otpCooldownSeconds > 0 ? (
+                            <>
+                                <MaterialIcons name="schedule" size={24} color="#FFFFFF" />
+                                <Text style={styles.continueBtnText}>{L.continue} ({otpCooldownSeconds}s)</Text>
+                            </>
                         ) : (
                             <>
                                 <Text style={styles.continueBtnText}>{L.continue}</Text>

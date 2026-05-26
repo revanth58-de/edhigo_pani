@@ -1,53 +1,62 @@
-# ─── DINASARI Backend — Dockerfile ────────────────────────────────────────
-# Multi-stage build: keeps the production image lean (~200MB vs 1.2GB)
+# ─────────────────────────────────────────────────────────────────────────────
+# Dockerfile — DINASARI Backend (Node.js / Express)
+# Multi-stage build: keeps the final image lean (~200 MB vs ~600 MB)
 #
-# Build:  docker build -t dinasari-backend .
-# Run:    docker run -p 5000:5000 --env-file .env dinasari-backend
+# Stage 1 (builder): installs ALL deps + generates Prisma Client
+# Stage 2 (runner):  copies only production deps + built artifacts
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── Stage 1: Install dependencies ──────────────────────────────────────────
-FROM node:20-alpine AS deps
-WORKDIR /app
-
-# Copy package files first for layer caching
-COPY package*.json ./
-RUN npm ci --only=production
-
-# ── Stage 2: Build Prisma client ───────────────────────────────────────────
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
+
 WORKDIR /app
 
-COPY package*.json ./
+# Install system deps required by some native modules (bcrypt, etc.)
+RUN apk add --no-cache python3 make g++
+
+# Copy package files first for layer caching — only reinstall if lock changes
+COPY package.json package-lock.json ./
 RUN npm ci
 
+# Copy Prisma schema and generate the client
 COPY prisma ./prisma
 RUN npx prisma generate
 
-# ── Stage 3: Production image ──────────────────────────────────────────────
+# Copy the rest of the source
+COPY src ./src
+
+# ── Stage 2: Runner ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
+
+# Use a non-root user for security — never run Node as root in production
+RUN addgroup -S dinasari && adduser -S dinasari -G dinasari
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 dinasari
+# Copy only production node_modules (no devDependencies)
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy production node_modules
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy generated Prisma client
+# Copy generated Prisma client from builder
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy Prisma schema (needed at runtime for migrations)
+COPY --from=builder /app/prisma ./prisma
 
 # Copy application source
-COPY src ./src
-COPY prisma ./prisma
+COPY --from=builder /app/src ./src
 
-# Create logs directory with correct permissions
-RUN mkdir -p logs && chown -R dinasari:nodejs logs
-
+# Switch to non-root user
 USER dinasari
 
-EXPOSE 5000
+# Cloud Run sends traffic to PORT — expose it
+EXPOSE 8080
 
-# Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
+# Health check — Cloud Run uses this to know when the container is ready
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/health', r => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+CMD ["node", "src/server.js"]

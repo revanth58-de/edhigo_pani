@@ -1,0 +1,34 @@
+# ─── Exclude from Docker build context ─────────────────────────────────────
+# Keeping the build context small makes `docker build` significantly faster.
+
+# Dependencies (will be reinstalled inside the image)
+node_modules/
+npm-debug.log*
+
+# Local env files — secrets must come from Cloud Run environment, not the image
+.env
+.env.*
+!.env.production.example
+
+# Prisma data files — schema is copied but DB files must never be in the image
+prisma/*.db
+prisma/*.db-journal
+
+# Dev/test artifacts
+coverage/
+*.test.js
+__tests__/
+tests/
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Git history
+.git/
+.gitignore
+
+# Other workspaces — only the backend goes into the Docker image

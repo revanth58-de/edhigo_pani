@@ -20,6 +20,17 @@ export const groupService = {
     }
   },
 
+  // Get my groups
+  getMyGroups: async (config = {}) => {
+    try {
+      const response = await groupAPI.getMyGroups(config);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Get My Groups Error:', error);
+      return { success: false, data: [] };
+    }
+  },
+
   // Get group jobs
   getGroupJobs: async (groupId) => {
     try {

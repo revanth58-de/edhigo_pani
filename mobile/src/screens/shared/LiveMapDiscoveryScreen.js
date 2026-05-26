@@ -7,8 +7,8 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
-  ActivityIndicator,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -109,7 +109,7 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
       <View style={styles.mapContainer}>
         {loading && !region ? (
           <View style={styles.mapLoading}>
-            <ActivityIndicator size="large" color={colors.primary} />
+            <CustomLoader size={48} color={colors.primary} />
             <Text style={styles.loadingText}>Finding your location...</Text>
           </View>
         ) : (

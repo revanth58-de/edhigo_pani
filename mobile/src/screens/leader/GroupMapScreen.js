@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     StatusBar,
-    Dimensions,
     Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,60 +18,133 @@ const GroupMapScreen = ({ navigation, route }) => {
     const { groupId, workerCount } = route.params || { workerCount: 15 };
     const { user } = useAuthStore();
     const [location, setLocation] = useState(null);
+    // Map of userId -> { latitude, longitude, timestamp }
+    const [memberLocations, setMemberLocations] = useState({});
+
+    // Store watch subscription so we can call .remove() on unmount
+    const watcherRef = useRef(null);
+    const isMounted = useRef(true);
 
     useEffect(() => {
+        isMounted.current = true;
         startTracking();
         setupSocket();
-        return () => stopTracking();
+        return () => {
+            isMounted.current = false;
+            stopTracking();
+        };
     }, []);
 
     const startTracking = async () => {
         let { status } = await Location.requestForegroundPermissionsAsync();
+        if (!isMounted.current) return;
         if (status !== 'granted') {
             Alert.alert('Permission denied', 'Location access is required for map mode.');
             return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.BestForNavigation
-        });
-        setLocation(loc.coords);
+        try {
+            const loc = await Location.getCurrentPositionAsync({
+                accuracy: Location.Accuracy.BestForNavigation
+            });
+            if (!isMounted.current) return;
+            setLocation(loc.coords);
 
-        // Watch location
-        Location.watchPositionAsync(
-            { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 1 },
-            (newLoc) => {
-                setLocation(newLoc.coords);
-                // Sync with backend/socket if needed
-                socketService.socket?.emit('group:location_update', {
+            // Emit initial location
+            if (groupId) {
+                socketService.emitGroupLocationUpdate({
                     groupId,
-                    latitude: newLoc.coords.latitude,
-                    longitude: newLoc.coords.longitude
+                    latitude: loc.coords.latitude,
+                    longitude: loc.coords.longitude,
                 });
             }
-        );
+        } catch (e) {
+            console.warn('Error getting initial location:', e);
+        }
+
+        try {
+            // Watch location — store subscription ref for cleanup
+            const sub = await Location.watchPositionAsync(
+                { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
+                (newLoc) => {
+                    if (!isMounted.current) return;
+                    setLocation(newLoc.coords);
+                    if (groupId) {
+                        socketService.emitGroupLocationUpdate({
+                            groupId,
+                            latitude: newLoc.coords.latitude,
+                            longitude: newLoc.coords.longitude,
+                        });
+                    }
+                }
+            );
+
+            if (!isMounted.current) {
+                sub.remove();
+            } else {
+                watcherRef.current = sub;
+            }
+        } catch (e) {
+            console.warn('Error setting up location watcher:', e);
+        }
+    };
+
+    const handleJobRequest = (data) => {
+        if (!isMounted.current) return;
+        navigation.navigate('GroupRequest', { jobData: data, groupId });
+    };
+
+    const handleLocationBroadcast = (data) => {
+        if (!isMounted.current) return;
+        const { userId, latitude, longitude, timestamp } = data;
+        // Don't show the current user's own marker
+        if (userId === user?.id) return;
+        setMemberLocations((prev) => ({
+            ...prev,
+            [userId]: { latitude, longitude, timestamp },
+        }));
     };
 
     const setupSocket = () => {
-        if (socketService.socket) socketService.socket.on('job:request', (data) => {
-            // Navigate to G4 when request received
-            navigation.navigate('GroupRequest', { jobData: data, groupId });
-        });
+        // Join the group room to receive broadcasts
+        if (groupId) socketService.joinGroupRoom(groupId);
+
+        // Listen for job requests (navigate to GroupRequest screen)
+        socketService.on('job:request', handleJobRequest);
+
+        // Listen for other group members' locations
+        socketService.onGroupLocationBroadcast(handleLocationBroadcast);
     };
 
     const stopTracking = () => {
-        // Cleanup handled by watchPositionAsync's return or similar
+        // Properly remove the GPS watcher subscription
+        if (watcherRef.current) {
+            watcherRef.current.remove();
+            watcherRef.current = null;
+        }
+        // Unsubscribe from socket events
+        socketService.off('job:request', handleJobRequest);
+        socketService.offGroupLocationBroadcast(handleLocationBroadcast);
     };
+
+    // Convert memberLocations map to markers array for MapDashboard
+    const memberMarkers = Object.entries(memberLocations).map(([userId, loc]) => ({
+        id: `member-${userId}`,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        type: 'worker',
+        active: true,
+    }));
 
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
 
-            {/* Real Google Map */}
+            {/* Real Google Map with member markers */}
             <MapDashboard
                 fullScreen
                 userLocation={location}
-                markers={[]}
+                markers={memberMarkers}
             />
 
             <View style={styles.overlay}>
@@ -96,8 +168,8 @@ const GroupMapScreen = ({ navigation, route }) => {
                     </View>
                     <View style={styles.divider} />
                     <View style={styles.stat}>
-                        <Text style={styles.statLabel}>Fence</Text>
-                        <Text style={styles.statValue}>100m</Text>
+                        <Text style={styles.statLabel}>Members</Text>
+                        <Text style={styles.statValue}>{Object.keys(memberLocations).length + 1}</Text>
                     </View>
                 </View>
 

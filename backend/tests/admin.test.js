@@ -105,3 +105,46 @@ describe('GET /api/admin/attendance', () => {
     expect(res.statusCode).toBe(200);
   });
 });
+
+describe('Admin Middleware Initialization Checks (S6)', () => {
+  let originalEnv;
+
+  beforeEach(() => {
+    originalEnv = { ...process.env };
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  test('❌ Throw error in production if ADMIN_JWT_SECRET is identical to JWT_SECRET', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'same-secret-123';
+    process.env.ADMIN_JWT_SECRET = 'same-secret-123';
+
+    expect(() => {
+      require('../src/middleware/admin.middleware');
+    }).toThrow(/ADMIN_JWT_SECRET must not be identical to JWT_SECRET/);
+  });
+
+  test('✅ Do not throw in production if ADMIN_JWT_SECRET is different from JWT_SECRET', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.JWT_SECRET = 'secret-a';
+    process.env.ADMIN_JWT_SECRET = 'secret-b';
+
+    expect(() => {
+      require('../src/middleware/admin.middleware');
+    }).not.toThrow();
+  });
+
+  test('✅ Do not throw in development even if secrets are identical', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.JWT_SECRET = 'same-secret-123';
+    process.env.ADMIN_JWT_SECRET = 'same-secret-123';
+
+    expect(() => {
+      require('../src/middleware/admin.middleware');
+    }).not.toThrow();
+  });
+});

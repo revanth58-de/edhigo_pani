@@ -1,7 +1,8 @@
 // Complete App Navigation Structure - All 32 Screens Wired
 // Re-bundle trigger
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, Platform, TouchableOpacity, Alert } from 'react-native';
+import { View, Platform, TouchableOpacity, Alert } from 'react-native';
+import CustomLoader from '../components/CustomLoader';
 import { NavigationContainer, useNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import { authAPI, groupAPI } from '../services/api';
 import { socketService } from '../services/socketService';
 
 import * as Notifications from 'expo-notifications';
+import { Camera } from 'expo-camera';
 
 // Ensure foreground notifications show a visual UI banner
 Notifications.setNotificationHandler({
@@ -41,6 +43,7 @@ import RequestSentScreen from '../screens/farmer/RequestSentScreen';
 import RequestAcceptedScreen from '../screens/farmer/RequestAcceptedScreen';
 import ArrivalAlertScreen from '../screens/farmer/ArrivalAlertScreen';
 import QRAttendanceScreen from '../screens/farmer/QRAttendanceScreen';
+import QRAttendanceOUTScreen from '../screens/farmer/QRAttendanceOUTScreen';
 import WorkInProgressScreen from '../screens/farmer/WorkInProgressScreen';
 import PaymentScreen from '../screens/farmer/PaymentScreen';
 import RateWorkerScreen from '../screens/farmer/RateWorkerScreen';
@@ -58,6 +61,7 @@ import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
+import EarningsDashboard from '../screens/worker/EarningsDashboard'; // F1
 
 // Leader Screens
 import LeaderHomeScreen from '../screens/leader/LeaderHomeScreen';
@@ -115,6 +119,7 @@ const FarmerNavigator = () => (
     <Stack.Screen name="RequestAccepted" component={RequestAcceptedScreen} />
     <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
+    <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
     <Stack.Screen name="WorkInProgress" component={WorkInProgressScreen} />
     <Stack.Screen name="Payment" component={PaymentScreen} />
     <Stack.Screen name="RateWorker" component={RateWorkerScreen} />
@@ -141,6 +146,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="EarningsDashboard" component={EarningsDashboard} />
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="GroupChat" component={GroupChatScreen} />
@@ -190,6 +196,17 @@ const AppNavigator = () => {
 
   useEffect(() => {
     rehydrate();
+    
+    // Check and cache camera permission on startup once
+    const checkInitialCameraPermission = async () => {
+      try {
+        const { status } = await Camera.getCameraPermissionsAsync();
+        useAuthStore.getState().setCameraPermission(status);
+      } catch (err) {
+        console.warn('Initial camera permission check failed:', err.message);
+      }
+    };
+    checkInitialCameraPermission();
   }, []);
 
   // ── Register push notification token after login ──────────────────────────
@@ -385,7 +402,7 @@ const AppNavigator = () => {
   if (!hydrated) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F2F4F0' }}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <CustomLoader size={48} color={colors.primary} />
       </View>
     );
   }

@@ -189,18 +189,21 @@ jest.mock('../src/config/sentry', () => ({
 
 // ─── Mock expo-camera ────────────────────────────────────────────────────────
 const mockRequestCameraPermissions = jest.fn(() => Promise.resolve({ status: 'granted' }));
+const mockGetCameraPermissions = jest.fn(() => Promise.resolve({ status: 'granted' }));
 jest.mock('expo-camera', () => {
   const React = require('react');
   const MockCamera = ({ children, ...props }) =>
     React.createElement('Camera', props, children);
   // Static method on the Camera class
   MockCamera.requestCameraPermissionsAsync = mockRequestCameraPermissions;
+  MockCamera.getCameraPermissionsAsync = mockGetCameraPermissions;
   MockCamera.useCameraPermissions = jest.fn(() => [{ granted: true }, jest.fn()]);
   return {
     Camera: MockCamera,
     CameraType: { back: 'back', front: 'front' },
     CameraView: MockCamera,
     requestCameraPermissionsAsync: mockRequestCameraPermissions,
+    getCameraPermissionsAsync: mockGetCameraPermissions,
     useCameraPermissions: jest.fn(() => [{ granted: true }, jest.fn()]),
   };
 });

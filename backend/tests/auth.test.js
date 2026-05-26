@@ -92,11 +92,11 @@ describe('POST /api/auth/verify-otp', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  test('❌ Non-existent user → 404', async () => {
+  test('❌ Non-existent user → 401 (prevent enumeration)', async () => {
     const res = await request(app)
       .post('/api/auth/verify-otp')
       .send({ phone: '9000000000', otp: '1234' });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(401);
   });
 });
 

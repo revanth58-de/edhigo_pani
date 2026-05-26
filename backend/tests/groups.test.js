@@ -138,6 +138,86 @@ describe('POST /api/groups/:groupId/exit', () => {
   });
 });
 
+describe('GET /api/chats/:groupId/messages', () => {
+  let msg1, msg2, msg3;
+
+  beforeAll(async () => {
+    if (!testGroupId) return;
+    // Create messages using prisma directly
+    msg1 = await prisma.groupMessage.create({
+      data: {
+        groupId: testGroupId,
+        senderId: testLeader.id,
+        content: 'Hello 1',
+        createdAt: new Date(Date.now() - 10000),
+      },
+    });
+    msg2 = await prisma.groupMessage.create({
+      data: {
+        groupId: testGroupId,
+        senderId: testLeader.id,
+        content: 'Hello 2',
+        createdAt: new Date(Date.now() - 5000),
+      },
+    });
+    msg3 = await prisma.groupMessage.create({
+      data: {
+        groupId: testGroupId,
+        senderId: testLeader.id,
+        content: 'Hello 3',
+        createdAt: new Date(),
+      },
+    });
+  });
+
+  afterAll(async () => {
+    if (testGroupId) {
+      await prisma.groupMessage.deleteMany({ where: { groupId: testGroupId } }).catch(() => {});
+    }
+  });
+
+  test('✅ Get all messages for group → 200', async () => {
+    if (!testGroupId) return;
+    const res = await request(app)
+      .get(`/api/chats/${testGroupId}/messages`)
+      .set('Authorization', `Bearer ${leaderToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.length).toBe(3);
+    expect(res.body.data[0].content).toBe('Hello 1');
+    expect(res.body.data[1].content).toBe('Hello 2');
+    expect(res.body.data[2].content).toBe('Hello 3');
+  });
+
+  test('✅ Get messages before msg2 → 200 (returns msg1)', async () => {
+    if (!testGroupId) return;
+    const res = await request(app)
+      .get(`/api/chats/${testGroupId}/messages?before=${msg2.id}`)
+      .set('Authorization', `Bearer ${leaderToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].content).toBe('Hello 1');
+  });
+
+  test('✅ Get messages after msg2 → 200 (returns msg3)', async () => {
+    if (!testGroupId) return;
+    const res = await request(app)
+      .get(`/api/chats/${testGroupId}/messages?after=${msg2.id}`)
+      .set('Authorization', `Bearer ${leaderToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.length).toBe(1);
+    expect(res.body.data[0].content).toBe('Hello 3');
+  });
+
+  test('❌ Non-member cannot view messages → 403', async () => {
+    if (!testGroupId) return;
+    const res = await request(app)
+      .get(`/api/chats/${testGroupId}/messages`)
+      .set('Authorization', `Bearer ${farmerToken}`);
+    expect(res.statusCode).toBe(403);
+  });
+});
+
 describe('DELETE /api/groups/:groupId', () => {
   test('✅ Leader deletes own group → 200/204', async () => {
     if (!testGroupId) return;

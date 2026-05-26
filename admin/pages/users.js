@@ -13,6 +13,9 @@ export async function loadUsers() {
         <div class="section-title">User Management</div>
         <div class="section-sub">Control access and verify status for all network participants.</div>
       </div>
+      <div class="section-controls">
+        <button class="btn btn-outline btn-sm" id="exportUsersCsvBtn">⬇ Export CSV</button>
+      </div>
     </div>
 
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
@@ -50,6 +53,7 @@ export async function loadUsers() {
   el.querySelector('#userSearch').addEventListener('input', () => { page=1; renderUsers(); });
   el.querySelector('#userRoleFilter').addEventListener('change', () => { page=1; renderUsers(); });
   el.querySelector('#userStatusFilter').addEventListener('change', () => { page=1; renderUsers(); });
+  el.querySelector('#exportUsersCsvBtn').addEventListener('click', exportUsersCsv);
 
   try {
     const data = await api.getUsers();
@@ -83,16 +87,23 @@ function renderUsers() {
   if (page > totalPages) page = 1;
   const slice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
 
-  const roleBadge = r => r==='farmer' ? 'badge-blue' : r==='leader' ? 'badge-purple' : 'badge-yellow';
+  const roleBadge   = r => r==='farmer' ? 'badge-blue' : r==='leader' ? 'badge-purple' : 'badge-yellow';
   const statusBadge = s => s==='active'||!s ? 'badge-green' : 'badge-red';
 
-  document.getElementById('usersBody').innerHTML = slice.map(u => `
-    <tr>
+  // A3: Build rows using a function body so we can branch on isSuspended
+  document.getElementById('usersBody').innerHTML = slice.map(u => {
+    const isSuspended = u.status === 'suspended';
+    return `
+    <tr style="${isSuspended ? 'opacity:0.65' : ''}">
       <td>
         <div class="user-cell">
-          <div class="avatar" style="background:${avatarColor(u.name||'')}">${initials(u.name||'')}</div>
+          <div class="avatar" style="background:${avatarColor(u.name||'')}">
+            ${isSuspended ? '🚫' : initials(u.name||'')}
+          </div>
           <div>
-            <div class="user-cell-name">${u.name||'—'}</div>
+            <div class="user-cell-name">${u.name||'—'}${
+              isSuspended ? ' <span style="font-size:10px;color:#EF4444;font-weight:800;letter-spacing:1px">SUSPENDED</span>' : ''
+            }</div>
             <div class="user-cell-id">ID: #${u.id.slice(-4).toUpperCase()}</div>
           </div>
         </div>
@@ -100,14 +111,23 @@ function renderUsers() {
       <td><span class="badge ${roleBadge(u.role)}">${u.role}</span></td>
       <td style="color:var(--text-muted)">📍 ${u.village||'—'}</td>
       <td><span class="badge ${statusBadge(u.status)}">${u.status||'active'}</span></td>
-      <td style="color:var(--warning)">★ ${u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : '—'}${u.ratingCount ? ` <span style="color:var(--text-muted)">(${u.ratingCount})</span>` : ''}</td>
+      <td style="color:var(--warning)">★ ${u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : '—'}${
+        u.ratingCount ? ` <span style="color:var(--text-muted)">(${u.ratingCount})</span>` : ''
+      }</td>
       <td>
         <div class="actions">
           <button class="btn btn-outline btn-xs" onclick="window._editUser('${u.id}')">✏ Edit</button>
-          <button class="btn btn-danger btn-xs" onclick="window._deleteUser('${u.id}','${u.name}')">🗑</button>
+          <button
+            class="btn btn-xs"
+            style="${isSuspended
+              ? 'color:var(--success);border:1px solid var(--success);background:transparent'
+              : 'background:#F59E0B;color:#fff;border:none'}"
+            onclick="window._toggleSuspend('${u.id}','${(u.name||'').replace(/'/g,"\\'")}',${isSuspended})"
+          >${isSuspended ? '✓ Reinstate' : '⛔ Suspend'}</button>
         </div>
       </td>
-    </tr>`).join('') || `<tr><td colspan="6" class="table-empty">No users found.</td></tr>`;
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="table-empty">No users found.</td></tr>`;
 
   // Pagination
   const pag = document.getElementById('usersPagination');
@@ -154,12 +174,48 @@ window._editUser = (id) => {
   };
 };
 
+// A3: Toggle suspend / reinstate without destroying the row
+window._toggleSuspend = async (id, name, isSuspended) => {
+  if (!confirm(`${isSuspended ? 'Reinstate' : 'Suspend'} "${name}"?\n\n${
+    isSuspended
+      ? 'This will restore their access to the platform.'
+      : 'This will immediately block their login and revoke all active sessions.'
+  }`)) return;
+  try {
+    await api.suspendUser(id, !isSuspended);
+    const u = allUsers.find(u => u.id === id);
+    if (u) u.status = isSuspended ? 'offline' : 'suspended';
+    renderUsers();
+    window.showToast(isSuspended ? 'User reinstated ✓' : 'User suspended ⛔');
+  } catch(e) { window.showToast(e.message, 'error'); }
+};
+
+// S4: "Delete" is now a soft-suspend — preserves all data, just blocks access
 window._deleteUser = async (id, name) => {
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  if (!confirm(`Remove "${name}" from the platform?\n\nThis suspends their account and revokes all sessions.\nAll job and payment history is preserved.`)) return;
   try {
     await api.deleteUser(id);
     allUsers = allUsers.filter(u => u.id !== id);
     renderUsers();
-    window.showToast('User deleted');
+    window.showToast('User removed from platform');
   } catch(e) { window.showToast(e.message,'error'); }
 };
+
+function exportUsersCsv() {
+  const rows = [['ID', 'Name', 'Phone', 'Role', 'Status', 'Village', 'Rating']];
+  allUsers.forEach(u => rows.push([
+    `"${u.id}"`,
+    `"${(u.name || '').replace(/"/g, '""')}"`,
+    `"${u.phone || ''}"`,
+    `"${u.role || ''}"`,
+    `"${u.status || 'active'}"`,
+    `"${(u.village || '').replace(/"/g, '""')}"`,
+    u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : ''
+  ]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = `data:text/csv,${encodeURIComponent(csv)}`;
+  a.download = `users_${Date.now()}.csv`;
+  a.click();
+  window.showToast('CSV exported');
+}

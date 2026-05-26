@@ -8,11 +8,11 @@ import {
     ScrollView,
     Image,
     Alert,
-    ActivityIndicator,
     Modal,
     TextInput,
     Platform,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -52,9 +52,9 @@ const ManageGroupScreen = ({ navigation, route }) => {
             Alert.alert('Group Deleted', 'This group has been deleted.');
             navigation.replace('Groups');
         };
-        if (socketService.socket) socketService.socket.on('group:deleted', handleDeleted);
+        socketService.on('group:deleted', handleDeleted);
         return () => {
-            if (socketService.socket) socketService.socket.off('group:deleted', handleDeleted);
+            socketService.off('group:deleted', handleDeleted);
         };
     }, [resolvedGroupId]);
 
@@ -196,12 +196,21 @@ const ManageGroupScreen = ({ navigation, route }) => {
                     <MaterialIcons name="arrow-back" size={24} color={colors.backgroundDark} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Manage your group</Text>
-                <TouchableOpacity
-                    style={[styles.headerBtn, styles.deleteBtn]}
-                    onPress={handleDeleteGroup}
-                >
-                    <MaterialIcons name="delete-forever" size={22} color="#EF4444" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity
+                        style={styles.headerBtn}
+                        onPress={() => navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length })}
+                        testID="group-map-btn"
+                    >
+                        <MaterialIcons name="map" size={22} color={colors.backgroundDark} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.headerBtn, styles.deleteBtn]}
+                        onPress={handleDeleteGroup}
+                    >
+                        <MaterialIcons name="delete-forever" size={22} color="#EF4444" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* ── Member list ───────────────────────────────────────────── */}
@@ -215,7 +224,9 @@ const ManageGroupScreen = ({ navigation, route }) => {
 
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 220 }}>
                     {loading ? (
-                        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+                        <View style={{ marginTop: 40, alignItems: 'center' }}>
+                            <CustomLoader size={48} color={colors.primary} />
+                        </View>
                     ) : members.length === 0 && pendingInvites.length === 0 ? (
                         <View style={styles.emptyState}>
                             <MaterialIcons name="groups" size={80} color="#E5E7EB" />
@@ -297,7 +308,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
                                 <Text style={styles.cancelButtonText}>CANCEL</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.saveButton} onPress={handleUpdateMember} disabled={updating}>
-                                {updating ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>SAVE</Text>}
+                                {updating ? <CustomLoader size={24} color="#FFF" /> : <Text style={styles.saveButtonText}>SAVE</Text>}
                             </TouchableOpacity>
                         </View>
                     </View>

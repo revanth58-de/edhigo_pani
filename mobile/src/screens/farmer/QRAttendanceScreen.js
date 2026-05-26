@@ -29,7 +29,7 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
     // Listen for attendance events
     const eventName = type === 'in' ? 'attendance:check_in' : 'attendance:check_out';
-    socketService.socket?.on(eventName, (data) => {
+    const handleAttendance = (data) => {
       if (data.jobId === job?.id || !data.jobId) {
         if (type === 'in') {
           navigation.replace('WorkInProgress', { job });
@@ -38,10 +38,11 @@ const QRAttendanceScreen = ({ navigation, route }) => {
           navigation.replace('Payment', { job });
         }
       }
-    });
+    };
+    socketService.on(eventName, handleAttendance);
 
     return () => {
-      socketService.socket?.off(eventName);
+      socketService.off(eventName, handleAttendance);
     };
   }, [type, job?.id]);
 

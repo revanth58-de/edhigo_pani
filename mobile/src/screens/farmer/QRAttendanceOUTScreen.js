@@ -26,14 +26,15 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
       socketService.joinJobRoom(job.id);
     }
 
-    socketService.socket?.on('attendance:check_out', (data) => {
+    const handleCheckOut = (data) => {
       if (data.jobId === job?.id || !data.jobId) {
-        navigation.replace('RateWorker', { job });
+        navigation.replace('Payment', { job });
       }
-    });
+    };
+    socketService.on('attendance:check_out', handleCheckOut);
 
     return () => {
-      socketService.socket?.off('attendance:check_out');
+      socketService.off('attendance:check_out', handleCheckOut);
     };
   }, [job?.id]);
 
@@ -45,8 +46,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
   });
 
   const handleSkipScan = () => {
-    // Proceed directly to the rating screen
-    navigation.replace('RateWorker', { job });
+    // Proceed directly to the payment screen
+    navigation.replace('Payment', { job });
   };
 
   return (

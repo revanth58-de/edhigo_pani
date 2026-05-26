@@ -6,6 +6,7 @@ import {
     StyleSheet,
     StatusBar,
     Linking,
+    Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -13,8 +14,16 @@ import { colors } from '../../theme/colors';
 const GroupCallScreen = ({ navigation, route }) => {
     const { job, groupId } = route.params;
 
+    // M14: Dial the actual farmer phone from the job object, with a safe fallback
     const handleCall = () => {
-        Linking.openURL('tel:919876543210');
+        const phone = job?.farmer?.phone || job?.farmerPhone;
+        if (!phone) {
+            Alert.alert('Phone Unavailable', "The farmer's phone number is not available.");
+            return;
+        }
+        // Normalize: strip leading +91 or 0 so tel: link is clean
+        const normalized = phone.replace(/^(\+91|0)/, '');
+        Linking.openURL(`tel:${normalized}`);
     };
 
     const handleArrival = () => {
@@ -42,7 +51,9 @@ const GroupCallScreen = ({ navigation, route }) => {
                     </View>
                     <View>
                         <Text style={styles.jobType}>{job?.workType || 'Harvesting'}</Text>
-                        <Text style={styles.farmerName}>Ramappa Goud</Text>
+                        <Text style={styles.farmerName}>
+                            {job?.farmer?.name || job?.farmerName || 'Farmer'}
+                        </Text>
                     </View>
                 </View>
 

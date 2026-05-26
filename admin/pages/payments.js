@@ -47,14 +47,19 @@ export async function loadPayments() {
   el.querySelector('#exportCsvBtn').addEventListener('click', exportCsv);
 
   try {
-    const data = await api.getPayments();
+    const [data, statsData] = await Promise.all([
+      api.getPayments(),
+      api.getStats()
+    ]);
     allPayments = data.payments || [];
+    const statsPay = statsData.payments || { total: 0, revenue: 0, pending: 0 };
 
     // KPIs
-    const total  = allPayments.reduce((s,p)=>s+(p.amount||0), 0);
-    const done   = allPayments.filter(p=>p.status==='completed').reduce((s,p)=>s+(p.amount||0), 0);
-    const pending= allPayments.filter(p=>p.status==='pending').reduce((s,p)=>s+(p.amount||0), 0);
-    const count  = allPayments.length;
+    const done = statsPay.revenue;
+    const pending = statsPay.pending;
+    const count = statsPay.total;
+    const total = done + pending;
+
     document.getElementById('payKpis').innerHTML = `
       ${kpi('₹'+done.toLocaleString('en-IN'), 'Total Paid', '↑ +12.5%', true)}
       ${kpi('₹'+Math.round(total*0.1).toLocaleString('en-IN'), 'Platform Commission', '↑ +8.2%', true)}

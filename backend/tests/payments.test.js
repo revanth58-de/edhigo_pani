@@ -21,10 +21,10 @@ beforeAll(async () => {
       farmerId: testFarmer.id,
       workersNeeded: 1,
       payPerDay: 400,
-      startDate: new Date(),
+      startTime: new Date(),
       farmAddress: 'Test Farm',
-      latitude: 16.5,
-      longitude: 80.6,
+      farmLatitude: 16.5,
+      farmLongitude: 80.6,
       status: 'completed',
     },
   });

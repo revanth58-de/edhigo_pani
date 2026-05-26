@@ -1,11 +1,12 @@
 const prisma = require('../config/database');
+const { logger } = require('../middleware/errorHandler');
 
 const submitRating = async (req, res, next) => {
   try {
     // Accept both field naming conventions from different frontend versions
     const {
       jobId,
-      toUserId,   workerId,   farmerId,   // fields names for recipient
+      toUserId,   workerId,   farmerId,   rateeId, // fields names for recipient
       emoji,      rating: ratingNum,   // rename to avoid conflict with prisma.rating variable below
       stars,      feedback,            // optional extras
     } = req.body;
@@ -17,20 +18,35 @@ const submitRating = async (req, res, next) => {
       if (!job) return res.status(404).json({ error: 'Job not found' });
       
       // If recipient is missing and the user is NOT the farmer, assume they are rating the farmer
-      if (!toUserId && !workerId && !farmerId && fromUserId !== job.farmerId) {
+      if (!toUserId && !workerId && !farmerId && !rateeId && fromUserId !== job.farmerId) {
         req.body.toUserId = job.farmerId; // patch it for the logic below
       }
     }
 
     // Normalise recipient ID
-    const recipientId = req.body.toUserId || workerId || farmerId;
+    const recipientId = req.body.toUserId || workerId || farmerId || rateeId;
 
-    // Normalise emoji: convert numeric rating → emoji if needed
+    // Normalise emoji and stars: convert inputs
     const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';
-    const normalizedEmoji = emoji || (ratingNum ? starsToEmoji(Number(ratingNum)) : null);
-    const normalizedStars = stars || (ratingNum ? Number(ratingNum) : null);
+    const emojiToStars = { happy: 5, neutral: 3, sad: 1 };
 
-    console.log('⭐ Rating Submission:', { fromUserId, recipientId, jobId, normalizedEmoji, normalizedStars });
+    let normalizedStars = null;
+    if (stars !== undefined && stars !== null) {
+      normalizedStars = Number(stars);
+    } else if (ratingNum !== undefined && ratingNum !== null) {
+      normalizedStars = Number(ratingNum);
+    } else if (emoji && emojiToStars[emoji]) {
+      normalizedStars = emojiToStars[emoji];
+    }
+
+    // Ensure it is an integer
+    if (normalizedStars !== null) {
+      normalizedStars = Math.round(normalizedStars);
+    }
+
+    const normalizedEmoji = emoji || (normalizedStars ? starsToEmoji(normalizedStars) : null);
+
+    logger.info('Rating submission', { fromUserId, recipientId, jobId, normalizedEmoji, normalizedStars });
 
     // Validation
     if (!jobId || !recipientId || !normalizedEmoji) {
@@ -46,7 +62,7 @@ const submitRating = async (req, res, next) => {
       });
     }
 
-    if (normalizedStars && (normalizedStars < 1 || normalizedStars > 5)) {
+    if (normalizedStars !== null && (normalizedStars < 1 || normalizedStars > 5)) {
       return res.status(400).json({ error: 'Stars must be between 1 and 5' });
     }
 
@@ -89,16 +105,15 @@ const submitRating = async (req, res, next) => {
 
     // Use a transaction to create the rating, then recalculate average from all ratings
     const rating = await prisma.rating.create({
-      data: { jobId, fromUserId, toUserId: recipientId, emoji: normalizedEmoji, stars: normalizedStars || null },
+      data: { jobId, fromUserId, toUserId: recipientId, stars: normalizedStars },
     });
 
     // Fetch ALL ratings AFTER insert (so the new one is included in the list)
     const allRatings = await prisma.rating.findMany({ where: { toUserId: recipientId } });
 
-    // Calculate new average from all ratings (emoji-to-number: happy=5, neutral=3, sad=1)
-    const emojiToNumber = { happy: 5, neutral: 3, sad: 1 };
+    // Calculate new average from all ratings
     const totalScore = allRatings.reduce((sum, r) => {
-      return sum + (r.stars || emojiToNumber[r.emoji]);
+      return sum + r.stars;
     }, 0);
     const avgRating = totalScore / allRatings.length;
 
@@ -107,7 +122,7 @@ const submitRating = async (req, res, next) => {
       data: { ratingAvg: avgRating, ratingCount: allRatings.length },
     });
 
-    console.log('✅ Rating submitted successfully:', {
+    logger.info('Rating submitted successfully', {
       ratingId: rating.id,
       newAverage: avgRating.toFixed(2),
       totalRatings: allRatings.length
@@ -117,7 +132,7 @@ const submitRating = async (req, res, next) => {
       message: 'Rating submitted successfully',
       rating: {
         id: rating.id,
-        emoji: rating.emoji,
+        emoji: starsToEmoji(rating.stars),
         stars: rating.stars,
         createdAt: rating.createdAt,
       },
@@ -127,7 +142,7 @@ const submitRating = async (req, res, next) => {
       },
     });
   } catch (error) {
-    console.error('💥 Rating Submission Error:', error);
+    logger.error('Rating submission error', { message: error.message });
     next(error);
   }
 };
@@ -161,6 +176,7 @@ const getUserRatings = async (req, res, next) => {
     });
 
     const requesterId = req.user?.id;
+    const starsToEmoji = (s) => s >= 4 ? 'happy' : s === 3 ? 'neutral' : 'sad';
 
     const sanitizedRatings = ratings.map(r => {
       // Only the owner of the rating (fromUser) sees their own phone
@@ -168,6 +184,7 @@ const getUserRatings = async (req, res, next) => {
 
       return {
         ...r,
+        emoji: starsToEmoji(r.stars),
         fromUser: { ...r.fromUser, phone: showFromPhone ? r.fromUser.phone : undefined },
       };
     });
@@ -177,7 +194,7 @@ const getUserRatings = async (req, res, next) => {
       count: ratings.length,
     });
   } catch (error) {
-    console.error('💥 Get User Ratings Error:', error);
+    logger.error('Get user ratings error', { message: error.message });
     next(error);
   }
 };

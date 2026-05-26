@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
-const { getIO } = require('../config/socket'); // Assuming socket export (need to check server.js)
+const { getIO } = require('../config/socket');
+const { JobStatus, WorkerType } = require('../config/enums'); // D1
 
 // POST /api/jobs
 const createJob = async (req, res, next) => {
@@ -17,13 +18,13 @@ const createJob = async (req, res, next) => {
       data: {
         farmerId,
         workType,
-        workerType: workerType || 'individual',
+        workerType: workerType || WorkerType.INDIVIDUAL,
         workersNeeded: workersNeeded || 1,
         payPerDay: parseFloat(payPerDay),
         farmLatitude,
         farmLongitude,
         farmAddress,
-        status: 'pending',
+        status: JobStatus.PENDING,
       },
       include: {
         farmer: {
@@ -61,7 +62,7 @@ const getNearbyJobs = async (req, res, next) => {
         // Mock query for nearby jobs
         // In real app: use Haversine/PostGIS
         const jobs = await prisma.job.findMany({
-            where: { status: 'pending' },
+            where: { status: JobStatus.PENDING },
             include: { farmer: true },
             take: 20,
             orderBy: { createdAt: 'desc' }

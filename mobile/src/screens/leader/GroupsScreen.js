@@ -5,10 +5,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Image,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -100,7 +100,7 @@ const GroupsScreen = ({ navigation }) => {
       </View>
 
       {loading && !refreshing ? (
-        <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        <CustomLoader size={48} color={colors.primary} style={styles.loader} />
       ) : (
         <FlatList
           data={groups}

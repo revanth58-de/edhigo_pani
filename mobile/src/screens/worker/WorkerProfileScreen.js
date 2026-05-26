@@ -8,21 +8,25 @@ import {
   StatusBar,
   ScrollView,
   TextInput,
-  ActivityIndicator,
   Alert,
   Platform,
   Animated,
   PanResponder,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import * as Application from 'expo-application';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import BottomNavBar from '../../components/BottomNavBar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { jobAPI } from '../../services/api';
+import { jobAPI, uploadAPI } from '../../services/api';
+import DigitalIDCard from '../../components/worker/DigitalIDCard';
+import CustomLoader from '../../components/CustomLoader';
 
 const AVATAR_OPTIONS = [
   { key: 'agriculture', icon: 'agriculture' },
@@ -36,51 +40,38 @@ const ALL_SKILLS = [
   'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning',
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-
-const DigitalIDCard = ({ user }) => {
-  return (
-    <View style={styles.idCardContainer}>
-      <LinearGradient
-        colors={['#1F8A3D', '#166534']}
-        style={styles.idCardGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+const SkillChip = React.memo(({ skill, isSelected, onPress, isEditing, onRemove }) => {
+  if (isEditing) {
+    return (
+      <TouchableOpacity
+        style={[styles.skillChip, isSelected && styles.skillChipSelected]}
+        onPress={onPress}
+        activeOpacity={0.7}
       >
-        <View style={styles.idCardHeader}>
-          <Text style={styles.idCardBrand}>DINASARI ID</Text>
-          <View style={styles.verifiedChip}>
-            <MaterialIcons name="verified" size={14} color="#FFF" />
-            <Text style={styles.verifiedChipText}>VERIFIED</Text>
-          </View>
-        </View>
+        <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
+        {isSelected && (
+          <MaterialIcons 
+            name={onRemove ? "close" : "check"} 
+            size={14} 
+            color="#FFFFFF" 
+          />
+        )}
+      </TouchableOpacity>
+    );
+  }
 
-        <View style={styles.idCardBody}>
-          <View style={styles.idAvatarWrap}>
-            <View style={styles.idAvatar}>
-              <MaterialIcons name={user?.avatarIcon || 'person'} size={40} color={colors.primary} />
-            </View>
-          </View>
-          <View style={styles.idInfo}>
-            <Text style={styles.idName}>{user?.name?.toUpperCase()}</Text>
-            <Text style={styles.idRole}>PROFESSIONAL {user?.role?.toUpperCase()}</Text>
-            <Text style={styles.idNumber}>ID: DS-{user?.id?.substring(0, 8).toUpperCase()}</Text>
-          </View>
-          <View style={styles.idQRWrap}>
-            <MaterialIcons name="qr-code-2" size={60} color="#FFF" />
-          </View>
-        </View>
-        
-        <View style={styles.idCardFooter}>
-          <Text style={styles.validText}>Valid across all Indian Mandis</Text>
-        </View>
-      </LinearGradient>
+  return (
+    <View style={styles.skillChip}>
+      <Text style={styles.skillText}>{skill}</Text>
     </View>
   );
-};
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const WorkerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser, refreshProfile } = useAuthStore();
+  const appVersion = Application.nativeApplicationVersion || '1.0.0';
   const { t } = useTranslation();
   
   useFocusEffect(
@@ -93,9 +84,8 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showDigitalID, setShowDigitalID] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const arrowAnim = useRef(new Animated.Value(0)).current;
-
-  // ... (existing useEffect and Slide to Switch logic)
 
   useEffect(() => {
     Animated.loop(
@@ -104,6 +94,11 @@ const WorkerProfileScreen = ({ navigation }) => {
         Animated.timing(arrowAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
       ])
     ).start();
+
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 150);
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Slide to Switch Logic ──
@@ -136,7 +131,7 @@ const WorkerProfileScreen = ({ navigation }) => {
           try {
             const { setRole } = useAuthStore.getState();
             await setRole('farmer');
-            setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'FarmerHome' }] }), 500);
+            // Reactive navigation is handled automatically by AppNavigator when role changes
           } catch (err) {
             Alert.alert("Error", "Failed to switch role.");
             // Reset
@@ -156,6 +151,8 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [editVillage, setEditVillage] = useState(user?.village || '');
   const [editExperience, setEditExperience] = useState(String(user?.experience ?? ''));
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState(user?.photoUrl || '');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [editSkills, setEditSkills] = useState(
     typeof user?.skills === 'string'
       ? JSON.parse(user.skills)
@@ -188,11 +185,85 @@ const WorkerProfileScreen = ({ navigation }) => {
     setEditSkills(prev => prev.filter(s => s !== skill));
   };
 
+  // ── Profile Picture Select & Multipart Upload (M4) ──
+  const handlePickAndUploadPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload a photo.');
+        return;
+      }
+
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        setIsUploadingPhoto(true);
+        const localUri = result.assets[0].uri;
+        const filename = localUri.split('/').pop();
+
+        // Infer type
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : `image`;
+
+        const formData = new FormData();
+        formData.append('image', {
+          uri: localUri,
+          name: filename,
+          type,
+        });
+
+        const res = await uploadAPI.uploadProfilePicture(formData);
+        if (res.data?.url) {
+          const uploadedUrl = res.data.url;
+          if (isEditing) {
+            setSelectedPhotoUrl(uploadedUrl);
+          } else {
+            // Update immediately if not currently in edit mode
+            await updateUser({ photoUrl: uploadedUrl });
+            Alert.alert('Success', 'Profile picture updated successfully!');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please check your connection.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleEditAvatarPress = () => {
+    if (Platform.OS === 'web') {
+      const choice = window.prompt("Choose option:\n1 - Upload Custom Photo\n2 - Choose Built-in Icon");
+      if (choice === '1') {
+        handlePickAndUploadPhoto();
+      } else if (choice === '2') {
+        setShowAvatarPicker(true);
+      }
+    } else {
+      Alert.alert(
+        "Profile Photo",
+        "Choose an option to update your profile photo:",
+        [
+          { text: "Upload Custom Photo", onPress: handlePickAndUploadPhoto },
+          { text: "Choose Built-in Icon", onPress: () => setShowAvatarPicker(true) },
+          { text: "Cancel", style: "cancel" }
+        ]
+      );
+    }
+  };
+
   const handleEditToggle = () => {
     if (isEditing) {
       setEditVillage(user?.village || '');
       setEditExperience(String(user?.experience ?? ''));
       setSelectedAvatar(user?.avatarIcon || 'person');
+      setSelectedPhotoUrl(user?.photoUrl || '');
       const currentSkills = typeof user?.skills === 'string'
         ? JSON.parse(user.skills)
         : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']);
@@ -212,6 +283,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         village: editVillage,
         skills: JSON.stringify(editSkills),
         avatarIcon: selectedAvatar,
+        photoUrl: selectedPhotoUrl,
         ...(editExperience !== '' && !isNaN(expNum) && { experience: expNum }),
       };
       await updateUser(payload);
@@ -274,15 +346,24 @@ const WorkerProfileScreen = ({ navigation }) => {
         <View style={styles.profileCard}>
           <View style={styles.avatarOuter}>
             <View style={styles.avatarInner}>
-              <MaterialIcons
-                name={isEditing ? selectedAvatar : (user?.avatarIcon || 'person')}
-                size={56}
-                color={colors.primary}
-              />
+              {isUploadingPhoto ? (
+                <CustomLoader size={32} color={colors.primary} />
+              ) : (isEditing ? selectedPhotoUrl : user?.photoUrl) ? (
+                <Image
+                  source={{ uri: isEditing ? selectedPhotoUrl : user.photoUrl }}
+                  style={styles.profilePhoto}
+                />
+              ) : (
+                <MaterialIcons
+                  name={isEditing ? selectedAvatar : (user?.avatarIcon || 'person')}
+                  size={56}
+                  color={colors.primary}
+                />
+              )}
             </View>
             <TouchableOpacity
               style={styles.editAvatarBtn}
-              onPress={() => setShowAvatarPicker(!showAvatarPicker)}
+              onPress={handleEditAvatarPress}
               activeOpacity={0.8}
             >
               <MaterialIcons name="camera-alt" size={16} color="#FFFFFF" />
@@ -384,208 +465,214 @@ const WorkerProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Village Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="location-on" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
-          </View>
-          {isEditing ? (
-            <TextInput
-              style={styles.villageInput}
-              value={editVillage}
-              onChangeText={setEditVillage}
-              placeholder="Village Name"
-              placeholderTextColor="#9CA3AF"
-            />
-          ) : (
-            <Text style={styles.sectionValue}>{user?.village || 'Add your village in Edit Profile'}</Text>
-          )}
-        </View>
-
-        {/* ── Skills Section ────────────────────────────────────────────── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="construction" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Skills</Text>
-            {/* Add+ button always visible */}
-            <TouchableOpacity
-              style={styles.addSkillBtn}
-              onPress={() => {
-                if (!isEditing) {
-                  // Auto-enter edit mode so the new skill can be saved
-                  setIsEditing(true);
-                  setEditName(user?.name || '');
-                  setEditVillage(user?.village || '');
-                  setEditExperience(String(user?.experience ?? ''));
-                  setSelectedAvatar(user?.avatarIcon || 'person');
-                  const sk = typeof user?.skills === 'string'
-                    ? JSON.parse(user.skills)
-                    : (user?.skills || []);
-                  setEditSkills(sk);
-                }
-                setShowCustomInput(v => !v);
-              }}
-            >
-              <MaterialIcons name="add" size={16} color="#FFFFFF" />
-              <Text style={styles.addSkillBtnText}>Add</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Custom skill inline input */}
-          {showCustomInput && (
-            <View style={styles.customInputRow}>
-              <TextInput
-                style={styles.customInput}
-                value={customSkillText}
-                onChangeText={setCustomSkillText}
-                placeholder="Type a skill…"
-                placeholderTextColor="#9CA3AF"
-                autoFocus
-                onSubmitEditing={handleAddCustomSkill}
-                returnKeyType="done"
-              />
-              <TouchableOpacity style={styles.customInputAdd} onPress={handleAddCustomSkill}>
-                <MaterialIcons name="check" size={18} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.customInputCancel}
-                onPress={() => { setShowCustomInput(false); setCustomSkillText(''); }}
-              >
-                <MaterialIcons name="close" size={18} color="#9CA3AF" />
-              </TouchableOpacity>
+        {/* Defer bottom sections to mount quickly (M5) */}
+        {(isReady || isEditing) && (
+          <>
+            {/* Village Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="location-on" size={24} color={colors.primary} />
+                <Text style={styles.sectionTitle}>{t('profile.village')}</Text>
+              </View>
+              {isEditing ? (
+                <TextInput
+                  style={styles.villageInput}
+                  value={editVillage}
+                  onChangeText={setEditVillage}
+                  placeholder="Village Name"
+                  placeholderTextColor="#9CA3AF"
+                />
+              ) : (
+                <Text style={styles.sectionValue}>{user?.village || 'Add your village in Edit Profile'}</Text>
+              )}
             </View>
-          )}
 
-          <View style={styles.skillsContainer}>
-            {isEditing ? (
-              <>
-                {/* Predefined toggles */}
-                {ALL_SKILLS.map((skill, index) => {
-                  const isSelected = editSkills.includes(skill);
-                  return (
-                    <TouchableOpacity
-                      key={`pre-${index}`}
-                      style={[styles.skillChip, isSelected && styles.skillChipSelected]}
-                      onPress={() => toggleSkill(skill)}
-                    >
-                      <Text style={[styles.skillText, isSelected && styles.skillTextSelected]}>{skill}</Text>
-                      {isSelected && <MaterialIcons name="check" size={14} color="#FFFFFF" />}
-                    </TouchableOpacity>
-                  );
-                })}
-                {/* Custom skills — same selected (green) style, tap to remove */}
-                {editSkills.filter(s => !ALL_SKILLS.includes(s)).map((skill, index) => (
-                  <TouchableOpacity
-                    key={`custom-${index}`}
-                    style={[styles.skillChip, styles.skillChipSelected]}
-                    onPress={() => handleRemoveSkill(skill)}
-                  >
-                    <Text style={[styles.skillText, styles.skillTextSelected]}>{skill}</Text>
-                    <MaterialIcons name="close" size={14} color="#FFFFFF" />
-                  </TouchableOpacity>
-                ))}
-              </>
-            ) : (
-              currentSkills.map((skill, index) => (
-                <View key={index} style={styles.skillChip}>
-                  <Text style={styles.skillText}>{skill}</Text>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
-
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          {isEditing ? (
-            <>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.cancelButton]}
-                onPress={handleEditToggle}
-                disabled={isSaving}
-              >
-                <MaterialIcons name="close" size={24} color="#9CA3AF" />
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <>
-                    <MaterialIcons name="check" size={24} color="#FFFFFF" />
-                    <Text style={styles.saveButtonText}>Save</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity style={styles.actionButton} onPress={handleEditToggle}>
-                <MaterialIcons name="edit" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => navigation.navigate('WorkerBookings')}
-              >
-                <MaterialIcons name="history" size={24} color={colors.primary} />
-                <Text style={styles.actionButtonText}>My Bookings</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {/* Role Switcher (Slide to Switch) */}
-        {!isEditing && (
-          <View style={styles.roleSwitchCard}>
-            <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.roleSwitchGradient}>
-              {/* Background Text */}
-              <View style={styles.slideTrackTextContainer}>
-                <Text style={styles.slideTrackText}>Slide to Switch to Farmer Mode</Text>
+            {/* ── Skills Section ────────────────────────────────────────────── */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="construction" size={24} color={colors.primary} />
+                <Text style={styles.sectionTitle}>Skills</Text>
+                {/* Add+ button always visible */}
+                <TouchableOpacity
+                  style={styles.addSkillBtn}
+                  onPress={() => {
+                    if (!isEditing) {
+                      // Auto-enter edit mode so the new skill can be saved
+                      setIsEditing(true);
+                      setEditName(user?.name || '');
+                      setEditVillage(user?.village || '');
+                      setEditExperience(String(user?.experience ?? ''));
+                      setSelectedAvatar(user?.avatarIcon || 'person');
+                      const sk = typeof user?.skills === 'string'
+                        ? JSON.parse(user.skills)
+                        : (user?.skills || []);
+                      setEditSkills(sk);
+                    }
+                    setShowCustomInput(v => !v);
+                  }}
+                >
+                  <MaterialIcons name="add" size={16} color="#FFFFFF" />
+                  <Text style={styles.addSkillBtnText}>Add</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Draggable Handle */}
-              <Animated.View 
-                {...panResponder.panHandlers}
-                style={[
-                  styles.slideHandle,
-                  { transform: [{ translateX: slideX }] }
-                ]}
-              >
-                <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
-                  <MaterialIcons name="agriculture" size={28} color={colors.primary} />
+              {/* Custom skill inline input */}
+              {showCustomInput && (
+                <View style={styles.customInputRow}>
+                  <TextInput
+                    style={styles.customInput}
+                    value={customSkillText}
+                    onChangeText={setCustomSkillText}
+                    placeholder="Type a skill…"
+                    placeholderTextColor="#9CA3AF"
+                    autoFocus
+                    onSubmitEditing={handleAddCustomSkill}
+                    returnKeyType="done"
+                  />
+                  <TouchableOpacity style={styles.customInputAdd} onPress={handleAddCustomSkill}>
+                    <MaterialIcons name="check" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.customInputCancel}
+                    onPress={() => { setShowCustomInput(false); setCustomSkillText(''); }}
+                  >
+                    <MaterialIcons name="close" size={18} color="#9CA3AF" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.skillsContainer}>
+                {isEditing ? (
+                  <>
+                    {/* Predefined toggles */}
+                    {ALL_SKILLS.map((skill, index) => (
+                      <SkillChip
+                        key={`pre-${index}`}
+                        skill={skill}
+                        isSelected={editSkills.includes(skill)}
+                        isEditing={true}
+                        onPress={() => toggleSkill(skill)}
+                      />
+                    ))}
+                    {/* Custom skills — same selected (green) style, tap to remove */}
+                    {editSkills.filter(s => !ALL_SKILLS.includes(s)).map((skill, index) => (
+                      <SkillChip
+                        key={`custom-${index}`}
+                        skill={skill}
+                        isSelected={true}
+                        isEditing={true}
+                        onRemove={true}
+                        onPress={() => handleRemoveSkill(skill)}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  currentSkills.map((skill, index) => (
+                    <SkillChip
+                      key={index}
+                      skill={skill}
+                      isEditing={false}
+                    />
+                  ))
+                )}
+              </View>
+            </View>
+
+            {/* Quick Actions */}
+            <View style={styles.actionsContainer}>
+              {isEditing ? (
+                <>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.cancelButton]}
+                    onPress={handleEditToggle}
+                    disabled={isSaving}
+                  >
+                    <MaterialIcons name="close" size={24} color="#9CA3AF" />
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.saveButton]}
+                    onPress={handleSave}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? (
+                      <CustomLoader size={24} color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <MaterialIcons name="check" size={24} color="#FFFFFF" />
+                        <Text style={styles.saveButtonText}>Save</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.actionButton} onPress={handleEditToggle}>
+                    <MaterialIcons name="edit" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('WorkerBookings')}
+                  >
+                    <MaterialIcons name="history" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText}>My Bookings</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            {/* Role Switcher (Slide to Switch) */}
+            {!isEditing && (
+              <View style={styles.roleSwitchCard}>
+                <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.roleSwitchGradient}>
+                  {/* Background Text */}
+                  <View style={styles.slideTrackTextContainer}>
+                    <Text style={styles.slideTrackText}>Slide to Switch to Farmer Mode</Text>
+                  </View>
+
+                  {/* Draggable Handle */}
+                  <Animated.View 
+                    {...panResponder.panHandlers}
+                    style={[
+                      styles.slideHandle,
+                      { transform: [{ translateX: slideX }] }
+                    ]}
+                  >
+                    <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
+                      <MaterialIcons name="agriculture" size={28} color={colors.primary} />
+                    </LinearGradient>
+                  </Animated.View>
                 </LinearGradient>
-              </Animated.View>
-            </LinearGradient>
-          </View>
+              </View>
+            )}
+
+            {/* Logout Button */}
+            <TouchableOpacity
+              style={styles.logoutButton}
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
+                    logout();
+                  }
+                } else {
+                  Alert.alert('Logout', 'Are you sure you want to logout?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Logout', style: 'destructive', onPress: () => logout() },
+                  ]);
+                }
+              }}
+            >
+              <MaterialIcons name="logout" size={22} color="#EF4444" />
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+
+            {/* App Version */}
+            <Text style={styles.versionText}>Version {appVersion}</Text>
+
+            <View style={{ height: 100 }} />
+          </>
         )}
-
-        {/* Logout Button */}
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={() => {
-            if (Platform.OS === 'web') {
-              if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
-                logout();
-              }
-            } else {
-              Alert.alert('Logout', 'Are you sure you want to logout?', [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Logout', style: 'destructive', onPress: () => logout() },
-              ]);
-            }
-          }}
-        >
-          <MaterialIcons name="logout" size={22} color="#EF4444" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
       </ScrollView>
 
       <BottomNavBar role="worker" activeTab="Profile" />
@@ -779,6 +866,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: '#F3F4F6',
+  },
+  profilePhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 34,
   },
   editAvatarBtn: {
     position: 'absolute',
@@ -1069,6 +1161,7 @@ const styles = StyleSheet.create({
     borderColor: '#FEE2E2',
   },
   logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  versionText: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 20 },
   roleSwitchCard: {
     marginHorizontal: 20,
     marginTop: 24,

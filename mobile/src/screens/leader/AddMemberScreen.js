@@ -7,10 +7,10 @@ import {
   StatusBar,
   FlatList,
   Alert,
-  ActivityIndicator,
   TextInput,
   Image,
 } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
@@ -30,7 +30,6 @@ const AddMemberScreen = ({ navigation, route }) => {
       const response = await groupAPI.getNearbyWorkers(); 
       setWorkers(response?.data?.workers || []);
     } catch (error) {
-      console.error('Failed to fetch nearby workers:', error);
       Alert.alert('Error', 'Could not fetch nearby workers');
     } finally {
       setLoading(false);
@@ -61,12 +60,10 @@ const AddMemberScreen = ({ navigation, route }) => {
       // Add each selected worker. In a real app, you might want an array endpoint for a single bulk request.
       for (const workerId of selectedWorkers) {
         try {
-          // Add by ID since we already have the worker ID from the backend search
           await groupAPI.addMember(groupId, { workerId, role: 'Member' });
           successCount++;
         } catch (err) {
-          console.warn(`Failed to add worker ${workerId}`, err.message);
-          console.warn(`Error response:`, err.response?.data);
+          // Individual add failure — continue with next worker
         }
       }
 
@@ -118,7 +115,16 @@ const AddMemberScreen = ({ navigation, route }) => {
         </View>
 
         <View style={styles.workerInfo}>
-          <Text style={styles.workerName}>{item.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.workerName}>{item.name}</Text>
+            {/* M12: Show rating stars so leader can pick high-rated workers */}
+            {item.ratingAvg > 0 && (
+              <View style={styles.ratingBadge}>
+                <MaterialIcons name="star" size={12} color="#F59E0B" />
+                <Text style={styles.ratingText}>{item.ratingAvg.toFixed(1)}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.skillsRow}>
              {item.skills ? (
                 (() => {
@@ -126,7 +132,7 @@ const AddMemberScreen = ({ navigation, route }) => {
                   try {
                     parsedSkills = Array.isArray(item.skills) ? item.skills : JSON.parse(item.skills || '[]');
                   } catch (e) {
-                    parsedSkills = [item.skills]; // fallback if it's just a raw string
+                    parsedSkills = [item.skills];
                   }
                   
                   return parsedSkills.slice(0, 3).map((skill, index) => (
@@ -187,7 +193,9 @@ const AddMemberScreen = ({ navigation, route }) => {
 
       {/* List */}
       {loading ? (
-        <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+        <View style={{ marginTop: 40, alignItems: 'center' }}>
+          <CustomLoader size={48} color={colors.primary} />
+        </View>
       ) : (
         <FlatList
           data={filteredWorkers}
@@ -216,7 +224,7 @@ const AddMemberScreen = ({ navigation, route }) => {
           activeOpacity={0.9}
         >
           {adding ? (
-            <ActivityIndicator color={colors.backgroundDark} />
+            <CustomLoader size={24} color={colors.backgroundDark} />
           ) : (
             <>
               <MaterialIcons name="group-add" size={24} color={colors.backgroundDark} />
@@ -311,11 +319,30 @@ const styles = StyleSheet.create({
   workerInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    gap: 8,
+  },
   workerName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#111827',
-    marginBottom: 4,
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 2,
+  },
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
   },
   skillsRow: {
     flexDirection: 'row',

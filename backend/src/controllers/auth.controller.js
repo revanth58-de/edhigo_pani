@@ -5,6 +5,8 @@ const prisma = require('../config/database');
 const config = require('../config/env');
 const { sendOTPSms } = require('../services/smsService');
 const { logger } = require('../middleware/errorHandler');
+const { UserRole, Gender, Language } = require('../config/enums'); // D1
+const { isValidPhotoUrl } = require('../utils/urlGuard');
 
 // Generate a cryptographically secure 4-digit OTP
 const generateOTP = () => {
@@ -14,7 +16,24 @@ const generateOTP = () => {
 // Remove sensitive fields from user object before sending to client
 const sanitizeUser = (user) => {
   if (!user) return null;
-  const { otp, otpExpiresAt, createdAt, updatedAt, ...safeUser } = user;
+  const { otp, otpExpiresAt, deletedAt, createdAt, updatedAt, location, animals, ...safeUser } = user;
+  
+  if (location) {
+    safeUser.latitude = location.latitude;
+    safeUser.longitude = location.longitude;
+  } else {
+    safeUser.latitude = null;
+    safeUser.longitude = null;
+  }
+
+  const animalsObj = {};
+  if (animals && Array.isArray(animals)) {
+    for (const animal of animals) {
+      animalsObj[animal.type] = animal.count;
+    }
+  }
+  safeUser.animals = animalsObj;
+
   return safeUser;
 };
 
@@ -64,6 +83,23 @@ const sendOTP = async (req, res, next) => {
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const isExistingUser = !!(existingUser?.name && existingUser?.role);
 
+    // FIX #12: Per-phone OTP rate limit — prevent SMS flooding without Redis.
+    // If an OTP was issued less than 2 minutes ago, reject the request.
+    // The OTP TTL is already stored in otpExpiresAt; we check the inverse window.
+    const OTP_RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+    if (existingUser?.otpExpiresAt && config.nodeEnv !== 'test' && config.nodeEnv !== 'development') {
+      const otpIssuedAt = new Date(existingUser.otpExpiresAt.getTime() - config.otpExpiryMinutes * 60 * 1000);
+      const msSinceLastOtp = Date.now() - otpIssuedAt.getTime();
+      if (msSinceLastOtp < OTP_RESEND_COOLDOWN_MS) {
+        const waitSec = Math.ceil((OTP_RESEND_COOLDOWN_MS - msSinceLastOtp) / 1000);
+        logger.warn('OTP rate limit hit', { phone, waitSec });
+        return res.status(429).json({
+          error: `Please wait ${waitSec} seconds before requesting a new OTP.`,
+          retryAfterSeconds: waitSec,
+        });
+      }
+    }
+
     const otp = generateOTP();
     const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
@@ -90,11 +126,10 @@ const sendOTP = async (req, res, next) => {
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      // Expose OTP only in development so testing is easy without SMS
-      ...(config.nodeEnv === 'development' && { devOtp: otp }),
+      ...((config.nodeEnv === 'development' || config.nodeEnv === 'test') && { devOtp: otp }),
     });
   } catch (error) {
-    console.error('💥 Send OTP Error:', error);
+    logger.error('Send OTP error', { message: error.message }); // S3: use structured logger
     next(error);
   }
 };
@@ -112,6 +147,16 @@ const verifyOTP = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({ where: { phone } });
 
+    // S4: Block suspended/soft-deleted users from logging in.
+    // If an admin set deletedAt, they should not be able to re-authenticate.
+    if (user?.deletedAt) {
+      logger.warn('Login attempt by suspended user', { phone, ip: req.ip });
+      return res.status(403).json({
+        error: 'This account has been suspended. Please contact support.',
+        suspended: true,
+      });
+    }
+
     // SEC-4 FIX: Return the same error whether user is not found OR otp is wrong.
     // Never reveal whether a phone number is registered in this system.
     if (!user || !user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
@@ -120,22 +165,55 @@ const verifyOTP = async (req, res, next) => {
 
     const isMatch = await bcrypt.compare(otp, user.otp);
     if (!isMatch) {
-      logger.warn(`❌ Auth Failure: Invalid OTP. Phone: ${phone}`, { ip: req.ip });
-      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
+      // S3 FIX: Track consecutive OTP failures. After 5 wrong attempts,
+      // invalidate the OTP so the attacker must request a fresh one.
+      // This prevents brute-forcing a 4-digit OTP (10,000 combinations).
+      const MAX_OTP_ATTEMPTS = 5;
+      const failCount = (user.otpFailCount || 0) + 1;
+
+      if (failCount >= MAX_OTP_ATTEMPTS) {
+        // Wipe the OTP so they must call send-otp again
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { otp: null, otpExpiresAt: null, otpFailCount: 0 },
+        });
+        logger.warn('OTP brute force lockout triggered', { phone, attempts: failCount, ip: req.ip });
+        return res.status(429).json({
+          error: 'Too many incorrect attempts. Please request a new OTP.',
+          locked: true,
+        });
+      }
+
+      // Record the failure
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { otpFailCount: failCount },
+      });
+
+      logger.warn(`❌ Auth Failure: Invalid OTP (attempt ${failCount}/${MAX_OTP_ATTEMPTS}). Phone: ${phone}`, { ip: req.ip });
+      return res.status(401).json({
+        error: 'Invalid or expired OTP. Please request a new one.',
+        attemptsRemaining: MAX_OTP_ATTEMPTS - failCount,
+      });
     }
 
-    // Clear OTP and optionally save registration data in one update
+    // Clear OTP, reset fail counter, and optionally save registration data in one update
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        otp: null,
+        otp:          null,
         otpExpiresAt: null,
-        ...(name && { name }),
+        otpFailCount: 0,  // S3: reset on success
+        ...(name    && { name }),
         ...(village && { village }),
-        ...(role && ['farmer', 'worker', 'leader'].includes(role) && { role }),
-        ...(age && { age: parseInt(age, 10) }),
-        ...(gender && { gender }),
+        ...(role    && UserRole.VALID.includes(role) && { role }),
+        ...(age     && { age: parseInt(age, 10) }),
+        ...(gender  && { gender }),
       },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     const tokens = await generateTokens(user.id);
@@ -167,6 +245,10 @@ const setRole = async (req, res, next) => {
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { role },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -191,6 +273,10 @@ const setLanguage = async (req, res, next) => {
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: { language },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -207,6 +293,10 @@ const getMe = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({
@@ -273,28 +363,88 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-// PUT /api/auth/profile
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon } = req.body;
+    const { name, village, photoUrl, landAcres, animals, skills, status, pushToken, latitude, longitude, experience, avatarIcon, matchingRadius } = req.body;
 
     const dataToUpdate = {};
     if (name !== undefined) dataToUpdate.name = name;
     if (village !== undefined) dataToUpdate.village = village;
-    if (photoUrl !== undefined) dataToUpdate.photoUrl = photoUrl;
+    if (photoUrl !== undefined) {
+      if (photoUrl !== null && photoUrl !== '' && !isValidPhotoUrl(photoUrl)) {
+        return res.status(400).json({ error: 'Invalid photo URL' });
+      }
+      dataToUpdate.photoUrl = photoUrl;
+    }
     if (landAcres !== undefined) dataToUpdate.landAcres = parseFloat(landAcres);
-    if (animals !== undefined) dataToUpdate.animals = animals;
     if (skills !== undefined) dataToUpdate.skills = skills;
-    if (status !== undefined) dataToUpdate.status = status;
+    if (status !== undefined) dataToUpdate.status = status === 'active' ? 'available' : status;
     if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
-    if (latitude !== undefined) dataToUpdate.latitude = parseFloat(latitude);
-    if (longitude !== undefined) dataToUpdate.longitude = parseFloat(longitude);
     if (experience !== undefined) dataToUpdate.experience = parseInt(experience, 10);
     if (avatarIcon !== undefined) dataToUpdate.avatarIcon = avatarIcon;
+    if (matchingRadius !== undefined) dataToUpdate.matchingRadius = matchingRadius !== null && matchingRadius !== '' ? parseFloat(matchingRadius) : null;
+
+    if (latitude !== undefined || longitude !== undefined) {
+      if (latitude === null || longitude === null || latitude === '' || longitude === '') {
+        await prisma.userLocation.deleteMany({ where: { userId: req.user.id } });
+      } else {
+        const parsedLat = parseFloat(latitude);
+        const parsedLng = parseFloat(longitude);
+        if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+          dataToUpdate.location = {
+            upsert: {
+              create: {
+                latitude: parsedLat,
+                longitude: parsedLng,
+              },
+              update: {
+                latitude: parsedLat,
+                longitude: parsedLng,
+              }
+            }
+          };
+        }
+      }
+    }
+
+    if (animals !== undefined) {
+      await prisma.userAnimal.deleteMany({ where: { userId: req.user.id } });
+
+      if (animals !== null && animals !== '') {
+        let animalsObj = {};
+        if (typeof animals === 'string') {
+          try {
+            animalsObj = JSON.parse(animals);
+          } catch (e) {
+            animalsObj = {};
+          }
+        } else if (typeof animals === 'object') {
+          animalsObj = animals;
+        }
+
+        const animalData = Object.entries(animalsObj)
+          .filter(([_, count]) => count !== null && count !== undefined && count > 0)
+          .map(([type, count]) => ({
+            userId: req.user.id,
+            type,
+            count: parseInt(count, 10),
+          }));
+
+        if (animalData.length > 0) {
+          await prisma.userAnimal.createMany({
+            data: animalData,
+          });
+        }
+      }
+    }
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: dataToUpdate,
+      include: {
+        location: true,
+        animals: true,
+      }
     });
 
     res.json({

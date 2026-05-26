@@ -21,8 +21,26 @@ const LoginScreen = ({ navigation }) => {
   const [cursorPos, setCursorPos] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const sendOTP = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();
+
+  // Handle OTP cooldown countdown
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      setOtpCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [otpCooldownSeconds]);
 
   const handleNumberPress = (num) => {
     if (phone.length < 10) {
@@ -62,7 +80,17 @@ const LoginScreen = ({ navigation }) => {
       });
     } catch (error) {
       console.error('Send OTP Error:', error);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
+
+      // Handle rate limit cooldown specifically
+      if (error.code === 'RATE_LIMIT_COOLDOWN') {
+        setOtpCooldownSeconds(error.remainingSeconds);
+        Alert.alert(
+          'Please Wait',
+          `You can request a new OTP in ${error.remainingSeconds} seconds. This helps prevent overloading our servers.`
+        );
+      } else {
+        Alert.alert('Error', 'Failed to send OTP. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -195,14 +223,19 @@ const LoginScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={[
                   styles.continueButton,
-                  phone.length !== 10 && styles.continueButtonDisabled,
+                  (phone.length !== 10 || otpCooldownSeconds > 0) && styles.continueButtonDisabled,
                 ]}
                 onPress={handleContinue}
-                disabled={loading || phone.length !== 10}
+                disabled={loading || phone.length !== 10 || otpCooldownSeconds > 0}
                 activeOpacity={0.9}
               >
                 {loading ? (
                   <CustomLoader size={24} color={colors.backgroundDark} />
+                ) : otpCooldownSeconds > 0 ? (
+                  <>
+                    <MaterialIcons name="schedule" size={24} color={colors.backgroundDark} />
+                    <Text style={styles.continueButtonText}>{t('auth.sendOTP')} ({otpCooldownSeconds}s)</Text>
+                  </>
                 ) : (
                   <>
                     <Text style={styles.continueButtonText}>{t('auth.sendOTP')}</Text>

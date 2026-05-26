@@ -17,15 +17,18 @@ const mockNavigation = { navigate: mockNavigate, goBack: mockGoBack };
 const mockSendOTP = jest.fn(() =>
   Promise.resolve({ isExistingUser: true, devOtp: '1234' })
 );
-jest.mock('../src/store/authStore', () => (selector) =>
-  selector({
+jest.mock('../src/store/authStore', () => (selector) => {
+  const state = {
     user: null,
     isAuthenticated: false,
     sendOTP: mockSendOTP,
     login: jest.fn(),
     logout: jest.fn(),
-  })
-);
+    refreshProfile: jest.fn(),
+    setRole: jest.fn(),
+  };
+  return selector ? selector(state) : state;
+});
 
 // ── Mock auth services ────────────────────────────────────────────────────────
 jest.mock('../src/services/api/authService', () => ({
@@ -69,6 +72,10 @@ jest.mock('../src/i18n', () => ({
 jest.mock('../src/theme/colors', () => ({
   colors: {
     primary: '#4CAF50',
+    primaryDark: '#388E3C',
+    secondary: '#FF9800',
+    secondaryGradient: ['#FF9800', '#F57C00'],
+    accent: '#03A9F4',
     backgroundDark: '#1a1a1a',
     backgroundLight: '#FFFFFF',
   },
@@ -145,13 +152,10 @@ describe('OTPScreen', () => {
   });
 
   test('✅ OTP screen renders some input or interaction element', () => {
-    const { queryAllByType } = render(
+    const { getAllByText } = render(
       <OTPScreen navigation={mockNavigation} route={route} />
     );
-    const { TextInput, TouchableOpacity, View } = require('react-native');
-    // OTP screen has at least Views and interactive elements
-    const views = queryAllByType(View);
-    expect(views.length).toBeGreaterThan(0);
+    expect(getAllByText(/verify|otp/i).length).toBeGreaterThan(0);
   });
 });
 

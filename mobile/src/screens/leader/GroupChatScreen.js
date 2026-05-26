@@ -1,5 +1,6 @@
 /**
  * GroupChatScreen — In-app group text chat
+ * B2: Cursor-based pagination — scroll to top loads 50 older messages at a time.
  * Backend: GroupMessage model + socket events are already live.
  * Flow: GroupDetail → GroupChat
  */
@@ -14,7 +15,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   StatusBar,
-  ActivityIndicator,
   Image,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -23,9 +23,12 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 import { API_BASE_URL } from '../../config/api.config';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import useChatStore from '../../store/chatStore';
+import CustomLoader from '../../components/CustomLoader';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+const EMPTY_ARRAY = [];
+
 const formatTime = (dateStr) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -78,59 +81,143 @@ const DateDivider = ({ date }) => (
   </View>
 );
 
+// ── Load-more header (shown while fetching older pages) ───────────────────────
+const LoadMoreHeader = () => (
+  <View style={styles.loadMoreHeader}>
+    <CustomLoader size={24} color={colors.primary} />
+    <Text style={styles.loadMoreText}>Loading older messages…</Text>
+  </View>
+);
+
 // ── Main Screen ───────────────────────────────────────────────────────────────
 const GroupChatScreen = ({ navigation, route }) => {
   const { groupId, groupName } = route.params || {};
   const user = useAuthStore((state) => state.user);
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  // Read token from in-memory store — avoids SecureStore native calls in Expo Go
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  const cachedMessages = useChatStore((state) => state.groupMessages[groupId]) || EMPTY_ARRAY;
+  const setCachedMessages = useChatStore((state) => state.setMessagesForGroup);
+  const addMessageToCachedGroup = useChatStore((state) => state.addMessageToGroup);
+
+  const [messages, setMessages]     = useState(cachedMessages);
+  const [inputText, setInputText]   = useState('');
+  const [loading, setLoading]       = useState(cachedMessages.length === 0);
+  const [sending, setSending]       = useState(false);
+
+  // B2: pagination state
+  const [nextCursor, setNextCursor]   = useState(cachedMessages[0]?.id || null);
+  const [hasMore, setHasMore]         = useState(cachedMessages.length >= 50);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const flatListRef = useRef(null);
 
-  // ── Load message history from REST ─────────────────────────────────────────
-  const loadMessages = useCallback(async () => {
+  // Ref to track if we have messages in the cache initially to avoid full-screen loader on updates
+  const hasMessagesRef = useRef(cachedMessages.length > 0);
+  useEffect(() => {
+    hasMessagesRef.current = cachedMessages.length > 0;
+  }, [cachedMessages]);
+
+  // ── Fetch a page of messages ─────────────────────────────────────────────
+  // options: { cursor, delta }
+  // cursor = messageId → load messages preceding that ID (paging older)
+  // delta = messageId  → load messages succeeding that ID (syncing new)
+  const fetchMessages = useCallback(async (options = {}) => {
     if (!groupId) return;
+    const { cursor, delta } = options;
     try {
-      // Read access token from the correct SecureStore key used by authStore
-      const accessToken = await SecureStore.getItemAsync('edhigo_access_token');
-      const res = await axios.get(`${API_BASE_URL}/chats/${groupId}/messages`, {
+      let url = `${API_BASE_URL}/chats/${groupId}/messages`;
+      if (cursor) {
+        url += `?before=${cursor}`;
+      } else if (delta) {
+        url += `?after=${delta}`;
+      }
+
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      const msgs = res?.data?.data || [];
-      setMessages(msgs);
+
+      const page    = res?.data?.data || [];
+      const meta    = res?.data?.meta || {};
+
+      if (cursor) {
+        // Prepend older messages — keep list order chronological
+        setMessages(prev => {
+          const merged = [...page, ...prev];
+          const unique = merged.filter((msg, index, self) => 
+            self.findIndex(m => m.id === msg.id) === index
+          );
+          return unique;
+        });
+        setNextCursor(meta.nextCursor || null);
+        setHasMore(!!meta.hasMore);
+      } else if (delta) {
+        // Delta mode: merge incoming deltas with cached messages
+        setMessages(prev => {
+          const merged = [...prev, ...page];
+          const unique = merged.filter((msg, index, self) => 
+            self.findIndex(m => m.id === msg.id) === index
+          );
+          const finalMessages = unique.slice(-50);
+          setCachedMessages(groupId, finalMessages);
+          
+          if (finalMessages.length > 0) {
+            setNextCursor(finalMessages[0].id);
+          }
+          return finalMessages;
+        });
+      } else {
+        // Standard full load
+        setMessages(page);
+        setCachedMessages(groupId, page);
+        setNextCursor(meta.nextCursor || null);
+        setHasMore(!!meta.hasMore);
+      }
     } catch (e) {
       console.warn('Failed to load group messages:', e?.message);
-    } finally {
-      setLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, accessToken, setCachedMessages]);
 
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    loadMessages();
+    const init = async () => {
+      if (hasMessagesRef.current) {
+        const lastMsg = cachedMessages[cachedMessages.length - 1];
+        if (lastMsg) {
+          await fetchMessages({ delta: lastMsg.id });
+        } else {
+          await fetchMessages();
+        }
+      } else {
+        setLoading(true);
+        await fetchMessages();
+      }
+      setLoading(false);
+    };
+    init();
 
     // Join group socket room
     socketService.joinGroupRoom(groupId);
 
     // Listen for incoming messages
     const handleMessage = (msg) => {
+      // Add to store cache
+      addMessageToCachedGroup(groupId, msg);
+
       setMessages((prev) => {
-        // Deduplicate by database id
         if (prev.some((m) => m.id === msg.id)) return prev;
 
-        // If it's our own message, replace the optimistic placeholder
+        // Replace optimistic placeholder if it's our own message
         if (msg.sender?.id === user?.id) {
-            const pendingIndex = prev.findIndex(m => m._pending && m.content === msg.content);
-            if (pendingIndex !== -1) {
-                const newMessages = [...prev];
-                newMessages[pendingIndex] = msg;
-                return newMessages;
-            }
+          const pendingIndex = prev.findIndex(m => m._pending && m.content === msg.content);
+          if (pendingIndex !== -1) {
+            const updated = [...prev];
+            updated[pendingIndex] = msg;
+            return updated;
+          }
         }
-
         return [...prev, msg];
       });
-      // Auto-scroll to bottom
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     };
     socketService.onGroupMessage(handleMessage);
@@ -138,7 +225,15 @@ const GroupChatScreen = ({ navigation, route }) => {
     return () => {
       socketService.offGroupMessage(handleMessage);
     };
-  }, [groupId, loadMessages]);
+  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id]);
+
+  // ── B2: Load older page when user scrolls to top ──────────────────────────
+  const handleScrollToTop = useCallback(async () => {
+    if (!hasMore || loadingMore || !nextCursor) return;
+    setLoadingMore(true);
+    await fetchMessages({ cursor: nextCursor });
+    setLoadingMore(false);
+  }, [hasMore, loadingMore, nextCursor, fetchMessages]);
 
   // ── Send message ────────────────────────────────────────────────────────────
   const handleSend = async () => {
@@ -159,7 +254,6 @@ const GroupChatScreen = ({ navigation, route }) => {
     setMessages((prev) => [...prev, optimistic]);
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
 
-    // Emit via socket
     socketService.emitGroupMessage({ groupId, content: text });
     setSending(false);
   };
@@ -169,8 +263,7 @@ const GroupChatScreen = ({ navigation, route }) => {
     const isOwn = item.sender?.id === user?.id;
     const showDivider =
       index === 0 ||
-      formatDateDivider(item.createdAt) !==
-        formatDateDivider(messages[index - 1]?.createdAt);
+      formatDateDivider(item.createdAt) !== formatDateDivider(messages[index - 1]?.createdAt);
 
     return (
       <>
@@ -210,7 +303,7 @@ const GroupChatScreen = ({ navigation, route }) => {
       {/* Messages */}
       {loading ? (
         <View style={styles.loadingBox}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <CustomLoader size={48} color={colors.primary} />
           <Text style={styles.loadingText}>Loading messages…</Text>
         </View>
       ) : messages.length === 0 ? (
@@ -228,6 +321,10 @@ const GroupChatScreen = ({ navigation, route }) => {
           contentContainerStyle={styles.messagesList}
           onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
           showsVerticalScrollIndicator={false}
+          // B2: load older messages on scroll to top
+          onStartReached={handleScrollToTop}
+          onStartReachedThreshold={0.1}
+          ListHeaderComponent={loadingMore ? <LoadMoreHeader /> : null}
         />
       )}
 
@@ -250,7 +347,7 @@ const GroupChatScreen = ({ navigation, route }) => {
           activeOpacity={0.8}
         >
           {sending ? (
-            <ActivityIndicator size="small" color={colors.white} />
+            <CustomLoader size={22} color={colors.white} />
           ) : (
             <MaterialIcons name="send" size={22} color={colors.white} />
           )}
@@ -293,6 +390,16 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontWeight: '700', color: colors.gray500 },
   emptySubtitle: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
+
+  // ── Load-more header ──
+  loadMoreHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+  },
+  loadMoreText: { fontSize: 13, color: colors.textMuted },
 
   // ── Messages ──
   messagesList: { padding: 12, paddingBottom: 8 },

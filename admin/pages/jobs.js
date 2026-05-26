@@ -12,6 +12,9 @@ export async function loadJobs() {
         <div class="section-title">Job Management</div>
         <div class="section-sub">Monitor and manage all posted farm jobs.</div>
       </div>
+      <div class="section-controls">
+        <button class="btn btn-outline btn-sm" id="exportJobsCsvBtn">⬇ Export CSV</button>
+      </div>
     </div>
 
     <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
@@ -54,6 +57,7 @@ export async function loadJobs() {
   el.querySelector('#jobSearch').addEventListener('input', () => { page = 1; renderJobs(); });
   el.querySelector('#jobStatusFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#jobTypeFilter').addEventListener('change', () => { page = 1; renderJobs(); });
+  el.querySelector('#exportJobsCsvBtn').addEventListener('click', exportJobsCsv);
 
   try {
     const data = await api.getJobs();
@@ -148,3 +152,25 @@ window._updateJobStatus = async (id, status) => {
     window.showToast(e.message, 'error');
   }
 };
+
+function exportJobsCsv() {
+  const rows = [['ID', 'Work Type', 'Farmer Name', 'Farmer Phone', 'Village', 'Workers Needed', 'Pay Per Day', 'Status', 'Attendance Count', 'Created At']];
+  allJobs.forEach(j => rows.push([
+    `"${j.id}"`,
+    `"${(j.workType || '').replace(/"/g, '""')}"`,
+    `"${(j.farmer?.name || '').replace(/"/g, '""')}"`,
+    `"${j.farmer?.phone || ''}"`,
+    `"${(j.farmer?.village || '').replace(/"/g, '""')}"`,
+    j.workersNeeded,
+    j.payPerDay,
+    `"${j.status}"`,
+    j._count?.attendances ?? 0,
+    `"${new Date(j.createdAt).toLocaleDateString()}"`
+  ]));
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = `data:text/csv,${encodeURIComponent(csv)}`;
+  a.download = `jobs_${Date.now()}.csv`;
+  a.click();
+  window.showToast('CSV exported');
+}

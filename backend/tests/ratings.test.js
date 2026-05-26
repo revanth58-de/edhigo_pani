@@ -21,10 +21,10 @@ beforeAll(async () => {
       farmerId: testFarmer.id,
       workersNeeded: 1,
       payPerDay: 300,
-      startDate: new Date(),
+      startTime: new Date(),
       farmAddress: 'Test Farm',
-      latitude: 16.5,
-      longitude: 80.6,
+      farmLatitude: 16.5,
+      farmLongitude: 80.6,
       status: 'completed',
     },
   });
@@ -82,7 +82,7 @@ describe('POST /api/ratings/farmer', () => {
   test('❌ Missing rateeId → 400', async () => {
     const res = await request(app)
       .post('/api/ratings/farmer')
-      .set('Authorization', `Bearer ${workerToken}`)
+      .set('Authorization', `Bearer ${farmerToken}`)
       .send({ jobId: ratingJobId, rating: 3 });
     expect(res.statusCode).toBe(400);
   });

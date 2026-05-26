@@ -17,26 +17,14 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const RoleSelectionScreen = ({ navigation }) => {
-  const { user, refreshProfile } = useAuthStore();
+  const { user, refreshProfile, setRole } = useAuthStore();
   const { t } = useTranslation();
 
   const handleRoleSelect = async (role) => {
     try {
-      await authAPI.setRole(role);
+      await setRole(role);
       await refreshProfile();
-      
-      // Navigation is handled automatically by AppNavigator when user.role changes
-      // If not, we can force navigate based on role
-      const screenMap = {
-        farmer: 'FarmerHome',
-        worker: 'WorkerHome',
-        leader: 'LeaderHome',
-      };
-      
-      // Adding a small delay to ensure store update
-      setTimeout(() => {
-        navigation.replace(screenMap[role] || 'Register', { role });
-      }, 500);
+      // Reactive navigation will be triggered automatically by AppNavigator when user.role changes
     } catch (error) {
       Alert.alert('Error', 'Failed to set role. Please try again.');
     }

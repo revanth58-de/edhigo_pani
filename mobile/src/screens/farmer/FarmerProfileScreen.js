@@ -1,4 +1,4 @@
-// Screen 7: Farmer Profile - Fully editable with image-based view mode
+// Screen 7: Farmer Profile - Fully editable with image-based view mode, custom inline adders, expo-image-picker, and lazy loading
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
@@ -10,20 +10,22 @@ import {
   TextInput,
   Alert,
   Platform,
-  ActivityIndicator,
   Animated,
   PanResponder,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
-import { authAPI } from '../../services/api';
+import { authAPI, uploadAPI } from '../../services/api';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
-import TopBar from '../../components/TopBar';
+import * as ImagePicker from 'expo-image-picker';
+import * as Application from 'expo-application';
 import BottomNavBar from '../../components/BottomNavBar';
+import CustomLoader from '../../components/CustomLoader';
 
 // ─── Animal Data with emoji ───
 const ANIMALS = [
@@ -94,10 +96,10 @@ const parseEquipment = (str) => {
 };
 const stringifyEquipment = (arr) => JSON.stringify(arr);
 
-// ─── Sub-components ───
+// ─── Memoized Sub-components ───
 
 // Image-style card for view mode
-const EmojiCard = ({ emoji, label, count }) => (
+const EmojiCard = React.memo(({ emoji, label, count }) => (
   <View style={cardStyles.card}>
     <View style={cardStyles.emojiBox}>
       <Text style={cardStyles.emoji}>{emoji}</Text>
@@ -109,7 +111,7 @@ const EmojiCard = ({ emoji, label, count }) => (
       </View>
     )}
   </View>
-);
+));
 
 const cardStyles = StyleSheet.create({
   card: {
@@ -152,6 +154,10 @@ const cardStyles = StyleSheet.create({
 const FarmerProfileScreen = ({ navigation }) => {
   const { user, logout, updateUser, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
+  const appVersion = Application.nativeApplicationVersion || '1.0.0';
+
+  const language = useAuthStore((state) => state.language) || 'te';
+  const setLanguage = useAuthStore((state) => state.setLanguage);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,7 +168,23 @@ const FarmerProfileScreen = ({ navigation }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState(user?.photoUrl || '');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  // Custom Inline Crop and Equipment Adders
+  const [customCropText, setCustomCropText] = useState('');
+  const [customEquipmentText, setCustomEquipmentText] = useState('');
+
   const arrowAnim = useRef(new Animated.Value(0)).current;
+
+  // Defer heavy section layouts by 150ms for buttery-smooth transitions
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     Animated.loop(
@@ -203,10 +225,8 @@ const FarmerProfileScreen = ({ navigation }) => {
           try {
             const { setRole } = useAuthStore.getState();
             await setRole('worker');
-            setTimeout(() => navigation.reset({ index: 0, routes: [{ name: 'WorkerHome' }] }), 500);
           } catch (err) {
             Alert.alert("Error", "Failed to switch role.");
-            // Reset
             isSwitching.current = false;
             Animated.spring(slideX, { toValue: 0, useNativeDriver: true }).start();
           }
@@ -233,6 +253,12 @@ const FarmerProfileScreen = ({ navigation }) => {
   const viewEquipment = parseEquipment(user?.equipment);
   const viewLand = user?.landAcres ? `${user.landAcres} Acres` : '—';
 
+  // Toggle dynamic translation instantly
+  const toggleLanguage = async () => {
+    const nextLang = language === 'en' ? 'te' : 'en';
+    await setLanguage(nextLang);
+  };
+
   const handleEditToggle = () => {
     if (!isEditing) {
       setEditName(user?.name || '');
@@ -242,6 +268,7 @@ const FarmerProfileScreen = ({ navigation }) => {
       setEditCrops(parseCrops(user?.crops));
       setEditEquipment(parseEquipment(user?.equipment));
       setSelectedAvatar(user?.avatarIcon || 'agriculture');
+      setSelectedPhotoUrl(user?.photoUrl || '');
     }
     setIsEditing(!isEditing);
   };
@@ -257,6 +284,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         skills: stringifyCrops(editCrops),       // reusing skills field for crops
         status: stringifyEquipment(editEquipment), // reusing status field for equipment (temp)
         avatarIcon: selectedAvatar,
+        photoUrl: selectedPhotoUrl,
       };
       const response = await authAPI.updateProfile(payload);
       updateUser({
@@ -281,23 +309,187 @@ const FarmerProfileScreen = ({ navigation }) => {
   };
 
   const toggleCrop = (key) => {
-    setEditCrops((prev) =>
-      prev.includes(key) ? prev.filter((c) => c !== key) : [...prev, key]
-    );
+    setEditCrops((prev) => {
+      if (prev.includes(key)) {
+        return prev.filter((c) => c !== key);
+      } else {
+        return [...prev, key];
+      }
+    });
   };
 
   const toggleEquipment = (key) => {
-    setEditEquipment((prev) =>
-      prev.includes(key) ? prev.filter((e) => e !== key) : [...prev, key]
-    );
+    setEditEquipment((prev) => {
+      if (prev.includes(key)) {
+        return prev.filter((e) => e !== key);
+      } else {
+        return [...prev, key];
+      }
+    });
+  };
+
+  // ── Profile Photo Dual Selector Functions ──
+  const handlePickPhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to upload a photo.');
+        return;
+      }
+
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+      });
+
+      if (!result.canceled) {
+        await processAndSavePhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Photo gallery pick error:', error);
+      Alert.alert('Error', 'Failed to pick photo.');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Sorry, we need camera permissions to capture a photo.');
+        return;
+      }
+
+      let result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.6,
+      });
+
+      if (!result.canceled) {
+        await processAndSavePhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Photo camera capture error:', error);
+      Alert.alert('Error', 'Failed to capture photo.');
+    }
+  };
+
+  const processAndSavePhoto = async (localUri) => {
+    setIsUploadingPhoto(true);
+    try {
+      const filename = localUri.split('/').pop();
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image`;
+
+      const formData = new FormData();
+      formData.append('image', {
+        uri: localUri,
+        name: filename,
+        type,
+      });
+
+      const res = await uploadAPI.uploadProfilePicture(formData);
+      if (res.data?.url) {
+        const uploadedUrl = res.data.url;
+        if (isEditing) {
+          setSelectedPhotoUrl(uploadedUrl);
+        } else {
+          await updateUser({ photoUrl: uploadedUrl });
+          Alert.alert('Success', 'Profile picture updated successfully!');
+        }
+      }
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      Alert.alert('Error', 'Failed to upload photo. Please check your connection.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleEditAvatarPress = () => {
+    if (Platform.OS === 'web') {
+      const choice = window.prompt("Choose option:\n1 - Camera Capture\n2 - Gallery Upload\n3 - Choose Built-in Icon");
+      if (choice === '1') {
+        handleTakePhoto();
+      } else if (choice === '2') {
+        handlePickPhoto();
+      } else if (choice === '3') {
+        setShowAvatarPicker(true);
+      }
+    } else {
+      Alert.alert(
+        "Profile Photo",
+        "Choose an option to update your profile photo:",
+        [
+          { text: "Camera Capture", onPress: handleTakePhoto },
+          { text: "Gallery Upload", onPress: handlePickPhoto },
+          { text: "Choose Built-in Icon", onPress: () => setShowAvatarPicker(true) },
+          { text: "Cancel", style: "cancel" }
+        ]
+      );
+    }
+  };
+
+  const handleAddCustomCrop = () => {
+    const trimmed = customCropText.trim();
+    if (!trimmed) return;
+    if (!editCrops.includes(trimmed)) {
+      setEditCrops((prev) => [...prev, trimmed]);
+    }
+    setCustomCropText('');
+  };
+
+  const handleAddCustomEquipment = () => {
+    const trimmed = customEquipmentText.trim();
+    if (!trimmed) return;
+    if (!editEquipment.includes(trimmed)) {
+      setEditEquipment((prev) => [...prev, trimmed]);
+    }
+    setCustomEquipmentText('');
   };
 
   const animalCount = Object.values(viewAnimals).filter((v) => v > 0).length;
 
+  // Combine predefined crops/equipment with user custom additions in edit mode
+  const availableCrops = [
+    ...ALL_CROPS,
+    ...editCrops
+      .filter((c) => !ALL_CROPS.some((ac) => ac.key === c))
+      .map((c) => ({ key: c, emoji: '🌱' })),
+  ];
+
+  const availableEquipment = [
+    ...ALL_EQUIPMENT,
+    ...editEquipment
+      .filter((e) => !ALL_EQUIPMENT.some((ae) => ae.key === e))
+      .map((e) => ({ key: e, emoji: '⚙️' })),
+  ];
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      <TopBar title={t('profile.farmProfile')} showBack navigation={navigation} />
+      
+      {/* Premium Linear Gradient Header with instant Language Toggler */}
+      <View style={styles.header}>
+        <LinearGradient
+          colors={colors.primaryGradient}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back-ios" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{t('profile.farmProfile')}</Text>
+          <TouchableOpacity style={styles.langToggleBtn} onPress={toggleLanguage} activeOpacity={0.85}>
+            <Text style={styles.langToggleText}>
+              {language === 'en' ? '🇮🇳 తెలుగు' : '🇬🇧 EN'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
 
@@ -305,15 +497,25 @@ const FarmerProfileScreen = ({ navigation }) => {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <MaterialIcons
-                name={isEditing ? selectedAvatar : (user?.avatarIcon || 'agriculture')}
-                size={60}
-                color={colors.primary}
-              />
+              {isUploadingPhoto ? (
+                <CustomLoader size={32} color={colors.primary} />
+              ) : (isEditing ? selectedPhotoUrl : user?.photoUrl) ? (
+                <Image
+                  source={{ uri: isEditing ? selectedPhotoUrl : user.photoUrl }}
+                  style={styles.profilePhoto}
+                />
+              ) : (
+                <MaterialIcons
+                  name={isEditing ? selectedAvatar : (user?.avatarIcon || 'agriculture')}
+                  size={60}
+                  color={colors.primary}
+                />
+              )}
             </View>
             <TouchableOpacity
               style={styles.editAvatarButton}
-              onPress={() => setShowAvatarPicker(!showAvatarPicker)}
+              onPress={handleEditAvatarPress}
+              activeOpacity={0.8}
             >
               <MaterialIcons name="camera-alt" size={18} color="#FFFFFF" />
             </TouchableOpacity>
@@ -415,26 +617,46 @@ const FarmerProfileScreen = ({ navigation }) => {
           </View>
 
           {isEditing ? (
-            // Edit: toggle chips
-            <View style={styles.chipContainer}>
-              {ALL_CROPS.map((crop) => {
-                const selected = editCrops.includes(crop.key);
-                return (
-                  <TouchableOpacity
-                    key={crop.key}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => toggleCrop(crop.key)}
-                  >
-                    <Text style={styles.chipEmoji}>{crop.emoji}</Text>
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {crop.key}
-                    </Text>
-                    {selected && (
-                      <MaterialIcons name="check" size={14} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            <View>
+              {/* Edit: toggle chips */}
+              <View style={styles.chipContainer}>
+                {availableCrops.map((crop) => {
+                  const selected = editCrops.includes(crop.key);
+                  return (
+                    <TouchableOpacity
+                      key={crop.key}
+                      style={[styles.chip, selected && styles.chipSelected]}
+                      onPress={() => toggleCrop(crop.key)}
+                    >
+                      <Text style={styles.chipEmoji}>{crop.emoji}</Text>
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {crop.key}
+                      </Text>
+                      {selected && (
+                        <MaterialIcons name="check" size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Custom Crop Inline Input */}
+              <View style={styles.customInputRow}>
+                <TextInput
+                  style={styles.customTextInput}
+                  value={customCropText}
+                  onChangeText={setCustomCropText}
+                  placeholder="Add custom crop (e.g. Tomato)"
+                  placeholderTextColor="#9CA3AF"
+                  onSubmitEditing={handleAddCustomCrop}
+                />
+                <TouchableOpacity
+                  style={styles.customAddButton}
+                  onPress={handleAddCustomCrop}
+                >
+                  <MaterialIcons name="add" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
             // View: emoji image cards
@@ -514,26 +736,46 @@ const FarmerProfileScreen = ({ navigation }) => {
           </View>
 
           {isEditing ? (
-            // Edit: toggle chips
-            <View style={styles.chipContainer}>
-              {ALL_EQUIPMENT.map((eq) => {
-                const selected = editEquipment.includes(eq.key);
-                return (
-                  <TouchableOpacity
-                    key={eq.key}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => toggleEquipment(eq.key)}
-                  >
-                    <Text style={styles.chipEmoji}>{eq.emoji}</Text>
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {eq.key}
-                    </Text>
-                    {selected && (
-                      <MaterialIcons name="check" size={14} color="#FFFFFF" />
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+            <View>
+              {/* Edit: toggle chips */}
+              <View style={styles.chipContainer}>
+                {availableEquipment.map((eq) => {
+                  const selected = editEquipment.includes(eq.key);
+                  return (
+                    <TouchableOpacity
+                      key={eq.key}
+                      style={[styles.chip, selected && styles.chipSelected]}
+                      onPress={() => toggleEquipment(eq.key)}
+                    >
+                      <Text style={styles.chipEmoji}>{eq.emoji}</Text>
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {eq.key}
+                      </Text>
+                      {selected && (
+                        <MaterialIcons name="check" size={14} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Custom Equipment Inline Input */}
+              <View style={styles.customInputRow}>
+                <TextInput
+                  style={styles.customTextInput}
+                  value={customEquipmentText}
+                  onChangeText={setCustomEquipmentText}
+                  placeholder="Add custom tool (e.g. Spade)"
+                  placeholderTextColor="#9CA3AF"
+                  onSubmitEditing={handleAddCustomEquipment}
+                />
+                <TouchableOpacity
+                  style={styles.customAddButton}
+                  onPress={handleAddCustomEquipment}
+                >
+                  <MaterialIcons name="add" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
             // View: emoji image cards
@@ -563,7 +805,7 @@ const FarmerProfileScreen = ({ navigation }) => {
               disabled={isSaving}
             >
               {isSaving ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <CustomLoader size={24} color="#FFFFFF" />
               ) : (
                 <>
                   <MaterialIcons name="check" size={22} color="#FFFFFF" />
@@ -589,55 +831,64 @@ const FarmerProfileScreen = ({ navigation }) => {
               <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>My Bookings</Text>
             </TouchableOpacity>
 
-            {/* Role Switcher (Slide to Switch) */}
-            <View style={styles.roleSwitchCard}>
-              <LinearGradient colors={['#FACC15', '#EAB308']} style={styles.roleSwitchGradient}>
-                {/* Background Text */}
-                <View style={styles.slideTrackTextContainer}>
-                  <Text style={styles.slideTrackText}>Slide to Switch to Labour Mode</Text>
+            {/* Defer heavy off-screen elements (switchers, logouts) by 150ms for performance */}
+            {isReady && (
+              <>
+                {/* Role Switcher (Slide to Switch) */}
+                <View style={styles.roleSwitchCard}>
+                  <LinearGradient colors={['#FACC15', '#EAB308']} style={styles.roleSwitchGradient}>
+                    {/* Background Text */}
+                    <View style={styles.slideTrackTextContainer}>
+                      <Text style={styles.slideTrackText}>Slide to Switch to Labour Mode</Text>
+                    </View>
+
+                    {/* Draggable Handle */}
+                    <Animated.View 
+                      {...panResponder.panHandlers}
+                      style={[
+                        styles.slideHandle,
+                        { transform: [{ translateX: slideX }] }
+                      ]}
+                    >
+                      <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
+                        <MaterialIcons name="engineering" size={28} color="#EAB308" />
+                      </LinearGradient>
+                    </Animated.View>
+                  </LinearGradient>
                 </View>
 
-                {/* Draggable Handle */}
-                <Animated.View 
-                  {...panResponder.panHandlers}
-                  style={[
-                    styles.slideHandle,
-                    { transform: [{ translateX: slideX }] }
-                  ]}
+                {/* Soft Red Logout Button */}
+                <TouchableOpacity
+                  style={styles.logoutButton}
+                  onPress={() => {
+                    if (Platform.OS === 'web') {
+                      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
+                        logout();
+                      }
+                    } else {
+                      Alert.alert(
+                        'Logout',
+                        'Are you sure you want to logout?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          {
+                            text: 'Logout',
+                            style: 'destructive',
+                            onPress: () => logout(),
+                          },
+                        ]
+                      );
+                    }
+                  }}
                 >
-                  <LinearGradient colors={['#FFF', '#F3F4F6']} style={styles.handleInner}>
-                    <MaterialIcons name="engineering" size={28} color="#EAB308" />
-                  </LinearGradient>
-                </Animated.View>
-              </LinearGradient>
-            </View>
+                  <MaterialIcons name="logout" size={22} color="#EF4444" />
+                  <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
+                </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.logoutButton}
-              onPress={() => {
-                if (Platform.OS === 'web') {
-                  if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
-                    logout();
-                  }
-                } else {
-                  Alert.alert(
-                    'Logout',
-                    'Are you sure you want to logout?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Logout',
-                        style: 'destructive',
-                        onPress: () => logout(),
-                      },
-                    ]
-                  );
-                }
-              }}
-            >
-              <MaterialIcons name="logout" size={22} color="#EF4444" />
-              <Text style={styles.logoutButtonText}>{t('profile.logout')}</Text>
-            </TouchableOpacity>
+                {/* App Version */}
+                <Text style={styles.versionText}>Version {appVersion}</Text>
+              </>
+            )}
           </>
         )}
 
@@ -654,10 +905,54 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   contentContainer: { paddingBottom: 120 },
 
+  // Custom Header Styles
+  header: {
+    height: Platform.OS === 'ios' ? 110 : 90,
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 12,
+  },
+  langToggleBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langToggleText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+
   // Profile Card
   profileCard: {
     backgroundColor: '#FFFFFF',
-    marginTop: -30,
+    marginTop: -20,
     marginHorizontal: 16,
     borderRadius: 32,
     padding: 32,
@@ -678,6 +973,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  profilePhoto: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
   },
   editAvatarButton: {
     position: 'absolute',
@@ -815,6 +1116,38 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 15, fontWeight: '700', color: '#131811' },
   chipTextSelected: { color: '#FFFFFF' },
 
+  // Inline Custom Input Row Styles
+  customInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  customTextInput: {
+    flex: 1,
+    height: 44,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#1F2937',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  customAddButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+
   // Edit mode: animal counters
   animalGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   animalCard: {
@@ -906,6 +1239,7 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   logoutButtonText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  versionText: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 20 },
   roleSwitchCard: {
     marginHorizontal: 20,
     marginTop: 24,
@@ -952,9 +1286,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  arrowContainer: {
-    // This will be overridden by the inline transform in the component
-  },
+  arrowContainer: {},
 });
 
 export default FarmerProfileScreen;

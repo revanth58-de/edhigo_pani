@@ -1,0 +1,81 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# EAS Preview — Expo Mobile Build for Pull Requests
+# Builds a preview APK/IPA on every PR that touches the mobile/ directory,
+# so reviewers can test on a real device without setting up a local environment.
+#
+# Required GitHub Secrets:
+#   EXPO_TOKEN          → from expo.dev → Account → Access Tokens
+#   EAS_PROJECT_ID      → from eas.json / app.json extra.eas.projectId
+#
+# Required Expo setup:
+#   1. Run `eas build:configure` in mobile/ locally first
+#   2. Commit the generated eas.json to the repo
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: EAS Preview Build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/eas-preview.yml'
+
+concurrency:
+  group: eas-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Expo Preview Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run mobile tests
+        run: npm test
+        env:
+          CI: true
+
+      - name: Set up EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build preview APK (Android)
+        run: eas build --platform android --profile preview --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Comment build link on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## 📱 Expo Preview Build Started',
+                '',
+                'An Android preview build has been queued on EAS.',
+                'Check the build status and download the APK at:',
+                '👉 https://expo.dev/accounts/[your-account]/projects/mobile/builds',
+                '',
+                '_Build triggered by: @${{ github.actor }}_',
+              ].join('\n')
+            })

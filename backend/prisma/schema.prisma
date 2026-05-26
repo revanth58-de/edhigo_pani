@@ -47,6 +47,7 @@ model User {
   applications     JobApplication[]
   groupMessages    GroupMessage[]
   refreshTokens    RefreshToken[]
+  settlements      Settlement[]
 
   @@map("users")
 }
@@ -122,24 +123,46 @@ model Attendance {
 }
 
 model Payment {
-  id        String   @id @default(uuid())
-  jobId     String
-  farmerId  String
-  workerId  String
-  amount    Float
-  method    String   // "cash" | "upi"
-  upiRef    String?
-  status    String   @default("pending") // "pending" | "completed" | "failed"
-  paidAt    DateTime?
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid())
+  jobId            String
+  farmerId         String
+  workerId         String
+  amount           Float
+  commissionAmount Float    @default(0)
+  workerAmount     Float    @default(0)
+  method           String   // "cash" | "upi" | "card" | "netbanking"
+  upiRef           String?
+  transactionId    String?
+  status           String   @default("pending") // "pending" | "completed" | "failed"
+  settlementStatus String   @default("pending") // "pending" | "settled"
+  paidAt           DateTime?
+  createdAt        DateTime @default(now())
 
   // Relations
-  job    Job  @relation(fields: [jobId], references: [id])
-  farmer User @relation("FarmerPayments", fields: [farmerId], references: [id])
-  worker User @relation("WorkerPayments", fields: [workerId], references: [id])
+  job         Job          @relation(fields: [jobId], references: [id])
+  farmer      User         @relation("FarmerPayments", fields: [farmerId], references: [id])
+  worker      User         @relation("WorkerPayments", fields: [workerId], references: [id])
+  settlements Settlement[]
 
   @@index([farmerId, workerId])  // Payment history for farmer or worker
   @@map("payments")
+}
+
+model Settlement {
+  id        String   @id @default(uuid())
+  workerId  String
+  paymentId String
+  amount    Float
+  status    String   @default("pending") // "pending" | "processing" | "settled"
+  settledAt DateTime?
+  createdAt DateTime @default(now())
+
+  // Relations
+  worker  User    @relation(fields: [workerId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([workerId])
+  @@map("settlements")
 }
 
 model Rating {

@@ -17,12 +17,7 @@ const { width, height } = Dimensions.get('window');
 
 // ── Assets ────────────────────────────────────────────────────────────────────
 // App icon-style logo (no text) — used as the animated centerpiece
-let LOGO;
-try {
-  LOGO = require('../../../assets/logo.png');
-} catch (_) {
-  LOGO = require('../../../assets/icon.png');
-}
+const LOGO = require('../../../assets/icon.png');
 
 const SplashScreen = ({ navigation }) => {
   const fadeAnim   = useRef(new Animated.Value(0)).current;

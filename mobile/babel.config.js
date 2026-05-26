@@ -1,0 +1,14 @@
+module.exports = function(api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: [
+      'babel-plugin-transform-import-meta',
+      ['module-resolver', {
+        alias: {
+          '@': './src',
+        },
+      }],
+    ],
+  };
+};

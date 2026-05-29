@@ -1,11 +1,11 @@
 // Shared Top App Bar with Notification Bell + unread badge
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Image } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import useNotificationStore from '../store/notificationStore';
 
-const TopBar = ({ title = 'Home', showBack = false, navigation, onBack }) => {
+const TopBar = ({ title = 'Home', showBack = false, showLogo = false, navigation, onBack }) => {
   const notifications = useNotificationStore((s) => s.notifications);
   const unread = notifications.filter((n) => !n.read).length;
 
@@ -29,6 +29,11 @@ const TopBar = ({ title = 'Home', showBack = false, navigation, onBack }) => {
         <TouchableOpacity style={styles.iconButton} onPress={handleBack}>
           <MaterialIcons name="arrow-back" size={24} color="#131811" />
         </TouchableOpacity>
+      ) : showLogo ? (
+        <Image
+          source={require('../../assets/logo_transparent.png')}
+          style={styles.logo}
+        />
       ) : (
         <View style={styles.iconButtonPlaceholder} />
       )}
@@ -67,6 +72,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   iconButtonPlaceholder: { width: 44 },
+  logo: {
+    width: 38,
+    height: 38,
+    resizeMode: 'contain',
+  },
   title: {
     fontSize: 24, fontWeight: '800', color: '#131811',
     flex: 1, textAlign: 'center', marginHorizontal: 8,

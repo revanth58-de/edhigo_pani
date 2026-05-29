@@ -15,16 +15,20 @@ import { authAPI, groupAPI } from '../services/api';
 import { socketService } from '../services/socketService';
 
 import * as Notifications from 'expo-notifications';
-import { Camera } from 'expo-camera';
 
 // Ensure foreground notifications show a visual UI banner
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// Wrapped in try/catch — expo-notifications native module isn't available on web
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+} catch (e) {
+  console.warn('Notifications.setNotificationHandler not available:', e.message);
+}
 
 // Auth Screens
 import SplashScreen from '../screens/auth/SplashScreen';
@@ -204,10 +208,15 @@ const AppNavigator = () => {
     rehydrate();
     
     // Check and cache camera permission on startup once
+    // Uses dynamic import — expo-camera crashes on web if imported at top level
     const checkInitialCameraPermission = async () => {
       try {
-        const { status } = await Camera.getCameraPermissionsAsync();
-        useAuthStore.getState().setCameraPermission(status);
+        const CameraModule = await import('expo-camera');
+        const Camera = CameraModule.Camera || CameraModule.default;
+        if (Camera?.getCameraPermissionsAsync) {
+          const { status } = await Camera.getCameraPermissionsAsync();
+          useAuthStore.getState().setCameraPermission(status);
+        }
       } catch (err) {
         console.warn('Initial camera permission check failed:', err.message);
       }

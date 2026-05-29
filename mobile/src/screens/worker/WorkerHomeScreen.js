@@ -233,10 +233,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
 
   return (
     <LinearGradient colors={['#FDFBF7', colors.backgroundLight]} style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
-
-      <TopBar title={t('worker.workerHome')} navigation={navigation} />
+      <TopBar title={t('worker.workerHome')} showLogo={true} navigation={navigation} />
 
       <ScrollView
         style={styles.content}

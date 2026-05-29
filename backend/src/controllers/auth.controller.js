@@ -378,7 +378,15 @@ const updateProfile = async (req, res, next) => {
     }
     if (landAcres !== undefined) dataToUpdate.landAcres = parseFloat(landAcres);
     if (skills !== undefined) dataToUpdate.skills = skills;
-    if (status !== undefined) dataToUpdate.status = status === 'active' ? 'available' : status;
+    if (status !== undefined) {
+      // status is a Prisma enum — only accept valid values; ignore anything else
+      // (the frontend sometimes sends equipment data through this field)
+      const VALID_STATUS = ['available', 'working', 'on_break', 'offline', 'suspended', 'online', 'active'];
+      const statusStr = typeof status === 'string' ? status : '';
+      if (VALID_STATUS.includes(statusStr)) {
+        dataToUpdate.status = statusStr === 'active' ? 'available' : statusStr;
+      }
+    }
     if (pushToken !== undefined) dataToUpdate.pushToken = pushToken;
     if (experience !== undefined) dataToUpdate.experience = parseInt(experience, 10);
     if (avatarIcon !== undefined) dataToUpdate.avatarIcon = avatarIcon;

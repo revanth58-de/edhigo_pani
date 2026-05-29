@@ -69,12 +69,16 @@ const SkeletonCard = ({ shimmer }) => {
 const WorkTypeCard = ({ workType, onPress }) => (
   <TouchableOpacity
     style={styles.workTypeWrapper}
-    activeOpacity={0.7}
+    activeOpacity={0.8}
     onPress={() => onPress(workType.name)}
   >
     <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
       <View style={styles.imageHeader}>
         <Image source={{ uri: workType.image }} style={styles.cardImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0, 0, 0, 0.4)']}
+          style={styles.cardGradient}
+        />
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.workTypeName} numberOfLines={1}>
@@ -216,10 +220,7 @@ const FarmerHomeScreen = ({ navigation }) => {
 
   return (
     <LinearGradient colors={['#FDFBF7', colors.backgroundLight]} style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
-
-      <TopBar title="DINASARI" navigation={navigation} />
+      <TopBar title="DINASARI" showLogo={true} navigation={navigation} />
       <WeatherLocationHeader />
 
       <ScrollView
@@ -235,6 +236,15 @@ const FarmerHomeScreen = ({ navigation }) => {
           />
         }
       >
+        {/* Modern Welcome Header */}
+        <View style={styles.welcomeContainer}>
+          <Text style={styles.welcomeText}>
+            {t('common.namaste') || 'Namaste'}, {user?.name || 'Farmer'} 👋
+          </Text>
+          <Text style={styles.welcomeSubtitle}>
+            Find the best local workers & modern machinery for your farm today.
+          </Text>
+        </View>
         {/* Dynamic Map Dashboard wrapped with styling for premium look */}
         <View style={styles.mapContainer}>
           <View style={styles.mapWrap}>
@@ -256,7 +266,7 @@ const FarmerHomeScreen = ({ navigation }) => {
             </GlassCard>
           </View>
         </View>
-        <View style={styles.headlineContainer}>
+        <View style={styles.sectionHeaderContainer}>
           {/* M2: Show a skeleton text placeholder during load */}
           {loading ? (
             <View style={[styles.skeletonHeadline, { overflow: 'hidden' }]}>
@@ -269,7 +279,10 @@ const FarmerHomeScreen = ({ navigation }) => {
               />
             </View>
           ) : (
-            <Text style={styles.headline}>{t('farmerHome.selectWorkType')}</Text>
+            <View>
+              <Text style={styles.sectionHeadline}>Quick Hire Services</Text>
+              <Text style={styles.sectionSubline}>Choose a category to discover and book nearby workforce instantly</Text>
+            </View>
           )}
         </View>
 
@@ -405,18 +418,41 @@ const styles = StyleSheet.create({
     color: '#131811',
   },
 
-  headlineContainer: {
+  welcomeContainer: {
     paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 16,
-    alignItems: 'center',
+    paddingTop: 20,
+    paddingBottom: 4,
   },
-  headline: {
+  welcomeText: {
     fontSize: 28,
     fontWeight: '800',
-    color: '#131811',
-    textAlign: 'center',
-    marginBottom: 8,
+    color: '#1E293B',
+    letterSpacing: -0.5,
+  },
+  welcomeSubtitle: {
+    fontSize: 14,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  sectionHeaderContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  sectionHeadline: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1E293B',
+    letterSpacing: -0.5,
+  },
+  sectionSubline: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    fontWeight: '500',
+    lineHeight: 18,
   },
 
   grid: {
@@ -428,13 +464,28 @@ const styles = StyleSheet.create({
   },
   workTypeWrapper: {
     width: '48%',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   workTypeGlassCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 6px 16px rgba(0,0,0,0.04)',
+      }
+    }),
   },
   hoverBackground: {
     position: 'absolute',
@@ -447,20 +498,32 @@ const styles = StyleSheet.create({
   },
   imageHeader: {
     width: '100%',
-    height: 120,
-    backgroundColor: '#F3F4F6',
+    height: 125,
+    backgroundColor: '#F1F5F9',
+    position: 'relative',
+  },
+  cardGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 40,
   },
   cardImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  cardContent: { padding: 12 },
+  cardContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
   workTypeName: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
+    color: '#1E293B',
     textAlign: 'center',
   },
 

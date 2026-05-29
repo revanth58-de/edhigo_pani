@@ -8,7 +8,14 @@
  * 4. For production source maps: npx sentry-expo-upload-sourcemaps
  */
 
-import * as Sentry from '@sentry/react-native';
+// @sentry/react-native relies on native modules that aren't available on web.
+// Wrap the import so the entire config module doesn't crash on web.
+let Sentry = null;
+try {
+  Sentry = require('@sentry/react-native');
+} catch (e) {
+  console.warn('[Sentry] Native module not available (web?):', e.message);
+}
 
 // Expo exposes env vars as EXPO_PUBLIC_* at build time
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || '';

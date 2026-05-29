@@ -97,6 +97,74 @@ const FarmerHomeScreen = ({ navigation }) => {
   const [loading, setLoading]         = useState(true);    // M2: drives skeleton
   const [refreshing, setRefreshing]   = useState(false);
 
+  const [machineryList, setMachineryList] = useState([
+    {
+      id: 'tractor',
+      name: 'Tractor Rentals',
+      price: '₹800/hr',
+      image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
+      owner: 'Ramesh Kumar',
+    },
+    {
+      id: 'harvester',
+      name: 'Combine Harvester',
+      price: '₹1,800/hr',
+      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800&auto=format&fit=crop',
+      owner: 'Suresh Singh',
+    },
+    {
+      id: 'drone',
+      name: 'Pesticide Drone',
+      price: '₹1,200/hr',
+      image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop',
+      owner: 'Venkatesh Rao',
+    },
+    {
+      id: 'rotavator',
+      name: 'Power Rotavator',
+      price: '₹600/hr',
+      image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+      owner: 'Anil Reddy',
+    },
+  ]);
+
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
+  const handleAddMachinery = () => {
+    setShowAddMenu(false);
+    Alert.alert(
+      '🚜 List Farm Machinery',
+      'Select a machinery item to add to your rental listing:',
+      [
+        {
+          text: 'Tractor (₹800/hr)',
+          onPress: () => appendMachinery('Tractor', '₹800/hr', 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'),
+        },
+        {
+          text: 'Pesticide Drone (₹1,200/hr)',
+          onPress: () => appendMachinery('Pesticide Drone', '₹1,200/hr', 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800'),
+        },
+        {
+          text: 'Rotavator (₹600/hr)',
+          onPress: () => appendMachinery('Rotavator', '₹600/hr', 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800'),
+        },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const appendMachinery = (name, price, image) => {
+    const newItem = {
+      id: `custom_${Date.now()}`,
+      name: `${name} (My Listing)`,
+      price: price,
+      image: image,
+      owner: user?.name || 'My Farm',
+    };
+    setMachineryList(prev => [newItem, ...prev]);
+    Alert.alert('🎉 Success!', `${name} has been successfully added to your dashboard machinery listing!`);
+  };
+
   // M2: single shared shimmer Animated.Value for all skeleton cards
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
@@ -218,8 +286,13 @@ const FarmerHomeScreen = ({ navigation }) => {
     },
   ];
 
+
+
   return (
     <LinearGradient colors={['#FDFBF7', colors.backgroundLight]} style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
+
       <TopBar title="DINASARI" showLogo={true} navigation={navigation} />
       <WeatherLocationHeader />
 
@@ -298,6 +371,50 @@ const FarmerHomeScreen = ({ navigation }) => {
           }
         </View>
 
+        {/* Modern Machinery Section */}
+        <View style={styles.machinerySection}>
+          <View style={styles.sectionHeaderContainer}>
+            <Text style={styles.sectionHeadline}>Modern Farm Machinery</Text>
+            <Text style={styles.sectionSubline}>Rent high-performance, professional machinery instantly</Text>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.machineryScroll}
+          >
+            {machineryList.map((item) => (
+              <GlassCard intensity={30} tint="light" key={item.id} style={styles.machineryCard}>
+                <Image source={{ uri: item.image }} style={styles.machineryImage} />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
+                  style={styles.machineryGradient}
+                />
+                <View style={styles.machineryBadge}>
+                  <Text style={styles.machineryBadgeText}>{item.price}</Text>
+                </View>
+                <View style={styles.machineryInfo}>
+                  <Text style={styles.machineryName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.machineryOwner} numberOfLines={1}>Owner: {item.owner}</Text>
+                  <TouchableOpacity
+                    style={styles.machineryBookBtn}
+                    onPress={() => navigation.navigate('MachineryBooking', { machineType: item.name })}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={colors.primaryGradient || ['#10B981', '#059669']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.machineryBookBtnGrad}
+                    >
+                      <Text style={styles.machineryBookText}>Book Now</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </GlassCard>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* How to use the app */}
         <View style={styles.videoSection}>
           <Text style={styles.sectionTitle}>How to use DINASARI?</Text>
@@ -313,6 +430,41 @@ const FarmerHomeScreen = ({ navigation }) => {
       </ScrollView>
 
       <BottomNavBar role="farmer" activeTab="Home" />
+
+      {/* Floating Action Button (FAB) for Post Job / Add Machinery */}
+      <View style={styles.fabContainer}>
+        {showAddMenu && (
+          <View style={styles.fabMenu}>
+            <TouchableOpacity
+              style={styles.fabMenuItem}
+              onPress={() => {
+                setShowAddMenu(false);
+                navigation.navigate('WorkCategories');
+              }}
+            >
+              <Text style={styles.fabMenuText}>🌾 Post a Job</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.fabMenuItem}
+              onPress={handleAddMachinery}
+            >
+              <Text style={styles.fabMenuText}>🚜 Add Machinery</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        <TouchableOpacity
+          style={styles.fabButton}
+          onPress={() => setShowAddMenu(!showAddMenu)}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={colors.primaryGradient || ['#10B981', '#059669']}
+            style={styles.fabGradient}
+          >
+            <MaterialIcons name={showAddMenu ? "close" : "add"} size={32} color="#FFF" />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </LinearGradient>
   );
 };
@@ -438,7 +590,7 @@ const styles = StyleSheet.create({
   },
   sectionHeaderContainer: {
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 16,
     paddingBottom: 8,
   },
   sectionHeadline: {
@@ -453,6 +605,91 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontWeight: '500',
     lineHeight: 18,
+  },
+  machinerySection: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  machineryScroll: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    gap: 16,
+  },
+  machineryCard: {
+    width: 220,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: '0 6px 16px rgba(0,0,0,0.04)',
+      }
+    }),
+  },
+  machineryImage: {
+    width: '100%',
+    height: 120,
+    resizeMode: 'cover',
+  },
+  machineryGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 80,
+    height: 40,
+  },
+  machineryBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: colors.accent || '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 99,
+  },
+  machineryBadgeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  machineryInfo: {
+    padding: 12,
+  },
+  machineryName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  machineryOwner: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  machineryBookBtn: {
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  machineryBookBtnGrad: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  machineryBookText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
   },
 
   grid: {
@@ -561,6 +798,74 @@ const styles = StyleSheet.create({
     width: '60%',
     backgroundColor: 'rgba(255,255,255,0.65)',
     transform: [{ skewX: '-20deg' }],
+  },
+
+  // FAB Styles
+  fabContainer: {
+    position: 'absolute',
+    bottom: 96,
+    right: 24,
+    alignItems: 'flex-end',
+    zIndex: 999,
+  },
+  fabButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 8,
+      },
+      web: {
+        boxShadow: '0 6px 16px rgba(0,0,0,0.2)',
+      }
+    }),
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fabMenu: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 16,
+    padding: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  fabMenuItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    minWidth: 160,
+    alignItems: 'center',
+  },
+  fabMenuText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1E293B',
   },
 
   // Legacy styles kept for compatibility

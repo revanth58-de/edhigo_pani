@@ -15,8 +15,24 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import GlassCard from '../../components/GlassCard';
+import useAuthStore from '../../store/authStore';
 
 const AIChatbotScreen = ({ navigation }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
+
   const [messages, setMessages] = useState([
     { id: 1, text: "Namaste! I am your Dinasari AI Assistant. How can I help you today?", sender: 'ai' },
   ]);
@@ -62,7 +78,7 @@ const AIChatbotScreen = ({ navigation }) => {
     >
       <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={handleBack}>
             <MaterialIcons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
           <View style={styles.titleContainer}>

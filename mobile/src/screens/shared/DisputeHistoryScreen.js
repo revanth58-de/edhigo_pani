@@ -16,6 +16,7 @@ import { colors } from '../../theme/colors';
 import { disputeService } from '../../services/api';
 import CustomLoader from '../../components/CustomLoader';
 import EmptyState from '../../components/EmptyState';
+import useAuthStore from '../../store/authStore';
 
 const STATUS_COLORS = {
   pending: { bg: '#FEE2E2', text: '#EF4444', icon: 'hourglass-empty' },
@@ -25,6 +26,20 @@ const STATUS_COLORS = {
 };
 
 const DisputeHistoryScreen = ({ navigation }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
   const { t } = useTranslation();
   const [disputes, setDisputes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +153,7 @@ const DisputeHistoryScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('disputes.history')}</Text>

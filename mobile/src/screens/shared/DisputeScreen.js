@@ -16,10 +16,25 @@ import { colors } from '../../theme/colors';
 import { disputeService } from '../../services/api';
 import useSpeech from '../../hooks/useSpeech';
 import CustomLoader from '../../components/CustomLoader';
+import useAuthStore from '../../store/authStore';
 
 const CATEGORIES = ['incorrect_payment', 'hours_mismatch', 'worker_no_show', 'other'];
 
 const DisputeScreen = ({ navigation, route }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
   const { jobId, paymentId } = route.params || {};
   const { t } = useTranslation();
   const { speak, stop } = useSpeech();
@@ -59,7 +74,7 @@ const DisputeScreen = ({ navigation, route }) => {
         Alert.alert(
           t('common.success') || 'Success',
           t('disputes.successMsg') || 'Dispute submitted successfully',
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
+          [{ text: 'OK', onPress: handleBack }]
         );
       } else {
         Alert.alert(t('common.error') || 'Error', res.message || 'Failed to file dispute');
@@ -78,7 +93,7 @@ const DisputeScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('disputes.title')}</Text>

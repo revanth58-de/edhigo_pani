@@ -20,6 +20,8 @@ const uploadRoutes = require('./routes/upload.routes');
 const adminRoutes = require('./routes/admin.routes');
 const workerRoutes = require('./routes/worker.routes');
 const chatRoutes = require('./routes/chat.routes');
+const disputeRoutes = require('./routes/dispute.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 const Sentry = require('@sentry/node');
 // NOTE: @sentry/profiling-node is excluded — it requires a native binary that
@@ -117,6 +119,8 @@ app.use('/api/upload', uploadLimiter, uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/workers', workerRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/disputes', disputeRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
@@ -330,12 +334,12 @@ io.on('connection', (socket) => {
 
       const job = await prisma.job.findUnique({
         where: { id: jobId },
-        include: { farmer: { select: { pushToken: true } } }
+        include: { farmer: { select: { id: true, pushToken: true } } }
       });
       const worker = await prisma.user.findUnique({ where: { id: workerId }, select: { name: true } });
 
-      if (job?.farmer?.pushToken) {
-        await notifyFarmerWorkerArrived(job.farmer.pushToken, worker, job);
+      if (job?.farmer?.id) {
+        await notifyFarmerWorkerArrived(job.farmer.id, job.farmer.pushToken, worker, job);
       }
     } catch (err) {
       logger.error(`Error sending arrival push notification: ${err.message}`);

@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const config = require('../config/env');
 const { sendOTPSms } = require('../services/smsService');
+const { sendOTPWhatsapp } = require('../services/whatsappService');
 const { logger } = require('../middleware/errorHandler');
 const { UserRole, Gender, Language } = require('../config/enums'); // D1
 const { isValidPhotoUrl } = require('../utils/urlGuard');
@@ -115,12 +116,26 @@ const sendOTP = async (req, res, next) => {
 
     logger.info('OTP saved', { isExistingUser });
 
-    // Send SMS in background — don't await so the client gets an instant response.
-    // The OTP is already saved in the DB; SMS delivery is a side-effect only.
-    sendOTPSms(phone, otp).then((smsSent) => {
-      if (!smsSent) logger.warn('SMS failed or timed out — OTP is still valid in DB');
+    // Try sending OTP via WhatsApp first; if it fails, fallback to SMS.
+    // Executed in the background so the user gets an instant HTTP response.
+    sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
+      if (whatsappSent) {
+        logger.info('OTP dispatched via WhatsApp');
+      } else {
+        logger.info('WhatsApp dispatch failed or not configured — falling back to SMS');
+        sendOTPSms(phone, otp).then((smsSent) => {
+          if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
+        }).catch((err) => {
+          logger.error('Background SMS error', { message: err.message });
+        });
+      }
     }).catch((err) => {
-      logger.error('Background SMS error', { message: err.message });
+      logger.error('Background WhatsApp error, trying SMS fallback...', { message: err.message });
+      sendOTPSms(phone, otp).then((smsSent) => {
+        if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
+      }).catch((err) => {
+        logger.error('Background SMS error', { message: err.message });
+      });
     });
 
     res.json({

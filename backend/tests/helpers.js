@@ -64,7 +64,9 @@ async function createTestUsers() {
 async function cleanupTestUsers() {
   try {
     // Delete in strict reverse dependency order to avoid foreign key errors
+    await prisma.notification.deleteMany({});
     await prisma.rating.deleteMany({});
+    await prisma.settlement.deleteMany({});
     await prisma.payment.deleteMany({});
     await prisma.attendance.deleteMany({});
     await prisma.jobApplication.deleteMany({});

@@ -40,9 +40,10 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Final response — never leak stack trace in production
+  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
   res.status(status).json({
     success: false,
-    error: process.env.NODE_ENV === 'development' ? err.message : (status === 500 ? 'Internal server error' : err.message),
+    error: isDevOrTest ? err.message : (status === 500 ? 'Internal server error' : err.message),
   });
 };
 

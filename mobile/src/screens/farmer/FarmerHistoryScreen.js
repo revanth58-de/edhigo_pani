@@ -123,6 +123,16 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
                     )}
                 </View>
             )}
+
+            {/* Dispute Action */}
+            <TouchableOpacity 
+                style={styles.disputeLink}
+                onPress={() => navigation.navigate('Dispute', { jobId: job.id })}
+                activeOpacity={0.7}
+            >
+                <MaterialIcons name="report-problem" size={16} color="#E11D48" />
+                <Text style={styles.disputeLinkText}>Report Issue / Dispute Job</Text>
+            </TouchableOpacity>
         </TouchableOpacity>
     );
 };
@@ -425,6 +435,19 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '800',
         color: '#FFFFFF',
+    },
+    disputeLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 12,
+        paddingVertical: 8,
+        gap: 6,
+    },
+    disputeLinkText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#E11D48',
     },
 });
 

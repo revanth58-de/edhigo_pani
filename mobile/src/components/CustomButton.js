@@ -1,7 +1,8 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts, borderRadius, shadows } from '../theme/colors';
+import CustomLoader from './CustomLoader';
 
 /**
  * CustomButton - A premium button component with support for gradients and outlines
@@ -50,7 +51,7 @@ const CustomButton = ({
     <View style={styles.contentRow}>
       {iconLeft && <View style={styles.iconLeft}>{iconLeft}</View>}
       {loading ? (
-        <ActivityIndicator color={getTextColor()} size="small" />
+        <CustomLoader color={getTextColor()} size={20} />
       ) : (
         <Text style={[
           styles.text, 

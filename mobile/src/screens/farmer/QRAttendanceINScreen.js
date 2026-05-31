@@ -8,7 +8,6 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   Modal,
   ScrollView,
   Animated,
@@ -17,6 +16,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { CameraView, Camera } from 'expo-camera';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
@@ -28,19 +28,40 @@ const SCAN_BOX_SIZE = width * 0.7;
 
 const QRAttendanceINScreen = ({ navigation, route }) => {
   const { worker, job } = route.params || {};
-  const [hasPermission, setHasPermission] = useState(null);
+  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
+
+  const [hasPermission, setHasPermission] = useState(() => {
+    if (cachedPermission === 'granted') return true;
+    if (cachedPermission === 'denied') return false;
+    return null;
+  });
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (cachedPermission === 'granted' || cachedPermission === 'denied') {
+      return;
+    }
+
     const checkPermission = async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        let permission = await Camera.getCameraPermissionsAsync();
+        let status = permission.status;
+        if (status === 'undetermined') {
+          const requestResult = await Camera.requestCameraPermissionsAsync();
+          status = requestResult.status;
+        }
+        setCachedPermission(status);
+        setHasPermission(status === 'granted');
+      } catch (err) {
+        console.error('Error checking camera permissions:', err);
+      }
     };
     checkPermission();
-  }, []);
+  }, [cachedPermission]);
 
   // Animate scan line
   useEffect(() => {
@@ -77,7 +98,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
   if (hasPermission === null) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <CustomLoader size={48} color={colors.primary} />
       </View>
     );
   }
@@ -90,6 +111,7 @@ const QRAttendanceINScreen = ({ navigation, route }) => {
           style={styles.retryButton}
           onPress={async () => {
             const { status } = await Camera.requestCameraPermissionsAsync();
+            setCachedPermission(status);
             setHasPermission(status === 'granted');
           }}
         >

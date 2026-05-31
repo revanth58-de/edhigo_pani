@@ -94,6 +94,7 @@ const NavigationScreen = ({ navigation, route }) => {
   const [distance, setDistance] = useState(t('common.calculating') || '...');
   const [eta, setETA] = useState('--');
   const [userLocation, setUserLocation] = useState(null);
+  const lastDispatchedCoordsRef = useRef(null);
 
   const farmCoords = {
     latitude: job?.farmLatitude || 17.385044,
@@ -138,7 +139,7 @@ const NavigationScreen = ({ navigation, route }) => {
       locationSubscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
         (location) => {
-          const { latitude, longitude } = location.coords;
+          const { latitude, longitude, speed } = location.coords;
           setUserLocation({ latitude, longitude });
 
           // Dynamic Haversine calculation
@@ -148,15 +149,36 @@ const NavigationScreen = ({ navigation, route }) => {
             const e = estimateETA(d);
             setETA(e < 1 ? '< 1 min' : `${e} min`);
 
-            // Emit live location updates to the socket server
-            socketService.emitLocation({
-              userId: user?.id,
-              jobId: job?.id,
-              latitude,
-              longitude,
-              distance: d,
-              eta: `${e} min`,
-            });
+            // F6: Motion-aware filtering and stationary suspension checks
+            const isStationary = speed === 0 || (speed !== null && speed < 0.1);
+            let shouldDispatch = false;
+
+            if (!lastDispatchedCoordsRef.current) {
+              shouldDispatch = true;
+            } else {
+              const movedDistance = calculateDistance(
+                latitude,
+                longitude,
+                lastDispatchedCoordsRef.current.latitude,
+                lastDispatchedCoordsRef.current.longitude
+              );
+              if (movedDistance !== null && movedDistance >= 0.02 && !isStationary) {
+                shouldDispatch = true;
+              }
+            }
+
+            if (shouldDispatch) {
+              lastDispatchedCoordsRef.current = { latitude, longitude };
+              // Emit live location updates to the socket server
+              socketService.emitLocation({
+                userId: user?.id,
+                jobId: job?.id,
+                latitude,
+                longitude,
+                distance: d,
+                eta: `${e} min`,
+              });
+            }
           }
         }
       );

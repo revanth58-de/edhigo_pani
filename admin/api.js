@@ -45,4 +45,6 @@ export const api = {
   getRatings:     ()           => call('/ratings'),
   getGroups:      ()           => call('/groups'),
   getAuditLogs:   ()           => call('/audit'),
+  getDisputes:    (q = '')     => call(`/disputes${q}`),
+  updateDispute:  (id, data)   => call(`/disputes/${id}`, 'PATCH', data),
 };

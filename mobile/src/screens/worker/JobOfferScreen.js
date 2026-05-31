@@ -7,11 +7,11 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   Platform,
   ScrollView,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
@@ -226,7 +226,7 @@ const JobOfferScreen = ({ navigation, route }) => {
               style={styles.acceptButton}
             >
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <CustomLoader size={20} color="#FFFFFF" />
               ) : (
                 <>
                   <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>

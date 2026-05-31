@@ -101,12 +101,41 @@ const sendPushMessages = async (messages) => {
 };
 
 /**
+ * Helper to write a notification history record to the database
+ */
+const createNotification = async (userId, title, body, data = {}) => {
+  try {
+    const notification = await prisma.notification.create({
+      data: {
+        userId,
+        title,
+        body,
+        data: data ? JSON.parse(JSON.stringify(data)) : null,
+      },
+    });
+    return notification;
+  } catch (err) {
+    logger.error('Error creating database notification', { message: err.message });
+    return null;
+  }
+};
+
+/**
  * Notify workers about a new job offer (personalized with distance)
  */
 const notifyWorkersNewJob = async (workers, job) => {
   const messages = [];
 
   for (const worker of workers) {
+    if (worker.id) {
+      await createNotification(
+        worker.id,
+        '🌾 New Job Available!',
+        `${job.workType} work · ₹${job.payPerDay}/day`,
+        { jobId: job.id, screen: 'JobOffer' }
+      );
+    }
+
     if (worker.pushToken) {
       const distText = worker.distanceKm ? `${worker.distanceKm} km away` : 'Near you';
       messages.push({
@@ -125,89 +154,162 @@ const notifyWorkersNewJob = async (workers, job) => {
 /**
  * Notify farmer that a worker accepted their job
  */
-const notifyFarmerJobAccepted = async (farmerToken, worker, job) => {
-  await sendPush(
-    farmerToken,
-    '✅ Worker Accepted Your Job!',
-    `${worker.name || 'A worker'} accepted your ${job.workType} job. Tap to view.`,
-    { jobId: job.id, screen: 'RequestAccepted' }
-  );
+const notifyFarmerJobAccepted = async (farmerId, farmerToken, worker, job) => {
+  if (farmerId) {
+    await createNotification(
+      farmerId,
+      '✅ Worker Accepted Your Job!',
+      `${worker.name || 'A worker'} accepted your ${job.workType} job. Tap to view.`,
+      { jobId: job.id, screen: 'RequestAccepted' }
+    );
+  }
+  if (farmerToken) {
+    await sendPush(
+      farmerToken,
+      '✅ Worker Accepted Your Job!',
+      `${worker.name || 'A worker'} accepted your ${job.workType} job. Tap to view.`,
+      { jobId: job.id, screen: 'RequestAccepted' }
+    );
+  }
 };
 
 /**
  * Notify worker that their application was rejected
  */
-const notifyWorkerJobRejected = async (workerToken, job) => {
-  await sendPush(
-    workerToken,
-    '❌ Job Application Rejected',
-    `Your application for ${job.workType} was not selected this time.`,
-    { jobId: job.id }
-  );
+const notifyWorkerJobRejected = async (workerId, workerToken, job) => {
+  if (workerId) {
+    await createNotification(
+      workerId,
+      '❌ Job Application Rejected',
+      `Your application for ${job.workType} was not selected this time.`,
+      { jobId: job.id }
+    );
+  }
+  if (workerToken) {
+    await sendPush(
+      workerToken,
+      '❌ Job Application Rejected',
+      `Your application for ${job.workType} was not selected this time.`,
+      { jobId: job.id }
+    );
+  }
 };
 
 /**
  * Notify farmer that worker withdrew from accepted job
  */
-const notifyFarmerJobWithdrawn = async (farmerToken, job) => {
-  await sendPush(
-    farmerToken,
-    '⚠️ Worker Cancelled',
-    `The worker cancelled your ${job.workType} job. It has been re-opened to others.`,
-    { jobId: job.id }
-  );
+const notifyFarmerJobWithdrawn = async (farmerId, farmerToken, job) => {
+  if (farmerId) {
+    await createNotification(
+      farmerId,
+      '⚠️ Worker Cancelled',
+      `The worker cancelled your ${job.workType} job. It has been re-opened to others.`,
+      { jobId: job.id }
+    );
+  }
+  if (farmerToken) {
+    await sendPush(
+      farmerToken,
+      '⚠️ Worker Cancelled',
+      `The worker cancelled your ${job.workType} job. It has been re-opened to others.`,
+      { jobId: job.id }
+    );
+  }
 };
 
 /**
  * Notify worker that job is cancelled by farmer
  */
-const notifyWorkerJobCancelled = async (workerTokens, job) => {
-  await sendPush(
-    workerTokens,
-    '❌ Job Cancelled',
-    `The farmer has cancelled the ${job.workType} job.`,
-    { jobId: job.id }
-  );
+const notifyWorkerJobCancelled = async (workerIds, workerTokens, job) => {
+  const ids = Array.isArray(workerIds) ? workerIds : (workerIds ? [workerIds] : []);
+  for (const workerId of ids) {
+    await createNotification(
+      workerId,
+      '❌ Job Cancelled',
+      `The farmer has cancelled the ${job.workType} job.`,
+      { jobId: job.id }
+    );
+  }
+
+  if (workerTokens) {
+    await sendPush(
+      workerTokens,
+      '❌ Job Cancelled',
+      `The farmer has cancelled the ${job.workType} job.`,
+      { jobId: job.id }
+    );
+  }
 };
 
 /**
  * Notify farmer of attendance check-in
  */
-const notifyFarmerAttendanceIn = async (farmerToken, worker, job) => {
-  await sendPush(
-    farmerToken,
-    '📍 Worker Arrived',
-    `${worker.name || 'A worker'} has scanned in and started working.`,
-    { jobId: job.id, screen: 'WorkInProgress' }
-  );
+const notifyFarmerAttendanceIn = async (farmerId, farmerToken, worker, job) => {
+  if (farmerId) {
+    await createNotification(
+      farmerId,
+      '📍 Worker Arrived',
+      `${worker.name || 'A worker'} has scanned in and started working.`,
+      { jobId: job.id, screen: 'WorkInProgress' }
+    );
+  }
+  if (farmerToken) {
+    await sendPush(
+      farmerToken,
+      '📍 Worker Arrived',
+      `${worker.name || 'A worker'} has scanned in and started working.`,
+      { jobId: job.id, screen: 'WorkInProgress' }
+    );
+  }
 };
 
 /**
  * Notify farmer of attendance check-out
  */
-const notifyFarmerAttendanceOut = async (farmerToken, worker, job, hours) => {
-  await sendPush(
-    farmerToken,
-    '✅ Worker Finished',
-    `${worker.name || 'A worker'} has scanned out after ${hours.toFixed(1)} hours.`,
-    { jobId: job.id, screen: 'Payment' }
-  );
+const notifyFarmerAttendanceOut = async (farmerId, farmerToken, worker, job, hours) => {
+  if (farmerId) {
+    await createNotification(
+      farmerId,
+      '✅ Worker Finished',
+      `${worker.name || 'A worker'} has scanned out after ${hours.toFixed(1)} hours.`,
+      { jobId: job.id, screen: 'Payment' }
+    );
+  }
+  if (farmerToken) {
+    await sendPush(
+      farmerToken,
+      '✅ Worker Finished',
+      `${worker.name || 'A worker'} has scanned out after ${hours.toFixed(1)} hours.`,
+      { jobId: job.id, screen: 'Payment' }
+    );
+  }
 };
 
 /**
  * Notify farmer of worker arrival at farm boundary
  */
-const notifyFarmerWorkerArrived = async (farmerToken, worker, job) => {
-  await sendPush(
-    farmerToken,
-    '🔔 Worker Arriving',
-    `${worker?.name || 'A worker'} has arrived at your farm for the ${job.workType} job.`,
-    { jobId: job.id, screen: 'ArrivalAlert' }
-  );
+const notifyFarmerWorkerArrived = async (farmerId, farmerToken, worker, job) => {
+  if (farmerId) {
+    await createNotification(
+      farmerId,
+      '🔔 Worker Arriving',
+      `${worker?.name || 'A worker'} has arrived at your farm for the ${job.workType} job.`,
+      { jobId: job.id, screen: 'ArrivalAlert' }
+    );
+  }
+  if (farmerToken) {
+    await sendPush(
+      farmerToken,
+      '🔔 Worker Arriving',
+      `${worker?.name || 'A worker'} has arrived at your farm for the ${job.workType} job.`,
+      { jobId: job.id, screen: 'ArrivalAlert' }
+    );
+  }
 };
 
 module.exports = {
   sendPush,
+  createNotification,
   notifyWorkersNewJob,
   notifyFarmerJobAccepted,
   notifyWorkerJobRejected,

@@ -149,6 +149,10 @@ export default {
     jobsPosted: 'Jobs Posted',
     logout: 'Logout',
     logoutConfirm: 'Are you sure you want to logout?',
+    matchingRadiusTitle: 'Matching Radius',
+    matchingRadiusLabel: 'Match workers within',
+    matchingRadiusKm: 'km',
+    defaultRadius: 'Default',
   },
 
   // ─── History ───
@@ -257,5 +261,30 @@ export default {
   // ─── Home Shared ───
   home: {
     seeAll: 'See All',
+  },
+
+  // ─── Disputes (F2) ───
+  disputes: {
+    title: 'Disputes & Issues',
+    reportIssue: 'Report Issue',
+    submitDispute: 'File Dispute',
+    selectCategory: 'Select Category',
+    incorrect_payment: 'Incorrect Payment',
+    hours_mismatch: 'Hours Mismatch',
+    worker_no_show: 'Worker No-show',
+    other: 'Other',
+    descriptionPlaceholder: 'Tell us what happened in detail...',
+    successMsg: 'Dispute filed successfully. Dinasari support will review it.',
+    noDisputes: 'No disputes filed yet.',
+    history: 'Dispute History',
+    status: 'Status',
+    resolution: 'Resolution',
+    resolved: 'Resolved',
+    pending: 'Pending',
+    investigating: 'Investigating',
+    dismissed: 'Dismissed',
+    details: 'Dispute Details',
+    categoryLabel: 'Category',
+    descriptionLabel: 'Description',
   },
 };

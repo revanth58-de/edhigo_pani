@@ -126,6 +126,15 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
             <Text style={styles.actionBtnText}>Check Payout Timeline</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={[styles.disputeBtn, { marginTop: 12 }]}
+          onPress={() => navigation.navigate('Dispute', { jobId: payment?.jobId, paymentId: payment?.id })}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="report-problem" size={20} color="#EF4444" />
+          <Text style={styles.disputeBtnText}>Report Issue / Dispute Payment</Text>
+        </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
   );
@@ -263,6 +272,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  disputeBtn: {
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  disputeBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#E11D48',
   },
 });
 

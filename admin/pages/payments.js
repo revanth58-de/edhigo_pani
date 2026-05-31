@@ -83,9 +83,9 @@ async function loadData() {
     const pending = statsPay.pending;
     const count = statsPay.total;
     
-    // Internal manual payout status KPI logic
-    const totalCom = allPayments.reduce((acc, p) => acc + (p.commissionAmount || 0), 0);
-    const pendingSettleVal = allSettlements.filter(s => s.status === 'pending').reduce((acc, s) => acc + s.amount, 0);
+    // Internal manual payout status KPI logic — shifted to backend statistics endpoint
+    const totalCom = statsPay.commission || 0;
+    const pendingSettleVal = statsPay.pendingSettlements || 0;
 
     document.getElementById('payKpis').innerHTML = `
       ${kpi('₹' + done.toLocaleString('en-IN'), 'Total Gross Revenue', 'Farmer deposits completed', true)}

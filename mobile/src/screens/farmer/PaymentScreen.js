@@ -7,7 +7,6 @@ import {
   StatusBar,
   ScrollView,
   Alert,
-  ActivityIndicator,
   Linking,
   Platform,
   Dimensions,
@@ -15,6 +14,7 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import QRCode from 'react-native-qrcode-svg';
 import { paymentService } from '../../services/api/paymentService';
 import { colors } from '../../theme/colors';
@@ -450,7 +450,9 @@ const PaymentScreen = ({ navigation, route }) => {
               <MaterialIcons name="lock" size={48} color="#FFFFFF" />
             </View>
           </Animated.View>
-          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
+          <View style={{ marginTop: 40 }}>
+            <CustomLoader size={48} color={colors.primary} />
+          </View>
           <Text style={styles.processingText}>Processing Secure Payment</Text>
           <Text style={styles.processingSub}>Verifying your details with Bank gateway. Do not go back or close the app.</Text>
 

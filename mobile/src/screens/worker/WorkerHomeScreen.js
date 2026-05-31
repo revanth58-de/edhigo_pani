@@ -11,9 +11,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, StatusBar,
-  ScrollView, Alert, ActivityIndicator, Platform, RefreshControl,
+  ScrollView, Alert, Platform, RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
@@ -317,7 +318,7 @@ const WorkerHomeScreen = ({ navigation, route }) => {
             >
               {searching ? (
                 <>
-                  <ActivityIndicator color={colors.white} size="large" />
+                  <CustomLoader size={48} color={colors.white} />
                   <Text style={styles.startButtonText} adjustsFontSizeToFit numberOfLines={1}>
                     {t('worker.searching')}
                   </Text>

@@ -197,4 +197,11 @@ export const uploadAPI = {
     }),
 };
 
+// ─── Dispute API (F2) ───
+export const disputeAPI = {
+    fileDispute: (data) => apiClient.post('/disputes', data),
+    getMyDisputes: () => apiClient.get('/disputes/my'),
+    getJobDisputes: (jobId) => apiClient.get(`/disputes/job/${jobId}`),
+};
+
 export default apiClient;

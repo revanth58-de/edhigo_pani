@@ -7,10 +7,10 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
@@ -229,7 +229,7 @@ const OTPScreen = ({ navigation, route }) => {
               activeOpacity={0.9}
             >
               {loading ? (
-                <ActivityIndicator color={colors.backgroundDark} />
+                <CustomLoader size={20} color={colors.backgroundDark} />
               ) : (
                 <>
                   <Text style={styles.verifyButtonText}>Verify & Continue</Text>

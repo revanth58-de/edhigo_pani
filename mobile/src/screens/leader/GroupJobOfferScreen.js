@@ -7,9 +7,9 @@ import {
   StatusBar,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
@@ -148,7 +148,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
             style={styles.acceptButton}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <CustomLoader size={20} color="#FFFFFF" />
             ) : (
               <>
                 <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>

@@ -622,6 +622,27 @@ const WorkerProfileScreen = ({ navigation }) => {
               )}
             </View>
 
+            {!isEditing && (
+              <View style={[styles.actionsContainer, { marginTop: 12 }]}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('DisputeHistory')}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="gavel" size={24} color={colors.primary} />
+                  <Text style={styles.actionButtonText}>Disputes History</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('AIChatbot')}
+                  activeOpacity={0.8}
+                >
+                  <MaterialIcons name="chat" size={24} color={colors.primary} />
+                  <Text style={styles.actionButtonText}>Voice Support</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Role Switcher (Slide to Switch) */}
             {!isEditing && (
               <View style={styles.roleSwitchCard}>

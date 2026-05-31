@@ -59,6 +59,10 @@ const ALL_EQUIPMENT = [
   { key: 'Thresher', emoji: '🏭' },
 ];
 
+// ─── Matching Radius Options (km) ───
+const RADIUS_OPTIONS = [5, 10, 15, 20, 25, 30];
+const DEFAULT_RADIUS = 10;
+
 // ─── Avatar Options ───
 const AVATAR_OPTIONS = [
   { key: 'agriculture', icon: 'agriculture' },
@@ -246,6 +250,7 @@ const FarmerProfileScreen = ({ navigation }) => {
   const [editCrops, setEditCrops] = useState([]);
   const [editEquipment, setEditEquipment] = useState([]);
   const [selectedAvatar, setSelectedAvatar] = useState('agriculture');
+  const [editMatchingRadius, setEditMatchingRadius] = useState(DEFAULT_RADIUS);
 
   // View mode data (from user store)
   const viewAnimals = parseAnimals(user?.animals);
@@ -269,6 +274,7 @@ const FarmerProfileScreen = ({ navigation }) => {
       setEditEquipment(parseEquipment(user?.equipment));
       setSelectedAvatar(user?.avatarIcon || 'agriculture');
       setSelectedPhotoUrl(user?.photoUrl || '');
+      setEditMatchingRadius(user?.matchingRadius ?? DEFAULT_RADIUS);
     }
     setIsEditing(!isEditing);
   };
@@ -285,6 +291,7 @@ const FarmerProfileScreen = ({ navigation }) => {
         status: stringifyEquipment(editEquipment), // reusing status field for equipment (temp)
         avatarIcon: selectedAvatar,
         photoUrl: selectedPhotoUrl,
+        matchingRadius: editMatchingRadius,
       };
       const response = await authAPI.updateProfile(payload);
       updateUser({
@@ -792,6 +799,68 @@ const FarmerProfileScreen = ({ navigation }) => {
           )}
         </View>
 
+        {/* ── Matching Radius Section ── */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="my-location" size={24} color={colors.primary} />
+            <Text style={styles.sectionTitle}>{t('profile.matchingRadiusTitle')}</Text>
+          </View>
+
+          {isEditing ? (
+            <View>
+              <Text style={styles.radiusLabel}>{t('profile.matchingRadiusLabel')}</Text>
+              <View style={styles.radiusChipContainer}>
+                {RADIUS_OPTIONS.map((km) => {
+                  const isSelected = editMatchingRadius === km;
+                  const isDefault = km === DEFAULT_RADIUS;
+                  return (
+                    <TouchableOpacity
+                      key={km}
+                      style={[
+                        styles.radiusChip,
+                        isSelected && styles.radiusChipSelected,
+                      ]}
+                      onPress={() => setEditMatchingRadius(km)}
+                      activeOpacity={0.8}
+                    >
+                      <Text
+                        style={[
+                          styles.radiusChipText,
+                          isSelected && styles.radiusChipTextSelected,
+                        ]}
+                      >
+                        {km} {t('profile.matchingRadiusKm')}
+                      </Text>
+                      {isDefault && (
+                        <View style={[styles.radiusDefaultBadge, isSelected && styles.radiusDefaultBadgeSelected]}>
+                          <Text style={[styles.radiusDefaultBadgeText, isSelected && styles.radiusDefaultBadgeTextSelected]}>
+                            {t('profile.defaultRadius')}
+                          </Text>
+                        </View>
+                      )}
+                      {isSelected && (
+                        <MaterialIcons name="check-circle" size={16} color="#FFFFFF" style={{ marginLeft: 4 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          ) : (
+            <View style={styles.radiusViewRow}>
+              <View style={styles.radiusViewIconBox}>
+                <MaterialIcons name="radar" size={28} color={colors.primary} />
+              </View>
+              <View style={styles.radiusViewTextBox}>
+                <Text style={styles.radiusViewValue}>
+                  {user?.matchingRadius ?? DEFAULT_RADIUS} {t('profile.matchingRadiusKm')}
+                </Text>
+                <Text style={styles.radiusViewSubtext}>{t('profile.matchingRadiusLabel')}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
         {/* ── Edit / Save Buttons ── */}
         {isEditing ? (
           <View style={styles.editActionRow}>
@@ -829,6 +898,13 @@ const FarmerProfileScreen = ({ navigation }) => {
             >
               <MaterialIcons name="history" size={26} color={colors.primary} />
               <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>My Bookings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('DisputeHistory')}
+            >
+              <MaterialIcons name="gavel" size={26} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>Disputes History</Text>
             </TouchableOpacity>
 
             {/* Defer heavy off-screen elements (switchers, logouts) by 150ms for performance */}
@@ -1176,6 +1252,96 @@ const styles = StyleSheet.create({
   counterValue: { fontSize: 15, fontWeight: 'bold', color: '#131811', minWidth: 18, textAlign: 'center' },
 
   emptyText: { fontSize: 14, color: '#9CA3AF', fontStyle: 'italic' },
+
+  // Matching Radius
+  radiusLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  radiusChipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  radiusChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    backgroundColor: `${colors.primary}12`,
+    borderWidth: 1.5,
+    borderColor: `${colors.primary}33`,
+  },
+  radiusChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  radiusChipText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  radiusChipTextSelected: {
+    color: '#FFFFFF',
+  },
+  radiusDefaultBadge: {
+    marginLeft: 6,
+    backgroundColor: `${colors.primary}22`,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  radiusDefaultBadgeSelected: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  radiusDefaultBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  radiusDefaultBadgeTextSelected: {
+    color: '#FFFFFF',
+  },
+  radiusViewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: `${colors.primary}08`,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: `${colors.primary}18`,
+  },
+  radiusViewIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  radiusViewTextBox: {
+    flex: 1,
+  },
+  radiusViewValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#131811',
+  },
+  radiusViewSubtext: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginTop: 2,
+  },
 
   // Buttons
   editButton: {

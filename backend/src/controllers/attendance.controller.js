@@ -174,7 +174,7 @@ const checkIn = async (req, res, next) => {
 
     // 📲 Push Notification to Farmer
     if (job?.farmer?.pushToken) {
-      await notifyFarmerAttendanceIn(job.farmer.pushToken, attendance.worker, job);
+      await notifyFarmerAttendanceIn(job.farmerId, job.farmer.pushToken, attendance.worker, job);
     }
 
     res.status(201).json({ success: true, data: attendance });
@@ -316,7 +316,7 @@ const checkOut = async (req, res, next) => {
 
     // 📲 Push Notification to Farmer
     if (job?.farmer?.pushToken) {
-      await notifyFarmerAttendanceOut(job.farmer.pushToken, attendance.worker, job, hoursWorked);
+      await notifyFarmerAttendanceOut(job.farmerId, job.farmer.pushToken, attendance.worker, job, hoursWorked);
     }
 
     res.status(200).json({

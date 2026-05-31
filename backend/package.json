@@ -9,7 +9,7 @@
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
-    "test": "jest --detectOpenHandles --forceExit"
+    "test": "jest --runInBand --detectOpenHandles --forceExit"
   },
   "devDependencies": {
     "@babel/plugin-transform-modules-commonjs": "^7.28.6",

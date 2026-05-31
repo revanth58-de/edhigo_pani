@@ -18,7 +18,7 @@ const GlassHeader = ({ title, showBack = true, rightComponent, onBackPress }) =>
           {showBack ? (
             <TouchableOpacity 
               style={styles.backButton}
-              onPress={onBackPress || (() => navigation.goBack())}
+              onPress={onBackPress || (() => navigation.canGoBack() && navigation.goBack())}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />

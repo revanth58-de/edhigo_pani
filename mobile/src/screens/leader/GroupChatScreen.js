@@ -91,6 +91,21 @@ const LoadMoreHeader = () => (
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 const GroupChatScreen = ({ navigation, route }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
+
   const { groupId, groupName } = route.params || {};
   const user = useAuthStore((state) => state.user);
   // Read token from in-memory store — avoids SecureStore native calls in Expo Go

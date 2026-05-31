@@ -27,6 +27,14 @@ const JobOfferScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = React.useState(false);
 
+  const handleBack = React.useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('WorkerHome');
+    }
+  }, [navigation]);
+
   // Store the job:taken callback so we can remove it BEFORE we accept
   const jobTakenHandlerRef = React.useRef(null);
 
@@ -41,7 +49,7 @@ const JobOfferScreen = ({ navigation, route }) => {
         Alert.alert(
           '⚡ Job Taken',
           'Another worker just accepted this job. It is no longer available.',
-          [{ text: 'Go Back', onPress: () => navigation.goBack() }]
+          [{ text: 'Go Back', onPress: () => handleBack() }]
         );
       }
     };
@@ -94,7 +102,7 @@ const JobOfferScreen = ({ navigation, route }) => {
         Alert.alert(
           '⚡ Already Taken',
           'Another worker accepted this job just before you. Keep looking!',
-          [{ text: 'Back to Feed', onPress: () => navigation.goBack() }]
+          [{ text: 'Back to Feed', onPress: () => handleBack() }]
         );
       } else {
         Alert.alert('Error', response.message || 'Failed to accept job');
@@ -105,7 +113,7 @@ const JobOfferScreen = ({ navigation, route }) => {
         Alert.alert(
           '⚡ Already Taken',
           'Another worker accepted this job just before you. Keep looking!',
-          [{ text: 'Back to Feed', onPress: () => navigation.goBack() }]
+          [{ text: 'Back to Feed', onPress: () => handleBack() }]
         );
       } else {
         Alert.alert('Error', 'Failed to accept job. Please try again.');
@@ -118,7 +126,7 @@ const JobOfferScreen = ({ navigation, route }) => {
 
   const handleReject = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // M16
-    navigation.goBack();
+    handleBack();
   };
 
   return (
@@ -133,7 +141,7 @@ const JobOfferScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>NEW JOB OPPORTUNITY</Text>

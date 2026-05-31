@@ -23,6 +23,14 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('LeaderHome');
+    }
+  };
+
   // Normalise job data — socket offers use 'jobId', API uses 'id'
   const job = jobData
     ? { ...jobData, id: jobData.id || jobData.jobId }
@@ -54,7 +62,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
         });
       } else if (result.alreadyTaken) {
         Alert.alert('Job Already Taken', 'Another leader accepted this job first.');
-        navigation.goBack();
+        handleBack();
       } else {
         Alert.alert('Error', result.message || 'Could not accept job.');
       }
@@ -66,7 +74,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   };
 
   const handleReject = () => {
-    navigation.goBack();
+    handleBack();
   };
 
   const getWorkIcon = (type) => {

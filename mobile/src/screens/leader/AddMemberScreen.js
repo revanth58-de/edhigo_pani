@@ -24,6 +24,14 @@ const AddMemberScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('LeaderHome');
+    }
+  };
+
   const fetchNearbyWorkers = useCallback(async () => {
     try {
       // In a real app we'd fetch actual location but we'll let the backend use the leader's location
@@ -69,7 +77,7 @@ const AddMemberScreen = ({ navigation, route }) => {
 
       if (successCount > 0) {
         Alert.alert('Success', `Successfully added ${successCount} member(s) to ${groupName || 'the group'}.`);
-        navigation.goBack();
+        handleBack();
       } else {
         Alert.alert('Error', 'Failed to add members. They might already be in the group.');
       }
@@ -165,7 +173,7 @@ const AddMemberScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={28} color="#1F2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Members</Text>

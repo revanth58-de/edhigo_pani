@@ -10,9 +10,9 @@ import {
   Alert,
   Platform,
   TextInput,
-  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
@@ -248,7 +248,7 @@ const LeaderProfileScreen = ({ navigation }) => {
                 <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={isSaving}>
-                {isSaving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
+                {isSaving ? <CustomLoader size={24} color="#FFF" /> : <Text style={styles.saveBtnText}>Save Changes</Text>}
               </TouchableOpacity>
             </>
           ) : (
@@ -258,7 +258,7 @@ const LeaderProfileScreen = ({ navigation }) => {
                 <Text style={styles.editBtnText}>Edit Profile</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.editBtn, { marginTop: 12 }]}
+                style={styles.editBtn}
                 onPress={() => navigation.navigate('Groups')}
               >
                 <MaterialIcons name="groups" size={22} color={colors.primary} />
@@ -267,6 +267,17 @@ const LeaderProfileScreen = ({ navigation }) => {
             </>
           )}
         </View>
+
+        {!isEditing && (
+          <TouchableOpacity
+            style={[styles.editBtn, { marginBottom: 12 }]}
+            onPress={() => navigation.navigate('DisputeHistory')}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="gavel" size={22} color={colors.primary} />
+            <Text style={styles.editBtnText}>Disputes History</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>

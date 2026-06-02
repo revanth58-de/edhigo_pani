@@ -20,6 +20,21 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 
 const GroupDetailScreen = ({ route, navigation }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
+
   const { groupId, groupName } = route.params;
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('Jobs'); // 'Jobs' | 'Chat'
@@ -112,7 +127,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     // Listen for group deletion by leader
     const handleGroupDeleted = () => {
       Alert.alert('Group Dissolved', 'The leader has deleted this group.');
-      navigation.goBack();
+      handleBack();
     };
     socketService.on('group:deleted', handleGroupDeleted);
 
@@ -177,7 +192,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           onPress: async () => {
             try {
               await groupAPI.exitGroup(groupId);
-              navigation.goBack();
+              handleBack();
             } catch {
               Alert.alert('Error', 'Failed to leave the group. Please try again.');
             }
@@ -249,7 +264,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     >
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.iconBtn} onPress={handleBack}>
           <MaterialIcons name="arrow-back" size={24} color={colors.backgroundDark} />
         </TouchableOpacity>
         

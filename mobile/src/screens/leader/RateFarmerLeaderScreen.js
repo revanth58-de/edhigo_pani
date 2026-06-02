@@ -7,9 +7,9 @@ import {
   StatusBar,
   TextInput,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
 import * as Speech from 'expo-speech';
 import { ratingService } from '../../services/api/ratingService';
@@ -105,7 +105,7 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
           disabled={loading || rating === 0}
         >
           {loading ? (
-            <ActivityIndicator color="#FFF" />
+            <CustomLoader size={24} color="#FFF" />
           ) : (
             <>
               <Text style={styles.submitText}>FINISH & CLOSE JOB</Text>

@@ -1,15 +1,43 @@
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs');
 const config = require('../config/env');
 const { logger } = require('../middleware/errorHandler');
 
-const uploadProfilePicture = (req, res) => {
+// Configure Cloudinary if credentials are provided
+const isCloudinaryConfigured = !!(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret);
+
+if (isCloudinaryConfigured) {
+    cloudinary.config({
+        cloud_name: config.cloudinary.cloudName,
+        api_key: config.cloudinary.apiKey,
+        api_secret: config.cloudinary.apiSecret,
+    });
+}
+
+const uploadProfilePicture = async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        // SEC-6 FIX: Never trust req.get('host') — it's attacker-controlled.
-        // Use the server-side config value instead.
-        const fileUrl = `${config.apiBaseUrl}/uploads/${req.file.filename}`;
+        let fileUrl;
+
+        if (isCloudinaryConfigured) {
+            // Upload to Cloudinary
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: 'profile_pictures',
+                resource_type: 'image',
+            });
+            fileUrl = result.secure_url;
+
+            // Delete local file after successful upload to Cloudinary
+            fs.unlink(req.file.path, (err) => {
+                if (err) logger.error('Failed to delete local temp file', { error: err.message });
+            });
+        } else {
+            // Local fallback
+            fileUrl = `${config.apiBaseUrl}/uploads/${req.file.filename}`;
+        }
 
         res.json({
             message: 'File uploaded successfully',

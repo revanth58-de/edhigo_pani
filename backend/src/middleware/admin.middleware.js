@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const prisma = require('../config/database');
 
 // ── Admin JWT Auth — replaces static shared secret with short-lived tokens ──
 //
@@ -73,12 +74,34 @@ const adminLogin = (req, res) => {
 };
 
 // ── Middleware: verify admin JWT (or fall back to legacy x-admin-secret) ──────
-const adminAuth = (req, res, next) => {
+const adminAuth = async (req, res, next) => {
   const adminSecret = process.env.ADMIN_SECRET;
 
   if (!adminSecret) {
     return res.status(500).json({ error: 'ADMIN_SECRET not configured on server' });
   }
+
+  const proceed = async () => {
+    try {
+      let adminUser = await prisma.user.findFirst({
+        where: { phone: '+910000000000' }
+      });
+      if (!adminUser) {
+        adminUser = await prisma.user.create({
+          data: {
+            phone: '+910000000000',
+            name: 'System Admin',
+            role: 'farmer',
+            status: 'offline',
+          }
+        });
+      }
+      req.user = adminUser;
+    } catch (err) {
+      req.user = { id: 'admin-system-id', name: 'System Admin' };
+    }
+    next();
+  };
 
   // 1. Prefer JWT from Authorization header (new flow)
   const authHeader = req.headers['authorization'];
@@ -88,7 +111,7 @@ const adminAuth = (req, res, next) => {
       const payload = jwt.verify(token, ADMIN_JWT_SECRET);
       if (payload.role !== 'admin') throw new Error('Not an admin token');
       req.adminPayload = payload;
-      return next();
+      return await proceed();
     } catch (err) {
       return res.status(401).json({ error: `Admin token invalid or expired: ${err.message}` });
     }
@@ -111,7 +134,7 @@ const adminAuth = (req, res, next) => {
     });
   }
 
-  next();
+  await proceed();
 };
 
 module.exports = { adminAuth, adminRateLimiter, adminLogin };

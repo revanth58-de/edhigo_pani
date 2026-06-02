@@ -11,10 +11,26 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import useAuthStore from '../../store/authStore';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
+
   const { payment } = route.params || {};
 
   const grossAmount = payment?.amount || 0;
@@ -40,7 +56,7 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>TRANSACTION RECEIPT</Text>
@@ -126,6 +142,15 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
             <Text style={styles.actionBtnText}>Check Payout Timeline</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity
+          style={[styles.disputeBtn, { marginTop: 12 }]}
+          onPress={() => navigation.navigate('Dispute', { jobId: payment?.jobId, paymentId: payment?.id })}
+          activeOpacity={0.8}
+        >
+          <MaterialIcons name="report-problem" size={20} color="#EF4444" />
+          <Text style={styles.disputeBtnText}>Report Issue / Dispute Payment</Text>
+        </TouchableOpacity>
       </ScrollView>
     </LinearGradient>
   );
@@ -263,6 +288,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  disputeBtn: {
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1.5,
+    borderColor: '#FECDD3',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  disputeBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#E11D48',
   },
 });
 

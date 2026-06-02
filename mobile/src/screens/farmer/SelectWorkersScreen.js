@@ -9,10 +9,10 @@ import {
   ScrollView,
   TextInput,
   Alert,
-  ActivityIndicator,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
@@ -265,7 +265,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
             style={styles.findButton}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <CustomLoader size={20} color="#FFFFFF" />
             ) : (
               <>
                 <Text style={styles.findButtonText}>{t('selectWorkers.findWorkers')}</Text>

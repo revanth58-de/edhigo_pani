@@ -8,9 +8,9 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
 import { workerAPI } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
@@ -130,7 +130,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <CustomLoader size={48} color={colors.primary} />
           <Text style={styles.loadingText}>Loading transactions...</Text>
         </View>
       ) : payments.length === 0 ? (

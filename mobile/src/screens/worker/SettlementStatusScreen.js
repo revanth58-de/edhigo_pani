@@ -11,10 +11,26 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import useAuthStore from '../../store/authStore';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const SettlementStatusScreen = ({ navigation, route }) => {
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      const user = useAuthStore.getState().user;
+      if (user?.role === 'worker') {
+        navigation.navigate('WorkerHome');
+      } else if (user?.role === 'leader') {
+        navigation.navigate('LeaderHome');
+      } else {
+        navigation.navigate('FarmerHome');
+      }
+    }
+  };
+
   const { payment } = route.params || {};
 
   const isSettled = payment?.settlementStatus?.toLowerCase() === 'settled';
@@ -32,7 +48,7 @@ const SettlementStatusScreen = ({ navigation, route }) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIcon}>
+        <TouchableOpacity onPress={handleBack} style={styles.headerIcon}>
           <MaterialIcons name="arrow-back-ios" size={24} color="#131811" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>SETTLEMENT STATUS</Text>
@@ -155,7 +171,7 @@ const SettlementStatusScreen = ({ navigation, route }) => {
         {/* Back Button */}
         <TouchableOpacity
           style={styles.backBtn}
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
           activeOpacity={0.8}
         >
           <Text style={styles.backBtnText}>Back to Wallet</Text>

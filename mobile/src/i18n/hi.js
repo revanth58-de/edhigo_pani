@@ -147,6 +147,10 @@ export default {
     jobsPosted: 'पोस्ट की गई नौकरियां',
     logout: 'लॉग आउट',
     logoutConfirm: 'क्या आप लॉग आउट करना चाहते हैं?',
+    matchingRadiusTitle: 'मिलान त्रिज्या',
+    matchingRadiusLabel: 'इतने दायरे में मजदूर खोजें',
+    matchingRadiusKm: 'कि.मी',
+    defaultRadius: 'डिफ़ॉल्ट',
   },
 
   // ─── History ───
@@ -255,5 +259,30 @@ export default {
   // ─── Home Shared ───
   home: {
     seeAll: 'सभी देखें',
+  },
+
+  // ─── Disputes (F2) ───
+  disputes: {
+    title: 'विवाद और समस्याएं',
+    reportIssue: 'समस्या की रिपोर्ट करें',
+    submitDispute: 'विवाद दर्ज करें',
+    selectCategory: 'श्रेणी चुनें',
+    incorrect_payment: 'गलत भुगतान',
+    hours_mismatch: 'घंटों का बेमेल',
+    worker_no_show: 'मजदूर नहीं आया',
+    other: 'अन्य',
+    descriptionPlaceholder: 'हमें विस्तार से बताएं कि क्या हुआ...',
+    successMsg: 'विवाद सफलतापूर्वक दर्ज किया गया। दिनसारी टीम इसकी समीक्षा करेगी।',
+    noDisputes: 'अभी तक कोई विवाद दर्ज नहीं किया गया है।',
+    history: 'विवाद इतिहास',
+    status: 'स्थिति',
+    resolution: 'समाधान',
+    resolved: 'सुलझाया गया',
+    pending: 'लंबित',
+    investigating: 'जांच जारी',
+    dismissed: 'खारिज',
+    details: 'विवाद का विवरण',
+    categoryLabel: 'श्रेणी',
+    descriptionLabel: 'विवरण',
   },
 };

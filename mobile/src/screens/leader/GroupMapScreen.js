@@ -13,6 +13,7 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 import * as Location from 'expo-location';
 import MapDashboard from '../../components/MapDashboard';
+import { calculateDistance } from '../../utils/location';
 
 const GroupMapScreen = ({ navigation, route }) => {
     const { groupId, workerCount } = route.params || { workerCount: 15 };
@@ -24,6 +25,7 @@ const GroupMapScreen = ({ navigation, route }) => {
     // Store watch subscription so we can call .remove() on unmount
     const watcherRef = useRef(null);
     const isMounted = useRef(true);
+    const lastDispatchedCoordsRef = useRef(null);
 
     useEffect(() => {
         isMounted.current = true;
@@ -52,6 +54,10 @@ const GroupMapScreen = ({ navigation, route }) => {
 
             // Emit initial location
             if (groupId) {
+                lastDispatchedCoordsRef.current = {
+                    latitude: loc.coords.latitude,
+                    longitude: loc.coords.longitude,
+                };
                 socketService.emitGroupLocationUpdate({
                     groupId,
                     latitude: loc.coords.latitude,
@@ -68,12 +74,33 @@ const GroupMapScreen = ({ navigation, route }) => {
                 { accuracy: Location.Accuracy.Balanced, timeInterval: 5000, distanceInterval: 10 },
                 (newLoc) => {
                     if (!isMounted.current) return;
+                    const { latitude, longitude, speed } = newLoc.coords;
                     setLocation(newLoc.coords);
-                    if (groupId) {
+
+                    // F6: Motion-aware filtering and stationary suspension checks
+                    const isStationary = speed === 0 || (speed !== null && speed < 0.1);
+                    let shouldDispatch = false;
+
+                    if (!lastDispatchedCoordsRef.current) {
+                        shouldDispatch = true;
+                    } else {
+                        const movedDistance = calculateDistance(
+                            latitude,
+                            longitude,
+                            lastDispatchedCoordsRef.current.latitude,
+                            lastDispatchedCoordsRef.current.longitude
+                        );
+                        if (movedDistance !== null && movedDistance >= 0.02 && !isStationary) {
+                            shouldDispatch = true;
+                        }
+                    }
+
+                    if (shouldDispatch && groupId) {
+                        lastDispatchedCoordsRef.current = { latitude, longitude };
                         socketService.emitGroupLocationUpdate({
                             groupId,
-                            latitude: newLoc.coords.latitude,
-                            longitude: newLoc.coords.longitude,
+                            latitude,
+                            longitude,
                         });
                     }
                 }

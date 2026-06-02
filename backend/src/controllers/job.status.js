@@ -150,7 +150,7 @@ const acceptJob = async (req, res) => {
 
       const farmerFull = await tx.user.findUnique({
         where: { id: currentJob.farmer.id },
-        select: { pushToken: true },
+        select: { id: true, pushToken: true },
       });
 
       return { job: currentJob, workerDetails, farmerFull, isNowFull, acceptedCount };
@@ -158,7 +158,7 @@ const acceptJob = async (req, res) => {
 
     // 📲 Push to farmer even if app is closed
     if (farmerFull?.pushToken) {
-      await notifyFarmerJobAccepted(farmerFull.pushToken, workerDetails, job);
+      await notifyFarmerJobAccepted(farmerFull.id, farmerFull.pushToken, workerDetails, job);
     }
 
     const io = req.app.get('io');
@@ -273,7 +273,7 @@ const withdrawJob = async (req, res) => {
       // 📲 Push to farmer
       const farmerPushToken = fullJob?.farmer?.pushToken;
       if (farmerPushToken) {
-        await notifyFarmerJobWithdrawn(farmerPushToken, fullJob);
+        await notifyFarmerJobWithdrawn(fullJob.farmer.id, farmerPushToken, fullJob);
       }
 
       // 2️⃣ Re-run smart matching and re-notify matched workers (Radio System)
@@ -360,11 +360,12 @@ const cancelJob = async (req, res, next) => {
     // 📲 Push to all workers who applied (they might be waiting or already accepted)
     const applications = await prisma.jobApplication.findMany({
       where: { jobId: id, status: 'accepted' },
-      include: { worker: { select: { pushToken: true } } }
+      include: { worker: { select: { id: true, pushToken: true } } }
     });
     const workerPushTokens = applications.map(app => app.worker.pushToken).filter(Boolean);
-    if (workerPushTokens.length > 0) {
-      await notifyWorkerJobCancelled(workerPushTokens, job);
+    const workerIds = applications.map(app => app.worker.id);
+    if (workerPushTokens.length > 0 || workerIds.length > 0) {
+      await notifyWorkerJobCancelled(workerIds, workerPushTokens, job);
     }
 
     res.status(200).json({ success: true, message: 'Job cancelled successfully' });

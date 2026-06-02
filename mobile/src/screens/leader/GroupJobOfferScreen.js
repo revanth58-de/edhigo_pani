@@ -7,9 +7,9 @@ import {
   StatusBar,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
@@ -22,6 +22,14 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('LeaderHome');
+    }
+  };
 
   // Normalise job data — socket offers use 'jobId', API uses 'id'
   const job = jobData
@@ -54,7 +62,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
         });
       } else if (result.alreadyTaken) {
         Alert.alert('Job Already Taken', 'Another leader accepted this job first.');
-        navigation.goBack();
+        handleBack();
       } else {
         Alert.alert('Error', result.message || 'Could not accept job.');
       }
@@ -66,7 +74,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
   };
 
   const handleReject = () => {
-    navigation.goBack();
+    handleBack();
   };
 
   const getWorkIcon = (type) => {
@@ -148,7 +156,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
             style={styles.acceptButton}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <CustomLoader size={20} color="#FFFFFF" />
             ) : (
               <>
                 <Text style={styles.acceptButtonText}>ACCEPT JOB</Text>

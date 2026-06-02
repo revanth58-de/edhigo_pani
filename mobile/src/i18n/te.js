@@ -147,6 +147,10 @@ export default {
     jobsPosted: 'పోస్ట్ చేసిన ఉద్యోగాలు',
     logout: 'లాగ్ అవుట్',
     logoutConfirm: 'మీరు లాగ్ అవుట్ అవ్వాలనుకుంటున్నారా?',
+    matchingRadiusTitle: 'శోధన పరిధి',
+    matchingRadiusLabel: 'కూలీలను ఎంత దూరంలో శోధించాలి',
+    matchingRadiusKm: 'కి.మీ',
+    defaultRadius: 'డిఫాల్ట్',
   },
 
   // ─── History ───
@@ -255,5 +259,30 @@ export default {
   // ─── Home Shared ───
   home: {
     seeAll: 'అన్నీ చూడండి',
+  },
+
+  // ─── Disputes (F2) ───
+  disputes: {
+    title: 'వివాదాలు & సమస్యలు',
+    reportIssue: 'సమస్యను నిвеదించండి',
+    submitDispute: 'వివాదాన్ని దాఖలు చేయండి',
+    selectCategory: 'వర్గాన్ని ఎంచుకోండి',
+    incorrect_payment: 'తప్పు చెల్లింపు',
+    hours_mismatch: 'పని గంటలలో తేడా',
+    worker_no_show: 'కూలీ రాలేదు',
+    other: 'ఇతర కారణాలు',
+    descriptionPlaceholder: 'ఏం జరిగిందో వివరంగా తెలియజేయండి...',
+    successMsg: 'వివాదం విజయవంతంగా దాఖలు చేయబడింది. దినసరి బృందం పరిశీలిస్తుంది.',
+    noDisputes: 'ఇంకా ఎలాంటి వివాదాలు దాఖలు చేయబడలేదు.',
+    history: 'వివాదాల చరిత్ర',
+    status: 'స్థితి',
+    resolution: 'పరిష్కారం',
+    resolved: 'పరిష్కరించబడింది',
+    pending: 'పెండింగ్',
+    investigating: 'విచారణలో ఉంది',
+    dismissed: 'తిరస్కరించబడింది',
+    details: 'వివాదం వివరాలు',
+    categoryLabel: 'విభాగం',
+    descriptionLabel: 'వివరణ',
   },
 };

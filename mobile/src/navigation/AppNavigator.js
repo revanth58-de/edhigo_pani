@@ -94,6 +94,8 @@ import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
 import NotificationsScreen from '../screens/shared/NotificationsScreen';
 import WorkCategoriesScreen from '../screens/shared/WorkCategoriesScreen';
 import AIChatbotScreen from '../screens/shared/AIChatbotScreen';
+import DisputeScreen from '../screens/shared/DisputeScreen';
+import DisputeHistoryScreen from '../screens/shared/DisputeHistoryScreen';
 
 // Stores
 import useNotificationStore from '../store/notificationStore';
@@ -136,6 +138,8 @@ const FarmerNavigator = () => (
     <Stack.Screen name="WorkCategories" component={WorkCategoriesScreen} />
     <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
+    <Stack.Screen name="Dispute" component={DisputeScreen} />
+    <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
   </Stack.Navigator>
 );
 
@@ -164,6 +168,8 @@ const WorkerNavigator = () => (
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
     <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
+    <Stack.Screen name="Dispute" component={DisputeScreen} />
+    <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
   </Stack.Navigator>
 );
 
@@ -191,6 +197,8 @@ const LeaderNavigator = () => (
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
     <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="Dispute" component={DisputeScreen} />
+    <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
   </Stack.Navigator>
 );
 

@@ -59,6 +59,8 @@ const getStats = async (req, res, next) => {
       totalPayments,
       paymentStats,
       pendingPaymentStats,
+      commissionStats,
+      pendingSettlementStats,
       totalAttendance,
       totalRatings,
       totalGroups,
@@ -78,6 +80,8 @@ const getStats = async (req, res, next) => {
       prisma.payment.count(),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.COMPLETED } }),
       prisma.payment.aggregate({ _sum: { amount: true }, where: { status: PaymentStatus.PENDING } }),
+      prisma.payment.aggregate({ _sum: { commissionAmount: true }, where: { status: PaymentStatus.COMPLETED } }),
+      prisma.settlement.aggregate({ _sum: { amount: true }, where: { status: 'pending' } }),
       prisma.attendance.count(),
       prisma.rating.count(),
       prisma.group.count(),
@@ -98,7 +102,7 @@ const getStats = async (req, res, next) => {
     for (const s of jobsByStatus) statusMap[s.status] = s._count;
 
     // Compute real % changes (avoid division by zero)
-    const pct = (curr, prev) => prev === 0 ? null : Math.round(((curr - prev) / prev) * 100);
+    const pct = (prev, curr) => prev === 0 ? null : Math.round(((curr - prev) / prev) * 100);
     const thisWeekRevenue = revenueThisWeek._sum.amount || 0;
     const lastWeekRevenue = revenueLastWeek._sum.amount || 0;
 
@@ -109,15 +113,17 @@ const getStats = async (req, res, next) => {
         total: totalPayments,
         revenue: paymentStats._sum.amount || 0,
         pending: pendingPaymentStats._sum.amount || 0,
+        commission: commissionStats._sum.commissionAmount || 0,
+        pendingSettlements: pendingSettlementStats._sum.amount || 0,
       },
       attendance: totalAttendance,
       ratings: totalRatings,
       groups: totalGroups,
       // FIX #5: Real week-over-week growth metrics
       growth: {
-        users:   { thisWeek: newUsersThisWeek,  prevWeek: newUsersLastWeek,  pctChange: pct(newUsersThisWeek, newUsersLastWeek) },
-        jobs:    { thisWeek: newJobsThisWeek,   prevWeek: newJobsLastWeek,   pctChange: pct(newJobsThisWeek, newJobsLastWeek) },
-        revenue: { thisWeek: thisWeekRevenue,   prevWeek: lastWeekRevenue,   pctChange: pct(thisWeekRevenue, lastWeekRevenue) },
+        users:   { thisWeek: newUsersThisWeek,  prevWeek: newUsersLastWeek,  pctChange: pct(newUsersLastWeek, newUsersThisWeek) },
+        jobs:    { thisWeek: newJobsThisWeek,   prevWeek: newJobsLastWeek,   pctChange: pct(newJobsLastWeek, newJobsThisWeek) },
+        revenue: { thisWeek: thisWeekRevenue,   prevWeek: lastWeekRevenue,   pctChange: pct(lastWeekRevenue, thisWeekRevenue) },
       },
       _cachedAt: new Date().toISOString(),
     };
@@ -575,6 +581,92 @@ const settlePayment = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─── GET /api/admin/disputes ───
+const getDisputes = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 50 } = req.query;
+    const take = Math.min(parseInt(limit) || 50, 100);
+    const skip = (Math.max(parseInt(page), 1) - 1) * take;
+
+    const where = {};
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { category: { contains: search, mode: 'insensitive' } },
+        { initiator: { name: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [disputes, total] = await Promise.all([
+      prisma.dispute.findMany({
+        where,
+        include: {
+          initiator: {
+            select: { id: true, name: true, phone: true, role: true }
+          },
+          job: {
+            select: { id: true, workType: true, payPerDay: true, farmerId: true }
+          },
+          payment: {
+            select: { id: true, amount: true, status: true, method: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+      }),
+      prisma.dispute.count({ where }),
+    ]);
+
+    res.json({
+      disputes,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / take)
+    });
+  } catch (err) { next(err); }
+};
+
+// ─── PATCH /api/admin/disputes/:id ───
+const updateDisputeStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, resolutionDetails } = req.body;
+
+    const existing = await prisma.dispute.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Dispute not found' });
+    }
+
+    const updated = await prisma.dispute.update({
+      where: { id },
+      data: {
+        status,
+        resolutionDetails,
+        ...((status === 'resolved' || status === 'dismissed') ? { resolvedAt: new Date() } : {}),
+      },
+      include: {
+        initiator: {
+          select: { id: true, name: true, phone: true, role: true }
+        }
+      }
+    });
+
+    // Log this action in audit log
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: `dispute_${status}`,
+        targetId: id,
+        details: { category: existing.category, resolutionDetails }
+      }
+    });
+
+    res.json({ message: 'Dispute updated successfully', dispute: updated });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getStats,
   invalidateStats,
@@ -593,4 +685,6 @@ module.exports = {
   getAuditLogs,
   getSettlements,
   settlePayment: _withCacheInvalidation(settlePayment),
+  getDisputes,
+  updateDisputeStatus: _withCacheInvalidation(updateDisputeStatus),
 };

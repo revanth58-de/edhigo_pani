@@ -43,4 +43,11 @@ module.exports = {
   geofenceEnabled: process.env.GEOFENCE_ENABLED === 'true',
   // Trusted server base URL — used for building file URLs (never trust req.get('host'))
   apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`,
+  
+  // Cloudinary credentials
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
 };

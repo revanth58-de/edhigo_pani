@@ -19,7 +19,7 @@ router.get('/worker-history', authenticate, jobController.getWorkerHistory);
 router.get('/my-work', authenticate, jobController.getWorkerJobs);
 
 // Get nearby workers
-router.get('/nearby-workers', authenticate, jobController.getNearbyWorkers);
+router.get('/nearby-workers', authenticate, requireRole('farmer', 'leader'), jobController.getNearbyWorkers);
 
 // Get a single job by ID
 router.get('/:id', authenticate, jobController.getJobById);

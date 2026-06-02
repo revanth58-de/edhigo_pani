@@ -257,6 +257,7 @@ const getNearbyWorkers = async (req, res, next) => {
         role: { in: ['worker', 'leader'] },
         location: { isNot: null },
         deletedAt: null, // respect soft-delete
+        status: { in: ['available', 'working', 'on_break', 'online'] },
       },
       select: {
         id: true,

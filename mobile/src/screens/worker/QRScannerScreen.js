@@ -62,7 +62,8 @@ const QRScannerScreen = ({ navigation, route }) => {
   const { job, booking, isMachinery } = route.params || {};
   
   const [permission, requestPermission] = useCameraPermissions();
-  const hasPermission = permission?.granted ?? null;
+  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const hasPermission = permission?.granted ?? (cachedPermission === 'granted' ? true : null);
   const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
 
   const [scanned, setScanned] = useState(false);
@@ -73,10 +74,10 @@ const QRScannerScreen = ({ navigation, route }) => {
 
   // Sync hook status with Zustand cache
   useEffect(() => {
-    if (permission) {
+    if (permission && typeof setCachedPermission === 'function') {
       setCachedPermission(permission.status);
     }
-  }, [permission]);
+  }, [permission, setCachedPermission]);
 
   // Request camera permission on mount if not yet granted
   useEffect(() => {

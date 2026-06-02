@@ -21,7 +21,7 @@ afterAll(async () => {
   await cleanupTestUsers();
 });
 
-const createTestJob = (token) =>
+const createTestJob = (token, durationDays) =>
   request(app)
     .post('/api/jobs')
     .set('Authorization', `Bearer ${token}`)
@@ -34,13 +34,15 @@ const createTestJob = (token) =>
       farmAddress: 'Test Farm, Test Village',
       latitude: 16.5,
       longitude: 80.6,
+      durationDays: durationDays !== undefined ? durationDays : null,
     });
 
 describe('POST /api/jobs', () => {
   test('✅ Farmer creates job → 201', async () => {
-    const res = await createTestJob(farmerToken);
+    const res = await createTestJob(farmerToken, 5);
     expect(res.statusCode).toBe(201);
     expect(res.body.job).toHaveProperty('id');
+    expect(res.body.job.durationDays).toBe(5);
     testJobId = res.body.job.id;
   });
 

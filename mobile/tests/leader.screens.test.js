@@ -491,7 +491,7 @@ describe('GroupDetailScreen Map Navigation', () => {
       const mapBtn = getByTestId('group-map-btn');
       expect(mapBtn).toBeTruthy();
       fireEvent.press(mapBtn);
-      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 2 });
+      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 3 });
     });
   });
 });
@@ -522,7 +522,7 @@ describe('ManageGroupScreen Map Navigation', () => {
       const mapBtn = getByTestId('group-map-btn');
       expect(mapBtn).toBeTruthy();
       fireEvent.press(mapBtn);
-      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 2 });
+      expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 3 });
     });
   });
 });

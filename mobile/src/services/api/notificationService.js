@@ -44,4 +44,18 @@ export const notificationService = {
       };
     }
   },
+
+  // Clear all notifications
+  clearNotifications: async () => {
+    try {
+      const response = await notificationAPI.clearNotifications();
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Clear All Notifications Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to clear all notifications',
+      };
+    }
+  },
 };

@@ -5,7 +5,7 @@ const { PaymentStatus, PaymentMethod } = require('../config/enums'); // D1
 // POST /api/payments - Make a payment
 const makePayment = async (req, res, next) => {
   try {
-    const { jobId, bookingId, amount, method, transactionId } = req.body;
+    const { jobId, bookingId, amount, method, transactionId, notes, receiptUrl } = req.body;
     const farmerId = req.user.id; // From JWT token
 
     logger.info('Payment request received', { farmerId, jobId, bookingId, amount, method });
@@ -91,6 +91,8 @@ const makePayment = async (req, res, next) => {
           status: isCompleted,
           settlementStatus: 'pending',
           paidAt: isCompleted === PaymentStatus.COMPLETED ? new Date() : null,
+          notes: notes || null,
+          receiptUrl: receiptUrl || null,
         }
       });
 
@@ -228,6 +230,8 @@ const makePayment = async (req, res, next) => {
           status: isCompleted,
           settlementStatus: 'pending',
           paidAt: isCompleted === PaymentStatus.COMPLETED ? new Date() : null,
+          notes: notes || null,
+          receiptUrl: receiptUrl || null,
         },
       });
 

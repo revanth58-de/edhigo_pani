@@ -127,14 +127,14 @@ const getGroupDetails = async (req, res, next) => {
     // Authorization: Only leader or member can view details
     const userId = req.user.id;
     const isLeader = group.leaderId === userId;
-    const isMember = group.members.some(m => m.workerId === userId && m.status === MemberStatus.JOINED);
+    const isMember = group.members.some(m => m.workerId === userId && m.status !== MemberStatus.INVITED);
 
     if (!isLeader && !isMember) {
       return res.status(403).json({ error: 'Not authorized to view this group details' });
     }
 
     // Separate joined members from invited-but-pending members
-    const joinedMembers  = group.members.filter(m => m.status === MemberStatus.JOINED);
+    const joinedMembers  = group.members.filter(m => m.status !== MemberStatus.INVITED);
     const pendingInvites = group.members.filter(m => m.status === MemberStatus.INVITED);
 
     res.json({ group: { ...group, members: joinedMembers, pendingInvites } });
@@ -153,7 +153,7 @@ const getGroupJobs = async (req, res, next) => {
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       include: {
-        members: { where: { status: 'joined' }, select: { id: true } },
+        members: { where: { status: { not: MemberStatus.INVITED } }, select: { id: true } },
       },
     });
 
@@ -166,7 +166,7 @@ const getGroupJobs = async (req, res, next) => {
        return res.status(403).json({ error: 'Only the group leader can view group-eligible jobs' });
     }
 
-    const joinedMemberCount = group.members.length;
+    const joinedMemberCount = group.members.length + 1; // Include the leader
 
     // ── KEY FIX: Only show jobs this group can actually fulfil ────────────────
     // workersNeeded is the number of PEOPLE needed, not the number of GROUPS.
@@ -213,7 +213,7 @@ const acceptGroupJob = async (req, res, next) => {
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       include: {
-        members: { where: { status: 'joined' } },  // only count members who actually joined
+        members: { where: { status: { not: MemberStatus.INVITED } } },  // only count members who actually joined
       },
     });
 
@@ -244,10 +244,10 @@ const acceptGroupJob = async (req, res, next) => {
     // ── KEY FIX: Validate group size ─────────────────────────────────────────
     // A group must have AT LEAST as many joined members as the farmer needs.
     // The group counts as the FULL worker requirement — not just 1 slot.
-    const joinedMemberCount = group.members.length;
+    const joinedMemberCount = group.members.length + 1; // Include the leader
     if (joinedMemberCount < job.workersNeeded) {
       return res.status(400).json({
-        error: `Your group has only ${joinedMemberCount} member(s) but the farmer needs ${job.workersNeeded}. Add more members before accepting.`,
+        error: `Your group has only ${joinedMemberCount} worker(s) (including leader) but the farmer needs ${job.workersNeeded}. Add more members before accepting.`,
         groupSize: joinedMemberCount,
         workersNeeded: job.workersNeeded,
       });

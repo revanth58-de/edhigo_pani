@@ -271,7 +271,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
         <View style={styles.headerTitles}>
           <Text style={styles.headerGroup} numberOfLines={1}>{groupName || group?.name || 'Group'}</Text>
           <Text style={styles.headerSub}>
-            {group?.members?.length || 0} Members • {group?.status === 'available' ? '🟢 Online' : '⚪ Forming'}
+            {((group?.members?.length || 0) + 1)} Members • {group?.status === 'available' ? '🟢 Online' : '⚪ Forming'}
           </Text>
         </View>
 
@@ -280,7 +280,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: group?.members?.length || 0 })}
+              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: ((group?.members?.length || 0) + 1) })}
               testID="group-map-btn"
             >
               <MaterialIcons name="map" size={24} color={colors.backgroundDark} />
@@ -296,7 +296,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
               style={styles.iconBtn}
-              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: group?.members?.length || 0 })}
+              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: ((group?.members?.length || 0) + 1) })}
               testID="group-map-btn"
             >
               <MaterialIcons name="map" size={24} color={colors.backgroundDark} />

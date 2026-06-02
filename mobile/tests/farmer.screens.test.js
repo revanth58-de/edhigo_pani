@@ -198,3 +198,35 @@ describe('RateWorkerScreen', () => {
     } catch {}
   });
 });
+
+// ─── Select Workers Screen ───────────────────────────────────────────────────
+describe('SelectWorkersScreen', () => {
+  let SelectWorkersScreen;
+  const route = { params: { workType: 'Harvesting' } };
+
+  beforeAll(() => {
+    try { SelectWorkersScreen = require('../src/screens/farmer/SelectWorkersScreen').default; }
+    catch { SelectWorkersScreen = null; }
+  });
+
+  test('✅ Stepper increment/decrement of durationDays works', () => {
+    if (!SelectWorkersScreen) return;
+    const { getByTestId } = render(
+      <SelectWorkersScreen navigation={mockNavigation} route={route} />
+    );
+
+    const valText = getByTestId('duration-value-text');
+    expect(valText.props.children).toBe(1);
+
+    const incBtn = getByTestId('duration-increment-btn');
+    const decBtn = getByTestId('duration-decrement-btn');
+
+    // Increment
+    fireEvent.press(incBtn);
+    expect(valText.props.children).toBe(2);
+
+    // Decrement
+    fireEvent.press(decBtn);
+    expect(valText.props.children).toBe(1);
+  });
+});

@@ -223,6 +223,7 @@ export const notificationAPI = {
     getNotifications: (params) => apiClient.get('/notifications', { params }),
     markAsRead: (id) => apiClient.patch(`/notifications/${id}/read`),
     markAllAsRead: () => apiClient.post('/notifications/read-all'),
+    clearNotifications: () => apiClient.delete('/notifications'),
 };
 
 // ─── Machinery API (F8) ───

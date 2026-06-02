@@ -85,6 +85,12 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
                     <MaterialIcons name="currency-rupee" size={16} color="#64748B" />
                     <Text style={styles.detailText}>₹{job.wagePerDay || job.payPerDay}/day per worker</Text>
                 </View>
+                {job.durationDays && job.durationDays > 1 ? (
+                    <View style={styles.detailRow}>
+                        <MaterialIcons name="schedule" size={16} color="#64748B" />
+                        <Text style={styles.detailText}>{job.durationDays} Days Duration</Text>
+                    </View>
+                ) : null}
             </View>
 
             {/* Management Actions */}

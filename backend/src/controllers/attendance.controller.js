@@ -61,6 +61,7 @@ const checkIn = async (req, res, next) => {
       jobId,
       bookingId,
       workerId,
+      groupId,
       qrCodeIn, // Format: jobId|timestamp or {"bookingId": "..."}
       checkInLatitude,
       checkInLongitude,
@@ -238,53 +239,90 @@ const checkIn = async (req, res, next) => {
       return res.status(400).json({ success: false, message: qrResult.message });
     }
 
-    // 5. Existing Check-In Validation
-    const existing = await prisma.attendance.findFirst({
-      where: { jobId, workerId, checkOut: null }
-    });
+    // 5. Existing Check-In Validation & Create Record
+    let workerIds = [workerId];
+    if (groupId) {
+      const members = await prisma.groupMember.findMany({
+        where: { groupId, status: { in: ['joined', 'checked_out'] } },
+        select: { workerId: true }
+      });
+      const memberIds = members.map(m => m.workerId);
+      workerIds = Array.from(new Set([workerId, ...memberIds]));
+    }
 
-    if (existing) {
+    const attendancesCreated = [];
+    let mainAttendance = null;
+    let existingMain = null;
+
+    for (const wId of workerIds) {
+      const existing = await prisma.attendance.findFirst({
+        where: { jobId, workerId: wId, checkOut: null }
+      });
+
+      if (existing) {
+        if (wId === workerId) {
+          existingMain = existing;
+        }
+        continue;
+      }
+
+      const att = await prisma.attendance.create({
+        data: {
+          jobId,
+          workerId: wId,
+          qrCodeIn,
+          checkIn: new Date(),
+          checkInLatitude: parseFloat(checkInLatitude),
+          checkInLongitude: parseFloat(checkInLongitude),
+        },
+        include: {
+          job: true,
+          worker: { select: { name: true, photoUrl: true } }
+        }
+      });
+
+      await prisma.user.update({
+        where: { id: wId },
+        data: { status: 'working' }
+      });
+
+      if (groupId) {
+        await prisma.groupMember.updateMany({
+          where: { groupId, workerId: wId },
+          data: { status: 'checked_in' }
+        });
+      }
+
+      if (wId === workerId) {
+        mainAttendance = att;
+      }
+      attendancesCreated.push(att);
+    }
+
+    if (attendancesCreated.length === 0 && existingMain) {
       return res.status(400).json({ success: false, message: 'Already checked in' });
     }
 
-    // 6. Create Record
-    const attendance = await prisma.attendance.create({
-      data: {
-        jobId,
-        workerId,
-        qrCodeIn,
-        checkIn: new Date(),
-        checkInLatitude: parseFloat(checkInLatitude),
-        checkInLongitude: parseFloat(checkInLongitude),
-      },
-      include: {
-        job: true,
-        worker: { select: { name: true, photoUrl: true } }
-      }
-    });
-
-    // 7. Update Status
-    await prisma.user.update({
-      where: { id: workerId },
-      data: { status: 'working' }
-    });
+    const finalAttendance = mainAttendance || existingMain || attendancesCreated[0];
 
     // 8. Socket Notification
     const io = req.app.get('io');
-    if (io) {
+    if (io && finalAttendance) {
       io.to(`job:${jobId}`).emit('attendance:check_in', {
-        attendanceId: attendance.id,
-        worker: attendance.worker,
-        timestamp: attendance.checkIn
+        attendanceId: finalAttendance.id,
+        worker: finalAttendance.worker,
+        timestamp: finalAttendance.checkIn,
+        isGroup: !!groupId,
+        checkedInCount: attendancesCreated.length,
       });
     }
 
     // 📲 Push Notification to Farmer
-    if (job?.farmer?.pushToken) {
-      await notifyFarmerAttendanceIn(job.farmerId, job.farmer.pushToken, attendance.worker, job);
+    if (job?.farmer?.pushToken && finalAttendance) {
+      await notifyFarmerAttendanceIn(job.farmerId, job.farmer.pushToken, finalAttendance.worker, job);
     }
 
-    res.status(201).json({ success: true, data: attendance });
+    res.status(201).json({ success: true, data: finalAttendance });
 
   } catch (error) {
     logger.error('Check-in error', { message: error.message });
@@ -300,6 +338,7 @@ const checkOut = async (req, res, next) => {
       jobId,
       bookingId,
       workerId,
+      groupId,
       qrCodeOut,
       checkOutLatitude,
       checkOutLongitude,
@@ -452,25 +491,6 @@ const checkOut = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Job ID is required for check-out' });
     }
 
-    let targetId = attendanceId;
-    if (!targetId && jobId && workerId) {
-      const activeRecord = await prisma.attendance.findFirst({
-        where: { jobId, workerId, checkOut: null },
-        orderBy: { checkIn: 'desc' }
-      });
-      if (activeRecord) targetId = activeRecord.id;
-    }
-
-    if (!targetId) {
-      return res.status(404).json({ success: false, message: 'No active attendance found or unauthorized action' });
-    }
-
-    // Authorization: SEC-5 FIX — only trust req.user.id from JWT, never fallback to request body
-    const record = await prisma.attendance.findUnique({ where: { id: targetId }, select: { workerId: true } });
-    if (record && record.workerId !== req.user.id) {
-       return res.status(403).json({ success: false, message: 'Cannot check out for another worker' });
-    }
-
     // 1. QR Validation
     const qrResult = validateQR(qrCodeOut, jobId);
     if (!qrResult.valid) {
@@ -500,54 +520,97 @@ const checkOut = async (req, res, next) => {
       });
     }
 
-    // 3. Fetch check-in record to confirm existence
-    const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
-    if (!existing) return res.status(404).json({ success: false, message: 'Attendance record not found' });
+    // Identify group checkout list
+    let workerIds = [workerId];
+    if (groupId) {
+      const members = await prisma.groupMember.findMany({
+        where: { groupId, status: 'checked_in' },
+        select: { workerId: true }
+      });
+      const memberIds = members.map(m => m.workerId);
+      workerIds = Array.from(new Set([workerId, ...memberIds]));
+    }
 
     const checkOutTime = new Date();
+    const checkedOutRecords = [];
+    let mainCheckout = null;
 
-    // 4. Single update with all fields (hoursWorked is computed by DB BEFORE UPDATE trigger)
-    const attendance = await prisma.attendance.update({
-      where: { id: targetId },
-      data: {
-        qrCodeOut,
-        checkOut: checkOutTime,
-        checkOutLatitude: parseFloat(checkOutLatitude),
-        checkOutLongitude: parseFloat(checkOutLongitude),
-      },
-      include: { 
-        job: true,
-        worker: { select: { name: true } }
+    for (const wId of workerIds) {
+      let targetId = null;
+      if (wId === workerId && attendanceId) {
+        targetId = attendanceId;
+      } else {
+        const activeRecord = await prisma.attendance.findFirst({
+          where: { jobId, workerId: wId, checkOut: null },
+          orderBy: { checkIn: 'desc' }
+        });
+        if (activeRecord) targetId = activeRecord.id;
       }
-    });
 
-    const hoursWorked = attendance.hoursWorked;
+      if (!targetId) continue;
 
-    await prisma.user.update({
-      where: { id: attendance.workerId },
-      data: { status: UserStatus.AVAILABLE }
-    });
+      // Update record
+      const attendance = await prisma.attendance.update({
+        where: { id: targetId },
+        data: {
+          qrCodeOut,
+          checkOut: checkOutTime,
+          checkOutLatitude: parseFloat(checkOutLatitude),
+          checkOutLongitude: parseFloat(checkOutLongitude),
+        },
+        include: { 
+          job: true,
+          worker: { select: { name: true } }
+        }
+      });
+
+      await prisma.user.update({
+        where: { id: wId },
+        data: { status: UserStatus.AVAILABLE }
+      });
+
+      if (groupId) {
+        await prisma.groupMember.updateMany({
+          where: { groupId, workerId: wId },
+          data: { status: 'checked_out' }
+        });
+      }
+
+      if (wId === workerId) {
+        mainCheckout = attendance;
+      }
+      checkedOutRecords.push(attendance);
+    }
+
+    if (checkedOutRecords.length === 0) {
+      return res.status(404).json({ success: false, message: 'No active attendance found or unauthorized action' });
+    }
+
+    const finalCheckout = mainCheckout || checkedOutRecords[0];
+    const hoursWorked = finalCheckout.hoursWorked || 0;
 
     const io = req.app.get('io');
-    if (io) {
-      io.to(`job:${attendance.jobId}`).emit('attendance:check_out', {
-        jobId: attendance.jobId,
-        attendanceId: attendance.id,
-        workerId: attendance.workerId,
-        timestamp: attendance.checkOut,
-        hoursWorked
+    if (io && finalCheckout) {
+      io.to(`job:${finalCheckout.jobId}`).emit('attendance:check_out', {
+        jobId: finalCheckout.jobId,
+        attendanceId: finalCheckout.id,
+        workerId: finalCheckout.workerId,
+        timestamp: finalCheckout.checkOut,
+        hoursWorked,
+        isGroup: !!groupId,
+        checkedOutCount: checkedOutRecords.length,
       });
     }
 
     // 📲 Push Notification to Farmer
-    if (job?.farmer?.pushToken) {
-      await notifyFarmerAttendanceOut(job.farmerId, job.farmer.pushToken, attendance.worker, job, hoursWorked);
+    if (job?.farmer?.pushToken && finalCheckout) {
+      await notifyFarmerAttendanceOut(job.farmerId, job.farmer.pushToken, finalCheckout.worker, job, hoursWorked);
     }
 
     res.status(200).json({
       success: true,
       message: 'Checked out successfully',
-      data: attendance
+      data: finalCheckout
     });
 
   } catch (error) {

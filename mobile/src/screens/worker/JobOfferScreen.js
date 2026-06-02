@@ -199,7 +199,11 @@ const JobOfferScreen = ({ navigation, route }) => {
             <View style={styles.verticalDivider} />
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>TIMING</Text>
-              <Text style={styles.statValue}>8 HRS</Text>
+              <Text style={styles.statValue}>
+                {job?.durationDays && job.durationDays > 1 
+                  ? `${job.durationDays} Days`
+                  : '8 HRS'}
+              </Text>
             </View>
           </View>
         </View>

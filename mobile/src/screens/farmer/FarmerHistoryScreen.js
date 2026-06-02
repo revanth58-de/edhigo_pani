@@ -429,11 +429,11 @@ const FarmerHistoryScreen = ({ navigation }) => {
                     <JobCard key={job.id || i} job={job} onUpdateStatus={updateJobStatus} navigation={navigation} />
                 ))}
                 {filteredJobs.length === 0 && (
-                    <View style={styles.centeredBox}>
-                        <MaterialIcons name="filter-list-off" size={48} color="#D1D5DB" />
-                        <Text style={styles.emptyTitle}>No matches</Text>
-                        <Text style={styles.emptySubtitle}>Try a different filter combination.</Text>
-                    </View>
+                    <EmptyState
+                        icon="filter-list-off"
+                        title="No matches"
+                        subtitle="Try a different filter combination."
+                    />
                 )}
             </>
         );

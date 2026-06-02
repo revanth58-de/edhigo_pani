@@ -107,11 +107,11 @@ describe('QRAttendanceScreen', () => {
 
   test('✅ QR code is rendered', async () => {
     if (!QRAttendanceScreen) return;
-    const { getByTestId } = render(
+    const { getAllByTestId } = render(
       <QRAttendanceScreen navigation={mockNavigation} route={route} />
     );
     await waitFor(() => {
-      expect(getByTestId('qr-code')).toBeTruthy();
+      expect(getAllByTestId('qr-code').length).toBeGreaterThan(0);
     });
   });
 });

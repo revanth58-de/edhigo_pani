@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const { width } = Dimensions.get('window');
 
@@ -103,87 +105,95 @@ const QRAttendanceScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.content}>
-        {/* Top Info Banner */}
-        <View style={styles.infoBanner}>
-          <MaterialIcons name="info" size={20} color={colors.primary} />
-          <Text style={styles.infoText}>Show this QR code to the worker</Text>
-        </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.content}>
+          {/* Top Info Banner */}
+          <View style={styles.infoBanner}>
+            <MaterialIcons name="info" size={20} color={colors.primary} />
+            <Text style={styles.infoText}>Show this QR code to the worker</Text>
+          </View>
 
-        {/* QR Card - PhonePe Style */}
-        <View style={styles.qrWrapper}>
-          <View style={styles.qrCard}>
-            <View style={styles.qrHeader}>
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'F'}</Text>
+          {/* QR Card - PhonePe Style */}
+          <View style={styles.qrWrapper}>
+            <View style={styles.qrCard}>
+              <View style={styles.qrHeader}>
+                <View style={styles.avatarPlaceholder}>
+                  <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'F'}</Text>
+                </View>
+                <View>
+                  <Text style={styles.farmerName}>{user?.name || 'Farmer'}</Text>
+                  <Text style={styles.phoneText}>{user?.phone || 'Farm Owner'}</Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.farmerName}>{user?.name || 'Farmer'}</Text>
-                <Text style={styles.phoneText}>{user?.phone || 'Farm Owner'}</Text>
+
+              <View style={styles.divider} />
+
+              <View style={styles.qrCodeContainer}>
+                <QRCode
+                  value={qrData}
+                  size={Math.min(width * 0.55, 220)}
+                  color="#000000"
+                  backgroundColor="#FFFFFF"
+                />
+                <View style={styles.logoOverlay}>
+                  <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+                </View>
               </View>
+
+              <Text style={styles.scanText}>
+                Scan to mark {type === 'in' ? 'Check-In' : 'Check-Out'}
+              </Text>
             </View>
+          </View>
 
-            <View style={styles.divider} />
-
-            <View style={styles.qrCodeContainer}>
-              <QRCode
-                value={qrData}
-                size={Math.min(width * 0.55, 220)}
-                color="#000000"
-                backgroundColor="#FFFFFF"
-              />
-              <View style={styles.logoOverlay}>
-                <MaterialIcons name="agriculture" size={24} color={colors.primary} />
-              </View>
+          {/* Job / Booking Details Box */}
+          {isMachinery && booking ? (
+            <View style={styles.jobBox}>
+               <View style={styles.jobRow}>
+                 <Text style={styles.jobLabel}>Machinery</Text>
+                 <Text style={styles.jobValue}>{booking.machinery?.name || 'Machine'}</Text>
+               </View>
+               <View style={styles.jobRow}>
+                 <Text style={styles.jobLabel}>Owner</Text>
+                 <Text style={styles.jobValue}>{booking.machinery?.owner?.name || 'Owner'}</Text>
+               </View>
+               <View style={styles.jobRow}>
+                 <Text style={styles.jobLabel}>Price</Text>
+                 <Text style={styles.jobValue}>₹{booking.totalPrice || booking.price || 0}</Text>
+               </View>
             </View>
+          ) : job ? (
+            <View style={styles.jobBox}>
+               <View style={styles.jobRow}>
+                 <Text style={styles.jobLabel}>Work Type</Text>
+                 <Text style={styles.jobValue}>{job.workType || 'Farm Work'}</Text>
+               </View>
+               <View style={styles.jobRow}>
+                 <Text style={styles.jobLabel}>Daily Wage</Text>
+                 <Text style={styles.jobValue}>₹{job.payPerDay || 500}</Text>
+               </View>
+            </View>
+          ) : null}
 
-            <Text style={styles.scanText}>
-              Scan to mark {type === 'in' ? 'Check-In' : 'Check-Out'}
-            </Text>
-          </View>
+          {/* Skip Scan to Payment Button for quick flow (Only for Check-Out) */}
+          {type === 'out' && (
+            <TouchableOpacity 
+              style={styles.skipButton}
+              onPress={handleSkipScan}
+              activeOpacity={0.8}
+            >
+              <MaterialIcons name="done-all" size={20} color="#FFFFFF" />
+              <Text style={styles.skipButtonText}>Skip Scan & Complete Work</Text>
+            </TouchableOpacity>
+          )}
         </View>
+      </ScrollView>
 
-        {/* Job / Booking Details Box */}
-        {isMachinery && booking ? (
-          <View style={styles.jobBox}>
-             <View style={styles.jobRow}>
-               <Text style={styles.jobLabel}>Machinery</Text>
-               <Text style={styles.jobValue}>{booking.machinery?.name || 'Machine'}</Text>
-             </View>
-             <View style={styles.jobRow}>
-               <Text style={styles.jobLabel}>Owner</Text>
-               <Text style={styles.jobValue}>{booking.machinery?.owner?.name || 'Owner'}</Text>
-             </View>
-             <View style={styles.jobRow}>
-               <Text style={styles.jobLabel}>Price</Text>
-               <Text style={styles.jobValue}>₹{booking.totalPrice || booking.price || 0}</Text>
-             </View>
-          </View>
-        ) : job ? (
-          <View style={styles.jobBox}>
-             <View style={styles.jobRow}>
-               <Text style={styles.jobLabel}>Work Type</Text>
-               <Text style={styles.jobValue}>{job.workType || 'Farm Work'}</Text>
-             </View>
-             <View style={styles.jobRow}>
-               <Text style={styles.jobLabel}>Daily Wage</Text>
-               <Text style={styles.jobValue}>₹{job.payPerDay || 500}</Text>
-             </View>
-          </View>
-        ) : null}
-
-        {/* Skip Scan to Payment Button for quick flow (Only for Check-Out) */}
-        {type === 'out' && (
-          <TouchableOpacity 
-            style={styles.skipButton}
-            onPress={handleSkipScan}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="done-all" size={20} color="#FFFFFF" />
-            <Text style={styles.skipButtonText}>Skip Scan & Complete Work</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <BottomNavBar role="farmer" activeTab="ShowQR" />
     </View>
   );
 };
@@ -214,6 +224,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     alignItems: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
   infoBanner: {
     flexDirection: 'row',

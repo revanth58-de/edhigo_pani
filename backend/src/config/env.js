@@ -27,6 +27,14 @@ if (process.env.NODE_ENV === 'production') {
     console.error('🚨 CRITICAL SECURITY WARNING: You are using default/placeholder JWT secrets in production!');
     throw new Error('FATAL: Replace JWT_SECRET and JWT_REFRESH_SECRET with strong random values before deployment.');
   }
+  if (!process.env.ADMIN_JWT_SECRET) {
+    console.error('❌ ADMIN_JWT_SECRET missing in environment!');
+    throw new Error('FATAL: ADMIN_JWT_SECRET must be explicitly set when running in production mode!');
+  }
+  if (process.env.ADMIN_JWT_SECRET === process.env.JWT_SECRET) {
+    console.error('❌ ADMIN_JWT_SECRET cannot be identical to JWT_SECRET!');
+    throw new Error('FATAL: ADMIN_JWT_SECRET must not be identical to JWT_SECRET in production mode!');
+  }
 }
 
 module.exports = {

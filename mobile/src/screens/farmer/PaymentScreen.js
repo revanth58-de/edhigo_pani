@@ -22,6 +22,7 @@ import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -566,6 +567,9 @@ const PaymentScreen = ({ navigation, route }) => {
           </View>
         </View>
       )}
+      {['summary', 'method'].includes(step) && (
+        <BottomNavBar role="farmer" activeTab="Bookings" />
+      )}
     </LinearGradient>
   );
 };
@@ -614,11 +618,11 @@ const styles = StyleSheet.create({
   },
   summaryScroll: {
     padding: 16,
-    paddingBottom: 60,
+    paddingBottom: 120,
   },
   methodScroll: {
     padding: 16,
-    paddingBottom: 80,
+    paddingBottom: 140,
   },
 
   // Worker Profile Card

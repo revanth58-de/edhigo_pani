@@ -12,10 +12,14 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
+import BottomNavBar from '../../components/BottomNavBar';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
 const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
+  const { user } = useAuthStore();
+  const role = user?.role || 'worker';
+
   const handleBack = () => {
     if (navigation.canGoBack()) {
       navigation.goBack();
@@ -152,6 +156,7 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
           <Text style={styles.disputeBtnText}>Report Issue / Dispute Payment</Text>
         </TouchableOpacity>
       </ScrollView>
+      <BottomNavBar role={role} activeTab="Profile" />
     </LinearGradient>
   );
 };
@@ -184,7 +189,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   receiptCard: {
     backgroundColor: '#FFFFFF',

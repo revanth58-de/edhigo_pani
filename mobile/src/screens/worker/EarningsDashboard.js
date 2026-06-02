@@ -28,6 +28,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
+import BottomNavBar from '../../components/BottomNavBar';
+import useAuthStore from '../../store/authStore';
 import { workerAPI } from '../../services/api';
 
 const WORK_TYPE_CONFIG = {
@@ -56,6 +58,8 @@ const EarningsDashboard = ({ navigation }) => {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
+  const { user } = useAuthStore();
+  const role = user?.role || 'worker';
 
   const fetchEarnings = useCallback(async () => {
     setLoading(true);
@@ -82,7 +86,7 @@ const EarningsDashboard = ({ navigation }) => {
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
-      <TopBar title="Worker Wallet" navigation={navigation} />
+      <TopBar title="Worker Wallet" navigation={navigation} showBack />
 
       {loading ? (
         <View style={styles.centered}>
@@ -218,13 +222,14 @@ const EarningsDashboard = ({ navigation }) => {
           <View style={{ height: 32 }} />
         </ScrollView>
       )}
+      <BottomNavBar role={role} activeTab="Profile" />
     </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingBottom: 120 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
 
   // Hero

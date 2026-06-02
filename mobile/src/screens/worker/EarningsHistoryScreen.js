@@ -15,6 +15,8 @@ import { colors } from '../../theme/colors';
 import { workerAPI } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import BottomNavBar from '../../components/BottomNavBar';
+import useAuthStore from '../../store/authStore';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -22,6 +24,8 @@ const EarningsHistoryScreen = ({ navigation }) => {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { user } = useAuthStore();
+  const role = user?.role || 'worker';
 
   const fetchHistory = async (isRef = false) => {
     if (!isRef) setLoading(true);
@@ -151,6 +155,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <BottomNavBar role={role} activeTab="Profile" />
     </LinearGradient>
   );
 };
@@ -183,7 +188,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   center: {
     flex: 1,

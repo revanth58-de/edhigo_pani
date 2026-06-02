@@ -90,7 +90,7 @@ const ConfettiRain = () => {
 };
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { job, workers, worker } = route.params || {};
+  const { job, booking, isMachinery, workers, worker } = route.params || {};
   const { t } = useTranslation();
   const { user, language } = useAuthStore();
 
@@ -103,7 +103,15 @@ const PaymentScreen = ({ navigation, route }) => {
   // Support either single `worker` or multiple `workers`
   let workerList = workers || (worker ? [worker] : []);
   
-  if (workerList.length === 0 && job?.workerId) {
+  if (isMachinery && booking) {
+    workerList = [{
+      id: booking.machinery?.ownerId || booking.machinery?.owner?.id || 'owner',
+      name: booking.machinery?.owner?.name || booking.ownerName || 'Machinery Owner',
+      phone: booking.machinery?.owner?.phone || '',
+      photoUrl: null,
+      ratingAvg: 4.8,
+    }];
+  } else if (workerList.length === 0 && job?.workerId) {
     workerList = [{
       id: job.workerId,
       name: job.workerName || 'Worker',
@@ -114,7 +122,9 @@ const PaymentScreen = ({ navigation, route }) => {
   }
 
   const workerCount = workerList.length > 0 ? workerList.length : Number(job?.workersNeeded) || 1;
-  const totalAmount = (job?.payPerDay || 500) * workerCount;
+  const totalAmount = isMachinery
+    ? (booking?.totalPrice || booking?.price || 1000)
+    : (job?.payPerDay || 500) * workerCount;
   
   // Calculate Dinasari split 5% commission & 95% worker amount
   const platformFee = Math.round((totalAmount * 0.05) * 100) / 100;
@@ -177,12 +187,22 @@ const PaymentScreen = ({ navigation, route }) => {
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
     try {
+      const payload = isMachinery
+        ? {
+            bookingId: booking.id,
+            amount: totalAmount,
+            method: paymentMethod === 'cash' ? 'cash' : paymentMethod,
+            transactionId: paymentMethod === 'cash' ? undefined : transactionId,
+          }
+        : {
+            jobId: job.id,
+            amount: totalAmount,
+            method: paymentMethod === 'cash' ? 'cash' : paymentMethod,
+            transactionId: paymentMethod === 'cash' ? undefined : transactionId,
+          };
+
       if (paymentMethod === 'cash') {
-        const response = await paymentService.makePayment({
-          jobId: job.id,
-          amount: totalAmount,
-          method: 'cash',
-        });
+        const response = await paymentService.makePayment(payload);
         if (response.success) {
           setStep('success');
         } else {
@@ -191,12 +211,7 @@ const PaymentScreen = ({ navigation, route }) => {
         }
       } else {
         // Digital Payment: Register pending payment in backend
-        const response = await paymentService.makePayment({
-          jobId: job.id,
-          amount: totalAmount,
-          method: paymentMethod, // 'upi', 'gpay', 'phonepe', 'paytm', 'card', 'netbanking'
-          transactionId,
-        });
+        const response = await paymentService.makePayment(payload);
 
         if (!response.success) {
           if (response.message?.includes('already')) {
@@ -207,6 +222,8 @@ const PaymentScreen = ({ navigation, route }) => {
           setStep('failed');
           return;
         }
+
+        const confirmId = isMachinery ? booking.id : job.id;
 
         if (['upi', 'gpay', 'phonepe', 'paytm'].includes(paymentMethod)) {
           // Deep link UPI
@@ -219,9 +236,7 @@ const PaymentScreen = ({ navigation, route }) => {
 
           if (canOpen) {
             await Linking.openURL(upiUrl);
-            // Simulate direct confirmation check for premium testing flows
-            // For production UPI deep link confirmation, the confirm endpoint acts as double check.
-            const confirmResp = await paymentService.confirmPayment(job.id, transactionId);
+            const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
             if (confirmResp.success) {
               setStep('success');
             } else {
@@ -229,7 +244,7 @@ const PaymentScreen = ({ navigation, route }) => {
             }
           } else {
             // Fallback for emulator / non-supported devices: simulate success
-            const confirmResp = await paymentService.confirmPayment(job.id, transactionId);
+            const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
             if (confirmResp.success) {
               setStep('success');
             } else {
@@ -238,7 +253,7 @@ const PaymentScreen = ({ navigation, route }) => {
           }
         } else {
           // Cards & Netbanking: Simulate seamless instant processing success
-          const confirmResp = await paymentService.confirmPayment(job.id, transactionId);
+          const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
           if (confirmResp.success) {
             setStep('success');
           } else {
@@ -297,8 +312,12 @@ const PaymentScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.workerDetails}>
               <Text style={styles.workerName}>{currentWorker.name || 'Worker'}</Text>
-              <Text style={styles.workerRole}>{job?.workType?.toUpperCase() || 'AGRICULTURE LABOUR'}</Text>
-              <Text style={styles.workerLoc}>📍 {job?.farmAddress || 'Rural Farm'}</Text>
+              <Text style={styles.workerRole}>
+                {isMachinery
+                  ? (booking?.machinery?.name?.toUpperCase() || 'MACHINERY OWNER')
+                  : (job?.workType?.toUpperCase() || 'AGRICULTURE LABOUR')}
+              </Text>
+              <Text style={styles.workerLoc}>📍 {isMachinery ? (booking?.address || 'Farm') : (job?.farmAddress || 'Rural Farm')}</Text>
             </View>
           </View>
 
@@ -306,15 +325,24 @@ const PaymentScreen = ({ navigation, route }) => {
           <View style={styles.breakupCard}>
             <Text style={styles.breakupTitle}>Fare Breakdown</Text>
             
-            <View style={styles.breakupRow}>
-              <Text style={styles.breakupLabel}>Daily Wage</Text>
-              <Text style={styles.breakupValue}>₹{(job?.payPerDay || 500)} / day</Text>
-            </View>
+            {isMachinery ? (
+              <View style={styles.breakupRow}>
+                <Text style={styles.breakupLabel}>Machinery Rent Price</Text>
+                <Text style={styles.breakupValue}>₹{totalAmount}</Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.breakupRow}>
+                  <Text style={styles.breakupLabel}>Daily Wage</Text>
+                  <Text style={styles.breakupValue}>₹{(job?.payPerDay || 500)} / day</Text>
+                </View>
 
-            <View style={styles.breakupRow}>
-              <Text style={styles.breakupLabel}>Total Workers</Text>
-              <Text style={styles.breakupValue}>{workerCount} worker{workerCount > 1 ? 's' : ''}</Text>
-            </View>
+                <View style={styles.breakupRow}>
+                  <Text style={styles.breakupLabel}>Total Workers</Text>
+                  <Text style={styles.breakupValue}>{workerCount} worker{workerCount > 1 ? 's' : ''}</Text>
+                </View>
+              </>
+            )}
 
             <View style={styles.breakupRow}>
               <Text style={styles.breakupLabel}>Dinasari platform fee (5%)</Text>
@@ -460,7 +488,9 @@ const PaymentScreen = ({ navigation, route }) => {
           <View style={styles.processingMiniSummary}>
             <Text style={styles.miniLabel}>Total Amount</Text>
             <Text style={styles.miniVal}>₹{totalAmount}</Text>
-            <Text style={styles.miniWorker}>{currentWorker.name || 'Worker'} • {job?.workType}</Text>
+            <Text style={styles.miniWorker}>
+              {currentWorker.name || 'Worker'} • {isMachinery ? (booking?.machinery?.name || 'Machinery') : job?.workType}
+            </Text>
           </View>
         </View>
       )}
@@ -493,7 +523,11 @@ const PaymentScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Booking ID</Text>
-              <Text style={styles.receiptVal}>JOB-{job?.id?.slice(-6)?.toUpperCase() || '628811'}</Text>
+              <Text style={styles.receiptVal}>
+                {isMachinery
+                  ? `BKG-${booking?.id?.slice(-6)?.toUpperCase() || '628811'}`
+                  : `JOB-${job?.id?.slice(-6)?.toUpperCase() || '628811'}`}
+              </Text>
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Date & Time</Text>
@@ -516,7 +550,7 @@ const PaymentScreen = ({ navigation, route }) => {
 
             <TouchableOpacity
               style={[styles.receiptActionButton, styles.receiptActionButtonPrimary]}
-              onPress={() => navigation.navigate('RateWorker', { job, workers: workerList })}
+              onPress={() => navigation.navigate('RateWorker', { job, booking, isMachinery, workers: workerList })}
               activeOpacity={0.8}
             >
               <Text style={styles.receiptActionButtonTextPrimary}>Rate Worker</Text>

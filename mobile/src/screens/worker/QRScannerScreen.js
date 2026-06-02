@@ -17,7 +17,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { CameraView, Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { colors } from '../../theme/colors';
 import { attendanceService } from '../../services/api/attendanceService';
@@ -59,16 +59,11 @@ const HELP_STEPS = [
 ];
 
 const QRScannerScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job, booking, isMachinery } = route.params || {};
   
-  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const [permission, requestPermission] = useCameraPermissions();
+  const hasPermission = permission?.granted ?? null;
   const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
-
-  const [hasPermission, setHasPermission] = useState(() => {
-    if (cachedPermission === 'granted') return true;
-    if (cachedPermission === 'denied') return false;
-    return null;
-  });
 
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
@@ -76,27 +71,20 @@ const QRScannerScreen = ({ navigation, route }) => {
   const [helpVisible, setHelpVisible] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
+  // Sync hook status with Zustand cache
   useEffect(() => {
-    if (cachedPermission === 'granted' || cachedPermission === 'denied') {
-      return;
+    if (permission) {
+      setCachedPermission(permission.status);
     }
+  }, [permission]);
 
-    const checkPermission = async () => {
-      try {
-        let permission = await Camera.getCameraPermissionsAsync();
-        let status = permission.status;
-        if (status === 'undetermined') {
-          const requestResult = await Camera.requestCameraPermissionsAsync();
-          status = requestResult.status;
-        }
-        setCachedPermission(status);
-        setHasPermission(status === 'granted');
-      } catch (err) {
-        console.error('Error checking camera permissions:', err);
-      }
-    };
-    checkPermission();
-  }, [cachedPermission]);
+  // Request camera permission on mount if not yet granted
+  useEffect(() => {
+    if (!permission) return;
+    if (!permission.granted && permission.canAskAgain) {
+      requestPermission();
+    }
+  }, [permission?.granted]);
 
   // Animate scan line
   useEffect(() => {
@@ -138,10 +126,13 @@ const QRScannerScreen = ({ navigation, route }) => {
         return;
       }
 
-      if (!qrInfo.jobId || !qrInfo.type) {
+      const scannedId = qrInfo.jobId || qrInfo.bookingId;
+      const isMachineryQR = !!qrInfo.bookingId || isMachinery;
+
+      if (!scannedId || !qrInfo.type) {
         Alert.alert(
           'Wrong QR Code',
-          'This QR code is missing job information. Please ask the farmer to show the correct QR code.'
+          'This QR code is missing booking/job information. Please ask the farmer to show the correct QR code.'
         );
         setScanned(false);
         setLoading(false);
@@ -173,23 +164,54 @@ const QRScannerScreen = ({ navigation, route }) => {
       });
 
       const user = useAuthStore.getState().user;
-      const payload = {
-        jobId: qrInfo.jobId,
-        workerId: user?.id,
-        [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
-        [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
-        [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: data,
-      };
+      const payload = isMachineryQR
+        ? {
+            bookingId: qrInfo.bookingId,
+            workerId: user?.id,
+            [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
+            [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: data,
+          }
+        : {
+            jobId: qrInfo.jobId,
+            workerId: user?.id,
+            [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
+            [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: data,
+          };
 
       const response = await (isCheckOut
         ? attendanceService.checkOut(payload)
         : attendanceService.checkIn(payload));
 
       if (response.success) {
-        const farmerId = response.data?.job?.farmerId || job?.farmerId || job?.farmer?.id;
-        navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', {
-          job: { ...job, id: qrInfo.jobId, farmerId },
-        });
+        if (isMachineryQR) {
+          Alert.alert(
+            'Success',
+            isCheckOut ? 'Machinery work ended and checked out successfully!' : 'Machinery checked in and work session started!',
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  navigation.replace(isCheckOut ? 'RateFarmer' : 'WorkerMachinery', {
+                    bookingId: qrInfo.bookingId,
+                    booking,
+                    isMachinery: true,
+                    job: {
+                      id: qrInfo.bookingId,
+                      farmerId: response.data?.booking?.farmerId || booking?.farmerId || qrInfo.farmerId
+                    }
+                  });
+                }
+              }
+            ]
+          );
+        } else {
+          const farmerId = response.data?.job?.farmerId || job?.farmerId || job?.farmer?.id;
+          navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', {
+            job: { ...job, id: qrInfo.jobId, farmerId },
+          });
+        }
       } else {
         Alert.alert('Attendance Failed', response.message || 'Could not mark attendance.');
         setScanned(false);
@@ -251,11 +273,7 @@ const QRScannerScreen = ({ navigation, route }) => {
         <Text style={styles.permissionText}>Camera access is required to scan QR codes.</Text>
         <TouchableOpacity
           style={styles.retryButton}
-          onPress={async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync();
-            setCachedPermission(status);
-            setHasPermission(status === 'granted');
-          }}
+          onPress={requestPermission}
         >
           <Text style={styles.retryButtonText}>Grant Permission</Text>
         </TouchableOpacity>

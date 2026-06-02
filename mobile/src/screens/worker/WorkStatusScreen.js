@@ -16,14 +16,32 @@ import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 
+import { socketService } from '../../services/socketService';
+
 const WorkStatusScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job, booking, isMachinery } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
   const [isOnBreak, setIsOnBreak] = useState(false);
 
   useEffect(() => {
+    socketService.connect();
+    if (isMachinery && booking?.id) {
+      socketService.joinBookingRoom(booking.id);
+    } else if (job?.id) {
+      socketService.joinJobRoom(job.id);
+    }
+
+    const handleWorkDone = () => {
+      if (isMachinery) {
+        navigation.navigate('QRScanner', { booking, isMachinery: true, type: 'out' });
+      } else {
+        navigation.navigate('QRScanner', { job, type: 'out' });
+      }
+    };
+
+    socketService.on('work:done', handleWorkDone);
 
     // Timer logic
     let seconds = 0;
@@ -37,15 +55,22 @@ const WorkStatusScreen = ({ navigation, route }) => {
       );
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      socketService.off('work:done', handleWorkDone);
+    };
+  }, [job?.id, booking?.id, isMachinery]);
 
   const handleBreak = () => {
     setIsOnBreak(!isOnBreak);
   };
 
   const handleEndWork = () => {
-    navigation.navigate('QRScanner', { job, type: 'out' });
+    if (isMachinery) {
+      navigation.navigate('QRScanner', { booking, isMachinery: true, type: 'out' });
+    } else {
+      navigation.navigate('QRScanner', { job, type: 'out' });
+    }
   };
 
   return (
@@ -82,24 +107,44 @@ const WorkStatusScreen = ({ navigation, route }) => {
           )}
         </View>
 
-        {/* Job Details */}
-        <View style={styles.detailsCard}>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="work" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Work Type:</Text>
-            <Text style={styles.detailValue}>{job?.workType || 'Harvesting'}</Text>
+        {/* Job / Booking Details */}
+        {isMachinery && booking ? (
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Machine:</Text>
+              <Text style={styles.detailValue}>{booking?.machinery?.name || 'Machine'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="payments" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Earnings:</Text>
+              <Text style={styles.detailValue}>₹{booking?.totalPrice || booking?.price || 0}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="location-on" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Farmer Location:</Text>
+              <Text style={styles.detailValue}>{booking?.address || 'Farmer Farm'}</Text>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="payments" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Pay:</Text>
-            <Text style={styles.detailValue}>₹{job?.payPerDay || '500'}/day</Text>
+        ) : (
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="work" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Work Type:</Text>
+              <Text style={styles.detailValue}>{job?.workType || 'Harvesting'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="payments" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Pay:</Text>
+              <Text style={styles.detailValue}>₹{job?.payPerDay || '500'}/day</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="location-on" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Location:</Text>
+              <Text style={styles.detailValue}>{job?.farmAddress || 'Farm'}</Text>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="location-on" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Location:</Text>
-            <Text style={styles.detailValue}>{job?.farmAddress || 'Farm'}</Text>
-          </View>
-        </View>
+        )}
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>

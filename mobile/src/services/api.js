@@ -77,25 +77,39 @@ apiClient.interceptors.response.use(
                 const refreshToken = await getTokenSafe('edhigo_refresh_token');
 
                 if (refreshToken) {
-                    const resp = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+                    // Use apiClient (not raw axios) so default headers like
+                    // bypass-tunnel-reminder are included. Mark with _retry so
+                    // the interceptor doesn't try to refresh the refresh call.
+                    const resp = await apiClient.post('/auth/refresh', {
                         refreshToken,
                     });
 
-                    const { accessToken } = resp.data;
+                    const { accessToken, refreshToken: newRefreshToken } = resp.data;
                     setAuthToken(accessToken);
                     originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
 
-                    // Persist the new access token under the correct key
+                    // Persist both tokens — the server rotates the refresh token
+                    // on every use, so we must save the new one or the next
+                    // refresh will send the already-revoked old token → 401.
                     try {
                         const SecureStore = await import('expo-secure-store');
                         const available = await SecureStore.isAvailableAsync();
                         if (available) {
                             await SecureStore.setItemAsync('edhigo_access_token', accessToken);
+                            if (newRefreshToken) {
+                                await SecureStore.setItemAsync('edhigo_refresh_token', newRefreshToken);
+                            }
                         } else {
                             await AsyncStorage.setItem('edhigo_access_token', accessToken);
+                            if (newRefreshToken) {
+                                await AsyncStorage.setItem('edhigo_refresh_token', newRefreshToken);
+                            }
                         }
                     } catch {
                         await AsyncStorage.setItem('edhigo_access_token', accessToken);
+                        if (newRefreshToken) {
+                            await AsyncStorage.setItem('edhigo_refresh_token', newRefreshToken);
+                        }
                     }
 
                     return apiClient(originalRequest);
@@ -202,6 +216,24 @@ export const disputeAPI = {
     fileDispute: (data) => apiClient.post('/disputes', data),
     getMyDisputes: () => apiClient.get('/disputes/my'),
     getJobDisputes: (jobId) => apiClient.get(`/disputes/job/${jobId}`),
+};
+
+// ─── Notification API (F7) ───
+export const notificationAPI = {
+    getNotifications: (params) => apiClient.get('/notifications', { params }),
+    markAsRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+    markAllAsRead: () => apiClient.post('/notifications/read-all'),
+};
+
+// ─── Machinery API (F8) ───
+export const machineryAPI = {
+    register: (data) => apiClient.post('/machinery', data),
+    getListings: (params) => apiClient.get('/machinery/listings', { params }),
+    bookMachinery: (data) => apiClient.post('/machinery/book', data),
+    getBookings: () => apiClient.get('/machinery/bookings'),
+    getOwnerListings: () => apiClient.get('/machinery/owner/listings'),
+    getOwnerBookings: () => apiClient.get('/machinery/owner/bookings'),
+    updateBookingStatus: (bookingId, status) => apiClient.patch(`/machinery/bookings/${bookingId}/status`, { status }),
 };
 
 export default apiClient;

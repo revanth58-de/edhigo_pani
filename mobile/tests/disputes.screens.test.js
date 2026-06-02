@@ -20,7 +20,7 @@ jest.mock('../src/store/authStore', () => () => ({
   isAuthenticated: true,
 }));
 
-jest.mock('../src/services/api', () => ({
+jest.mock('../src/services/api/disputeService', () => ({
   disputeService: {
     fileDispute: jest.fn(() => Promise.resolve({ success: true, data: { id: 'dispute-1' } })),
     getMyDisputes: jest.fn(() =>
@@ -97,7 +97,7 @@ describe('DisputeScreen', () => {
     });
 
     await waitFor(() => {
-      const { disputeService } = require('../src/services/api');
+      const { disputeService } = require('../src/services/api/disputeService');
       expect(disputeService.fileDispute).toHaveBeenCalledWith(
         expect.objectContaining({
           jobId: 'job-1234567890',

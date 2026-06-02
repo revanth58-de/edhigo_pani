@@ -36,7 +36,6 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "usesCleartextTraffic": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -76,7 +75,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow DINASARI to use your location."
         }
       ],
-      "@sentry/react-native"
+      "@sentry/react-native",
+      "expo-font"
     ],
     "extra": {
       "eas": {

@@ -78,6 +78,13 @@ jest.mock('../src/services/api', () => ({
   },
   jobAPI: {
     getJobs: jest.fn(() => Promise.resolve({ data: { data: [] } })),
+    acceptJob: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    withdrawJob: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    cancelJob: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    updateStatus: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    getJob: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    createJob: jest.fn(() => Promise.resolve({ data: { success: true } })),
+    getNearbyWorkers: jest.fn(() => Promise.resolve({ data: { success: true } })),
   }
 }));
 
@@ -174,7 +181,7 @@ describe('GroupQRAttendanceScreen', () => {
 
   test('✅ QR code renders or screen shows loading state', async () => {
     if (!GroupQRAttendanceScreen) return;
-    const { queryByTestId, UNSAFE_root } = render(
+    const { queryByTestId, UNSAFE_root, unmount } = render(
       <GroupQRAttendanceScreen navigation={mockNavigation} route={route} />
     );
     // Either QR code renders (permission granted) or loading indicator shows
@@ -185,16 +192,18 @@ describe('GroupQRAttendanceScreen', () => {
       // Screen should render something — qr or loading
       expect(UNSAFE_root).toBeTruthy();
     }, { timeout: 2000 }).catch(() => {/* screen may be in loading state */});
+    unmount();
   });
 
   test('✅ Title shows Check-In or Check-Out text', () => {
     if (!GroupQRAttendanceScreen) return;
-    const { getAllByText, queryAllByText } = render(
+    const { getAllByText, queryAllByText, unmount } = render(
       <GroupQRAttendanceScreen navigation={mockNavigation} route={route} />
     );
     const matches = queryAllByText(/check.?in|check.?out|attendance|qr/i);
     // Screen renders attendance-related text or shows loading
     expect(true).toBe(true); // Screen renders without crash
+    unmount();
   });
 });
 
@@ -411,7 +420,7 @@ describe('GroupMapScreen', () => {
     });
   });
 
-  test('✅ Navigates to GroupRequest screen on job:request socket event', async () => {
+  test('✅ Navigates to GroupJobOffer screen on job:request socket event', async () => {
     if (!GroupMapScreen) return;
 
     let jobRequestCallback = null;
@@ -432,7 +441,7 @@ describe('GroupMapScreen', () => {
       jobRequestCallback({ id: 'job-123', workType: 'Weeding' });
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith('GroupRequest', {
+    expect(mockNavigate).toHaveBeenCalledWith('GroupJobOffer', {
       jobData: { id: 'job-123', workType: 'Weeding' },
       groupId: 'g-1'
     });

@@ -46,8 +46,9 @@ const UserRole = Object.freeze({
   FARMER: 'farmer',
   WORKER: 'worker',
   LEADER: 'leader',
+  MACHINERY: 'machinery',
 
-  VALID: ['farmer', 'worker', 'leader'],
+  VALID: ['farmer', 'worker', 'leader', 'machinery'],
 });
 
 const UserStatus = Object.freeze({

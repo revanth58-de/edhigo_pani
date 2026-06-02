@@ -55,6 +55,8 @@ model User {
   auditLogs        AuditLog[]        // Actions performed if user is an admin
   disputesFiled    Dispute[]         @relation("InitiatorDisputes")
   notifications    Notification[]    @relation("UserNotifications")
+  machineries      Machinery[]       @relation("UserMachinery")
+  machineryBookings MachineryBooking[] @relation("FarmerMachineryBookings")
 
   @@map("users")
 }
@@ -110,7 +112,8 @@ model Job {
 
 model Attendance {
   id               String    @id @default(uuid())
-  jobId            String
+  jobId            String?
+  bookingId        String?
   workerId         String
   qrCodeIn         String?
   qrCodeOut        String?
@@ -124,17 +127,20 @@ model Attendance {
   createdAt        DateTime  @default(now())
 
   // Relations
-  job    Job  @relation(fields: [jobId], references: [id])
-  worker User @relation(fields: [workerId], references: [id])
+  job      Job?              @relation(fields: [jobId], references: [id])
+  booking  MachineryBooking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  worker   User              @relation(fields: [workerId], references: [id])
 
   @@index([jobId])              // Fetch all attendances for a job
+  @@index([bookingId])
   @@index([workerId])           // Fetch a worker's attendance history
   @@map("attendances")
 }
 
 model Payment {
   id               String   @id @default(uuid())
-  jobId            String
+  jobId            String?
+  bookingId        String?
   farmerId         String
   workerId         String
   amount           Float
@@ -151,7 +157,8 @@ model Payment {
   createdAt        DateTime @default(now())
 
   // Relations
-  job         Job          @relation(fields: [jobId], references: [id])
+  job         Job?         @relation(fields: [jobId], references: [id])
+  booking     MachineryBooking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   farmer      User         @relation("FarmerPayments", fields: [farmerId], references: [id])
   worker      User         @relation("WorkerPayments", fields: [workerId], references: [id])
   settlements Settlement[]
@@ -295,6 +302,7 @@ enum Role {
   farmer
   worker
   leader
+  machinery
 }
 
 enum Status {
@@ -364,4 +372,48 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+model Machinery {
+  id           String             @id @default(uuid())
+  ownerId      String
+  type         String             // "Tractor" | "Harvester" | "Pump Set" | "Plough" | "Sprayer" | "Thresher"
+  name         String             // e.g. "John Deere 5050D"
+  pricePerHour Float
+  photoUrl     String?
+  latitude     Float?
+  longitude    Float?
+  status       String             @default("available") // "available" | "unavailable"
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  owner    User               @relation("UserMachinery", fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings MachineryBooking[]
+
+  @@index([ownerId])
+  @@map("machineries")
+}
+
+model MachineryBooking {
+  id           String   @id @default(uuid())
+  machineryId  String
+  farmerId     String
+  date         DateTime
+  slot         String   // "Morning" | "Afternoon" | "Full Day"
+  totalAmount  Float
+  status       String   @default("pending") // "pending" | "confirmed" | "cancelled"
+  latitude     Float?
+  longitude    Float?
+  address      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  machinery   Machinery    @relation(fields: [machineryId], references: [id], onDelete: Cascade)
+  farmer      User         @relation("FarmerMachineryBookings", fields: [farmerId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
+  payments    Payment[]
+
+  @@index([machineryId])
+  @@index([farmerId])
+  @@map("machinery_bookings")
 }

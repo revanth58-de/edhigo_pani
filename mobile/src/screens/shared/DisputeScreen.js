@@ -13,7 +13,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { disputeService } from '../../services/api';
+import { disputeService } from '../../services/api/disputeService';
 import useSpeech from '../../hooks/useSpeech';
 import CustomLoader from '../../components/CustomLoader';
 import useAuthStore from '../../store/authStore';

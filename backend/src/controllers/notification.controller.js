@@ -11,7 +11,7 @@ const getNotifications = async (req, res, next) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
 
-    const [notifications, total, unreadCount] = await Promise.all([
+    let [notifications, total] = await Promise.all([
       prisma.notification.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -19,8 +19,49 @@ const getNotifications = async (req, res, next) => {
         skip: offset,
       }),
       prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, isRead: false } }),
     ]);
+
+    // Auto-seed welcome notifications on first load if empty and offset is 0,
+    // only in non-testing environments.
+    if (total === 0 && offset === 0 && process.env.NODE_ENV !== 'test') {
+      try {
+        const welcomeNotifications = [
+          {
+            userId,
+            title: '🌿 Welcome to Edhigo Pani!',
+            body: 'We are excited to have you join our network. You can now post jobs, find nearby agricultural work, and connect with local leaders.',
+            data: { screen: 'WorkerHome' },
+            isRead: false,
+          },
+          {
+            userId,
+            title: '🚜 Machinery Bookings',
+            body: 'Need a tractor, thresher, or harvester? Browse listings and book machinery directly within the app.',
+            data: { screen: 'WorkerMachinery' },
+            isRead: false,
+          }
+        ];
+
+        await prisma.notification.createMany({
+          data: welcomeNotifications
+        });
+
+        // Refetch notifications and update total
+        [notifications, total] = await Promise.all([
+          prisma.notification.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            take: limit,
+            skip: offset,
+          }),
+          prisma.notification.count({ where: { userId } }),
+        ]);
+      } catch (seedErr) {
+        logger.error('Failed to seed welcome notifications', { message: seedErr.message });
+      }
+    }
+
+    const unreadCount = await prisma.notification.count({ where: { userId, isRead: false } });
 
     res.json({
       success: true,

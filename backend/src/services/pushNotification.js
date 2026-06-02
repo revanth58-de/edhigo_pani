@@ -113,6 +113,18 @@ const createNotification = async (userId, title, body, data = {}) => {
         data: data ? JSON.parse(JSON.stringify(data)) : null,
       },
     });
+
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.to(`user:${userId}`).emit('notification:new', notification);
+        logger.info(`📡 Socket notification:new emitted to user:${userId}`);
+      }
+    } catch (socketErr) {
+      logger.error('Socket emission error during notification creation', { message: socketErr.message });
+    }
+
     return notification;
   } catch (err) {
     logger.error('Error creating database notification', { message: err.message });

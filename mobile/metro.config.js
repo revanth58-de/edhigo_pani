@@ -5,8 +5,6 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.assetExts.push('cjs');
 
-// Register the custom Babel transformer that transpiles import.meta.
-config.transformer.babelTransformerPath = require.resolve('./metro-transformer.js');
 
 // Alias react-native-maps to a web-safe stub when bundling for web.
 // The .web.js suffix is automatically picked up by Metro for web targets,

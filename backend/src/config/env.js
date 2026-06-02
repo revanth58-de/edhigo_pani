@@ -44,6 +44,7 @@ module.exports = {
   // Trusted server base URL — used for building file URLs (never trust req.get('host'))
   apiBaseUrl: process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`,
   
+  adminJwtSecret: process.env.ADMIN_JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : process.env.JWT_SECRET),
   // Cloudinary credentials
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,

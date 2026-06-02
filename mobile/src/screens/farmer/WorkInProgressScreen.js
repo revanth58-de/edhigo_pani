@@ -18,17 +18,19 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Platform } from 'react-native';
 
 const WorkInProgressScreen = ({ navigation, route }) => {
-  const { job } = route?.params || {};
+  const { job, booking, isMachinery } = route?.params || {};
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
 
-  // Ensure socket is alive and farmer is in the job room so work:done can be emitted
+  // Ensure socket is alive and farmer is in the correct room
   useEffect(() => {
     socketService.connect();
-    if (job?.id) {
+    if (isMachinery && booking?.id) {
+      socketService.joinBookingRoom(booking.id);
+    } else if (job?.id) {
       socketService.joinJobRoom(job.id);
     }
-  }, [job?.id]);
+  }, [job?.id, booking?.id, isMachinery]);
 
   useEffect(() => {
     let seconds = 0;
@@ -46,31 +48,48 @@ const WorkInProgressScreen = ({ navigation, route }) => {
   }, []);
 
   const handleEndWork = () => {
-    if (!job) {
+    if (!isMachinery && !job) {
       Alert.alert('Error', 'Job data is missing. Please go back and try again.');
+      return;
+    }
+    if (isMachinery && !booking) {
+      Alert.alert('Error', 'Booking data is missing. Please go back and try again.');
       return;
     }
 
     Alert.alert(
-      'End Work Session',
-      'Workers will be asked to scan the check-out QR code. Do you want to continue?',
+      isMachinery ? 'End Machinery Session' : 'End Work Session',
+      isMachinery
+        ? 'Machinery owner will be asked to scan the check-out QR code. Do you want to continue?'
+        : 'Workers will be asked to scan the check-out QR code. Do you want to continue?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'End Work',
           style: 'destructive',
           onPress: () => {
-            // Notify all workers in this job to open checkout QR scanner (best-effort)
+            // Notify machinery owner or workers in this session to open checkout QR scanner
             try {
-              socketService.emit('work:done', {
-                jobId: job.id,
-                farmerId: job.farmerId,
-              });
+              if (isMachinery) {
+                socketService.emit('work:done', {
+                  bookingId: booking.id,
+                  farmerId: booking.farmerId,
+                });
+              } else {
+                socketService.emit('work:done', {
+                  jobId: job.id,
+                  farmerId: job.farmerId,
+                });
+              }
             } catch (e) {
               console.warn('Socket emit failed (non-fatal):', e.message);
             }
             // Always navigate regardless of socket state
-            navigation.navigate('QRAttendanceOUT', { job });
+            if (isMachinery) {
+              navigation.navigate('QRAttendanceOUT', { booking, isMachinery: true });
+            } else {
+              navigation.navigate('QRAttendanceOUT', { job });
+            }
           },
         },
       ]
@@ -101,23 +120,43 @@ const WorkInProgressScreen = ({ navigation, route }) => {
           <Text style={styles.timerValue}>{elapsedTime}</Text>
         </View>
 
-        <View style={styles.detailsCard}>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="work" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Work Type:</Text>
-            <Text style={styles.detailValue}>{job?.workType || 'Harvesting'}</Text>
+        {isMachinery && booking ? (
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Machine:</Text>
+              <Text style={styles.detailValue}>{booking?.machinery?.name || 'Machinery'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="person" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Owner:</Text>
+              <Text style={styles.detailValue}>{booking?.machinery?.owner?.name || 'Owner'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="payments" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Total Cost:</Text>
+              <Text style={styles.detailValue}>₹{booking?.totalPrice || booking?.price || 0}</Text>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="group" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Workers:</Text>
-            <Text style={styles.detailValue}>{job?.workersNeeded || '10'}</Text>
+        ) : (
+          <View style={styles.detailsCard}>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="work" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Work Type:</Text>
+              <Text style={styles.detailValue}>{job?.workType || 'Harvesting'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="group" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Workers:</Text>
+              <Text style={styles.detailValue}>{job?.workersNeeded || '10'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <MaterialIcons name="work" size={24} color={colors.primary} />
+              <Text style={styles.detailLabel}>Total Pay:</Text>
+              <Text style={styles.detailValue}>₹{(job?.payPerDay || 500) * (job?.workersNeeded || 10)}</Text>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <MaterialIcons name="work" size={24} color={colors.primary} />
-            <Text style={styles.detailLabel}>Total Pay:</Text>
-            <Text style={styles.detailValue}>₹{(job?.payPerDay || 500) * (job?.workersNeeded || 10)}</Text>
-          </View>
-        </View>
+        )}
 
         <View style={styles.statusBadge}>
           <View style={styles.statusDot} />

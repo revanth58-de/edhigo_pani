@@ -293,12 +293,21 @@ const GroupDetailScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         ) : (
-          <TouchableOpacity
-            style={[styles.iconBtn, styles.exitBtn]}
-            onPress={handleExitGroup}
-          >
-            <MaterialIcons name="exit-to-app" size={24} color="#EF4444" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => navigation.navigate('GroupMap', { groupId, workerCount: group?.members?.length || 0 })}
+              testID="group-map-btn"
+            >
+              <MaterialIcons name="map" size={24} color={colors.backgroundDark} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.iconBtn, styles.exitBtn]}
+              onPress={handleExitGroup}
+            >
+              <MaterialIcons name="exit-to-app" size={24} color="#EF4444" />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 

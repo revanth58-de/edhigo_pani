@@ -30,6 +30,7 @@ const LABELS = {
         farmer: 'రైతు',
         worker: 'కూలీ',
         leader: 'గ్రూప్ లీడర్',
+        machinery: 'యంత్రాల యజమాని',
         continue: 'కొనసాగించు',
         required: 'అన్ని ఫీల్డ్‌లు అవసరం',
         phoneError: 'సరైన 10 అంకెల నంబర్ నమోదు చేయండి',
@@ -47,6 +48,7 @@ const LABELS = {
         farmer: 'किसान',
         worker: 'मजदूर',
         leader: 'ग्रुप लीडर',
+        machinery: 'मशीनरी मालिक',
         continue: 'जारी रखें',
         required: 'सभी फ़ील्ड आवश्यक हैं',
         phoneError: 'सही 10 अंकों का नंबर दर्ज करें',
@@ -70,6 +72,7 @@ const LABELS = {
         farmer: 'Farmer',
         worker: 'Worker',
         leader: 'Group Leader',
+        machinery: 'Machinery Owner',
         continue: 'Continue',
         required: 'All fields are required',
         phoneError: 'Enter a valid 10-digit number',
@@ -81,6 +84,7 @@ const ROLES = [
     { key: 'farmer', icon: 'agriculture', color: colors.primary },
     { key: 'worker', icon: 'engineering', color: colors.secondary },
     { key: 'leader', icon: 'groups', color: colors.accent },
+    { key: 'machinery', icon: 'construction', color: '#8B5CF6' },
 ];
 
 const GENDERS = [

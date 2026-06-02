@@ -18,16 +18,18 @@ import * as Notifications from 'expo-notifications';
 
 // Ensure foreground notifications show a visual UI banner
 // Wrapped in try/catch — expo-notifications native module isn't available on web
-try {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
-  });
-} catch (e) {
-  console.warn('Notifications.setNotificationHandler not available:', e.message);
+if (Platform.OS !== 'web' && Constants.appOwnership !== 'expo') {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (e) {
+    console.warn('Notifications.setNotificationHandler not available:', e.message);
+  }
 }
 
 // Auth Screens
@@ -65,6 +67,7 @@ import RateFarmerScreen from '../screens/worker/RateFarmerScreen';
 import WorkerProfileScreen from '../screens/worker/WorkerProfileScreen';
 import JobCancelledScreen from '../screens/worker/JobCancelledScreen';
 import WorkerBookingsScreen from '../screens/worker/WorkerBookingsScreen';
+import WorkerMachineryScreen from '../screens/worker/WorkerMachineryScreen';
 import EarningsDashboard from '../screens/worker/EarningsDashboard'; // F1
 import EarningsHistoryScreen from '../screens/worker/EarningsHistoryScreen';
 import SettlementStatusScreen from '../screens/worker/SettlementStatusScreen';
@@ -91,7 +94,7 @@ import GroupChatScreen from '../screens/leader/GroupChatScreen';
 // Shared Screens
 import LiveMapDiscoveryScreen from '../screens/shared/LiveMapDiscoveryScreen';
 import LiveMapCallScreen from '../screens/shared/LiveMapCallScreen';
-import NotificationsScreen from '../screens/shared/NotificationsScreen';
+import NotificationsScreen from '../screens/shared/NotificationInboxScreen';
 import WorkCategoriesScreen from '../screens/shared/WorkCategoriesScreen';
 import AIChatbotScreen from '../screens/shared/AIChatbotScreen';
 import DisputeScreen from '../screens/shared/DisputeScreen';
@@ -102,6 +105,39 @@ import useNotificationStore from '../store/notificationStore';
 
 // Global Overlays
 import NotificationOverlay from '../components/NotificationOverlay';
+
+const TYPE_META = {
+  job:        { icon: 'work' },
+  group:      { icon: 'groups' },
+  payment:    { icon: 'currency-rupee' },
+  attendance: { icon: 'fact-check' },
+  machinery:  { icon: 'agriculture' },
+  info:       { icon: 'info-outline' },
+};
+
+const getNotificationType = (item) => {
+  const title = (item.title || '').toLowerCase();
+  const body = (item.body || '').toLowerCase();
+  const data = item.data || {};
+  const screen = (data.screen || '').toLowerCase();
+
+  if (screen.includes('machinery') || title.includes('machinery') || title.includes('booking') || body.includes('booked')) {
+    return 'machinery';
+  }
+  if (screen.includes('payment') || title.includes('payment') || body.includes('paid') || title.includes('earning')) {
+    return 'payment';
+  }
+  if (screen.includes('attendance') || title.includes('attendance') || body.includes('arrived') || body.includes('finished') || body.includes('check-in') || body.includes('check-out') || title.includes('arrived') || title.includes('finished') || title.includes('arriving')) {
+    return 'attendance';
+  }
+  if (screen.includes('group') || title.includes('group') || body.includes('group') || body.includes('invited')) {
+    return 'group';
+  }
+  if (screen.includes('job') || title.includes('job') || body.includes('job') || screen.includes('offer')) {
+    return 'job';
+  }
+  return 'info';
+};
 
 const Stack = createNativeStackNavigator();
 
@@ -157,6 +193,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
     <Stack.Screen name="JobCancelled" component={JobCancelledScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="WorkerMachinery" component={WorkerMachineryScreen} />
     <Stack.Screen name="EarningsDashboard" component={EarningsDashboard} />
     <Stack.Screen name="EarningsHistory" component={EarningsHistoryScreen} />
     <Stack.Screen name="SettlementStatus" component={SettlementStatusScreen} />
@@ -164,12 +201,17 @@ const WorkerNavigator = () => (
     <Stack.Screen name="Groups" component={GroupsScreen} />
     <Stack.Screen name="GroupDetail" component={GroupDetailScreen} />
     <Stack.Screen name="GroupChat" component={GroupChatScreen} />
+    <Stack.Screen name="GroupMap" component={GroupMapScreen} />
     <Stack.Screen name="LiveMapDiscovery" component={LiveMapDiscoveryScreen} />
     <Stack.Screen name="LiveMapCall" component={LiveMapCallScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
     <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
     <Stack.Screen name="Dispute" component={DisputeScreen} />
     <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
+    <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
+    <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
+    <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
+    <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
   </Stack.Navigator>
 );
 
@@ -197,8 +239,35 @@ const LeaderNavigator = () => (
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
     <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
     <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="WorkerMachinery" component={WorkerMachineryScreen} />
     <Stack.Screen name="Dispute" component={DisputeScreen} />
     <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
+    <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
+    <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
+    <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
+    <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
+  </Stack.Navigator>
+);
+
+// ── Machinery Owner Stack ──
+const MachineryNavigator = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="MachineryHome" component={WorkerMachineryScreen} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} />
+    <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
+    <Stack.Screen name="WorkerProfile" component={WorkerProfileScreen} />
+    <Stack.Screen name="WorkerBookings" component={WorkerBookingsScreen} />
+    <Stack.Screen name="WorkerMachinery" component={WorkerMachineryScreen} />
+    <Stack.Screen name="QRScanner" component={QRScannerScreen} />
+    <Stack.Screen name="AttendanceConfirmed" component={AttendanceConfirmedScreen} />
+    <Stack.Screen name="WorkStatus" component={WorkStatusScreen} />
+    <Stack.Screen name="RateFarmer" component={RateFarmerScreen} />
+    <Stack.Screen name="Dispute" component={DisputeScreen} />
+    <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
+    <Stack.Screen name="ArrivalAlert" component={ArrivalAlertScreen} />
+    <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
+    <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
+    <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
   </Stack.Navigator>
 );
 
@@ -237,6 +306,11 @@ const AppNavigator = () => {
     if (!isAuthenticated || !user?.id) return;
 
     const registerPush = async () => {
+      if (Platform.OS === 'web') return;
+      if (Constants.appOwnership === 'expo') {
+        console.log('Push notifications are not supported in Expo Go (SDK 53+). Skipping registration.');
+        return;
+      }
       try {
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
@@ -305,7 +379,41 @@ const AppNavigator = () => {
     loadPendingInvites();
   }, [isAuthenticated, user?.id, user?.role]);
 
-  // \u2500\u2500 Global socket: connect + handle real-time notifications \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+  // ── On login: load initial notifications from database into store ──────────
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+
+    const loadNotifications = async () => {
+      try {
+        const { notificationService } = require('../services/api/notificationService');
+        const res = await notificationService.getNotifications(0, 50);
+        if (res.success && res.data?.notifications) {
+          const store = useNotificationStore.getState();
+          // Clear current store notifications first to avoid duplicates
+          store.clearAll();
+          res.data.notifications.forEach((n) => {
+            const type = getNotificationType(n);
+            store.addNotification({
+              id: n.id,
+              type,
+              title: n.title,
+              body: n.body,
+              icon: TYPE_META[type]?.icon || 'notifications',
+              timestamp: n.createdAt,
+              read: n.isRead || false,
+              data: n.data,
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Could not load initial notifications:', err.message);
+      }
+    };
+
+    loadNotifications();
+  }, [isAuthenticated, user?.id]);
+
+  // ── Global socket: connect + handle real-time notifications ─────────────────
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
 
@@ -412,13 +520,28 @@ const AppNavigator = () => {
         data: { screen: 'JobOffer', params: { job: { ...offer, id: offer.jobId } } },
       });
     };
-    socketService.onNewOffer(handleNewOfferNotif);
+    // ── Real-time notification updates from server ─────────────────
+    const handleNewNotification = (notif) => {
+      const type = getNotificationType(notif);
+      useNotificationStore.getState().addNotification({
+        id: notif.id,
+        type,
+        title: notif.title,
+        body: notif.body,
+        icon: TYPE_META[type]?.icon || 'notifications',
+        timestamp: notif.createdAt,
+        read: notif.isRead || false,
+        data: notif.data,
+      });
+    };
+    socketService.on('notification:new', handleNewNotification);
 
     return () => {
       socketService.offGroupInvite(handleGroupInvite);
       socketService.offWorkDone(handleWorkDone);
       socketService.offJobCancelled(handleJobCancelled);
       socketService.offNewOffer(handleNewOfferNotif);
+      socketService.off('notification:new', handleNewNotification);
     };
   }, [isAuthenticated, user?.id, user?.role]);
 
@@ -447,6 +570,8 @@ const AppNavigator = () => {
           <WorkerNavigator />
         ) : user?.role === 'leader' ? (
           <LeaderNavigator />
+        ) : user?.role === 'machinery' ? (
+          <MachineryNavigator />
         ) : (
           <FarmerNavigator />
         )}

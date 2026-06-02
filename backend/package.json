@@ -24,6 +24,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^6.19.2",
     "@sentry/node": "^8.20.0",
     "bcryptjs": "^3.0.3",
@@ -40,6 +42,7 @@
     "qrcode": "^1.5.3",
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "ws": "^8.21.0"
   }
 }

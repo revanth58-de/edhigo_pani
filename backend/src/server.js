@@ -22,6 +22,7 @@ const workerRoutes = require('./routes/worker.routes');
 const chatRoutes = require('./routes/chat.routes');
 const disputeRoutes = require('./routes/dispute.routes');
 const notificationRoutes = require('./routes/notification.routes');
+const machineryRoutes = require('./routes/machinery.routes');
 
 const Sentry = require('@sentry/node');
 // NOTE: @sentry/profiling-node is excluded — it requires a native binary that
@@ -121,6 +122,7 @@ app.use('/api/workers', workerRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/disputes', disputeRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/machinery', machineryRoutes);
 
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
@@ -206,6 +208,33 @@ io.on('connection', (socket) => {
       logger.info(`Socket ${socket.id} joined job:${jobId}`);
     } catch (err) {
       logger.error(`job:join error: ${err.message}`);
+    }
+  });
+
+  // Join a machinery booking room for updates
+  socket.on('booking:join', async (bookingId) => {
+    try {
+      const prisma = require('./config/database');
+      const booking = await prisma.machineryBooking.findUnique({
+        where: { id: bookingId },
+        select: {
+          farmerId: true,
+          machinery: { select: { ownerId: true } }
+        }
+      });
+      if (!booking) return;
+
+      const isFarmer = booking.farmerId === socket.userId;
+      const isOwner = booking.machinery.ownerId === socket.userId;
+
+      if (!isFarmer && !isOwner) {
+        logger.warn(`Socket ${socket.id} tried to join booking:${bookingId} without authorization`);
+        return;
+      }
+      socket.join(`booking:${bookingId}`);
+      logger.info(`Socket ${socket.id} joined booking:${bookingId}`);
+    } catch (err) {
+      logger.error(`booking:join error: ${err.message}`);
     }
   });
 
@@ -410,7 +439,11 @@ if (require.main === module) {
         logger.info(`🧹 Token cleanup: removed ${result.count} expired/revoked refresh tokens`);
       }
     } catch (err) {
-      logger.error('Token cleanup job failed', { message: err.message });
+      if (err.message.includes("Can't reach database server")) {
+        logger.warn('🧹 Token cleanup: Database asleep or unreachable, skipping.');
+      } else {
+        logger.error('Token cleanup job failed', { message: err.message });
+      }
     }
   };
   // Run once immediately on startup, then every 24 hours
@@ -439,7 +472,11 @@ if (require.main === module) {
         logger.info(`💓 Heartbeat: auto-set ${result.count} inactive workers to offline`);
       }
     } catch (err) {
-      logger.error('Worker heartbeat job failed', { message: err.message });
+      if (err.message.includes("Can't reach database server")) {
+        logger.warn('💓 Heartbeat: Database asleep or unreachable, skipping.');
+      } else {
+        logger.error('Worker heartbeat job failed', { message: err.message });
+      }
     }
   };
   setInterval(runWorkerHeartbeat, HEARTBEAT_INTERVAL);

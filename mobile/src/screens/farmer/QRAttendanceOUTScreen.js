@@ -17,18 +17,26 @@ import { socketService } from '../../services/socketService';
 const { width } = Dimensions.get('window');
 
 const QRAttendanceOUTScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job, booking, isMachinery } = route.params || {};
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     socketService.connect();
-    if (job?.id) {
+    if (isMachinery && booking?.id) {
+      socketService.joinBookingRoom(booking.id);
+    } else if (job?.id) {
       socketService.joinJobRoom(job.id);
     }
 
     const handleCheckOut = (data) => {
-      if (data.jobId === job?.id || !data.jobId) {
-        navigation.replace('Payment', { job });
+      if (isMachinery) {
+        if (data.bookingId === booking?.id || !data.bookingId) {
+          navigation.replace('Payment', { booking, isMachinery: true });
+        }
+      } else {
+        if (data.jobId === job?.id || !data.jobId) {
+          navigation.replace('Payment', { job });
+        }
       }
     };
     socketService.on('attendance:check_out', handleCheckOut);
@@ -36,18 +44,31 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
     return () => {
       socketService.off('attendance:check_out', handleCheckOut);
     };
-  }, [job?.id]);
+  }, [job?.id, booking?.id, isMachinery]);
 
-  const qrData = JSON.stringify({
-    jobId: job?.id,
-    farmerId: user?.id,
-    type: 'out',
-    timestamp: Date.now(),
-  });
+  const qrData = JSON.stringify(
+    isMachinery
+      ? {
+          bookingId: booking?.id,
+          farmerId: user?.id,
+          type: 'out',
+          timestamp: Date.now(),
+        }
+      : {
+          jobId: job?.id,
+          farmerId: user?.id,
+          type: 'out',
+          timestamp: Date.now(),
+        }
+  );
 
   const handleSkipScan = () => {
-    // Proceed directly to the payment screen
-    navigation.replace('Payment', { job });
+    if (isMachinery) {
+      navigation.replace('Payment', { booking, isMachinery: true });
+    } else {
+      // Proceed directly to the payment screen
+      navigation.replace('Payment', { job });
+    }
   };
 
   return (
@@ -105,8 +126,23 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Job Details Box */}
-        {job && (
+        {/* Job / Booking Details Box */}
+        {isMachinery && booking ? (
+          <View style={styles.jobBox}>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Machinery</Text>
+               <Text style={styles.jobValue}>{booking.machinery?.name || 'Machine'}</Text>
+             </View>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Owner</Text>
+               <Text style={styles.jobValue}>{booking.machinery?.owner?.name || 'Owner'}</Text>
+             </View>
+             <View style={styles.jobRow}>
+               <Text style={styles.jobLabel}>Price</Text>
+               <Text style={styles.jobValue}>₹{booking.totalPrice || booking.price || 0}</Text>
+             </View>
+          </View>
+        ) : job ? (
           <View style={styles.jobBox}>
              <View style={styles.jobRow}>
                <Text style={styles.jobLabel}>Work Type</Text>
@@ -117,7 +153,7 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
                <Text style={styles.jobValue}>₹{job.payPerDay || 500}</Text>
              </View>
           </View>
-        )}
+        ) : null}
 
         {/* Skip Scan to Payment Button for quick flow */}
         <TouchableOpacity 

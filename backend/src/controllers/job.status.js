@@ -154,6 +154,9 @@ const acceptJob = async (req, res) => {
       });
 
       return { job: currentJob, workerDetails, farmerFull, isNowFull, acceptedCount };
+    }, {
+      maxWait: 5000,
+      timeout: 15000,
     });
 
     // 📲 Push to farmer even if app is closed

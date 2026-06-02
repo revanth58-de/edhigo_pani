@@ -623,24 +623,43 @@ const WorkerProfileScreen = ({ navigation }) => {
             </View>
 
             {!isEditing && (
-              <View style={[styles.actionsContainer, { marginTop: 12 }]}>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate('DisputeHistory')}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons name="gavel" size={24} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Disputes History</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.actionButton}
-                  onPress={() => navigation.navigate('AIChatbot')}
-                  activeOpacity={0.8}
-                >
-                  <MaterialIcons name="chat" size={24} color={colors.primary} />
-                  <Text style={styles.actionButtonText}>Voice Support</Text>
-                </TouchableOpacity>
-              </View>
+              <>
+                <View style={[styles.actionsContainer, { marginTop: 12 }]}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('WorkerMachinery')}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="agriculture" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText} adjustsFontSizeToFit numberOfLines={1}>
+                      {t('machinery.myMachinery', 'My Farm Machinery')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('AIChatbot')}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="chat" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText} adjustsFontSizeToFit numberOfLines={1}>
+                      Voice Support
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={[styles.actionsContainer, { marginTop: 12 }]}>
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('DisputeHistory')}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="gavel" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText} adjustsFontSizeToFit numberOfLines={1}>
+                      Disputes History
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
             )}
 
             {/* Role Switcher (Slide to Switch) */}
@@ -667,6 +686,15 @@ const WorkerProfileScreen = ({ navigation }) => {
                 </LinearGradient>
               </View>
             )}
+
+            {/* Notifications Button */}
+            <TouchableOpacity
+              style={styles.notificationsButton}
+              onPress={() => navigation.navigate('Notifications')}
+            >
+              <MaterialIcons name="notifications-none" size={22} color={colors.primary} />
+              <Text style={styles.notificationsButtonText}>{t('notifications.title')}</Text>
+            </TouchableOpacity>
 
             {/* Logout Button */}
             <TouchableOpacity
@@ -696,7 +724,7 @@ const WorkerProfileScreen = ({ navigation }) => {
         )}
       </ScrollView>
 
-      <BottomNavBar role="worker" activeTab="Profile" />
+      <BottomNavBar role={user?.role || "worker"} activeTab="Profile" />
     </View>
   );
 };
@@ -1168,6 +1196,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  notificationsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 24,
+    height: 54,
+    borderRadius: 18,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  notificationsButtonText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',

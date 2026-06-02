@@ -5,15 +5,20 @@ const { PaymentStatus, PaymentMethod } = require('../config/enums'); // D1
 // POST /api/payments - Make a payment
 const makePayment = async (req, res, next) => {
   try {
-    const { jobId, amount, method, transactionId } = req.body;
+    const { jobId, bookingId, amount, method, transactionId } = req.body;
     const farmerId = req.user.id; // From JWT token
 
-    logger.info('Payment request received', { farmerId, jobId, amount, method });
+    logger.info('Payment request received', { farmerId, jobId, bookingId, amount, method });
 
     // Validation
-    if (!jobId || !amount || !method) {
+    if (!jobId && !bookingId) {
       return res.status(400).json({
-        error: 'Job ID, amount, and payment method are required',
+        error: 'Either Job ID or Booking ID is required',
+      });
+    }
+    if (!amount || !method) {
+      return res.status(400).json({
+        error: 'Amount and payment method are required',
       });
     }
 
@@ -21,6 +26,115 @@ const makePayment = async (req, res, next) => {
     if (!validMethods.includes(method)) {
       return res.status(400).json({
         error: `Invalid method. Must be one of: ${validMethods.join(', ')}`,
+      });
+    }
+
+    // Machinery Booking Payment Flow
+    if (bookingId) {
+      const booking = await prisma.machineryBooking.findUnique({
+        where: { id: bookingId },
+        include: {
+          machinery: {
+            include: {
+              owner: { select: { id: true, pushToken: true, name: true } }
+            }
+          }
+        }
+      });
+
+      if (!booking) {
+        return res.status(404).json({ error: 'Machinery booking not found' });
+      }
+
+      if (booking.farmerId !== farmerId) {
+        return res.status(403).json({ error: 'Not authorized to make payment for this booking' });
+      }
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({ error: 'Amount must be a positive number' });
+      }
+
+      // Check duplicate UPI reference
+      if (transactionId) {
+        const duplicateUPI = await prisma.payment.findFirst({
+          where: { bookingId, upiRef: transactionId }
+        });
+        if (duplicateUPI) {
+          return res.status(409).json({ error: 'A payment with this UPI reference already exists' });
+        }
+      }
+
+      // Guard against double payment
+      const existingCompleted = await prisma.payment.findFirst({
+        where: { bookingId, farmerId, status: PaymentStatus.COMPLETED },
+        select: { id: true }
+      });
+      if (existingCompleted) {
+        return res.status(409).json({ error: 'Payment already completed for this machinery booking.' });
+      }
+
+      const isCompleted = method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING;
+      const commissionAmount = Math.round((parsedAmount * 0.05) * 100) / 100;
+      const workerAmount = Math.round((parsedAmount - commissionAmount) * 100) / 100;
+
+      const payment = await prisma.payment.create({
+        data: {
+          bookingId,
+          farmerId,
+          workerId: booking.machinery.ownerId,
+          amount: parsedAmount,
+          commissionAmount,
+          workerAmount,
+          method,
+          upiRef: transactionId || null,
+          status: isCompleted,
+          settlementStatus: 'pending',
+          paidAt: isCompleted === PaymentStatus.COMPLETED ? new Date() : null,
+        }
+      });
+
+      if (isCompleted === PaymentStatus.COMPLETED) {
+        await prisma.settlement.create({
+          data: {
+            workerId: booking.machinery.ownerId,
+            paymentId: payment.id,
+            amount: workerAmount,
+            status: 'pending',
+          }
+        });
+      }
+
+      // Notify machinery owner
+      try {
+        const { createNotification, sendPush } = require('../services/pushNotification');
+        const farmer = await prisma.user.findUnique({ where: { id: farmerId }, select: { name: true } });
+        const isConfirmed = isCompleted === PaymentStatus.COMPLETED;
+        const notifTitle = isConfirmed ? '💰 Payment Received!' : '⏳ Payment Pending';
+        const notifBody = isConfirmed
+          ? `Farmer ${farmer?.name || 'A farmer'} paid ₹${parsedAmount} (Cash) for your machinery booking.`
+          : `Farmer ${farmer?.name || 'A farmer'} initiated a ₹${parsedAmount} (UPI) payment for your machinery booking.`;
+
+        await createNotification(booking.machinery.ownerId, notifTitle, notifBody, {
+          bookingId,
+          screen: 'WorkerMachinery',
+        });
+
+        if (booking.machinery.owner?.pushToken) {
+          await sendPush(booking.machinery.owner.pushToken, notifTitle, notifBody, {
+            bookingId,
+            screen: 'WorkerMachinery',
+          });
+        }
+      } catch (notifError) {
+        logger.error('Failed to notify machinery owner of payment', { message: notifError.message });
+      }
+
+      return res.json({
+        message: 'Payment processed successfully',
+        payments: [payment],
+        totalAmount: parsedAmount,
+        workerCount: 1,
       });
     }
 
@@ -225,9 +339,88 @@ const getPaymentDetails = async (req, res, next) => {
 // This is the fix for UPI payments being stuck in "pending" forever.
 const confirmPayment = async (req, res, next) => {
   try {
-    const { jobId } = req.params;
+    const { jobId } = req.params; // this can be jobId OR bookingId!
     const { upiRef } = req.body;     // Optional: UPI transaction reference number
     const farmerId = req.user.id;
+
+    // 1. Check if it's a MachineryBooking first
+    const booking = await prisma.machineryBooking.findUnique({ where: { id: jobId } });
+    if (booking) {
+      if (booking.farmerId !== farmerId) {
+        return res.status(403).json({ error: 'Not authorized to confirm payment for this booking' });
+      }
+
+      // Find pending payment for this booking
+      const pendingPayments = await prisma.payment.findMany({
+        where: {
+          bookingId: jobId,
+          farmerId,
+          status: PaymentStatus.PENDING,
+          method: { in: [PaymentMethod.UPI, PaymentMethod.CARD, PaymentMethod.NETBANKING] }
+        }
+      });
+
+      if (pendingPayments.length === 0) {
+        return res.status(404).json({ error: 'No pending payments found for this booking' });
+      }
+
+      const updatedPayments = [];
+      for (const payment of pendingPayments) {
+        const updated = await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.COMPLETED,
+            paidAt: new Date(),
+            ...(upiRef && { upiRef }),
+          }
+        });
+
+        // Create settlement
+        const existingSettlement = await prisma.settlement.findFirst({
+          where: { paymentId: payment.id }
+        });
+
+        if (!existingSettlement) {
+          await prisma.settlement.create({
+            data: {
+              workerId: payment.workerId,
+              paymentId: payment.id,
+              amount: payment.workerAmount,
+              status: 'pending',
+            }
+          });
+        }
+        updatedPayments.push(updated);
+      }
+
+      // Notify machinery owner
+      try {
+        const { createNotification, sendPush } = require('../services/pushNotification');
+        const farmer = await prisma.user.findUnique({ where: { id: farmerId }, select: { name: true } });
+        const notifTitle = '💰 Payment Confirmed!';
+        const notifBody = `Farmer ${farmer?.name || 'A farmer'} confirmed your UPI payment of ₹${updatedPayments[0].amount}.`;
+
+        await createNotification(updatedPayments[0].workerId, notifTitle, notifBody, {
+          bookingId: jobId,
+          screen: 'WorkerMachinery',
+        });
+
+        const owner = await prisma.user.findUnique({ where: { id: updatedPayments[0].workerId }, select: { pushToken: true } });
+        if (owner?.pushToken) {
+          await sendPush(owner.pushToken, notifTitle, notifBody, {
+            bookingId: jobId,
+            screen: 'WorkerMachinery',
+          });
+        }
+      } catch (notifError) {
+        logger.error('Failed to notify owner of payment confirmation', { message: notifError.message });
+      }
+
+      return res.json({
+        message: `${updatedPayments.length} payment(s) confirmed successfully`,
+        confirmedCount: updatedPayments.length,
+      });
+    }
 
     // Verify the job belongs to this farmer
     const job = await prisma.job.findUnique({ where: { id: jobId } });

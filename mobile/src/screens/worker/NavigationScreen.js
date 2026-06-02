@@ -206,17 +206,23 @@ const NavigationScreen = ({ navigation, route }) => {
       default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
     });
 
+    const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
     try {
       const supported = await Linking.canOpenURL(scheme);
       if (supported) {
         await Linking.openURL(scheme);
       } else {
-        const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
         await Linking.openURL(webUrl);
       }
     } catch (error) {
-      console.error('Error opening map deep link:', error);
-      Alert.alert('Error', 'Unable to launch map deep link.');
+      console.warn('Failed to open map scheme/URL, trying webUrl fallback:', error.message);
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webError) {
+        console.error('Error opening map web link:', webError);
+        Alert.alert('Error', 'Unable to launch maps.');
+      }
     }
   };
 

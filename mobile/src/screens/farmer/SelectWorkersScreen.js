@@ -21,11 +21,11 @@ import { colors } from '../../theme/colors';
 import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
-  const { workType } = route.params;
+  const { workType, repostJob } = route.params || {};
   const user = useAuthStore((state) => state.user);
-  const [workerType, setWorkerType] = useState('group'); // 'individual' or 'group'
-  const [workersNeeded, setWorkersNeeded] = useState(10);
-  const [payPerDay, setPayPerDay] = useState('500');
+  const [workerType, setWorkerType] = useState(repostJob?.workerType || 'group'); // 'individual' or 'group'
+  const [workersNeeded, setWorkersNeeded] = useState(repostJob?.workersNeeded || 10);
+  const [payPerDay, setPayPerDay] = useState(repostJob?.payPerDay ? String(repostJob.payPerDay) : '500');
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
@@ -79,7 +79,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       // Create job posting
       const jobData = {
         farmerId: user.id,
-        workType: workType.toLowerCase(),
+        workType: (workType || repostJob?.workType || '').toLowerCase(),
         workerType,
         workersNeeded,
         payPerDay: parsedPay,

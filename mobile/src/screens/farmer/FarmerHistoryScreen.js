@@ -83,12 +83,12 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
                 </View>
                 <View style={styles.detailRow}>
                     <MaterialIcons name="currency-rupee" size={16} color="#64748B" />
-                    <Text style={styles.detailText}>₹{job.wagePerDay}/day per worker</Text>
+                    <Text style={styles.detailText}>₹{job.wagePerDay || job.payPerDay}/day per worker</Text>
                 </View>
             </View>
 
             {/* Management Actions */}
-            {job.status !== 'completed' && job.status !== 'cancelled' && (
+            {job.status !== 'completed' && job.status !== 'cancelled' ? (
                 <View style={styles.actionRow}>
                     {job.status === 'accepted' && (
                         <TouchableOpacity 
@@ -122,6 +122,19 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
                             <Text style={styles.actionBtnText}>Cancel Work</Text>
                         </TouchableOpacity>
                     )}
+                </View>
+            ) : (
+                <View style={styles.actionRow}>
+                    <TouchableOpacity 
+                        style={[styles.actionBtn, { backgroundColor: colors.primary, flexDirection: 'row', gap: 6 }]}
+                        onPress={() => navigation.navigate('SelectWorkers', { 
+                            workType: job.workType, 
+                            repostJob: job 
+                        })}
+                    >
+                        <MaterialIcons name="replay" size={18} color="#FFF" />
+                        <Text style={styles.actionBtnText}>Repost Job</Text>
+                    </TouchableOpacity>
                 </View>
             )}
 

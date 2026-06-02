@@ -129,8 +129,10 @@ const GroupChatScreen = ({ navigation, route }) => {
 
   // Ref to track if we have messages in the cache initially to avoid full-screen loader on updates
   const hasMessagesRef = useRef(cachedMessages.length > 0);
+  const cachedMessagesRef = useRef(cachedMessages);
   useEffect(() => {
     hasMessagesRef.current = cachedMessages.length > 0;
+    cachedMessagesRef.current = cachedMessages;
   }, [cachedMessages]);
 
   // ── Fetch a page of messages ─────────────────────────────────────────────
@@ -211,6 +213,16 @@ const GroupChatScreen = ({ navigation, route }) => {
     };
     init();
 
+    // Listen for navigation focus to sync deltas in background
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      if (hasMessagesRef.current) {
+        const lastMsg = cachedMessagesRef.current[cachedMessagesRef.current.length - 1];
+        if (lastMsg) {
+          fetchMessages({ delta: lastMsg.id });
+        }
+      }
+    });
+
     // Join group socket room
     socketService.joinGroupRoom(groupId);
 
@@ -239,8 +251,9 @@ const GroupChatScreen = ({ navigation, route }) => {
 
     return () => {
       socketService.offGroupMessage(handleMessage);
+      unsubscribeFocus();
     };
-  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id]);
+  }, [groupId, fetchMessages, addMessageToCachedGroup, user?.id, navigation]);
 
   // ── B2: Load older page when user scrolls to top ──────────────────────────
   const handleScrollToTop = useCallback(async () => {

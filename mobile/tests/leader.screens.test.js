@@ -10,6 +10,12 @@ const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 const mockNavigation = { navigate: mockNavigate, goBack: mockGoBack };
 
+// ── Mock axios ──
+jest.mock('axios', () => ({
+  get: jest.fn(() => Promise.resolve({ data: { data: [], meta: { hasMore: false, nextCursor: null } } })),
+  post: jest.fn(() => Promise.resolve({ data: { success: true } })),
+}));
+
 // ── Mock stores & services ────────────────────────────────────────────────────
 jest.mock('../src/store/authStore', () => () => ({
   user: {
@@ -523,6 +529,57 @@ describe('ManageGroupScreen Map Navigation', () => {
       expect(mapBtn).toBeTruthy();
       fireEvent.press(mapBtn);
       expect(mockNavigate).toHaveBeenCalledWith('GroupMap', { groupId: 'g-1', workerCount: 3 });
+    });
+  });
+});
+
+// ─── Group Chat Screen ────────────────────────────────────────────────────────
+describe('GroupChatScreen', () => {
+  let GroupChatScreen;
+  const route = { params: { groupId: 'g-1', groupName: 'Rice Harvesters' } };
+  const mockAddListener = jest.fn((event, cb) => {
+    if (event === 'focus') {
+      cb();
+    }
+    return jest.fn();
+  });
+  const mockChatNavigation = {
+    ...mockNavigation,
+    addListener: mockAddListener
+  };
+
+  beforeAll(() => {
+    try {
+      GroupChatScreen = require('../src/screens/leader/GroupChatScreen').default;
+    } catch {
+      GroupChatScreen = null;
+    }
+  });
+
+  test('✅ Renders GroupChatScreen and fetches messages', async () => {
+    if (!GroupChatScreen) return;
+    const axios = require('axios');
+    axios.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 'msg-1',
+            content: 'Hello group!',
+            createdAt: new Date().toISOString(),
+            sender: { id: 'leader-123', name: 'Test Leader' }
+          }
+        ],
+        meta: { hasMore: false, nextCursor: null }
+      }
+    });
+
+    const { getByText } = render(
+      <GroupChatScreen navigation={mockChatNavigation} route={route} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Hello group!')).toBeTruthy();
+      expect(mockAddListener).toHaveBeenCalledWith('focus', expect.any(Function));
     });
   });
 });

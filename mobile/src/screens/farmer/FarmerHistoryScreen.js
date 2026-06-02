@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { jobAPI } from '../../services/api';
+import { machineryService } from '../../services/api/machineryService';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
@@ -137,9 +138,140 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
     );
 };
 
+const MachineryBookingCard = ({ booking, navigation, t }) => {
+    const isCompleted = booking.status === 'completed';
+    const isPaid = booking.payments && booking.payments.some(p => p.status === 'completed');
+    const isPendingPayment = isCompleted && !isPaid;
+
+    const handleAction = () => {
+        if (booking.status === 'confirmed') {
+            navigation.navigate('QRAttendance', {
+                job: {
+                    id: booking.id,
+                    workType: booking.machinery?.name || booking.machinery?.type || 'Machinery',
+                    payPerDay: booking.machinery?.pricePerHour || booking.totalAmount,
+                },
+                type: 'in',
+                booking,
+                isMachinery: true,
+            });
+        } else if (booking.status === 'in_progress') {
+            navigation.navigate('WorkInProgress', {
+                job: {
+                    id: booking.id,
+                    workType: booking.machinery?.name || booking.machinery?.type || 'Machinery',
+                    payPerDay: booking.machinery?.pricePerHour || booking.totalAmount,
+                },
+                booking,
+                isMachinery: true,
+            });
+        } else if (isPendingPayment) {
+            navigation.navigate('Payment', {
+                job: {
+                    id: booking.id,
+                    workType: booking.machinery?.name || booking.machinery?.type || 'Machinery',
+                    payPerDay: booking.machinery?.pricePerHour || booking.totalAmount,
+                },
+                booking,
+                isMachinery: true,
+            });
+        }
+    };
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.cardHeader}>
+                <View style={[styles.workIconCircle, { backgroundColor: `${colors.primary}15` }]}>
+                    <MaterialIcons name="agriculture" size={28} color={colors.primary} />
+                </View>
+                <View style={styles.cardHeaderText}>
+                    <Text style={styles.workType}>{booking.machinery?.name || 'Machinery'}</Text>
+                    <Text style={styles.jobDate}>{formatDate(booking.date)}</Text>
+                </View>
+                <View style={[
+                    styles.statusBadge,
+                    {
+                        backgroundColor:
+                            booking.status === 'confirmed' ? '#EFF6FF' :
+                            booking.status === 'in_progress' ? '#F5F3FF' :
+                            isPaid ? '#D1FAE5' :
+                            isPendingPayment ? '#FEF3C7' : '#FEE2E2'
+                    }
+                ]}>
+                    <Text style={[
+                        styles.statusText,
+                        {
+                            color:
+                                booking.status === 'confirmed' ? '#3B82F6' :
+                                booking.status === 'in_progress' ? '#8B5CF6' :
+                                isPaid ? '#10B981' :
+                                isPendingPayment ? '#D97706' : '#EF4444'
+                        }
+                    ]}>
+                        {booking.status === 'confirmed' ? 'Confirmed' :
+                         booking.status === 'in_progress' ? 'In Progress' :
+                         isPaid ? 'Paid' :
+                         isPendingPayment ? 'Pending Pay' : booking.status.toUpperCase()}
+                    </Text>
+                </View>
+            </View>
+
+            <View style={styles.cardDetails}>
+                <View style={styles.detailRow}>
+                    <MaterialIcons name="person" size={16} color="#64748B" />
+                    <Text style={styles.detailText}>Owner: {booking.machinery?.owner?.name || 'Owner'}</Text>
+                </View>
+                {booking.machinery?.owner?.phone && (
+                    <View style={styles.detailRow}>
+                        <MaterialIcons name="phone" size={16} color="#64748B" />
+                        <Text style={styles.detailText}>{booking.machinery.owner.phone}</Text>
+                    </View>
+                )}
+                {booking.address && (
+                    <View style={styles.detailRow}>
+                        <MaterialIcons name="location-on" size={16} color="#64748B" />
+                        <Text style={styles.detailText}>{booking.address}</Text>
+                    </View>
+                )}
+                <View style={styles.detailRow}>
+                    <MaterialIcons name="schedule" size={16} color="#64748B" />
+                    <Text style={styles.detailText}>Slot: {booking.slot}</Text>
+                </View>
+                <View style={styles.detailRow}>
+                    <MaterialIcons name="currency-rupee" size={16} color="#64748B" />
+                    <Text style={styles.detailText}>Total: ₹{booking.totalAmount}</Text>
+                </View>
+            </View>
+
+            {(booking.status === 'confirmed' || booking.status === 'in_progress' || isPendingPayment) && (
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        style={[
+                            styles.actionBtn,
+                            {
+                                backgroundColor:
+                                    booking.status === 'confirmed' ? colors.primary :
+                                    booking.status === 'in_progress' ? '#8B5CF6' : '#F59E0B'
+                            }
+                        ]}
+                        onPress={handleAction}
+                    >
+                        <Text style={styles.actionBtnText}>
+                            {booking.status === 'confirmed' ? 'Start (Show QR)' :
+                             booking.status === 'in_progress' ? 'Active Session' : 'Pay Owner'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
+    );
+};
+
 const FarmerHistoryScreen = ({ navigation }) => {
     const user = useAuthStore((state) => state.user);
     const [jobs, setJobs] = useState([]);
+    const [machineryBookings, setMachineryBookings] = useState([]);
+    const [activeCategory, setActiveCategory] = useState('jobs'); // 'jobs' | 'machinery'
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
@@ -161,9 +293,17 @@ const FarmerHistoryScreen = ({ navigation }) => {
             else setLoading(true);
             setError(null);
 
-            const response = await jobAPI.getMyJobs();
-            const jobList = response?.data?.data || [];
+            const [jobsRes, machineryRes] = await Promise.all([
+                jobAPI.getMyJobs(),
+                machineryService.getBookings(),
+            ]);
+
+            const jobList = jobsRes?.data?.data || [];
             setJobs(Array.isArray(jobList) ? jobList : []);
+
+            if (machineryRes.success) {
+                setMachineryBookings(machineryRes.bookings || []);
+            }
         } catch (err) {
             setError('Could not load bookings. Please try again.');
         } finally {
@@ -201,7 +341,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
             return (
                 <View style={styles.centeredBox}>
                     <CustomLoader size={48} color={colors.primary} />
-                    <Text style={styles.loadingText}>Loading your jobs...</Text>
+                    <Text style={styles.loadingText}>Loading your bookings...</Text>
                 </View>
             );
         }
@@ -215,6 +355,36 @@ const FarmerHistoryScreen = ({ navigation }) => {
                         <Text style={styles.retryBtnText}>Try Again</Text>
                     </TouchableOpacity>
                 </View>
+            );
+        }
+
+        if (activeCategory === 'machinery') {
+            if (machineryBookings.length === 0) {
+                return (
+                    <EmptyState
+                        icon="agriculture"
+                        title="No Machinery Booked"
+                        subtitle="Your machinery bookings will appear here."
+                        action={{ label: 'Book Machinery', onPress: () => navigation.navigate('FarmerHome') }}
+                    />
+                );
+            }
+            return (
+                <>
+                    <View style={styles.summaryRow}>
+                        <Text style={styles.summaryText}>
+                            {machineryBookings.length} booking{machineryBookings.length !== 1 ? 's' : ''}
+                        </Text>
+                    </View>
+                    {machineryBookings.map((booking) => (
+                        <MachineryBookingCard
+                            key={booking.id}
+                            booking={booking}
+                            navigation={navigation}
+                            t={t}
+                        />
+                    ))}
+                </>
             );
         }
 
@@ -255,6 +425,28 @@ const FarmerHistoryScreen = ({ navigation }) => {
             <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
             <TopBar title="Bookings" showBack navigation={navigation} />
 
+            {/* Category selection tabs */}
+            <View style={styles.categoryToggleRow}>
+                <TouchableOpacity
+                    style={[styles.categoryTab, activeCategory === 'jobs' && styles.categoryTabActive]}
+                    onPress={() => setActiveCategory('jobs')}
+                >
+                    <MaterialIcons name="engineering" size={18} color={activeCategory === 'jobs' ? '#FFF' : '#64748B'} />
+                    <Text style={[styles.categoryTabText, activeCategory === 'jobs' && styles.categoryTabTextActive]}>
+                        Workers
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={[styles.categoryTab, activeCategory === 'machinery' && styles.categoryTabActive]}
+                    onPress={() => setActiveCategory('machinery')}
+                >
+                    <MaterialIcons name="agriculture" size={18} color={activeCategory === 'machinery' ? '#FFF' : '#64748B'} />
+                    <Text style={[styles.categoryTabText, activeCategory === 'machinery' && styles.categoryTabTextActive]}>
+                        Machinery
+                    </Text>
+                </TouchableOpacity>
+            </View>
+
             <ScrollView
                 style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
@@ -267,33 +459,37 @@ const FarmerHistoryScreen = ({ navigation }) => {
                     />
                 }
             >
-                {/* M10: WorkType filter chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
-                    {['All', 'Sowing', 'Harvesting', 'Irrigation', 'Labour', 'Tractor'].map(wt => (
-                        <TouchableOpacity
-                            key={wt}
-                            style={[styles.filterChip, workTypeFilter === wt && styles.filterChipActive]}
-                            onPress={() => setWorkTypeFilter(wt)}
-                        >
-                            <Text style={[styles.filterChipText, workTypeFilter === wt && styles.filterChipTextActive]}>{wt}</Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                {activeCategory === 'jobs' && (
+                    <>
+                        {/* M10: WorkType filter chips */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
+                            {['All', 'Sowing', 'Harvesting', 'Irrigation', 'Labour', 'Tractor'].map(wt => (
+                                <TouchableOpacity
+                                    key={wt}
+                                    style={[styles.filterChip, workTypeFilter === wt && styles.filterChipActive]}
+                                    onPress={() => setWorkTypeFilter(wt)}
+                                >
+                                    <Text style={[styles.filterChipText, workTypeFilter === wt && styles.filterChipTextActive]}>{wt}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
 
-                {/* M10: Status filter chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
-                    {['All', 'pending', 'accepted', 'in_progress', 'completed', 'cancelled'].map(st => (
-                        <TouchableOpacity
-                            key={st}
-                            style={[styles.filterChip, statusFilter === st && styles.filterChipActive]}
-                            onPress={() => setStatusFilter(st)}
-                        >
-                            <Text style={[styles.filterChipText, statusFilter === st && styles.filterChipTextActive]}>
-                                {st === 'All' ? 'All Status' : st.replace('_', ' ')}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </ScrollView>
+                        {/* M10: Status filter chips */}
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={styles.filterRowContent}>
+                            {['All', 'pending', 'accepted', 'in_progress', 'completed', 'cancelled'].map(st => (
+                                <TouchableOpacity
+                                    key={st}
+                                    style={[styles.filterChip, statusFilter === st && styles.filterChipActive]}
+                                    onPress={() => setStatusFilter(st)}
+                                >
+                                    <Text style={[styles.filterChipText, statusFilter === st && styles.filterChipTextActive]}>
+                                        {st === 'All' ? 'All Status' : st.replace('_', ' ')}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </>
+                )}
 
                 {renderContent()}
             </ScrollView>
@@ -448,6 +644,36 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#E11D48',
+    },
+    categoryToggleRow: {
+        flexDirection: 'row',
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 12,
+    },
+    categoryTab: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: '#F3F4F6',
+    },
+    categoryTabActive: {
+        backgroundColor: colors.primary,
+    },
+    categoryTabText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#64748B',
+    },
+    categoryTabTextActive: {
+        color: '#FFFFFF',
     },
 });
 

@@ -16,9 +16,10 @@ import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 
 const RateFarmerScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job, isMachinery } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+  const user = useAuthStore((state) => state.user);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,11 @@ const RateFarmerScreen = ({ navigation, route }) => {
       });
 
       if (response.success || response.message?.toLowerCase().includes('already rated')) {
-        navigation.navigate('WorkerHome');
+        if (isMachinery || user?.role === 'machinery') {
+          navigation.navigate('MachineryHome');
+        } else {
+          navigation.navigate('WorkerHome');
+        }
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');
       }

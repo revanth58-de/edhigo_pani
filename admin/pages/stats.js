@@ -14,10 +14,8 @@ export async function loadStats(isSilent = false) {
     const farmers = u.byRole?.farmer || 0;
     const workers = u.byRole?.worker || 0;
     const leaders = u.byRole?.leader || 0;
-    // FIX #5 (frontend): Use correct status keys. Schema uses 'pending'/'matched'/'in_progress'
-    // NOT 'open'. Sum all "live" statuses for the KPI card.
-    const openJobs = (j.byStatus?.pending || 0) + (j.byStatus?.matched || 0) + (j.byStatus?.in_progress || 0);
-    const doneJobs = j.byStatus?.completed || 0;
+    const openJobs = j.openJobs || 0;
+    const doneJobs = j.doneJobs || 0;
     const revenue  = p.revenue || 0;
 
     // FIX #5: Use real growth data from the backend.
@@ -148,8 +146,119 @@ function miniCard(icon, bg, label, value) {
     </div>`;
 }
 
+// Helper: Generates premium SVG markup representing Job counts (vertical bars)
+// and Revenue trend (glowing curved line overlay).
+function generateSvgHtml(activity) {
+  const maxJobs = Math.max(...activity.map(d => d.jobs), 1);
+  const maxRevenue = Math.max(...activity.map(d => d.revenue), 1);
+
+  const width = 700;
+  const height = 180;
+  const paddingBottom = 20;
+  const paddingTop = 20;
+  const chartHeight = height - paddingTop - paddingBottom;
+
+  let bars = "";
+  let linePoints = [];
+  let dots = "";
+
+  activity.forEach((d, i) => {
+    const x = i * 100 + 50;
+
+    // Jobs height
+    const jobsH = (d.jobs / maxJobs) * chartHeight;
+    const jobsY = height - paddingBottom - jobsH;
+    
+    // Revenue height
+    const revH = (d.revenue / maxRevenue) * chartHeight;
+    const revY = height - paddingBottom - revH;
+    linePoints.push({ x, y: revY });
+
+    const tooltip = `${d.label} | Jobs: ${d.jobs} | Revenue: ₹${d.revenue.toLocaleString('en-IN')}`;
+
+    // Add bar
+    bars += `
+      <rect 
+        x="${x - 12}" 
+        y="${jobsY}" 
+        width="24" 
+        height="${Math.max(jobsH, 4)}" 
+        rx="6" 
+        fill="url(#jobsGradient)" 
+        class="chart-svg-bar ${d.isToday ? 'active' : ''}"
+        style="transition: all 0.3s;"
+      >
+        <title>${tooltip}</title>
+      </rect>
+    `;
+
+    // Add dot
+    dots += `
+      <g class="chart-dot-group" style="cursor: pointer;">
+        <circle 
+          cx="${x}" 
+          cy="${revY}" 
+          r="6" 
+          fill="var(--accent)" 
+          stroke="#18181b" 
+          stroke-width="2.5" 
+          style="filter: drop-shadow(0 0 4px var(--accent-glow)); transition: r 0.2s;"
+          onmouseover="this.setAttribute('r', '8')"
+          onmouseout="this.setAttribute('r', '6')"
+        />
+        <title>${tooltip}</title>
+      </g>
+    `;
+  });
+
+  // Construct line path
+  let linePath = `M ${linePoints[0].x} ${linePoints[0].y}`;
+  for (let i = 1; i < linePoints.length; i++) {
+    linePath += ` L ${linePoints[i].x} ${linePoints[i].y}`;
+  }
+
+  // Construct area path (fill below the line)
+  let areaPath = `M ${linePoints[0].x} ${height - paddingBottom}`;
+  for (let i = 0; i < linePoints.length; i++) {
+    areaPath += ` L ${linePoints[i].x} ${linePoints[i].y}`;
+  }
+  areaPath += ` L ${linePoints[linePoints.length - 1].x} ${height - paddingBottom} Z`;
+
+  return `
+    <svg width="100%" height="100%" viewBox="0 0 700 180" style="overflow: visible;">
+      <defs>
+        <linearGradient id="jobsGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--primary)" />
+          <stop offset="100%" stop-color="var(--primary-glow)" stop-opacity="0.1" />
+        </linearGradient>
+        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.2" />
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      
+      <!-- Background Grid Lines -->
+      <line x1="20" y1="${height - paddingBottom}" x2="680" y2="${height - paddingBottom}" stroke="var(--glass-border)" stroke-width="1.5" />
+      <line x1="20" y1="${height - paddingBottom - chartHeight / 2}" x2="680" y2="${height - paddingBottom - chartHeight / 2}" stroke="var(--glass-border)" stroke-width="1" stroke-dasharray="4" />
+      <line x1="20" y1="${paddingTop}" x2="680" y2="${paddingTop}" stroke="var(--glass-border)" stroke-width="1" stroke-dasharray="4" />
+
+      <!-- Jobs Bars -->
+      ${bars}
+      
+      <!-- Revenue Area Fill -->
+      <path d="${areaPath}" fill="url(#areaGradient)" />
+      
+      <!-- Revenue Line -->
+      <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 2px 6px var(--accent-glow));" />
+      
+      <!-- Revenue Dots -->
+      ${dots}
+    </svg>
+  `;
+}
+
 // FIX #6: Real chart — fetches actual daily job counts from /stats/activity.
-// Displays both Jobs count and Revenue trend side-by-side.
+// Displays Jobs count as vertical bars and Revenue trend as a line overlay.
 async function drawChart() {
   const area = document.getElementById('chartArea');
   if (!area) return;
@@ -159,33 +268,25 @@ async function drawChart() {
 
   try {
     const { activity } = await api.getActivity(7);
-    const maxJobs = Math.max(...activity.map(d => d.jobs), 1); // avoid divide-by-0
-    const maxRevenue = Math.max(...activity.map(d => d.revenue), 1);
-
-    area.innerHTML = activity.map(d => {
-      const jobsH = Math.round((d.jobs / maxJobs) * 100);
-      const revH = Math.round((d.revenue / maxRevenue) * 100);
-      const tooltip = `${d.label} | Jobs: ${d.jobs} | Revenue: ₹${d.revenue.toLocaleString('en-IN')}`;
-      return `
-        <div class="chart-bar-wrap" title="${tooltip}">
-          <div class="chart-bar-group">
-            <div class="chart-bar jobs-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(jobsH, 4)}%"></div>
-            <div class="chart-bar revenue-bar ${d.isToday ? 'active' : ''}" style="height:${Math.max(revH, 4)}%"></div>
-          </div>
-        </div>`;
-    }).join('');
+    area.innerHTML = generateSvgHtml(activity);
   } catch {
-    // Fallback to placeholder bars if the activity endpoint is unavailable
-    const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
+    // Fallback to placeholder data if the activity endpoint is unavailable
+    const fallbackActivity = [];
+    const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const heightsJobs = [40, 60, 45, 80, 65, 100, 75];
     const heightsRev = [30, 50, 70, 40, 80, 90, 60];
-    area.innerHTML = heightsJobs.map((h, i) => `
-      <div class="chart-bar-wrap">
-        <div class="chart-bar-group">
-          <div class="chart-bar jobs-bar ${i === todayIdx ? 'active' : ''}" style="height:${h}%"></div>
-          <div class="chart-bar revenue-bar ${i === todayIdx ? 'active' : ''}" style="height:${heightsRev[i]}%"></div>
-        </div>
-      </div>`).join('');
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const dow = d.getDay();
+      fallbackActivity.push({
+        label: DAY_LABELS[dow],
+        jobs: heightsJobs[6 - i],
+        revenue: heightsRev[6 - i] * 500, // scaled revenue placeholder
+        isToday: i === 0,
+      });
+    }
+    area.innerHTML = generateSvgHtml(fallbackActivity);
   }
 }
 

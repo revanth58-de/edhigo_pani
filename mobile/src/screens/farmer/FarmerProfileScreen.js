@@ -933,6 +933,15 @@ const FarmerProfileScreen = ({ navigation }) => {
                   </LinearGradient>
                 </View>
 
+                {/* Notifications Button */}
+                <TouchableOpacity
+                  style={styles.notificationsButton}
+                  onPress={() => navigation.navigate('Notifications')}
+                >
+                  <MaterialIcons name="notifications-none" size={22} color={colors.primary} />
+                  <Text style={styles.notificationsButtonText}>{t('notifications.title')}</Text>
+                </TouchableOpacity>
+
                 {/* Soft Red Logout Button */}
                 <TouchableOpacity
                   style={styles.logoutButton}
@@ -1391,6 +1400,20 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   saveButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
+  notificationsButton: {
+    flexDirection: 'row',
+    height: 52,
+    backgroundColor: '#F0FDF4',
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 9999,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 1.5,
+    borderColor: '#DCFCE7',
+  },
+  notificationsButtonText: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   logoutButton: {
     flexDirection: 'row',
     height: 52,

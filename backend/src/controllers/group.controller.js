@@ -3,6 +3,7 @@ const { getIO } = require('../config/socket');
 const { logger } = require('../middleware/errorHandler');
 const { JobStatus, GroupStatus, MemberStatus, ApplicationStatus, UserStatus, WorkerType, UserRole } = require('../config/enums'); // D1
 const { isValidPhotoUrl } = require('../utils/urlGuard');
+const { createNotification, sendPush } = require('../services/pushNotification');
 
 // GET /api/groups/my-groups - Get all groups led by or containing current user
 const getMyGroups = async (req, res, next) => {
@@ -372,6 +373,39 @@ const addMember = async (req, res, next) => {
       });
     }
 
+    // Persist notification to DB and send push notification
+    try {
+      await createNotification(
+        workerId,
+        '🤝 Group Invitation',
+        `${leader?.name || 'Group Leader'} invited you to join "${group.name}".`,
+        {
+          screen: 'Notifications',
+          groupId,
+          inviteId: member.id,
+          leaderName: leader?.name || 'Group Leader',
+          groupName: group.name,
+        }
+      );
+
+      if (worker.pushToken) {
+        await sendPush(
+          worker.pushToken,
+          '🤝 Group Invitation',
+          `${leader?.name || 'Group Leader'} invited you to join "${group.name}".`,
+          {
+            screen: 'Notifications',
+            groupId,
+            inviteId: member.id,
+            leaderName: leader?.name || 'Group Leader',
+            groupName: group.name,
+          }
+        );
+      }
+    } catch (notifErr) {
+      logger.error('Failed to send group invitation notifications', { message: notifErr.message });
+    }
+
     res.status(201).json({
       message: 'Member added to group',
       member,
@@ -434,6 +468,39 @@ const addMemberByPhone = async (req, res, next) => {
         leaderName: leader?.name || 'Group Leader',
         inviteId: member.id,
       });
+    }
+
+    // Persist notification to DB and send push notification
+    try {
+      await createNotification(
+        user.id,
+        '🤝 Group Invitation',
+        `${leader?.name || 'Group Leader'} invited you to join "${group.name}".`,
+        {
+          screen: 'Notifications',
+          groupId,
+          inviteId: member.id,
+          leaderName: leader?.name || 'Group Leader',
+          groupName: group.name,
+        }
+      );
+
+      if (user.pushToken) {
+        await sendPush(
+          user.pushToken,
+          '🤝 Group Invitation',
+          `${leader?.name || 'Group Leader'} invited you to join "${group.name}".`,
+          {
+            screen: 'Notifications',
+            groupId,
+            inviteId: member.id,
+            leaderName: leader?.name || 'Group Leader',
+            groupName: group.name,
+          }
+        );
+      }
+    } catch (notifErr) {
+      logger.error('Failed to send group invitation notifications by phone', { message: notifErr.message });
     }
 
     res.status(201).json({ message: 'Member added', member });

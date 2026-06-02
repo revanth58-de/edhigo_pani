@@ -229,6 +229,88 @@ describe('ratingService', () => {
   });
 });
 
+// ─── Notification Service ───────────────────────────────────────────────────
+describe('notificationService', () => {
+  let notificationService;
+
+  beforeAll(() => {
+    notificationService = require('../src/services/api/notificationService').notificationService;
+  });
+
+  beforeEach(() => {
+    mockGet.mockClear();
+    mockPatch.mockClear();
+    mockPost.mockClear();
+  });
+
+  test('getNotifications → GET /notifications with params', async () => {
+    await notificationService.getNotifications(10, 15);
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('notifications'),
+      expect.objectContaining({ params: expect.objectContaining({ offset: 10, limit: 15 }) })
+    );
+  });
+
+  test('markAsRead → PATCH /notifications/:id/read', async () => {
+    await notificationService.markAsRead('notif-1');
+    expect(mockPatch).toHaveBeenCalledWith(
+      expect.stringContaining('notifications/notif-1/read')
+    );
+  });
+
+  test('markAllAsRead → POST /notifications/read-all', async () => {
+    await notificationService.markAllAsRead();
+    expect(mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('notifications/read-all')
+    );
+  });
+});
+
+// ─── Machinery Service (F8) ──────────────────────────────────────────────────
+describe('machineryService', () => {
+  let machineryService;
+
+  beforeAll(() => {
+    machineryService = require('../src/services/api/machineryService').machineryService;
+  });
+
+  beforeEach(() => {
+    mockPost.mockClear();
+    mockGet.mockClear();
+  });
+
+  test('register → POST /machinery with payload', async () => {
+    await machineryService.register({ type: 'Tractor', name: 'John Deere' });
+    expect(mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('machinery'),
+      expect.objectContaining({ type: 'Tractor', name: 'John Deere' })
+    );
+  });
+
+  test('getMachineryListings → GET /machinery/listings with params', async () => {
+    await machineryService.getMachineryListings({ type: 'Tractor', lat: 12.3, lng: 45.6 });
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('machinery/listings'),
+      expect.objectContaining({ params: expect.objectContaining({ type: 'Tractor', lat: 12.3, lng: 45.6 }) })
+    );
+  });
+
+  test('bookMachinery → POST /machinery/book with payload', async () => {
+    await machineryService.bookMachinery({ machineryId: 'm-1', date: '2026-07-01', slot: 'Morning', totalAmount: 2000 });
+    expect(mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('machinery/book'),
+      expect.objectContaining({ machineryId: 'm-1', date: '2026-07-01', slot: 'Morning', totalAmount: 2000 })
+    );
+  });
+
+  test('getBookings → GET /machinery/bookings', async () => {
+    await machineryService.getBookings();
+    expect(mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('machinery/bookings')
+    );
+  });
+});
+
 // ─── i18n Tests ───────────────────────────────────────────────────────────────
 describe('i18n useTranslation', () => {
   test('Returns a string for common.worker in English', () => {

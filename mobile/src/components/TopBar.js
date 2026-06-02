@@ -31,7 +31,7 @@ const TopBar = ({ title = 'Home', showBack = false, showLogo = false, navigation
         </TouchableOpacity>
       ) : showLogo ? (
         <Image
-          source={require('../../assets/logo_transparent.png')}
+          source={require('../../assets/icon.png')}
           style={styles.logo}
         />
       ) : (

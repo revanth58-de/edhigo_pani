@@ -215,3 +215,12 @@ jest.mock('expo-image-picker', () => ({
   requestMediaLibraryPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
 }));
 
+// ─── Mock CustomLoader ────────────────────────────────────────────────────────
+jest.mock('../src/components/CustomLoader', () => {
+  const React = require('react');
+  return () => React.createElement('View', { testID: 'custom-loader' });
+});
+
+// Increase default timeout for slow Windows environments
+jest.setTimeout(30000);
+

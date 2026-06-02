@@ -251,10 +251,10 @@ const verifyOTP = async (req, res, next) => {
 const setRole = async (req, res, next) => {
   try {
     const { role } = req.body;
-    const validRoles = ['farmer', 'worker', 'leader'];
+    const validRoles = ['farmer', 'worker', 'leader', 'machinery'];
 
     if (!role || !validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Valid role is required: farmer, worker, or leader' });
+      return res.status(400).json({ error: 'Valid role is required: farmer, worker, leader, or machinery' });
     }
 
     const user = await prisma.user.update({

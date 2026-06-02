@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,20 +10,171 @@ import {
   Alert,
   StatusBar,
   Platform,
+  Linking,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import CustomLoader from '../../components/CustomLoader';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
+import * as Location from 'expo-location';
 import { colors } from '../../theme/colors';
 import GlassCard from '../../components/GlassCard';
+import useSpeech from '../../hooks/useSpeech';
+import { useTranslation } from '../../i18n';
+import useAuthStore from '../../store/authStore';
+import { machineryService } from '../../services/api/machineryService';
 
 const { width } = Dimensions.get('window');
+
+const timeSlots = [
+  { labelKey: 'machinery.slots.morning', value: 'Morning', hours: 6 },
+  { labelKey: 'machinery.slots.afternoon', value: 'Afternoon', hours: 6 },
+  { labelKey: 'machinery.slots.fullDay', value: 'Full Day', hours: 12 },
+];
+
+const getNextDays = (count = 14) => {
+  const days = [];
+  const today = new Date();
+  for (let i = 0; i < count; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    days.push(d);
+  }
+  return days;
+};
 
 const MachineryBookingScreen = ({ navigation, route }) => {
   const { machineType = 'Tractor' } = route.params || {};
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedSlot, setSelectedSlot] = useState('Morning');
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState(0);
+  const [listings, setListings] = useState([]);
+  const [selectedListingIndex, setSelectedListingIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
-  const slots = ['Morning (6 AM - 12 PM)', 'Afternoon (12 PM - 6 PM)', 'Full Day'];
+  const { t, language } = useTranslation();
+  const { speak, stop } = useSpeech();
+  const user = useAuthStore((s) => s.user);
+
+  const loadListings = async () => {
+    setLoading(true);
+    try {
+      let lat = user?.location?.latitude;
+      let lng = user?.location?.longitude;
+
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          let timerId;
+          const locationPromise = Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced
+          });
+          const timeoutPromise = new Promise((_, reject) => {
+            timerId = setTimeout(() => reject(new Error('Location timeout')), 4000);
+          });
+          const loc = await Promise.race([locationPromise, timeoutPromise]);
+          clearTimeout(timerId);
+          lat = loc.coords.latitude;
+          lng = loc.coords.longitude;
+        }
+      } catch (locErr) {
+        console.warn('Geolocation failed, falling back to profile coordinates', locErr);
+      }
+
+      const res = await machineryService.getMachineryListings({
+        type: machineType,
+        lat,
+        lng,
+      });
+
+      if (res.success) {
+        setListings(res.listings || []);
+        setSelectedListingIndex(0);
+      } else {
+        console.error('Failed to load machinery listings:', res.message);
+      }
+    } catch (err) {
+      console.error('Error in loadListings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const playVoiceGuide = () => {
+    const text = t('machinery.bookTitle').replace('%{type}', machineType) + '. ' + t('machinery.selectDate') + ', ' + t('machinery.selectSlot');
+    speak(text);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadListings();
+      playVoiceGuide();
+      return () => stop();
+    }, [machineType])
+  );
+
+  const handleNextListing = () => {
+    if (listings.length > 1) {
+      setSelectedListingIndex((prev) => (prev + 1) % listings.length);
+    }
+  };
+
+  const handlePrevListing = () => {
+    if (listings.length > 1) {
+      setSelectedListingIndex((prev) => (prev - 1 + listings.length) % listings.length);
+    }
+  };
+
+  const handleCallOwner = (phone) => {
+    if (phone) {
+      Linking.openURL(`tel:${phone}`);
+    }
+  };
+
+  const handleConfirmBooking = async () => {
+    const currentListing = listings[selectedListingIndex];
+    if (!currentListing) return;
+
+    setBookingLoading(true);
+    try {
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      const slotValue = timeSlots[selectedSlotIndex].value;
+      const totalAmount = currentListing.pricePerHour * timeSlots[selectedSlotIndex].hours;
+
+      const res = await machineryService.bookMachinery({
+        machineryId: currentListing.id,
+        date: formattedDate,
+        slot: slotValue,
+        totalAmount,
+      });
+
+      if (res.success) {
+        const dateStr = selectedDate.toLocaleDateString(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-US', { day: 'numeric', month: 'short' });
+        const successMsg = t('machinery.bookingSuccessMessage')
+          .replace('%{name}', currentListing.name)
+          .replace('%{date}', dateStr)
+          .replace('%{slot}', t(timeSlots[selectedSlotIndex].labelKey));
+
+        Alert.alert(
+          t('machinery.bookingSuccess'),
+          successMsg,
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        speak(t('machinery.bookingSuccess'));
+      } else {
+        Alert.alert(t('common.error') || 'Error', res.message || t('machinery.errorBooking'));
+        speak(res.message || t('machinery.errorBooking'));
+      }
+    } catch (err) {
+      console.error('Booking submission error:', err);
+      Alert.alert(t('common.error') || 'Error', t('machinery.errorBooking'));
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const currentListing = listings[selectedListingIndex];
+  const nextDays = getNextDays(14);
 
   return (
     <View style={styles.container}>
@@ -32,111 +183,172 @@ const MachineryBookingScreen = ({ navigation, route }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <MaterialIcons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Book {machineType}</Text>
+          <Text style={styles.headerTitle}>{t('machinery.bookTitle').replace('%{type}', machineType)}</Text>
           <View style={{ width: 28 }} />
         </View>
       </LinearGradient>
 
-      {/* FIX #11: Coming Soon banner — machinery booking has no backend yet */}
-      <View style={styles.comingSoonBanner}>
-        <MaterialIcons name="construction" size={16} color="#92400E" />
-        <Text style={styles.comingSoonText}>  Machinery booking is coming soon — preview only</Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.machineImageCard}>
-          <Image 
-            source={{ uri: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800' }} 
-            style={styles.machineImage} 
-          />
-          <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay}>
-            <View style={styles.priceTag}>
-              <Text style={styles.priceText}>₹800/hour</Text>
-            </View>
-          </LinearGradient>
+      {loading ? (
+        <View style={styles.loaderContainer}>
+          <CustomLoader size={48} color={colors.primary} />
         </View>
-
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Select Date</Text>
-          <GlassCard intensity={10} style={styles.calendarPlaceholder}>
-            <MaterialIcons name="calendar-today" size={32} color={colors.primary} />
-            <Text style={styles.dateText}>{selectedDate.toDateString()}</Text>
-            <TouchableOpacity style={styles.changeBtn}>
-              <Text style={styles.changeBtnText}>Change</Text>
-            </TouchableOpacity>
+      ) : listings.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <GlassCard intensity={20} style={styles.emptyCard}>
+            <MaterialIcons name="info-outline" size={48} color={colors.primary} />
+            <Text style={styles.emptyText}>
+              {t('machinery.noListings').replace('%{type}', machineType)}
+            </Text>
           </GlassCard>
+        </View>
+      ) : (
+        <>
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.machineImageCard}>
+              <Image
+                source={{
+                  uri: currentListing.photoUrl ||
+                    (machineType.toLowerCase() === 'tractor'
+                      ? 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'
+                      : 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800'),
+                }}
+                style={styles.machineImage}
+              />
+              <LinearGradient colors={['transparent', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay}>
+                <View style={styles.priceTag}>
+                  <Text style={styles.priceText}>
+                    {t('machinery.pricePerHour').replace('%{price}', currentListing.pricePerHour)}
+                  </Text>
+                </View>
+              </LinearGradient>
 
-          <Text style={styles.sectionTitle}>Select Time Slot</Text>
-          <View style={styles.slotsGrid}>
-            {slots.map(slot => (
-              <TouchableOpacity 
-                key={slot}
-                style={[styles.slotItem, selectedSlot === slot && styles.activeSlot]}
-                onPress={() => setSelectedSlot(slot)}
-              >
-                <Text style={[styles.slotText, selectedSlot === slot && styles.activeSlotText]}>{slot}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+              {listings.length > 1 && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.chevronBtn, styles.leftChevron]}
+                    onPress={handlePrevListing}
+                  >
+                    <MaterialIcons name="chevron-left" size={28} color="#FFF" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.chevronBtn, styles.rightChevron]}
+                    onPress={handleNextListing}
+                  >
+                    <MaterialIcons name="chevron-right" size={28} color="#FFF" />
+                  </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Owner Details</Text>
-          <GlassCard intensity={10} style={styles.ownerCard}>
-            <View style={styles.ownerAvatar}>
-              <MaterialIcons name="person" size={24} color={colors.primary} />
+                  <View style={styles.carouselIndicators}>
+                    {listings.map((_, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.indicatorDot,
+                          selectedListingIndex === idx && styles.activeIndicatorDot,
+                        ]}
+                      />
+                    ))}
+                  </View>
+                </>
+              )}
             </View>
-            <View style={styles.ownerInfo}>
-              <Text style={styles.ownerName}>Ramesh Kumar</Text>
-              <View style={styles.ratingRow}>
-                <MaterialIcons name="star" size={16} color={colors.accent} />
-                <Text style={styles.ratingText}>4.9 (124 bookings)</Text>
+
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>{t('machinery.selectDate')}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.calendarStrip}>
+                {nextDays.map((date, idx) => {
+                  const isSelected = selectedDate.toDateString() === date.toDateString();
+                  const dayName = date.toLocaleDateString(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-US', { weekday: 'short' });
+                  const dayNum = date.getDate();
+                  const monthName = date.toLocaleDateString(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-US', { month: 'short' });
+
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.calendarDayCard, isSelected && styles.activeDayCard]}
+                      onPress={() => setSelectedDate(date)}
+                    >
+                      <Text style={[styles.dayNameText, isSelected && styles.activeDayText]}>{dayName}</Text>
+                      <Text style={[styles.dayNumText, isSelected && styles.activeDayText]}>{dayNum}</Text>
+                      <Text style={[styles.monthNameText, isSelected && styles.activeDayText]}>{monthName}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <Text style={styles.sectionTitle}>{t('machinery.selectSlot')}</Text>
+              <View style={styles.slotsGrid}>
+                {timeSlots.map((slot, index) => {
+                  const isSelected = selectedSlotIndex === index;
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.slotItem, isSelected && styles.activeSlot]}
+                      onPress={() => setSelectedSlotIndex(index)}
+                    >
+                      <Text style={[styles.slotText, isSelected && styles.activeSlotText]}>
+                        {t(slot.labelKey)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            </View>
-            <TouchableOpacity style={styles.callBtn}>
-              <MaterialIcons name="call" size={20} color="#FFF" />
-            </TouchableOpacity>
-          </GlassCard>
-        </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Estimated Total</Text>
-          <Text style={styles.totalValue}>₹2,400</Text>
-        </View>
-        <TouchableOpacity 
-          style={styles.bookBtn}
-          onPress={() => {
-            Alert.alert(
-              '🚧 Coming Soon',
-              'Machinery booking is not yet available. We are working on it and will notify you when it launches!',
-              [{ text: 'OK', style: 'default' }]
-            );
-          }}
-        >
-          <LinearGradient colors={['#94A3B8', '#64748B']} style={styles.bookBtnGradient}>
-            <Text style={styles.bookBtnText}>Coming Soon</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
+              <Text style={styles.sectionTitle}>{t('machinery.ownerDetails')}</Text>
+              <GlassCard intensity={10} style={styles.ownerCard}>
+                <View style={styles.ownerAvatar}>
+                  <MaterialIcons name="person" size={24} color={colors.primary} />
+                </View>
+                <View style={styles.ownerInfo}>
+                  <Text style={styles.ownerName}>{currentListing.owner?.name || 'Owner'}</Text>
+                  <View style={styles.ratingRow}>
+                    <MaterialIcons name="star" size={16} color={colors.accent} />
+                    <Text style={styles.ratingText}>
+                      {t('machinery.ratingBookings')
+                        .replace('%{rating}', currentListing.owner?.ratingAvg || '5.0')
+                        .replace('%{count}', currentListing.owner?.ratingCount || '0')}
+                    </Text>
+                  </View>
+                </View>
+                {currentListing.owner?.phone && (
+                  <TouchableOpacity
+                    style={styles.callBtn}
+                    onPress={() => handleCallOwner(currentListing.owner.phone)}
+                  >
+                    <MaterialIcons name="call" size={20} color="#FFF" />
+                  </TouchableOpacity>
+                )}
+              </GlassCard>
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>{t('machinery.estimatedTotal')}</Text>
+              <Text style={styles.totalValue}>
+                ₹{(currentListing.pricePerHour * timeSlots[selectedSlotIndex].hours).toLocaleString(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN')}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.bookBtn, bookingLoading && { opacity: 0.7 }]}
+              onPress={handleConfirmBooking}
+              disabled={bookingLoading}
+            >
+              <LinearGradient colors={colors.primaryGradient} style={styles.bookBtnGradient}>
+                {bookingLoading ? (
+                  <CustomLoader size={24} color="#FFF" />
+                ) : (
+                  <Text style={styles.bookBtnText}>{t('machinery.confirmBooking')}</Text>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  comingSoonBanner: {
-    backgroundColor: '#FEF3C7',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FDE68A',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  comingSoonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#92400E',
-  },
   container: {
     flex: 1,
     backgroundColor: '#F8F9FA',
@@ -159,6 +371,34 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyCard: {
+    padding: 32,
+    alignItems: 'center',
+    borderRadius: 24,
+    gap: 16,
+    width: '100%',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   machineImageCard: {
     width: width,
@@ -187,6 +427,44 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FFF',
   },
+  chevronBtn: {
+    position: 'absolute',
+    top: '40%',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  leftChevron: {
+    left: 16,
+  },
+  rightChevron: {
+    right: 16,
+  },
+  carouselIndicators: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 10,
+  },
+  indicatorDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  activeIndicatorDot: {
+    width: 16,
+    backgroundColor: '#FFF',
+  },
   infoSection: {
     padding: 24,
   },
@@ -197,26 +475,49 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 8,
   },
-  calendarPlaceholder: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 20,
-    gap: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 24,
+  calendarStrip: {
+    gap: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 16,
   },
-  dateText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
+  calendarDayCard: {
+    width: 64,
+    height: 90,
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    gap: 4,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
+      android: { elevation: 2 },
+      web: { boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }
+    }),
+  },
+  activeDayCard: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
+  },
+  dayNameText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  dayNumText: {
+    fontSize: 20,
+    fontWeight: '900',
     color: '#1E293B',
   },
-  changeBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
+  monthNameText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeDayText: {
     color: colors.primary,
   },
   slotsGrid: {

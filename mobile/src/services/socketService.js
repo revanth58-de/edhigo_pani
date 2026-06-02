@@ -147,6 +147,16 @@ class SocketService {
         }
     }
 
+    joinBookingRoom(bookingId) {
+        if (this.socket?.connected) {
+            this.socket.emit('booking:join', bookingId);
+            console.log(`📡 Joined room: booking:${bookingId}`);
+        } else {
+            // Queue for when connection is ready
+            this._pendingRooms.push({ event: 'booking:join', id: bookingId });
+        }
+    }
+
     joinUserRoom(userId) {
         if (this.socket?.connected) {
             this.socket.emit('user:join', userId);

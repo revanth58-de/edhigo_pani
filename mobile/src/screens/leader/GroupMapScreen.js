@@ -118,7 +118,7 @@ const GroupMapScreen = ({ navigation, route }) => {
 
     const handleJobRequest = (data) => {
         if (!isMounted.current) return;
-        navigation.navigate('GroupRequest', { jobData: data, groupId });
+        navigation.navigate('GroupJobOffer', { jobData: data, groupId });
     };
 
     const handleLocationBroadcast = (data) => {
@@ -136,8 +136,10 @@ const GroupMapScreen = ({ navigation, route }) => {
         // Join the group room to receive broadcasts
         if (groupId) socketService.joinGroupRoom(groupId);
 
-        // Listen for job requests (navigate to GroupRequest screen)
-        socketService.on('job:request', handleJobRequest);
+        // Listen for job requests (navigate to GroupJobOffer screen) - only for leaders
+        if (user?.role === 'leader') {
+            socketService.on('job:request', handleJobRequest);
+        }
 
         // Listen for other group members' locations
         socketService.onGroupLocationBroadcast(handleLocationBroadcast);

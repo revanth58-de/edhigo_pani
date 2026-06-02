@@ -21,6 +21,13 @@ try {
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || '';
 
 export const initSentry = () => {
+  if (!Sentry) {
+    if (__DEV__) {
+      console.info('ℹ️ [Sentry] Sentry package not loaded. Skipping initialization.');
+    }
+    return;
+  }
+
   if (!SENTRY_DSN) {
     if (__DEV__) {
       console.info('ℹ️ [Sentry] DSN not set. Add EXPO_PUBLIC_SENTRY_DSN to mobile/.env to enable crash reporting.');
@@ -54,7 +61,7 @@ export const initSentry = () => {
  * Safe to call whether or not Sentry is configured.
  */
 export const captureError = (error, context = {}) => {
-  if (!SENTRY_DSN || __DEV__) {
+  if (!Sentry || !SENTRY_DSN || __DEV__) {
     console.error('🔴 [captureError]', error, context);
     return;
   }
@@ -68,7 +75,7 @@ export const captureError = (error, context = {}) => {
  * Log a non-fatal message to Sentry (e.g. unexpected API response shape).
  */
 export const captureMessage = (message, level = 'warning') => {
-  if (!SENTRY_DSN || __DEV__) {
+  if (!Sentry || !SENTRY_DSN || __DEV__) {
     console.warn(`[Sentry message:${level}]`, message);
     return;
   }
@@ -81,7 +88,7 @@ export const captureMessage = (message, level = 'warning') => {
  * Call this right after a successful login.
  */
 export const identifySentryUser = (userId, role) => {
-  if (!SENTRY_DSN) return;
+  if (!Sentry || !SENTRY_DSN) return;
   Sentry.setUser({ id: userId, role });
 };
 
@@ -89,6 +96,6 @@ export const identifySentryUser = (userId, role) => {
  * Clear user context on logout.
  */
 export const clearSentryUser = () => {
-  if (!SENTRY_DSN) return;
+  if (!Sentry || !SENTRY_DSN) return;
   Sentry.setUser(null);
 };

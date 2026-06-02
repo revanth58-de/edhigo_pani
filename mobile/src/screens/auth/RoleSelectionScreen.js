@@ -52,6 +52,13 @@ const RoleSelectionScreen = ({ navigation }) => {
       description: 'Manage groups and take bulk jobs.',
       gradient: [colors.accent, '#D49B00'],
     },
+    {
+      id: 'machinery',
+      name: t('auth.iAmMachineryOwner') || 'I am a Machinery Owner',
+      icon: 'construction',
+      description: t('auth.machineryDesc') || 'Register machinery & accept bookings.',
+      gradient: ['#8B5CF6', '#6D28D9'],
+    },
   ];
 
   return (

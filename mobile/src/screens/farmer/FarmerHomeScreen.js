@@ -12,7 +12,7 @@ import {
   Platform,
   RefreshControl,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import useAuthStore from '../../store/authStore';
@@ -70,7 +70,7 @@ const WorkTypeCard = ({ workType, onPress }) => (
   <TouchableOpacity
     style={styles.workTypeWrapper}
     activeOpacity={0.8}
-    onPress={() => onPress(workType.name)}
+    onPress={() => onPress(workType)}
   >
     <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
       <View style={styles.imageHeader}>
@@ -171,50 +171,54 @@ const FarmerHomeScreen = ({ navigation }) => {
     };
   }, [user?.id]);
 
-  const handleWorkTypeSelect = (workType) => {
-    navigation.navigate('LiveMapDiscovery', { workType });
+  const handleWorkTypeSelect = (wType) => {
+    if (wType.id === 'tractor' || wType.id === 'harvester') {
+      navigation.navigate('MachineryBooking', { machineType: wType.id === 'tractor' ? 'Tractor' : 'Harvester' });
+    } else {
+      navigation.navigate('LiveMapDiscovery', { workType: wType.name });
+    }
   };
 
   const workTypes = [
     {
       id: 'sowing',
       name: t('farmerHome.sowing') || 'Sowing',
-      image: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg?auto=compress&cs=tinysrgb&w=800',
     },
     {
       id: 'harvesting',
       name: t('farmerHome.harvesting') || 'Harvesting',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
     },
     {
       id: 'irrigation',
       name: t('farmerHome.irrigation') || 'Irrigation',
-      image: 'https://images.unsplash.com/photo-1563200192-3580893cc071?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=800',
     },
     {
       id: 'labour',
       name: t('farmerHome.labour') || 'General Labour',
-      image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800',
     },
     {
       id: 'tractor',
       name: t('farmerHome.tractor') || 'Tractor',
-      image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.pexels.com/photos/1595108/pexels-photo-1595108.jpeg?auto=compress&cs=tinysrgb&w=800',
     },
     {
       id: 'harvester',
       name: 'Harvester Machine',
-      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800',
     },
     {
       id: 'pesticide',
       name: 'Pesticide Spraying',
-      image: 'https://images.unsplash.com/photo-1586771107445-d3af116c4c92?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
     },
     {
       id: 'ploughing',
       name: 'Ploughing',
-      image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.pexels.com/photos/2886937/pexels-photo-2886937.jpeg?auto=compress&cs=tinysrgb&w=800',
     },
   ];
 
@@ -501,6 +505,8 @@ const styles = StyleSheet.create({
     height: 125,
     backgroundColor: '#F1F5F9',
     position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   cardGradient: {
     position: 'absolute',

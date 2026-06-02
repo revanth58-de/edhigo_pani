@@ -106,9 +106,12 @@ const getStats = async (req, res, next) => {
     const thisWeekRevenue = revenueThisWeek._sum.amount || 0;
     const lastWeekRevenue = revenueLastWeek._sum.amount || 0;
 
+    const openJobs = (statusMap['pending'] || 0) + (statusMap['matched'] || 0) + (statusMap['in_progress'] || 0);
+    const doneJobs = (statusMap['completed'] || 0);
+
     const payload = {
       users: { total: totalUsers, byRole: roleMap },
-      jobs: { total: totalJobs, byStatus: statusMap },
+      jobs: { total: totalJobs, byStatus: statusMap, openJobs, doneJobs },
       payments: {
         total: totalPayments,
         revenue: paymentStats._sum.amount || 0,
@@ -167,7 +170,7 @@ const getActivity = async (req, res, next) => {
     // Build a full 7-slot array (Mon-Sun) filling zeros for days with no jobs.
     const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const byDow = {};
-    for (const r of rows) byDow[r.dow] = { jobs: r.jobs, revenue: r.revenue, label: r.label };
+    for (const r of rows) byDow[r.dow] = { jobs: Number(r.jobs), revenue: Number(r.revenue), label: r.label };
 
     // Return 7 entries starting from today − 6 days
     const result = [];

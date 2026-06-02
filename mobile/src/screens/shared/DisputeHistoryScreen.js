@@ -13,7 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
-import { disputeService } from '../../services/api';
+import { disputeService } from '../../services/api/disputeService';
 import CustomLoader from '../../components/CustomLoader';
 import EmptyState from '../../components/EmptyState';
 import useAuthStore from '../../store/authStore';

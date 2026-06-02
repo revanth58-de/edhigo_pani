@@ -4,14 +4,24 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting simple database seeding...');
 
-  // Clear existing data
-  await prisma.jobApplication.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.rating.deleteMany();
-  await prisma.groupMember.deleteMany();
-  await prisma.group.deleteMany();
-  await prisma.job.deleteMany();
-  await prisma.user.deleteMany();
+  // Clear existing data in correct dependency order
+  await prisma.machineryBooking.deleteMany({});
+  await prisma.machinery.deleteMany({});
+  await prisma.dispute.deleteMany({});
+  await prisma.settlement.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.jobApplication.deleteMany({});
+  await prisma.attendance.deleteMany({});
+  await prisma.rating.deleteMany({});
+  await prisma.groupMessage.deleteMany({});
+  await prisma.groupMember.deleteMany({});
+  await prisma.group.deleteMany({});
+  await prisma.job.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.refreshToken.deleteMany({});
+  await prisma.userLocation.deleteMany({});
+  await prisma.userAnimal.deleteMany({});
+  await prisma.user.deleteMany({});
 
   console.log('✅ Cleared existing data');
 
@@ -23,8 +33,12 @@ async function main() {
       language: 'en',
       name: 'Rajesh Kumar',
       status: 'available',
-      latitude: 17.385044,
-      longitude: 78.486671
+      location: {
+        create: {
+          latitude: 17.385044,
+          longitude: 78.486671
+        }
+      }
     }
   });
 
@@ -35,8 +49,12 @@ async function main() {
       language: 'te',
       name: 'Venkat Reddy',
       status: 'available',
-      latitude: 17.386044,
-      longitude: 78.487671
+      location: {
+        create: {
+          latitude: 17.386044,
+          longitude: 78.487671
+        }
+      }
     }
   });
 
@@ -47,8 +65,12 @@ async function main() {
       language: 'te',
       name: 'Srinivas',
       status: 'available',
-      latitude: 17.387044,
-      longitude: 78.488671
+      location: {
+        create: {
+          latitude: 17.387044,
+          longitude: 78.488671
+        }
+      }
     }
   });
 
@@ -77,6 +99,33 @@ async function main() {
   });
 
   console.log('✅ Created test jobs');
+
+  // Seed sample machinery
+  const machinery1 = await prisma.machinery.create({
+    data: {
+      ownerId: worker1.id,
+      type: 'Tractor',
+      name: 'John Deere 5050D',
+      pricePerHour: 800,
+      latitude: 17.386044,
+      longitude: 78.487671,
+      status: 'available',
+    }
+  });
+
+  const machinery2 = await prisma.machinery.create({
+    data: {
+      ownerId: worker2.id,
+      type: 'Harvester',
+      name: 'Mahindra Combine Harvester',
+      pricePerHour: 1500,
+      latitude: 17.387044,
+      longitude: 78.488671,
+      status: 'available',
+    }
+  });
+
+  console.log('✅ Created test machinery');
 
   console.log(`\n🎉 Seeding completed!\n`);
   console.log('📱 Test accounts:');

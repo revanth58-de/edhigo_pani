@@ -19,14 +19,20 @@ import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const RateWorkerScreen = ({ navigation, route }) => {
-  const { job, worker, workers } = route.params || {};
+  const { job, booking, isMachinery, worker, workers } = route.params || {};
   const { t } = useTranslation();
   
   // Support both single worker (legacy screens) and multiple workers (PaymentScreen)
   let workerList = workers || (worker ? [worker] : []);
   
-  // Fallback: If no explicit worker object was passed, construct it from job's embedded worker details
-  if (workerList.length === 0 && job?.workerId) {
+  if (isMachinery && booking) {
+    workerList = [{
+      id: booking.machinery?.ownerId || booking.machinery?.owner?.id || 'owner',
+      name: booking.machinery?.owner?.name || booking.ownerName || 'Machinery Owner',
+      phone: booking.machinery?.owner?.phone || '',
+      photoUrl: null,
+    }];
+  } else if (workerList.length === 0 && job?.workerId) {
     workerList = [{
       id: job.workerId,
       name: job.workerName || 'Worker',
@@ -60,16 +66,24 @@ const RateWorkerScreen = ({ navigation, route }) => {
       return;
     }
 
-    const jobId = job?.id || job?.jobId;
-
-    if (!jobId || workerList.length === 0) {
-      console.warn('RateWorker: missing jobId or workerList', { job, workerList });
-      Alert.alert('Error', 'Cannot submit rating — job or worker information is missing.');
-      return;
-    }
-
     setLoading(true);
     try {
+      if (isMachinery) {
+        // Simulate premium rating submission
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        navigation.navigate('FarmerHome');
+        return;
+      }
+
+      const jobId = job?.id || job?.jobId;
+
+      if (!jobId || workerList.length === 0) {
+        console.warn('RateWorker: missing jobId or workerList', { job, workerList });
+        Alert.alert('Error', 'Cannot submit rating — job or worker information is missing.');
+        setLoading(false);
+        return;
+      }
+
       console.log('📡 Submitting rating for workers:', workerList.length, { jobId, rating });
       
       // Submit identical rating for all workers involved
@@ -129,7 +143,11 @@ const RateWorkerScreen = ({ navigation, route }) => {
             {displayWorker?.name || 'Worker'}
             {isMultiple ? ` + ${workerList.length - 1} Others` : ''}
           </Text>
-          <Text style={styles.jobType}>{job?.workType || 'Job Completion'}</Text>
+          <Text style={styles.jobType}>
+            {isMachinery
+              ? (booking?.machinery?.name || 'Machinery Rent')
+              : (job?.workType || 'Job Completion')}
+          </Text>
         </View>
 
         {/* Rating Section */}

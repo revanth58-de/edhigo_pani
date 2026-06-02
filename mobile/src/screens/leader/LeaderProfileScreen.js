@@ -279,6 +279,17 @@ const LeaderProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
+        {!isEditing && (
+          <TouchableOpacity
+            style={[styles.editBtn, { marginBottom: 12 }]}
+            onPress={() => navigation.navigate('Notifications')}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="notifications" size={22} color={colors.primary} />
+            <Text style={styles.editBtnText}>Notifications</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
           <MaterialIcons name="logout" size={22} color="#FFF" />

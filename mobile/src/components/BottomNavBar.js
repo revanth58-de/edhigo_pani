@@ -27,10 +27,16 @@ const LEADER_TABS = [
   { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'LeaderProfile' },
 ];
 
+const MACHINERY_TABS = [
+  { key: 'Home', icon: 'agriculture', labelKey: 'nav.machinery', screen: 'MachineryHome' },
+  { key: 'Profile', icon: 'person', labelKey: 'nav.profile', screen: 'WorkerProfile' },
+];
+
 const ROLE_TABS = {
   farmer: FARMER_TABS,
   worker: WORKER_TABS,
   leader: LEADER_TABS,
+  machinery: MACHINERY_TABS,
 };
 
 const BottomNavBar = ({ role = 'farmer', activeTab = 'Home' }) => {

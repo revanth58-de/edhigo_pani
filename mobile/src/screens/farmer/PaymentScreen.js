@@ -437,14 +437,11 @@ const PaymentScreen = ({ navigation, route }) => {
           {paymentMethod === 'upi' && (
             <View style={styles.qrSection}>
               <View style={styles.qrCard}>
-                <Text style={styles.qrLabel}>SCAN TO PAY</Text>
-                <View style={styles.qrContainer}>
-                  <QRCode
-                    value={`upi://pay?pa=${upiId}&pn=Dinasari&am=${totalAmount}&tn=FarmWork`}
-                    size={160}
-                    backgroundColor="white"
-                  />
-                </View>
+                <MaterialIcons name="qr-code-scanner" size={64} color={colors.primary} style={{ marginBottom: 12 }} />
+                <Text style={styles.qrLabel}>SCAN WORKER'S QR CODE</Text>
+                <Text style={styles.qrInstruction}>
+                  Please ask the worker to open their screen and show the payment QR code. Scan it using your phone's camera or a UPI app (like GPay/PhonePe) to pay ₹{totalAmount}.
+                </Text>
                 <Text style={styles.transactionId}>TXID: {transactionId}</Text>
               </View>
             </View>
@@ -917,6 +914,14 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
     marginTop: 16,
     textTransform: 'uppercase',
+  },
+  qrInstruction: {
+    fontSize: 14,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
 
   // Processing

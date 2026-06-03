@@ -69,6 +69,26 @@ const io = new Server(server, {
   pingInterval: 10000,  // 10s — ping every 10s to detect real disconnects faster
 });
 
+// Configure Redis Adapter for horizontal Socket.io scaling if REDIS_URL or REDIS_HOST is provided
+const redisUrl = process.env.REDIS_URL || (process.env.REDIS_HOST ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}` : null);
+if (redisUrl) {
+  const { createClient } = require('redis');
+  const { createAdapter } = require('@socket.io/redis-adapter');
+  
+  const pubClient = createClient({ url: redisUrl });
+  const subClient = pubClient.duplicate();
+
+  pubClient.on('error', (err) => logger.error('Redis PubClient Error', { message: err.message }));
+  subClient.on('error', (err) => logger.error('Redis SubClient Error', { message: err.message }));
+
+  Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+    io.adapter(createAdapter(pubClient, subClient));
+    logger.info('Connected to Redis for Socket.io scaling');
+  }).catch((err) => {
+    logger.error('Redis connection for Socket.io adapter failed', { message: err.message });
+  });
+}
+
 // ─── Middleware ───
 // Enforce HTTPS in production
 if (config.nodeEnv === 'production') {

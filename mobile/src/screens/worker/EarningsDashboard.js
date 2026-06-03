@@ -21,6 +21,7 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -29,6 +30,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import TopBar from '../../components/TopBar';
 import { workerAPI } from '../../services/api';
+import useAuthStore from '../../store/authStore';
+import { API_BASE_URL } from '../../config/api.config';
 
 const WORK_TYPE_CONFIG = {
   Sowing:     { color: '#10B981', icon: 'grass' },
@@ -77,6 +80,17 @@ const EarningsDashboard = ({ navigation }) => {
 
   const summary = data?.summary || {};
 
+  const handleDownloadCertificate = useCallback(async () => {
+    try {
+      const token = useAuthStore.getState().accessToken;
+      if (!token) return;
+      const downloadUrl = `${API_BASE_URL}/workers/earnings/pdf?token=${token}`;
+      await Linking.openURL(downloadUrl);
+    } catch (e) {
+      console.warn('Failed to open PDF download link:', e.message);
+    }
+  }, []);
+
   return (
     <LinearGradient colors={['#FDFBF7', colors.backgroundLight]} style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
@@ -116,13 +130,23 @@ const EarningsDashboard = ({ navigation }) => {
             <Text style={styles.heroAmount}>{formatINR(summary.totalEarned)}</Text>
             <Text style={styles.heroSub}>{summary.totalJobs || 0} jobs successfully completed</Text>
 
-            <TouchableOpacity 
-              style={styles.historyShortcut} 
-              onPress={() => navigation.navigate('EarningsHistory')}
-            >
-              <Text style={styles.historyShortcutText}>View Full Earning History</Text>
-              <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity 
+                style={styles.historyShortcut} 
+                onPress={() => navigation.navigate('EarningsHistory')}
+              >
+                <Text style={styles.historyShortcutText}>History</Text>
+                <MaterialIcons name="arrow-forward" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.downloadShortcut} 
+                onPress={handleDownloadCertificate}
+              >
+                <Text style={styles.historyShortcutText}>Download PDF</Text>
+                <MaterialIcons name="picture-as-pdf" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </LinearGradient>
 
           {/* ── SETTLEMENT BREAKDOWN TILES ── */}
@@ -251,7 +275,20 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 20,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
     marginTop: 18,
+  },
+  downloadShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   historyShortcutText: {
     fontSize: 12,

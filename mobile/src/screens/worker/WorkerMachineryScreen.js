@@ -366,9 +366,16 @@ const WorkerMachineryScreen = ({ navigation }) => {
                           {t('machinery.bookedBy').replace('%{name}', booking.farmer?.name || 'Farmer')}
                         </Text>
                         {booking.farmer?.phone && (
-                          <Text style={styles.bookingPhone}>
-                            {t('machinery.phone').replace('%{phone}', booking.farmer.phone)}
-                          </Text>
+                          <TouchableOpacity
+                            onPress={() => Linking.openURL(`tel:${booking.farmer.phone}`)}
+                            activeOpacity={0.7}
+                            style={styles.bookingPhoneBtn}
+                          >
+                            <MaterialIcons name="call" size={14} color={colors.primary} />
+                            <Text style={styles.bookingPhoneText}>
+                              {t('machinery.phone').replace('%{phone}', booking.farmer.phone)}
+                            </Text>
+                          </TouchableOpacity>
                         )}
                       </View>
                       <View style={styles.bookingAmountBadge}>
@@ -780,6 +787,18 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontWeight: '600',
     marginTop: 1,
+  },
+  bookingPhoneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  bookingPhoneText: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
   bookingAmountBadge: {
     backgroundColor: '#ECFDF5',

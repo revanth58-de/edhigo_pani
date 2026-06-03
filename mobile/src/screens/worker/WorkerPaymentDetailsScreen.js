@@ -12,6 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -21,13 +22,7 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 

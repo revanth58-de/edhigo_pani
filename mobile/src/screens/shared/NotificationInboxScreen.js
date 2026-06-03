@@ -20,6 +20,7 @@ import { groupAPI } from '../../services/api';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import CustomLoader from '../../components/CustomLoader';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 // Meta definitions for styling the various notification types dynamically
 const TYPE_META = {
@@ -107,13 +108,7 @@ const NotificationInboxScreen = ({ navigation }) => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 
@@ -268,7 +263,8 @@ const NotificationInboxScreen = ({ navigation }) => {
     }
 
     if (navData && navData.screen) {
-      navigation.navigate(navData.screen, navData.params || { jobId: navData.jobId });
+      const safeScreen = getRoleSafeScreen(navData.screen, user?.role);
+      navigation.navigate(safeScreen, navData.params || { jobId: navData.jobId });
     }
   };
 

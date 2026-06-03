@@ -78,13 +78,13 @@ const GroupQRAttendanceScreen = ({ navigation, route }) => {
     }
   }, [permission, setCachedPermission]);
 
-  // Ask for camera permission on mount
+  // Ask for camera permission on mount if never requested/denied before
   useEffect(() => {
     if (!permission) return;
-    if (!permission.granted && permission.canAskAgain) {
+    if (!permission.granted && permission.canAskAgain && cachedPermission === null) {
       requestPermission();
     }
-  }, [permission?.granted]);
+  }, [permission?.granted, cachedPermission]);
 
   // Animate scan line
   useEffect(() => {

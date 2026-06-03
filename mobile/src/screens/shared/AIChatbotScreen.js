@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import GlassCard from '../../components/GlassCard';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 const AIChatbotScreen = ({ navigation }) => {
   const handleBack = () => {
@@ -23,13 +24,7 @@ const AIChatbotScreen = ({ navigation }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 

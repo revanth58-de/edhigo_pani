@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 import { socketService } from '../../services/socketService';
 
 const GroupDetailScreen = ({ route, navigation }) => {
@@ -25,13 +26,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 

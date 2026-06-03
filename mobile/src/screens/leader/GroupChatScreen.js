@@ -20,6 +20,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors, shadows, borderRadius } from '../../theme/colors';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 import { socketService } from '../../services/socketService';
 import { API_BASE_URL } from '../../config/api.config';
 import axios from 'axios';
@@ -96,13 +97,7 @@ const GroupChatScreen = ({ navigation, route }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 

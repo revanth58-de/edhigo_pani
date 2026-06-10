@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
+import { Alert } from 'react-native';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
@@ -53,6 +54,7 @@ jest.mock('../src/services/api/notificationService', () => ({
     ),
     markAsRead: jest.fn(() => Promise.resolve({ success: true })),
     markAllAsRead: jest.fn(() => Promise.resolve({ success: true })),
+    clearNotifications: jest.fn(() => Promise.resolve({ success: true })),
   },
 }));
 
@@ -75,6 +77,7 @@ describe('NotificationInboxScreen', () => {
     notificationService.markAsRead.mockClear();
     notificationService.markAllAsClear?.();
     notificationService.markAllAsRead.mockClear();
+    notificationService.clearNotifications.mockClear();
   });
 
   test('✅ Renders notifications list', async () => {
@@ -111,6 +114,43 @@ describe('NotificationInboxScreen', () => {
       expect(notificationService.markAsRead).toHaveBeenCalledWith('n-1');
       expect(mockNavigate).toHaveBeenCalledWith('JobOffer', { jobId: 'job-1' });
     });
+    unmount();
+  });
+
+  test('✅ Tapping clear all button triggers API and confirmation', async () => {
+    if (!NotificationInboxScreen) return;
+    const { getByTestId, unmount } = render(
+      <NotificationInboxScreen navigation={mockNavigation} />
+    );
+
+    const { notificationService } = require('../src/services/api/notificationService');
+
+    // Wait for render
+    await waitFor(() => {
+      expect(getByTestId('clear-all-btn')).toBeTruthy();
+    });
+
+    const spyAlert = jest.spyOn(Alert, 'alert');
+
+    const clearAllBtn = getByTestId('clear-all-btn');
+    await act(async () => {
+      fireEvent.press(clearAllBtn);
+    });
+
+    // Check alert is triggered
+    expect(spyAlert).toHaveBeenCalled();
+
+    // Trigger the Alert's confirm button
+    const confirmButton = spyAlert.mock.calls[0][2][1];
+    await act(async () => {
+      await confirmButton.onPress();
+    });
+
+    await waitFor(() => {
+      expect(notificationService.clearNotifications).toHaveBeenCalled();
+    });
+
+    spyAlert.mockRestore();
     unmount();
   });
 });

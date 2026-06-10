@@ -319,14 +319,6 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   detailText: { fontSize: 16, color: '#64748B' },
   dateText: { fontSize: 14, color: '#9CA3AF' },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 100,
-    gap: 12,
-  },
-  emptyText: { fontSize: 20, fontWeight: '800', color: '#9CA3AF' },
-  emptySubText: { fontSize: 15, color: '#D1D5DB', textAlign: 'center', paddingHorizontal: 32 },
 });
 
 export default WorkerBookingsScreen;

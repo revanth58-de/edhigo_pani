@@ -27,6 +27,9 @@ const getNearbyWorkers = async (req, res, next) => {
     const workers = await prisma.user.findMany({
       where: {
         role: 'worker',
+        location: { isNot: null },
+        deletedAt: null,
+        status: { in: ['available', 'working', 'on_break', 'online'] },
       },
       select: {
         id: true,

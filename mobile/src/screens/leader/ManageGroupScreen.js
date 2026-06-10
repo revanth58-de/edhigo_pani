@@ -180,7 +180,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
         }
         try {
             await groupAPI.updateGroupStatus(resolvedGroupId, 'available');
-            navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length });
+            navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length + 1 });
         } catch {
             Alert.alert('Error', 'Failed to start group session');
         }
@@ -199,7 +199,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
                         style={styles.headerBtn}
-                        onPress={() => navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length })}
+                        onPress={() => navigation.navigate('GroupMap', { groupId: resolvedGroupId, workerCount: members.length + 1 })}
                         testID="group-map-btn"
                     >
                         <MaterialIcons name="map" size={22} color={colors.backgroundDark} />
@@ -285,7 +285,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
                         <Text style={styles.addButtonText}>ADD MEMBER</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.goLiveButton} onPress={handleGoLive} disabled={!resolvedGroupId}>
-                        <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length})</Text>
+                        <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length + 1})</Text>
                     </TouchableOpacity>
                 </View>
             </>

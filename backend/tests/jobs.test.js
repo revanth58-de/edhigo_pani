@@ -21,7 +21,7 @@ afterAll(async () => {
   await cleanupTestUsers();
 });
 
-const createTestJob = (token) =>
+const createTestJob = (token, durationDays) =>
   request(app)
     .post('/api/jobs')
     .set('Authorization', `Bearer ${token}`)
@@ -34,13 +34,15 @@ const createTestJob = (token) =>
       farmAddress: 'Test Farm, Test Village',
       latitude: 16.5,
       longitude: 80.6,
+      durationDays: durationDays !== undefined ? durationDays : null,
     });
 
 describe('POST /api/jobs', () => {
   test('✅ Farmer creates job → 201', async () => {
-    const res = await createTestJob(farmerToken);
+    const res = await createTestJob(farmerToken, 5);
     expect(res.statusCode).toBe(201);
     expect(res.body.job).toHaveProperty('id');
+    expect(res.body.job.durationDays).toBe(5);
     testJobId = res.body.job.id;
   });
 
@@ -163,6 +165,30 @@ describe('GET /api/jobs/nearby-workers', () => {
       .set('Authorization', `Bearer ${farmerToken}`);
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body.workers)).toBe(true);
+  });
+
+  test('❌ Worker tries to query nearby workers → 403', async () => {
+    const res = await request(app)
+      .get('/api/jobs/nearby-workers?lat=16.5&lng=80.6&radius=50')
+      .set('Authorization', `Bearer ${workerToken}`);
+    expect(res.statusCode).toBe(403);
+  });
+});
+
+describe('GET /api/workers/nearby', () => {
+  test('✅ Leader/Farmer queries nearby → 200', async () => {
+    const res = await request(app)
+      .get('/api/workers/nearby?lat=16.5&lng=80.6')
+      .set('Authorization', `Bearer ${leaderToken}`);
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body.workers)).toBe(true);
+  });
+
+  test('❌ Worker queries nearby → 403', async () => {
+    const res = await request(app)
+      .get('/api/workers/nearby?lat=16.5&lng=80.6')
+      .set('Authorization', `Bearer ${workerToken}`);
+    expect(res.statusCode).toBe(403);
   });
 });
 

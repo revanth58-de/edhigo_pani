@@ -147,4 +147,96 @@ const getEarnings = async (req, res, next) => {
   }
 };
 
-module.exports = { getEarnings };
+const downloadEarningsPdf = async (req, res, next) => {
+  try {
+    const workerId = req.user.id;
+
+    const payments = await prisma.payment.findMany({
+      where: { workerId, status: PaymentStatus.COMPLETED },
+      include: {
+        job: {
+          select: { id: true, workType: true, farmAddress: true, createdAt: true },
+        },
+        farmer: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { paidAt: 'desc' },
+    });
+
+    const pendingResult = await prisma.payment.aggregate({
+      where: { workerId, status: PaymentStatus.PENDING },
+      _sum: { amount: true },
+    });
+    const pendingAmount = pendingResult._sum.amount || 0;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfWeek  = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    let totalEarned = 0;
+    let thisMonth   = 0;
+    let thisWeek    = 0;
+    let pendingSettlement = 0;
+    let settledAmount = 0;
+
+    for (const p of payments) {
+      const amount  = p.amount || 0;
+      const paidAt  = p.paidAt ? new Date(p.paidAt) : new Date(p.createdAt);
+
+      totalEarned += amount;
+      if (paidAt >= startOfMonth) thisMonth += amount;
+      if (paidAt >= startOfWeek)  thisWeek  += amount;
+
+      if (p.settlementStatus === 'settled') {
+        settledAmount += p.workerAmount || 0;
+      } else {
+        pendingSettlement += p.workerAmount || 0;
+      }
+    }
+
+    const uniqueJobIds = new Set(payments.map(p => p.job?.id).filter(Boolean));
+    const totalJobs    = uniqueJobIds.size;
+    const avgPerJob    = totalJobs > 0
+      ? Math.round((totalEarned / totalJobs) * 100) / 100
+      : 0;
+
+    const earningsData = {
+      summary: {
+        totalEarned,
+        thisMonth,
+        thisWeek,
+        totalJobs,
+        avgPerJob,
+        pendingAmount,
+        pendingSettlement,
+        settledAmount,
+      },
+      recentPayments: payments.slice(0, 20).map(p => ({
+        id:          p.id,
+        amount:      p.amount,
+        workerAmount: p.workerAmount,
+        settlementStatus: p.settlementStatus,
+        method:      p.method,
+        paidAt:      p.paidAt,
+        createdAt:   p.createdAt,
+        workType:    p.job?.workType   || 'Work',
+        farmerName:  p.farmer?.name    || 'Farmer',
+      })),
+    };
+
+    const { generateEarningsPdf } = require('../services/pdfGenerator');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=earnings_certificate_${workerId}.pdf`);
+
+    generateEarningsPdf(res, req.user, earningsData);
+
+  } catch (error) {
+    logger.error('PDF download error', { message: error.message });
+    next(error);
+  }
+};
+
+module.exports = { getEarnings, downloadEarningsPdf };

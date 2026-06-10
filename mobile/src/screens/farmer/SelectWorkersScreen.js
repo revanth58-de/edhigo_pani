@@ -21,11 +21,12 @@ import { colors } from '../../theme/colors';
 import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
-  const { workType } = route.params;
+  const { workType, repostJob } = route.params || {};
   const user = useAuthStore((state) => state.user);
-  const [workerType, setWorkerType] = useState('group'); // 'individual' or 'group'
-  const [workersNeeded, setWorkersNeeded] = useState(10);
-  const [payPerDay, setPayPerDay] = useState('500');
+  const [workerType, setWorkerType] = useState(repostJob?.workerType || 'group'); // 'individual' or 'group'
+  const [workersNeeded, setWorkersNeeded] = useState(repostJob?.workersNeeded || 10);
+  const [durationDays, setDurationDays] = useState(repostJob?.durationDays || 1);
+  const [payPerDay, setPayPerDay] = useState(repostJob?.payPerDay ? String(repostJob.payPerDay) : '500');
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
@@ -38,6 +39,16 @@ const SelectWorkersScreen = ({ navigation, route }) => {
   const handleDecrement = () => {
     if (workersNeeded > 1) {
       setWorkersNeeded(workersNeeded - 1);
+    }
+  };
+
+  const handleDurationIncrement = () => {
+    if (durationDays < 30) setDurationDays(durationDays + 1);
+  };
+
+  const handleDurationDecrement = () => {
+    if (durationDays > 1) {
+      setDurationDays(durationDays - 1);
     }
   };
 
@@ -79,13 +90,14 @@ const SelectWorkersScreen = ({ navigation, route }) => {
       // Create job posting
       const jobData = {
         farmerId: user.id,
-        workType: workType.toLowerCase(),
+        workType: (workType || repostJob?.workType || '').toLowerCase(),
         workerType,
         workersNeeded,
         payPerDay: parsedPay,
         farmAddress: user.village || 'Hyderabad',
         farmLatitude: latitude || 17.385044,
         farmLongitude: longitude || 78.486671,
+        durationDays,
       };
 
       const response = await jobService.createJob(jobData);
@@ -228,6 +240,38 @@ const SelectWorkersScreen = ({ navigation, route }) => {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Section: Job Duration */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Job Duration</Text>
+          <Text style={styles.sectionSubtitle}>Specify how many days the work will last</Text>
+        </View>
+
+        {/* Duration Stepper */}
+        <View style={styles.stepperContainer}>
+          <View style={styles.stepperCard}>
+            <TouchableOpacity
+              style={styles.stepperButton}
+              onPress={handleDurationDecrement}
+              testID="duration-decrement-btn"
+            >
+              <MaterialIcons name="remove" size={40} color="#131811" />
+            </TouchableOpacity>
+
+            <View style={styles.stepperValue}>
+              <Text style={styles.stepperNumber} testID="duration-value-text">{durationDays}</Text>
+              <Text style={styles.stepperLabel}>Days</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.stepperButton, styles.stepperButtonPrimary]}
+              onPress={handleDurationIncrement}
+              testID="duration-increment-btn"
+            >
+              <MaterialIcons name="add" size={40} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Section: Pay Per Day */}

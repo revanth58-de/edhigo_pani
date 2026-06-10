@@ -17,6 +17,7 @@ import { disputeService } from '../../services/api/disputeService';
 import useSpeech from '../../hooks/useSpeech';
 import CustomLoader from '../../components/CustomLoader';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 const CATEGORIES = ['incorrect_payment', 'hours_mismatch', 'worker_no_show', 'other'];
 
@@ -26,13 +27,7 @@ const DisputeScreen = ({ navigation, route }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
   const { jobId, paymentId } = route.params || {};

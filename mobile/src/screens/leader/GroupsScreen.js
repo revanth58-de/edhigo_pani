@@ -69,7 +69,7 @@ const GroupsScreen = ({ navigation }) => {
               <Text style={styles.typeText}>{item.type || 'General Work'}</Text>
             </View>
             <Text style={styles.memberCount}>
-              {item.members?.length || 0} Members
+              {((item.members || []).filter(m => m.status === 'joined' || m.status === 'checked_in' || m.status === 'checked_out').length + 1)} Members
             </Text>
           </View>
 

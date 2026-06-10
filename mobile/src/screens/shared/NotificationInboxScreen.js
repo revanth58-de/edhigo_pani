@@ -20,6 +20,7 @@ import { groupAPI } from '../../services/api';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import CustomLoader from '../../components/CustomLoader';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 // Meta definitions for styling the various notification types dynamically
 const TYPE_META = {
@@ -107,13 +108,7 @@ const NotificationInboxScreen = ({ navigation }) => {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
 
@@ -218,7 +213,7 @@ const NotificationInboxScreen = ({ navigation }) => {
       // Sync with Zustand store to clear bell icon badge count
       try {
         const useNotificationStore = require('../../store/notificationStore').default;
-        useNotificationStore.getState().markRead(item.id);
+        useNotificationStore.getState().markRead(item.id, true);
       } catch (err) {
         console.warn('Could not sync read state with store:', err.message);
       }
@@ -268,7 +263,8 @@ const NotificationInboxScreen = ({ navigation }) => {
     }
 
     if (navData && navData.screen) {
-      navigation.navigate(navData.screen, navData.params || { jobId: navData.jobId });
+      const safeScreen = getRoleSafeScreen(navData.screen, user?.role);
+      navigation.navigate(safeScreen, navData.params || { jobId: navData.jobId });
     }
   };
 
@@ -294,9 +290,41 @@ const NotificationInboxScreen = ({ navigation }) => {
             // Sync with Zustand store to clear bell icon badge count
             try {
               const useNotificationStore = require('../../store/notificationStore').default;
-              useNotificationStore.getState().markAllRead();
+              useNotificationStore.getState().markAllRead(true);
             } catch (err) {
               console.warn('Could not sync markAllRead with store:', err.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Clear all notifications
+  const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+
+    Alert.alert(
+      t('notifications.title', 'Notifications'),
+      t('notifications.clearAllConfirm', 'Clear all notifications? This cannot be undone.'),
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('common.confirm', 'Confirm'),
+          onPress: async () => {
+            // Optimistic update
+            setNotifications([]);
+            setUnreadCount(0);
+
+            // API Call
+            await notificationService.clearNotifications();
+
+            // Sync with Zustand store to clear local state
+            try {
+              const useNotificationStore = require('../../store/notificationStore').default;
+              useNotificationStore.getState().clearAll(true);
+            } catch (err) {
+              console.warn('Could not sync clearAll with store:', err.message);
             }
           },
         },
@@ -349,8 +377,13 @@ const NotificationInboxScreen = ({ navigation }) => {
         </View>
         <View style={styles.headerActions}>
           {unreadCount > 0 && (
-            <TouchableOpacity style={styles.headerActionBtn} onPress={handleMarkAllRead}>
+            <TouchableOpacity testID="mark-all-read-btn" style={styles.headerActionBtn} onPress={handleMarkAllRead}>
               <MaterialIcons name="done-all" size={20} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+          {notifications.length > 0 && (
+            <TouchableOpacity testID="clear-all-btn" style={styles.headerActionBtn} onPress={handleClearAll}>
+              <MaterialIcons name="delete-sweep" size={20} color={colors.textMuted} />
             </TouchableOpacity>
           )}
         </View>

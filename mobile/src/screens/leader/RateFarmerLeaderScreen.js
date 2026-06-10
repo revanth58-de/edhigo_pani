@@ -7,18 +7,22 @@ import {
   StatusBar,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
 import * as Speech from 'expo-speech';
 import { ratingService } from '../../services/api/ratingService';
+import useAuthStore from '../../store/authStore';
 
 const RateFarmerLeaderScreen = ({ navigation, route }) => {
   const { job, groupId } = route.params || {};
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     Speech.speak("Dayachesi me anubhavanni rate cheyandi", { language: 'te' });
@@ -32,7 +36,6 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      const emojiMap = { 1: 'sad', 3: 'neutral', 5: 'happy' };
       const response = await ratingService.rateFarmer({
         jobId: job?.id,
         farmerId: job?.farmerId || job?.farmer?.id,
@@ -57,6 +60,10 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
     { value: 5, icon: 'sentiment-very-satisfied', color: '#10B981', label: 'Happy' },
   ];
 
+  // Generate UPI payment details
+  const upiId = user?.upiId || `${user?.phone || 'leader'}@upi`;
+  const amount = (job?.payPerDay || 500) * (job?.workersNeeded || 1);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
@@ -66,7 +73,21 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
         <Text style={styles.headerSub}>How was the experience with Farmer?</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Payment QR Code Section */}
+        <View style={styles.qrSection}>
+          <Text style={styles.qrLabel}>SHOW THIS QR TO FARMER FOR PAYMENT</Text>
+          <View style={styles.qrCard}>
+            <QRCode
+              value={`upi://pay?pa=${upiId}&pn=Dinasari&am=${amount}&tn=FarmWork`}
+              size={160}
+              backgroundColor="white"
+            />
+            <Text style={styles.amountText}>Amount: ₹{amount}</Text>
+            <Text style={styles.upiIdText}>UPI ID: {upiId}</Text>
+          </View>
+        </View>
+
         <View style={styles.ratingContainer}>
           {ratingOptions.map((opt) => (
             <TouchableOpacity
@@ -96,9 +117,7 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
             onChangeText={setFeedback}
           />
         </View>
-      </View>
 
-      <View style={styles.footer}>
         <TouchableOpacity
           style={[styles.submitButton, rating === 0 && styles.disabled]}
           onPress={handleSubmit}
@@ -113,7 +132,7 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
             </>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -123,14 +142,55 @@ const styles = StyleSheet.create({
   header: { backgroundColor: colors.primary, paddingTop: 80, paddingBottom: 60, alignItems: 'center', borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
   headerTitle: { fontSize: 32, fontWeight: '900', color: '#FFF' },
   headerSub: { fontSize: 16, color: 'rgba(255,255,255,0.8)', textAlign: 'center', marginTop: 12, paddingHorizontal: 40 },
-  content: { flex: 1, padding: 24, marginTop: -30 },
+  content: { flex: 1 },
+  contentContainer: { padding: 24, paddingTop: 16, paddingBottom: 40 },
+  qrSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  qrCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  amountText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: colors.primary,
+    marginTop: 16,
+  },
+  upiIdText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
   ratingContainer: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   rateCard: { flex: 1, backgroundColor: '#FFF', borderRadius: 24, padding: 20, alignItems: 'center', elevation: 4, borderWidth: 2, borderColor: 'transparent' },
   rateLabel: { marginTop: 8, fontWeight: 'bold', color: '#9CA3AF' },
-  feedbackCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 24, elevation: 2 },
-  feedbackTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937', marginBottom: 16 },
+  feedbackCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 24, elevation: 2, marginBottom: 24 },
+  feedbackTitle: { fontSize: 18, fontWeight: 'bold', color: '#1F2937', mb: 16 },
   input: { backgroundColor: '#F3F4F6', borderRadius: 16, padding: 16, height: 120, textAlignVertical: 'top', fontSize: 16 },
-  footer: { padding: 24, paddingBottom: 40 },
   submitButton: { height: 70, backgroundColor: colors.primary, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, elevation: 4 },
   submitText: { color: '#FFF', fontSize: 18, fontWeight: '900' },
   disabled: { backgroundColor: '#D1D5DB', elevation: 0 }

@@ -20,6 +20,15 @@ const logger = winston.createLogger({
   ],
 });
 
+if (process.env.GCP_PROJECT_ID) {
+  const { LoggingWinston } = require('@google-cloud/logging-winston');
+  const loggingWinston = new LoggingWinston({
+    projectId: process.env.GCP_PROJECT_ID,
+    keyFilename: process.env.GCP_KEY_FILE || undefined,
+  });
+  logger.add(loggingWinston);
+}
+
 const errorHandler = (err, req, res, next) => {
   const status = err.status || 500;
   

@@ -79,6 +79,12 @@ const JobCard = ({ job }) => {
           <MaterialIcons name="payments" size={16} color="#9CA3AF" />
           <Text style={styles.detailText}>₹{job.wagePerDay || job.payPerDay || '—'}/day</Text>
         </View>
+        {job.durationDays && job.durationDays > 1 ? (
+          <View style={styles.detailRow}>
+            <MaterialIcons name="schedule" size={16} color="#9CA3AF" />
+            <Text style={styles.detailText}>Duration: {job.durationDays} days</Text>
+          </View>
+        ) : null}
         {/* M11: Show job description if the farmer added one */}
         {job.description ? (
           <View style={styles.detailRow}>

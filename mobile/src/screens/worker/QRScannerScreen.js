@@ -61,8 +61,10 @@ const HELP_STEPS = [
 const QRScannerScreen = ({ navigation, route }) => {
   const { job, booking, isMachinery } = route.params || {};
   
+  const user = useAuthStore((state) => state.user);
   const [permission, requestPermission] = useCameraPermissions();
-  const hasPermission = permission?.granted ?? null;
+  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const hasPermission = permission?.granted ?? (cachedPermission === 'granted' ? true : null);
   const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
 
   const [scanned, setScanned] = useState(false);
@@ -73,18 +75,18 @@ const QRScannerScreen = ({ navigation, route }) => {
 
   // Sync hook status with Zustand cache
   useEffect(() => {
-    if (permission) {
+    if (permission && typeof setCachedPermission === 'function') {
       setCachedPermission(permission.status);
     }
-  }, [permission]);
+  }, [permission, setCachedPermission]);
 
-  // Request camera permission on mount if not yet granted
+  // Request camera permission on mount if not yet granted and never requested/denied before
   useEffect(() => {
     if (!permission) return;
-    if (!permission.granted && permission.canAskAgain) {
+    if (!permission.granted && permission.canAskAgain && cachedPermission === null) {
       requestPermission();
     }
-  }, [permission?.granted]);
+  }, [permission?.granted, cachedPermission]);
 
   // Animate scan line
   useEffect(() => {
@@ -401,7 +403,7 @@ const QRScannerScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <BottomNavBar role="worker" activeTab="ShowQR" />
+      <BottomNavBar role={user?.role || "worker"} activeTab="ShowQR" />
 
       {/* Help Modal */}
       <Modal visible={helpVisible} animationType="slide" transparent>

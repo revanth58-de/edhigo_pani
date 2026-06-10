@@ -4,39 +4,16 @@ const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
 export async function loadStats(isSilent = false) {
   const el = document.getElementById('page-stats');
-  if (!isSilent) {
-    el.innerHTML = `<div class="table-loading"><div class="spinner"></div></div>`;
-  }
-
-  try {
-    const data = await api.getStats();
-    const u = data.users, j = data.jobs, p = data.payments, g = data.growth || {};
-    const farmers = u.byRole?.farmer || 0;
-    const workers = u.byRole?.worker || 0;
-    const leaders = u.byRole?.leader || 0;
-    const openJobs = j.openJobs || 0;
-    const doneJobs = j.doneJobs || 0;
-    const revenue  = p.revenue || 0;
-
-    // FIX #5: Use real growth data from the backend.
-    // pctChange is null when previous week had 0 records (avoid divide-by-zero).
-    const fmtPct = (v) => v === null ? 'New' : (v >= 0 ? `+${v}%` : `${v}%`);
-    const jobsPct    = fmtPct(g.jobs?.pctChange ?? null);
-    const workersPct = fmtPct(g.users?.pctChange ?? null);
-    const revPct     = fmtPct(g.revenue?.pctChange ?? null);
-    const usersPct   = fmtPct(g.users?.pctChange ?? null);
-    const jobsUp    = (g.jobs?.pctChange    ?? 0) >= 0;
-    const workersUp = (g.users?.pctChange   ?? 0) >= 0;
-    const revUp     = (g.revenue?.pctChange ?? 0) >= 0;
-    const usersUp   = (g.users?.pctChange   ?? 0) >= 0;
-
+  
+  // Render layout shell synchronously if not already present or if not silent
+  if (!isSilent || !document.getElementById('chartArea')) {
     el.innerHTML = `
       <!-- KPI Row -->
       <div class="stats-grid">
-        ${kpi('💼', openJobs, 'Active Jobs', jobsPct, jobsUp)}
-        ${kpi('👷', workers, 'Total Workers', workersPct, workersUp)}
-        ${kpi('₹', '₹' + revenue.toLocaleString('en-IN'), 'Total Revenue', revPct, revUp)}
-        ${kpi('👥', u.total, 'Total Users', usersPct, usersUp)}
+        ${kpi('💼', '...', 'Active Jobs', '...', true, 'kpi-open-jobs')}
+        ${kpi('👷', '...', 'Total Workers', '...', true, 'kpi-total-workers')}
+        ${kpi('₹', '...', 'Total Revenue', '...', true, 'kpi-total-revenue')}
+        ${kpi('👥', '...', 'Total Users', '...', true, 'kpi-total-users')}
       </div>
 
       <!-- Charts + Live Jobs -->
@@ -52,7 +29,7 @@ export async function loadStats(isSilent = false) {
               </div>
             </div>
             <div style="text-align:right">
-              <div style="font-size:24px;font-weight:900;color:var(--primary)">${(u.total/1000).toFixed(1)}k</div>
+              <div style="font-size:24px;font-weight:900;color:var(--primary)" id="total-users-k-header">...</div>
               <div style="font-size:11px;color:var(--primary-dark);font-weight:700">Last 7 Days +14%</div>
             </div>
           </div>
@@ -60,10 +37,12 @@ export async function loadStats(isSilent = false) {
             <!-- Cached-at timestamp so admins know data freshness -->
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
               <div style="font-size:12px;color:var(--text-muted)">Last 7 days vs prior 7 days</div>
-              ${data._cachedAt ? `<div style="font-size:11px;color:var(--text-dim)">Cached: ${new Date(data._cachedAt).toLocaleTimeString()}</div>` : ''}
+              <div style="font-size:11px;color:var(--text-dim)" id="stats-cached-at"></div>
             </div>
             
-            <div id="chartArea"></div>
+            <div id="chartArea">
+              <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:12px">Loading…</div>
+            </div>
 
             <div style="display:flex;gap:8px;margin-top:8px">
               ${DAYS.map(d => `<div style="flex:1;text-align:center;font-size:11px;color:var(--text-muted);font-weight:600">${d}</div>`).join('')}
@@ -85,9 +64,9 @@ export async function loadStats(isSilent = false) {
 
       <!-- Role breakdown + Recent stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
-        ${miniCard('🌾', 'var(--primary-light)', 'Farmers', farmers)}
-        ${miniCard('👷', '#EFF6FF', 'Workers', workers)}
-        ${miniCard('👑', '#F5F3FF', 'Leaders', leaders)}
+        ${miniCard('🌾', 'var(--primary-light)', 'Farmers', '...', 'mini-farmers')}
+        ${miniCard('👷', '#EFF6FF', 'Workers', '...', 'mini-workers')}
+        ${miniCard('👑', '#F5F3FF', 'Leaders', '...', 'mini-leaders')}
       </div>
 
       <!-- Recent Verifications placeholder -->
@@ -108,39 +87,96 @@ export async function loadStats(isSilent = false) {
         </div>
       </div>
     `;
+  }
 
-    // Draw chart with real data
-    drawChart();
+  // Load and update stats details asynchronously
+  const statsPromise = api.getStats().then(data => {
+    const u = data.users, j = data.jobs, p = data.payments, g = data.growth || {};
+    const farmers = u.byRole?.farmer || 0;
+    const workers = u.byRole?.worker || 0;
+    const leaders = u.byRole?.leader || 0;
+    const openJobs = j.openJobs || 0;
+    const revenue  = p.revenue || 0;
+
+    const fmtPct = (v) => v === null ? 'New' : (v >= 0 ? `+${v}%` : `${v}%`);
+    const jobsPct    = fmtPct(g.jobs?.pctChange ?? null);
+    const workersPct = fmtPct(g.users?.pctChange ?? null);
+    const revPct     = fmtPct(g.revenue?.pctChange ?? null);
+    const usersPct   = fmtPct(g.users?.pctChange ?? null);
+    const jobsUp    = (g.jobs?.pctChange    ?? 0) >= 0;
+    const workersUp = (g.users?.pctChange   ?? 0) >= 0;
+    const revUp     = (g.revenue?.pctChange ?? 0) >= 0;
+    const usersUp   = (g.users?.pctChange   ?? 0) >= 0;
+
+    const updateKpi = (idVal, idChange, value, change, up) => {
+      const valEl = document.getElementById(idVal);
+      const chgEl = document.getElementById(idChange);
+      if (valEl) valEl.textContent = value;
+      if (chgEl) {
+        chgEl.textContent = `${up ? '↑' : '↓'} ${change}`;
+        chgEl.className = `stat-change ${up ? 'up' : 'down'}`;
+      }
+    };
+
+    updateKpi('kpi-open-jobs', 'kpi-open-jobs-change', openJobs, jobsPct, jobsUp);
+    updateKpi('kpi-total-workers', 'kpi-total-workers-change', workers, workersPct, workersUp);
+    updateKpi('kpi-total-revenue', 'kpi-total-revenue-change', '₹' + revenue.toLocaleString('en-IN'), revPct, revUp);
+    updateKpi('kpi-total-users', 'kpi-total-users-change', u.total, usersPct, usersUp);
+
+    const tkHeader = document.getElementById('total-users-k-header');
+    if (tkHeader) tkHeader.textContent = `${(u.total/1000).toFixed(1)}k`;
+
+    const statsCached = document.getElementById('stats-cached-at');
+    if (statsCached) {
+      statsCached.textContent = data._cachedAt ? `Cached: ${new Date(data._cachedAt).toLocaleTimeString()}` : '';
+    }
+
+    const mFarmers = document.getElementById('mini-farmers');
+    if (mFarmers) mFarmers.textContent = farmers;
+    const mWorkers = document.getElementById('mini-workers');
+    if (mWorkers) mWorkers.textContent = workers;
+    const mLeaders = document.getElementById('mini-leaders');
+    if (mLeaders) mLeaders.textContent = leaders;
 
     // Load live jobs
     loadLiveJobs(j.byStatus);
+  }).catch(e => {
+    console.error('Failed to load stats details:', e);
+    if (!isSilent) {
+      el.innerHTML = `<div class="table-empty">❌ Failed to load: ${e.message}</div>`;
+    }
+  });
 
-    // Load recent users
-    loadRecentUsers();
+  // Load recent users asynchronously
+  const usersPromise = loadRecentUsers();
 
-  } catch(e) {
-    el.innerHTML = `<div class="table-empty">❌ Failed to load: ${e.message}</div>`;
-  }
+  // Draw chart asynchronously
+  const chartPromise = drawChart();
+
+  await Promise.all([statsPromise, usersPromise, chartPromise]);
 }
 
-function kpi(icon, value, label, change, up) {
+function kpi(icon, value, label, change, up, idPrefix = '') {
+  const valAttr = idPrefix ? ` id="${idPrefix}"` : '';
+  const chgAttr = idPrefix ? ` id="${idPrefix}-change"` : '';
   return `
     <div class="stat-card">
       <div class="stat-card-header">
         <div class="stat-icon">${icon}</div>
-        <div class="stat-change ${up ? 'up' : 'down'}">${up ? '↑' : '↓'} ${change}</div>
+        <div class="stat-change ${up ? 'up' : 'down'}"${chgAttr}>${up ? '↑' : '↓'} ${change}</div>
       </div>
-      <div class="stat-value">${value}</div>
+      <div class="stat-value"${valAttr}>${value}</div>
       <div class="stat-label">${label}</div>
     </div>`;
 }
 
-function miniCard(icon, bg, label, value) {
+function miniCard(icon, bg, label, value, id = '') {
+  const valAttr = id ? ` id="${id}"` : '';
   return `
     <div class="card" style="padding:18px;display:flex;align-items:center;gap:14px">
       <div class="stat-icon" style="background:${bg};font-size:22px">${icon}</div>
       <div>
-        <div style="font-size:24px;font-weight:900">${value}</div>
+        <div style="font-size:24px;font-weight:900"${valAttr}>${value}</div>
         <div style="font-size:13px;color:var(--text-muted);font-weight:500">${label}</div>
       </div>
     </div>`;

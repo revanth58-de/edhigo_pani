@@ -124,7 +124,7 @@ const matchWorkers = async (job) => {
           select: {
             id: true,
             name: true,
-            _count: { select: { members: { where: { status: MemberStatus.JOINED } } } },
+            _count: { select: { members: { where: { status: { not: MemberStatus.INVITED } } } } },
           },
           take: 1,
         },
@@ -178,7 +178,8 @@ const matchWorkers = async (job) => {
     // ── Group size filter ───────────────────────────────────────────────────
     if (isGroupJob) {
       const group = worker.groupsLed?.[0];
-      const memberCount = group?._count?.members ?? 0;
+      // Include the leader in the group size calculation
+      const memberCount = group ? (group._count?.members ?? 0) + 1 : 0;
       if (memberCount < requiredWorkers) continue; // Group too small
       matched.push({
         ...worker,

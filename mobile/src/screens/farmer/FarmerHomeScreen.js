@@ -101,6 +101,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     {
       id: 'tractor',
       name: 'Tractor Rentals',
+      type: 'Tractor',
       price: '₹800/hr',
       image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
       owner: 'Ramesh Kumar',
@@ -108,6 +109,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     {
       id: 'harvester',
       name: 'Combine Harvester',
+      type: 'Harvester',
       price: '₹1,800/hr',
       image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800&auto=format&fit=crop',
       owner: 'Suresh Singh',
@@ -115,6 +117,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     {
       id: 'drone',
       name: 'Pesticide Drone',
+      type: 'Sprayer',
       price: '₹1,200/hr',
       image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop',
       owner: 'Venkatesh Rao',
@@ -122,6 +125,7 @@ const FarmerHomeScreen = ({ navigation }) => {
     {
       id: 'rotavator',
       name: 'Power Rotavator',
+      type: 'Plough',
       price: '₹600/hr',
       image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
       owner: 'Anil Reddy',
@@ -138,31 +142,49 @@ const FarmerHomeScreen = ({ navigation }) => {
       [
         {
           text: 'Tractor (₹800/hr)',
-          onPress: () => appendMachinery('Tractor', '₹800/hr', 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'),
+          onPress: () => appendMachinery('Tractor', 'Tractor', '₹800/hr', 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'),
         },
         {
           text: 'Pesticide Drone (₹1,200/hr)',
-          onPress: () => appendMachinery('Pesticide Drone', '₹1,200/hr', 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800'),
+          onPress: () => appendMachinery('Pesticide Drone', 'Sprayer', '₹1,200/hr', 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800'),
         },
         {
           text: 'Rotavator (₹600/hr)',
-          onPress: () => appendMachinery('Rotavator', '₹600/hr', 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800'),
+          onPress: () => appendMachinery('Rotavator', 'Plough', '₹600/hr', 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800'),
         },
         { text: 'Cancel', style: 'cancel' }
       ]
     );
   };
 
-  const appendMachinery = (name, price, image) => {
+  const appendMachinery = (name, type, price, image) => {
     const newItem = {
       id: `custom_${Date.now()}`,
       name: `${name} (My Listing)`,
+      type: type,
       price: price,
       image: image,
       owner: user?.name || 'My Farm',
     };
     setMachineryList(prev => [newItem, ...prev]);
     Alert.alert('🎉 Success!', `${name} has been successfully added to your dashboard machinery listing!`);
+  };
+
+  const handleDeleteMachinery = (id) => {
+    Alert.alert(
+      '🗑️ Remove Listing',
+      'Are you sure you want to remove this machinery listing from your dashboard?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: () => {
+            setMachineryList(prev => prev.filter(item => item.id !== id));
+          }
+        }
+      ]
+    );
   };
 
   // M2: single shared shimmer Animated.Value for all skeleton cards
@@ -393,6 +415,15 @@ const FarmerHomeScreen = ({ navigation }) => {
                   colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.machineryGradient}
                 />
+                {item.id.toString().startsWith('custom_') && (
+                  <TouchableOpacity
+                    style={styles.deleteListingBadge}
+                    onPress={() => handleDeleteMachinery(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="delete" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                )}
                 <View style={styles.machineryBadge}>
                   <Text style={styles.machineryBadgeText}>{item.price}</Text>
                 </View>
@@ -401,7 +432,7 @@ const FarmerHomeScreen = ({ navigation }) => {
                   <Text style={styles.machineryOwner} numberOfLines={1}>Owner: {item.owner}</Text>
                   <TouchableOpacity
                     style={styles.machineryBookBtn}
-                    onPress={() => navigation.navigate('MachineryBooking', { machineType: item.name })}
+                    onPress={() => navigation.navigate('MachineryBooking', { machineType: item.type || item.name })}
                     activeOpacity={0.8}
                   >
                     <LinearGradient
@@ -661,6 +692,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 99,
+  },
+  deleteListingBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   machineryBadgeText: {
     fontSize: 12,

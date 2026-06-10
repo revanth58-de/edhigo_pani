@@ -67,10 +67,14 @@ apiClient.interceptors.response.use(
         }
 
         // ── Token refresh on 401 ──────────────────────────────────────────
+        // ── Token refresh on 401 ──────────────────────────────────────────
         // Keys must match what authStore.js writes: separate keys per token.
+        const isAuthEndpointToSkip = originalRequest.url?.includes('/auth/refresh') || 
+                                     originalRequest.url?.includes('/auth/send-otp') || 
+                                     originalRequest.url?.includes('/auth/verify-otp');
         if (status === 401 &&
             !originalRequest._retry &&
-            !originalRequest.url?.includes('/auth/')
+            !isAuthEndpointToSkip
         ) {
             originalRequest._retry = true;
             try {
@@ -116,9 +120,15 @@ apiClient.interceptors.response.use(
                 }
             } catch (refreshError) {
                 console.error('Token refresh failed — user must re-login:', refreshError);
-                // Clear stored tokens so the nav guard redirects to login
-                await deleteTokenSafe('edhigo_access_token');
-                await deleteTokenSafe('edhigo_refresh_token');
+                // Clear stored tokens and update Zustand state to trigger redirect to login
+                try {
+                    const useAuthStore = (await import('../store/authStore')).default;
+                    useAuthStore.getState().logout();
+                } catch (logoutError) {
+                    console.error('Failed to trigger logout in authStore:', logoutError);
+                    await deleteTokenSafe('edhigo_access_token');
+                    await deleteTokenSafe('edhigo_refresh_token');
+                }
             }
         }
 
@@ -223,6 +233,7 @@ export const notificationAPI = {
     getNotifications: (params) => apiClient.get('/notifications', { params }),
     markAsRead: (id) => apiClient.patch(`/notifications/${id}/read`),
     markAllAsRead: () => apiClient.post('/notifications/read-all'),
+    clearNotifications: () => apiClient.delete('/notifications'),
 };
 
 // ─── Machinery API (F8) ───

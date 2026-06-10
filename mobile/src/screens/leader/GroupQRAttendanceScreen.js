@@ -61,20 +61,30 @@ const HELP_STEPS = [
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
   const { job, groupId, type } = route.params || { type: 'IN' };
   const [permission, requestPermission] = useCameraPermissions();
-  const hasPermission = permission?.granted ?? null;
+  const cachedPermission = useAuthStore((state) => state.cameraPermission);
+  const hasPermission = permission?.granted ?? (cachedPermission === 'granted' ? true : null);
+  const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
+
   const [scanned, setScanned] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const scanAnim = useRef(new Animated.Value(0)).current;
 
-  // Ask for camera permission on mount
+  // Sync hook status with Zustand cache
+  useEffect(() => {
+    if (permission && typeof setCachedPermission === 'function') {
+      setCachedPermission(permission.status);
+    }
+  }, [permission, setCachedPermission]);
+
+  // Ask for camera permission on mount if never requested/denied before
   useEffect(() => {
     if (!permission) return;
-    if (!permission.granted && permission.canAskAgain) {
+    if (!permission.granted && permission.canAskAgain && cachedPermission === null) {
       requestPermission();
     }
-  }, [permission?.granted]);
+  }, [permission?.granted, cachedPermission]);
 
   // Animate scan line
   useEffect(() => {

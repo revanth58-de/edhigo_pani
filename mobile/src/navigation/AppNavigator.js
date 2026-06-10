@@ -16,6 +16,12 @@ import { socketService } from '../services/socketService';
 
 import * as Notifications from 'expo-notifications';
 
+const isExpoGo = Platform.OS !== 'web' && (
+  Constants.appOwnership === 'expo' ||
+  Constants.appOwnership === 'expo-go' ||
+  Constants.executionEnvironment === 'storeClient'
+);
+
 // Ensure foreground notifications show a visual UI banner
 // Wrapped in try/catch — expo-notifications native module isn't available on web
 if (Platform.OS !== 'web' && Constants.appOwnership !== 'expo') {
@@ -307,7 +313,7 @@ const AppNavigator = () => {
 
     const registerPush = async () => {
       if (Platform.OS === 'web') return;
-      if (Constants.appOwnership === 'expo') {
+      if (isExpoGo) {
         console.log('Push notifications are not supported in Expo Go (SDK 53+). Skipping registration.');
         return;
       }

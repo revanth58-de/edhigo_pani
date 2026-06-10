@@ -26,6 +26,7 @@ const createJob = async (req, res, next) => {
       startTime,
       startDate,
       radiusKm, // B10: custom matching radius (in km)
+      durationDays, // D5: duration of the job in days
     } = req.body;
 
     // Always use the authenticated user's ID — not from body
@@ -56,6 +57,7 @@ const createJob = async (req, res, next) => {
         description: description || null,
         status: JobStatus.PENDING,
         radiusKm: radiusKm !== undefined && radiusKm !== null ? parseFloat(radiusKm) : null,
+        durationDays: durationDays !== undefined && durationDays !== null ? parseInt(durationDays) : null,
       },
     });
 

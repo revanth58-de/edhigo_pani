@@ -8,15 +8,17 @@ import {
   StatusBar,
   TextInput,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import { ratingService } from '../../services/api/ratingService';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 
 const RateFarmerScreen = ({ navigation, route }) => {
-  const { job, isMachinery } = route.params || {};
+  const { job, booking, isMachinery } = route.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const user = useAuthStore((state) => state.user);
@@ -36,6 +38,13 @@ const RateFarmerScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
+      if (isMachinery || user?.role === 'machinery') {
+        // Simulate premium rating submission
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        navigation.navigate('MachineryHome');
+        return;
+      }
+
       const response = await ratingService.rateFarmer({
         jobId: job.id,
         farmerId: job.farmerId || job.farmer?.id,
@@ -43,11 +52,7 @@ const RateFarmerScreen = ({ navigation, route }) => {
       });
 
       if (response.success || response.message?.toLowerCase().includes('already rated')) {
-        if (isMachinery || user?.role === 'machinery') {
-          navigation.navigate('MachineryHome');
-        } else {
-          navigation.navigate('WorkerHome');
-        }
+        navigation.navigate('WorkerHome');
       } else {
         Alert.alert('Error', response.message || 'Failed to submit rating');
       }
@@ -59,6 +64,12 @@ const RateFarmerScreen = ({ navigation, route }) => {
     }
   };
 
+  // Generate UPI payment details
+  const upiId = user?.upiId || `${user?.phone || 'worker'}@upi`;
+  const amount = isMachinery
+    ? (booking?.totalPrice || booking?.price || 1000)
+    : (job?.payPerDay || 500);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
@@ -68,7 +79,21 @@ const RateFarmerScreen = ({ navigation, route }) => {
         <Text style={styles.headerSubtitle}>రైతును రేట్ చేయండి</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+        {/* Payment QR Code Section */}
+        <View style={styles.qrSection}>
+          <Text style={styles.qrLabel}>SHOW THIS QR TO FARMER FOR PAYMENT</Text>
+          <View style={styles.qrCard}>
+            <QRCode
+              value={`upi://pay?pa=${upiId}&pn=Dinasari&am=${amount}&tn=FarmWork`}
+              size={160}
+              backgroundColor="white"
+            />
+            <Text style={styles.amountText}>Amount: ₹{amount}</Text>
+            <Text style={styles.upiIdText}>UPI ID: {upiId}</Text>
+          </View>
+        </View>
+
         <View style={styles.ratingSection}>
           <Text style={styles.ratingLabel}>How was your experience?</Text>
           <View style={styles.starsContainer}>
@@ -113,7 +138,7 @@ const RateFarmerScreen = ({ navigation, route }) => {
           </Text>
           <MaterialIcons name="send" size={24} color={colors.backgroundDark} />
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -143,8 +168,52 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
     paddingHorizontal: 16,
-    paddingTop: 32,
+    paddingTop: 24,
+    paddingBottom: 40,
+  },
+  qrSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 0.5,
+  },
+  qrCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  amountText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: colors.primary,
+    marginTop: 16,
+  },
+  upiIdText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   ratingSection: {
     backgroundColor: '#FFFFFF',

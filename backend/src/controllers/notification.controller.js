@@ -139,8 +139,32 @@ const markAllAsRead = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete all notifications for the user
+ * DELETE /api/notifications
+ */
+const clearNotifications = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+
+    const { count } = await prisma.notification.deleteMany({
+      where: { userId },
+    });
+
+    res.json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    logger.error('Clear all notifications error', { message: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  clearNotifications,
 };
+

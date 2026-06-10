@@ -17,6 +17,7 @@ import { disputeService } from '../../services/api/disputeService';
 import CustomLoader from '../../components/CustomLoader';
 import EmptyState from '../../components/EmptyState';
 import useAuthStore from '../../store/authStore';
+import { getRoleSafeScreen } from '../../utils/navigationHelper';
 
 const STATUS_COLORS = {
   pending: { bg: '#FEE2E2', text: '#EF4444', icon: 'hourglass-empty' },
@@ -31,13 +32,7 @@ const DisputeHistoryScreen = ({ navigation }) => {
       navigation.goBack();
     } else {
       const user = useAuthStore.getState().user;
-      if (user?.role === 'worker') {
-        navigation.navigate('WorkerHome');
-      } else if (user?.role === 'leader') {
-        navigation.navigate('LeaderHome');
-      } else {
-        navigation.navigate('FarmerHome');
-      }
+      navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
   const { t } = useTranslation();

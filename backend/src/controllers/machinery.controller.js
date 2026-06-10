@@ -1,5 +1,6 @@
 const prisma = require('../config/database');
 const { logger } = require('../middleware/errorHandler');
+const { isValidPhotoUrl } = require('../utils/urlGuard');
 
 // Normalizes date to midnight UTC to prevent time zone drift during slot checks
 const normalizeDate = (dateStr) => {
@@ -19,6 +20,12 @@ const registerMachinery = async (req, res, next) => {
 
     if (!type || !name || !pricePerHour) {
       return res.status(400).json({ success: false, message: 'Type, name, and pricePerHour are required' });
+    }
+
+    if (photoUrl) {
+      if (photoUrl !== '' && !isValidPhotoUrl(photoUrl)) {
+        return res.status(400).json({ success: false, message: 'Invalid photo URL' });
+      }
     }
 
     const machinery = await prisma.machinery.create({

@@ -56,6 +56,9 @@ const MachineryBookingScreen = ({ navigation, route }) => {
   const { speak, stop } = useSpeech();
   const user = useAuthStore((s) => s.user);
 
+  const [farmerLatitude, setFarmerLatitude] = useState(user?.location?.latitude || null);
+  const [farmerLongitude, setFarmerLongitude] = useState(user?.location?.longitude || null);
+
   const loadListings = async () => {
     setLoading(true);
     try {
@@ -81,8 +84,29 @@ const MachineryBookingScreen = ({ navigation, route }) => {
         console.warn('Geolocation failed, falling back to profile coordinates', locErr);
       }
 
+      if (lat) setFarmerLatitude(lat);
+      if (lng) setFarmerLongitude(lng);
+
+      let queryType = machineType;
+      if (machineType) {
+        const lowerType = machineType.toLowerCase();
+        if (lowerType.includes('tractor')) {
+          queryType = 'Tractor';
+        } else if (lowerType.includes('harvester')) {
+          queryType = 'Harvester';
+        } else if (lowerType.includes('drone') || lowerType.includes('spray')) {
+          queryType = 'Sprayer';
+        } else if (lowerType.includes('rotavator') || lowerType.includes('plough')) {
+          queryType = 'Plough';
+        } else if (lowerType.includes('pump')) {
+          queryType = 'Pump Set';
+        } else if (lowerType.includes('thresher')) {
+          queryType = 'Thresher';
+        }
+      }
+
       const res = await machineryService.getMachineryListings({
-        type: machineType,
+        type: queryType,
         lat,
         lng,
       });
@@ -146,6 +170,9 @@ const MachineryBookingScreen = ({ navigation, route }) => {
         date: formattedDate,
         slot: slotValue,
         totalAmount,
+        latitude: farmerLatitude,
+        longitude: farmerLongitude,
+        address: user?.village || 'Farmer Farm',
       });
 
       if (res.success) {

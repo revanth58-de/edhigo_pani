@@ -129,4 +129,36 @@ describe('Notification API & Service Tests', () => {
       expect(farmerUnread).toBe(1);
     });
   });
+
+  describe('DELETE /api/notifications', () => {
+    test('❌ Rejects unauthenticated requests', async () => {
+      const res = await request(app).delete('/api/notifications');
+      expect(res.status).toBe(401);
+    });
+
+    test('✅ Deletes all notifications for current user', async () => {
+      await createNotification(testData.worker.id, 'Worker Alert 1', 'Body 1');
+      await createNotification(testData.worker.id, 'Worker Alert 2', 'Body 2');
+      await createNotification(testData.farmer.id, 'Farmer Alert', 'Body 3'); // Other user
+
+      const res = await request(app)
+        .delete('/api/notifications')
+        .set('Authorization', `Bearer ${testData.workerToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.count).toBe(2);
+
+      const workerCount = await prisma.notification.count({
+        where: { userId: testData.worker.id },
+      });
+      expect(workerCount).toBe(0);
+
+      const farmerCount = await prisma.notification.count({
+        where: { userId: testData.farmer.id },
+      });
+      expect(farmerCount).toBe(1);
+    });
+  });
 });
+

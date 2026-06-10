@@ -112,6 +112,40 @@ const getJobById = async (req, res, next) => {
       });
     }
 
+    // Find the accepted application that represents a group
+    const groupApp = job.applications.find(a => a.status === 'accepted' && a.groupId);
+    if (groupApp) {
+      // Fetch all joined group members
+      const members = await prisma.groupMember.findMany({
+        where: { groupId: groupApp.groupId, status: { not: 'invited' } },
+        include: {
+          worker: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              photoUrl: true,
+              ratingAvg: true,
+            }
+          }
+        }
+      });
+
+      // Map group members to match job application worker structure
+      const memberApps = members.map(m => ({
+        id: `group-member-${m.id}`,
+        jobId: job.id,
+        workerId: m.workerId,
+        groupId: groupApp.groupId,
+        status: 'accepted',
+        appliedAt: m.joinedAt || m.createdAt,
+        worker: m.worker
+      }));
+
+      // Append to job.applications
+      job.applications = [...job.applications, ...memberApps];
+    }
+
     res.status(200).json({
       success: true,
       job,
@@ -257,6 +291,7 @@ const getNearbyWorkers = async (req, res, next) => {
         role: { in: ['worker', 'leader'] },
         location: { isNot: null },
         deletedAt: null, // respect soft-delete
+        status: { in: ['available', 'working', 'on_break', 'online'] },
       },
       select: {
         id: true,

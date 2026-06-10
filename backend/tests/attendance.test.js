@@ -6,14 +6,14 @@ const { app } = require('../src/server');
 const prisma = require('../src/config/database');
 const { createTestUsers, cleanupTestUsers } = require('./helpers');
 
-let testFarmer, testWorker;
-let farmerToken, workerToken;
+let testFarmer, testWorker, testLeader;
+let farmerToken, workerToken, leaderToken;
 let attendanceJobId;
 
 beforeAll(async () => {
   const u = await createTestUsers();
-  testFarmer = u.farmer; testWorker = u.worker;
-  farmerToken = u.farmerToken; workerToken = u.workerToken;
+  testFarmer = u.farmer; testWorker = u.worker; testLeader = u.leader;
+  farmerToken = u.farmerToken; workerToken = u.workerToken; leaderToken = u.leaderToken;
 
   const job = await prisma.job.create({
     data: {
@@ -110,5 +110,106 @@ describe('GET /api/attendance/:jobId', () => {
   test('❌ No auth → 401', async () => {
     const res = await request(app).get(`/api/attendance/${attendanceJobId}`);
     expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('Group Collective Attendance Check-In and Check-Out', () => {
+  let group;
+
+  beforeAll(async () => {
+    // Create a group with testLeader
+    group = await prisma.group.create({
+      data: {
+        leaderId: testLeader.id,
+        name: 'Collective Group',
+        maxMembers: 10,
+        status: 'active'
+      }
+    });
+
+    // Add testWorker as a joined member of this group
+    await prisma.groupMember.create({
+      data: {
+        groupId: group.id,
+        workerId: testWorker.id,
+        status: 'joined',
+        joinedAt: new Date()
+      }
+    });
+  });
+
+  afterAll(async () => {
+    if (group) {
+      await prisma.groupMember.deleteMany({ where: { groupId: group.id } }).catch(() => {});
+      await prisma.group.delete({ where: { id: group.id } }).catch(() => {});
+    }
+  });
+
+  test('✅ Group Leader Check-In checks in all joined members', async () => {
+    const res = await request(app)
+      .post('/api/attendance/check-in')
+      .set('Authorization', `Bearer ${leaderToken}`)
+      .send({
+        jobId: attendanceJobId,
+        groupId: group.id,
+        qrData: makeQR(attendanceJobId, 'IN'),
+        latitude: 16.5,
+        longitude: 80.6
+      });
+
+    expect([200, 201]).toContain(res.statusCode);
+
+    // Verify attendances are created for both leader and worker
+    const attendances = await prisma.attendance.findMany({
+      where: { jobId: attendanceJobId, checkOut: null }
+    });
+    const checkedInWorkerIds = attendances.map(a => a.workerId);
+    expect(checkedInWorkerIds).toContain(testLeader.id);
+    expect(checkedInWorkerIds).toContain(testWorker.id);
+
+    // Verify user statuses are updated to 'working'
+    const leaderUser = await prisma.user.findUnique({ where: { id: testLeader.id } });
+    const workerUser = await prisma.user.findUnique({ where: { id: testWorker.id } });
+    expect(leaderUser.status).toBe('working');
+    expect(workerUser.status).toBe('working');
+
+    // Verify group member status is 'checked_in'
+    const member = await prisma.groupMember.findUnique({
+      where: { groupId_workerId: { groupId: group.id, workerId: testWorker.id } }
+    });
+    expect(member.status).toBe('checked_in');
+  });
+
+  test('✅ Group Leader Check-Out checks out all checked_in members', async () => {
+    const res = await request(app)
+      .post('/api/attendance/check-out')
+      .set('Authorization', `Bearer ${leaderToken}`)
+      .send({
+        jobId: attendanceJobId,
+        groupId: group.id,
+        qrData: makeQR(attendanceJobId, 'OUT'),
+        latitude: 16.5,
+        longitude: 80.6
+      });
+
+    expect(res.statusCode).toBe(200);
+
+    // Verify attendances are updated with checkOut times
+    const activeAttendances = await prisma.attendance.findMany({
+      where: { jobId: attendanceJobId, checkOut: null }
+    });
+    expect(activeAttendances.length).toBe(0);
+
+    // Verify user statuses are updated to 'available'
+    const leaderUser = await prisma.user.findUnique({ where: { id: testLeader.id } });
+    const workerUser = await prisma.user.findUnique({ where: { id: testWorker.id } });
+    expect(leaderUser.status).toBe('available');
+    expect(workerUser.status).toBe('available');
+
+    // Verify group member status is 'checked_out'
+    const member = await prisma.groupMember.findUnique({
+      where: { groupId_workerId: { groupId: group.id, workerId: testWorker.id } }
+    });
+    expect(member.status).toBe('checked_out');
   });
 });

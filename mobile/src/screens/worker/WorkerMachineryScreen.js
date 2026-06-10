@@ -335,7 +335,7 @@ const WorkerMachineryScreen = ({ navigation }) => {
                       </View>
                       <View style={styles.priceBadge}>
                         <Text style={styles.priceBadgeText}>
-                          ₹{item.pricePerHour}/{t('machinery.slots.morning').split(' ')[0] === 'उदयं' ? 'గంట' : t('machinery.slots.morning').split(' ')[0] === 'सुबह' ? 'घंटा' : 'hr'}
+                          ₹{item.pricePerHour}/{language === 'te' ? 'గంట' : language === 'hi' ? 'घंटा' : 'hr'}
                         </Text>
                       </View>
                     </View>

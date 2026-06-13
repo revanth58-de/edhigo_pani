@@ -442,3 +442,53 @@ tbody td { padding: 16px 24px; font-size: 14px; color: #f8fafc; font-weight: 500
 .chart-bar.active {
   box-shadow: 0 0 15px var(--primary-glow);
 }
+
+/* ── Groups Page Expandable Rows & Chips ── */
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.expand-btn:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+.expand-btn.open {
+  transform: rotate(90deg);
+  color: var(--primary);
+}
+
+.sub-row {
+  background: rgba(0, 0, 0, 0.15);
+}
+.sub-row-inner {
+  padding: 16px 24px;
+  border-left: 3px solid var(--primary);
+}
+.member-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.member-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+

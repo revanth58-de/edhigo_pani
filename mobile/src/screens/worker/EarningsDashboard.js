@@ -32,7 +32,6 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import useAuthStore from '../../store/authStore';
 import { workerAPI } from '../../services/api';
-import useAuthStore from '../../store/authStore';
 import { API_BASE_URL } from '../../config/api.config';
 
 const WORK_TYPE_CONFIG = {

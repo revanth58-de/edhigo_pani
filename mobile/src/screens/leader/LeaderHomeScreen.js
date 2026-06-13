@@ -256,11 +256,11 @@ const LeaderHomeScreen = ({ navigation, route }) => {
         <View style={styles.statsSection}>
           <Text style={styles.sectionTitle}>Performance Overview</Text>
           <View style={styles.statsGrid}>
-            <GlassCard intensity={10} style={styles.statCard}>
+            <GlassCard intensity={10} style={styles.statCardOuter} contentStyle={styles.statCardInner}>
               <Text style={styles.statVal}>{user?.groupsLed ?? 0}</Text>
               <Text style={styles.statLab}>Active Groups</Text>
             </GlassCard>
-            <GlassCard intensity={10} style={styles.statCard}>
+            <GlassCard intensity={10} style={styles.statCardOuter} contentStyle={styles.statCardInner}>
               <Text style={styles.statVal}>{user?.jobsDone ?? 0}</Text>
               <Text style={styles.statLab}>Jobs Completed</Text>
             </GlassCard>
@@ -268,13 +268,13 @@ const LeaderHomeScreen = ({ navigation, route }) => {
         </View>
 
         {/* How it works */}
-        <GlassCard intensity={5} style={styles.infoCard}>
+        <GlassCard intensity={5} style={styles.infoCardOuter} contentStyle={styles.infoCardInner}>
           <MaterialIcons name="info-outline" size={24} color={colors.primary} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoTitle}>Guide for Leaders</Text>
             <Text style={styles.infoDesc}>
-              1. Add workers to your group{'\n'}
-              2. Accept high-paying bulk jobs{'\n'}
+              1. Add workers to your group{"\n"}
+              2. Accept high-paying bulk jobs{"\n"}
               3. Manage attendance easily
             </Text>
           </View>
@@ -400,13 +400,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  statCard: {
+  statCardOuter: {
     flex: 1,
-    padding: 20,
     borderRadius: 20,
-    backgroundColor: '#FFF',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+  },
+  statCardInner: {
+    padding: 20,
   },
   statVal: {
     fontSize: 30,
@@ -419,16 +420,17 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 4,
   },
-  infoCard: {
+  infoCardOuter: {
     marginHorizontal: 24,
     marginTop: 24,
-    padding: 20,
     borderRadius: 20,
-    flexDirection: 'row',
-    gap: 16,
-    backgroundColor: '#FFF',
     borderWidth: 1,
     borderColor: 'rgba(31, 138, 61, 0.1)',
+  },
+  infoCardInner: {
+    padding: 20,
+    flexDirection: 'row',
+    gap: 16,
   },
   infoTextContainer: {
     flex: 1,

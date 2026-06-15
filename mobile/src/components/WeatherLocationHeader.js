@@ -27,25 +27,35 @@ const WeatherLocationHeader = () => {
           placeName = geo[0].city || geo[0].district || geo[0].subregion || geo[0].region || 'Your Location';
         }
 
-        // Fetch real weather from Open-Meteo
+        // Fetch real weather from OpenWeatherMap using API key
         try {
-          const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+          const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+          if (!apiKey) {
+            throw new Error('OpenWeatherMap API Key is missing');
+          }
+          const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${apiKey}`);
           const data = await response.json();
-          const temp = Math.round(data.current_weather.temperature) + '°C';
-          const code = data.current_weather.weathercode;
+
+          if (data.cod !== 200) {
+            throw new Error(data.message || 'Error fetching from OpenWeatherMap');
+          }
+
+          const temp = Math.round(data.main.temp) + '°C';
+          const main = data.weather[0].main;
           let condition = 'Clear';
-          if (code === 0) condition = 'Sunny';
-          else if (code >= 1 && code <= 3) condition = 'Cloudy';
-          else if (code >= 45 && code <= 48) condition = 'Fog';
-          else if (code >= 51 && code <= 67) condition = 'Rainy';
-          else if (code >= 71) condition = 'Snow';
-          else if (code >= 95) condition = 'Storm';
-          
+          if (main === 'Clear') condition = 'Sunny';
+          else if (main === 'Clouds') condition = 'Cloudy';
+          else if (main === 'Rain' || main === 'Drizzle') condition = 'Rainy';
+          else if (main === 'Thunderstorm') condition = 'Storm';
+          else if (main === 'Snow') condition = 'Snow';
+          else if (main === 'Fog' || main === 'Mist' || main === 'Haze') condition = 'Fog';
+
           if (isMounted) {
             setLocationName(placeName);
             setWeather({ temp, condition });
           }
         } catch (err) {
+          console.warn('Weather fetch failed:', err);
           if (isMounted) {
             setLocationName(placeName);
             setWeather({ temp: '--', condition: 'Clear' });
@@ -62,6 +72,9 @@ const WeatherLocationHeader = () => {
     switch (condition) {
       case 'Cloudy': return 'wb-cloudy';
       case 'Rainy': return 'umbrella';
+      case 'Storm': return 'flash-on';
+      case 'Snow': return 'ac-unit';
+      case 'Fog': return 'cloud-queue';
       default: return 'wb-sunny';
     }
   };

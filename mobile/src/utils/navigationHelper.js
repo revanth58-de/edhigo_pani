@@ -44,5 +44,11 @@ export const getRoleSafeScreen = (screenName, role) => {
     return 'QRScanner';
   }
 
+  // 6. Job Offer mapping
+  if (['JobOffer', 'GroupJobOffer'].includes(name)) {
+    if (role === 'leader') return 'GroupJobOffer';
+    return 'JobOffer';
+  }
+
   return screenName;
 };

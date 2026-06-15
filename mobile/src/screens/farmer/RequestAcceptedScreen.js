@@ -24,7 +24,8 @@ import MapDashboard from '../../components/MapDashboard';
 import BottomNavBar from '../../components/BottomNavBar';
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job: initialJob, jobId } = route.params || {};
+  const [job, setJob] = useState(initialJob || null);
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
 
@@ -46,19 +47,25 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
     ).start();
   }, []);
 
+  const targetJobId = jobId || initialJob?.id || initialJob?.jobId;
+
   useEffect(() => {
     fetchJobDetails();
+  }, [targetJobId]);
+
+  useEffect(() => {
+    if (!job?.id) return;
 
     socketService.connect();
-    if (job?.id) socketService.joinJobRoom(job.id);
+    socketService.joinJobRoom(job.id);
 
     const handleArrival = (data) => {
-      if (data.jobId === job?.id) navigation.navigate('ArrivalAlert', { job });
+      if (data.jobId === job.id) navigation.navigate('ArrivalAlert', { job });
     };
     socketService.on('job:arrival', handleArrival);
 
     socketService.onLocationUpdate((data) => {
-      if (data.jobId === job?.id || data.workerId) {
+      if (data.jobId === job.id || data.workerId) {
         if (data.eta) setEta(data.eta);
         setWorkerLocations(prev => {
           const filtered = prev.filter(w => w.id !== (data.userId || data.workerId));
@@ -80,11 +87,12 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   }, [job?.id]);
 
   const fetchJobDetails = async () => {
-    if (!job?.id) return;
+    if (!targetJobId) return;
     try {
-      const response = await jobService.getJob(job.id);
+      const response = await jobService.getJob(targetJobId);
       if (response.success && response.data?.data) {
         const jobData = response.data.data;
+        setJob(jobData);
         const accepted = (jobData.applications || [])
           .filter(a => a.status === 'accepted')
           .map(a => ({

@@ -22,10 +22,12 @@ import { socketService } from '../../services/socketService';
 import * as Haptics from 'expo-haptics'; // M16
 
 const JobOfferScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job: initialJob, jobId } = route.params || {};
+  const [job, setJob] = React.useState(initialJob || null);
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = React.useState(false);
+  const [fetching, setFetching] = React.useState(false);
 
   const handleBack = React.useCallback(() => {
     if (navigation.canGoBack()) {
@@ -35,17 +37,38 @@ const JobOfferScreen = ({ navigation, route }) => {
     }
   }, [navigation]);
 
+  const targetJobId = jobId || initialJob?.id || initialJob?.jobId;
+
+  // Load job details if not passed fully
+  useEffect(() => {
+    if (targetJobId && (!job || !job.workType)) {
+      const loadJob = async () => {
+        setFetching(true);
+        const res = await jobService.getJob(targetJobId);
+        if (res.success && res.data) {
+          setJob(res.data.job || res.data);
+        } else {
+          Alert.alert('Error', 'Failed to load job details.');
+        }
+        setFetching(false);
+      };
+      loadJob();
+    }
+  }, [targetJobId]);
+
   // Store the job:taken callback so we can remove it BEFORE we accept
   const jobTakenHandlerRef = React.useRef(null);
 
   useEffect(() => {
+    if (!job?.id) return;
+
     socketService.connect();
     if (user?.id) socketService.joinUserRoom(user.id);
-    if (job?.id) socketService.joinJobRoom(job.id);
+    socketService.joinJobRoom(job.id);
 
     // If ANOTHER worker accepts while we're viewing → warn and exit
-    const handleJobTaken = ({ jobId }) => {
-      if (jobId === job?.id) {
+    const handleJobTaken = ({ jobId: takenJobId }) => {
+      if (takenJobId === job.id) {
         Alert.alert(
           '⚡ Job Taken',
           'Another worker just accepted this job. It is no longer available.',
@@ -58,7 +81,7 @@ const JobOfferScreen = ({ navigation, route }) => {
 
     // Listen for job cancellation by farmer
     socketService.onJobCancelled((data) => {
-      if (data.jobId === job?.id) {
+      if (data.jobId === job.id) {
         navigation.replace('JobCancelled', {
           job: { ...job, farmerName: data.farmerName, workType: data.workType },
         });
@@ -69,7 +92,7 @@ const JobOfferScreen = ({ navigation, route }) => {
       socketService.offJobTaken(jobTakenHandlerRef.current);
       socketService.offJobCancelled();
     };
-  }, []);
+  }, [job?.id, user?.id]);
 
 
   const handleAccept = async () => {
@@ -128,6 +151,14 @@ const JobOfferScreen = ({ navigation, route }) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // M16
     handleBack();
   };
+
+  if (fetching || !job) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDFBF7' }}>
+        <CustomLoader size={48} color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <LinearGradient

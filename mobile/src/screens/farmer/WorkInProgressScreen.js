@@ -16,11 +16,34 @@ import useAuthStore from '../../store/authStore';
 import { socketService } from '../../services/socketService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Platform } from 'react-native';
+import CustomLoader from '../../components/CustomLoader';
 
 const WorkInProgressScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery } = route?.params || {};
+  const { job: initialJob, jobId, booking, isMachinery } = route?.params || {};
+  const [job, setJob] = useState(initialJob || null);
   const { t } = useTranslation();
   const [elapsedTime, setElapsedTime] = useState('00:00:00');
+  const [fetching, setFetching] = useState(false);
+
+  const targetJobId = jobId || initialJob?.id || initialJob?.jobId;
+
+  // Load job details if not passed fully
+  useEffect(() => {
+    if (targetJobId && (!job || !job.workType)) {
+      const loadJob = async () => {
+        setFetching(true);
+        const { jobService } = require('../../services/api/jobService');
+        const res = await jobService.getJob(targetJobId);
+        if (res.success && res.data) {
+          setJob(res.data.job || res.data);
+        } else {
+          Alert.alert('Error', 'Failed to load job details.');
+        }
+        setFetching(false);
+      };
+      loadJob();
+    }
+  }, [targetJobId]);
 
   // Ensure socket is alive and farmer is in the correct room
   useEffect(() => {
@@ -95,6 +118,15 @@ const WorkInProgressScreen = ({ navigation, route }) => {
       ]
     );
   };
+
+  if (fetching || (!isMachinery && !job)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FDFBF7' }}>
+        <CustomLoader size={48} color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
       colors={['#FDFBF7', colors.backgroundLight]}

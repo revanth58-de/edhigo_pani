@@ -1,0 +1,1228 @@
+{
+  "info": {
+    "name": "Edhigo Pani API Collection",
+    "description": "Comprehensive Postman collection for the Edhigo Pani backend API endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Send OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-otp"]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP (Login / Register)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543210\",\n  \"otp\": \"123456\",\n  \"name\": \"Ramu Farmer\",\n  \"role\": \"farmer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-otp"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile Info (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ramu Patel\",\n  \"village\": \"Malkapur\",\n  \"age\": 35,\n  \"gender\": \"male\",\n  \"landAcres\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Set Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"farmer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/set-role",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "set-role"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"your-jwt-refresh-token\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Jobs",
+      "item": [
+        {
+          "name": "Create Job posting",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workType\": \"sowing\",\n  \"payPerDay\": 550,\n  \"workersNeeded\": 4,\n  \"farmLatitude\": 17.3850,\n  \"farmLongitude\": 78.4867,\n  \"farmAddress\": \"Green Farms, Area 4, Malkapur\",\n  \"description\": \"Bring plying spade, starting at 6:30 AM\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"]
+            }
+          }
+        },
+        {
+          "name": "Get Jobs (Feed)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs?status=pending&workType=sowing&workerType=individual",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                },
+                {
+                  "key": "workType",
+                  "value": "sowing"
+                },
+                {
+                  "key": "workerType",
+                  "value": "individual"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Job",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/replace-with-job-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "replace-with-job-id"]
+            }
+          }
+        },
+        {
+          "name": "Get My Posted Jobs (Farmer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/my-jobs",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "my-jobs"]
+            }
+          }
+        },
+        {
+          "name": "Get My Active/Applied Jobs (Worker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/my-work",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "my-work"]
+            }
+          }
+        },
+        {
+          "name": "Get My Job History (Worker)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/worker-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "worker-history"]
+            }
+          }
+        },
+        {
+          "name": "Accept Job Offer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workerId\": \"replace-with-worker-id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/replace-with-job-id/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "replace-with-job-id", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Update Job Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/jobs/replace-with-job-id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "replace-with-job-id", "status"]
+            }
+          }
+        },
+        {
+          "name": "Withdraw from Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/replace-with-job-id/withdraw",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "replace-with-job-id", "withdraw"]
+            }
+          }
+        },
+        {
+          "name": "Cancel / Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/replace-with-job-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "replace-with-job-id"]
+            }
+          }
+        },
+        {
+          "name": "Get Nearby Workers (GPS Discovery)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/nearby-workers?latitude=17.3850&longitude=78.4867&radius=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["jobs", "nearby-workers"],
+              "query": [
+                {
+                  "key": "latitude",
+                  "value": "17.3850"
+                },
+                {
+                  "key": "longitude",
+                  "value": "78.4867"
+                },
+                {
+                  "key": "radius",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Attendance",
+      "item": [
+        {
+          "name": "Check-In (Commence Work)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"workerId\": \"replace-with-worker-id\",\n  \"qrCode\": \"attendance-check-in-payload\",\n  \"latitude\": 17.3852,\n  \"longitude\": 78.4869\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/check-in",
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "check-in"]
+            }
+          }
+        },
+        {
+          "name": "Check-Out (Finish Work)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"workerId\": \"replace-with-worker-id\",\n  \"qrCode\": \"attendance-check-out-payload\",\n  \"latitude\": 17.3852,\n  \"longitude\": 78.4869\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/attendance/check-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "check-out"]
+            }
+          }
+        },
+        {
+          "name": "Get Attendance Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/attendance/replace-with-job-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["attendance", "replace-with-job-id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Groups",
+      "item": [
+        {
+          "name": "Create Labor Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Malkapur Wheat Harvesters\",\n  \"type\": \"Seasonal\",\n  \"description\": \"Expert threshing and harvesting group of 10 members.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups"]
+            }
+          }
+        },
+        {
+          "name": "Get My Labor Groups",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/my-groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "my-groups"]
+            }
+          }
+        },
+        {
+          "name": "Get Group Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id"]
+            }
+          }
+        },
+        {
+          "name": "Add Member to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workerId\": \"replace-with-worker-id\",\n  \"role\": \"Member\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "members"]
+            }
+          }
+        },
+        {
+          "name": "Add Member by Phone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9876543211\",\n  \"role\": \"Member\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/members/by-phone",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "members", "by-phone"]
+            }
+          }
+        },
+        {
+          "name": "Respond to Group Invite",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inviteId\": \"replace-with-invite-id\",\n  \"action\": \"accept\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/respond-invite",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "respond-invite"]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Invitations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/pending-invites",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "pending-invites"]
+            }
+          }
+        },
+        {
+          "name": "Accept Group Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"groupId\": \"replace-with-group-id\",\n  \"jobId\": \"replace-with-job-id\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/accept-job",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "accept-job"]
+            }
+          }
+        },
+        {
+          "name": "Update Member Role/Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Site Supervisor\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/members/replace-with-worker-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "members", "replace-with-worker-id"]
+            }
+          }
+        },
+        {
+          "name": "Remove Member from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/members/replace-with-worker-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "members", "replace-with-worker-id"]
+            }
+          }
+        },
+        {
+          "name": "Exit Labor Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/exit",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "exit"]
+            }
+          }
+        },
+        {
+          "name": "Update Group Availability Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id", "status"]
+            }
+          }
+        },
+        {
+          "name": "Delete Labor Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/groups/replace-with-group-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["groups", "replace-with-group-id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Payments",
+      "item": [
+        {
+          "name": "Initiate Payment Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"amount\": 4400,\n  \"method\": \"upi\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments"]
+            }
+          }
+        },
+        {
+          "name": "Get Wallet & Payment History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/history/replace-with-user-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "history", "replace-with-user-id"]
+            }
+          }
+        },
+        {
+          "name": "Get Specific Transaction Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/replace-with-payment-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "replace-with-payment-id"]
+            }
+          }
+        },
+        {
+          "name": "Confirm UPI Reference Code",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"upiRef\": \"610294857362\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/payments/replace-with-job-id/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "replace-with-job-id", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Ratings",
+      "item": [
+        {
+          "name": "Rate Worker (Farmer Feedback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"toUserId\": \"replace-with-worker-id\",\n  \"stars\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ratings/worker",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings", "worker"]
+            }
+          }
+        },
+        {
+          "name": "Rate Farmer (Worker Feedback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"toUserId\": \"replace-with-farmer-id\",\n  \"stars\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ratings/farmer",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings", "farmer"]
+            }
+          }
+        },
+        {
+          "name": "Get User Average & Review List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ratings/user/replace-with-user-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings", "user", "replace-with-user-id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Disputes",
+      "item": [
+        {
+          "name": "File Dispute",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"replace-with-job-id\",\n  \"paymentId\": \"replace-with-payment-id\",\n  \"category\": \"payment_delayed\",\n  \"description\": \"Work completed but payment is not confirmed in wallet.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/disputes",
+              "host": ["{{baseUrl}}"],
+              "path": ["disputes"]
+            }
+          }
+        },
+        {
+          "name": "Get My Filed Disputes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/disputes/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["disputes", "my"]
+            }
+          }
+        },
+        {
+          "name": "Get Disputes by Job",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/disputes/job/replace-with-job-id",
+              "host": ["{{baseUrl}}"],
+              "path": ["disputes", "job", "replace-with-job-id"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Notifications",
+      "item": [
+        {
+          "name": "Get Notifications List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/replace-with-notification-id/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "replace-with-notification-id", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "read-all"]
+            }
+          }
+        },
+        {
+          "name": "Clear / Delete All Notifications",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Machinery",
+      "item": [
+        {
+          "name": "Register Machinery",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Tractor\",\n  \"name\": \"Mahindra Arjun Novo 605 DI\",\n  \"pricePerHour\": 950\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/machinery",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery"]
+            }
+          }
+        },
+        {
+          "name": "Get Machinery Listings (Search)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/machinery/listings?type=Tractor&latitude=17.3850&longitude=78.4867&radius=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "listings"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "Tractor"
+                },
+                {
+                  "key": "latitude",
+                  "value": "17.3850"
+                },
+                {
+                  "key": "longitude",
+                  "value": "78.4867"
+                },
+                {
+                  "key": "radius",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Book Machinery slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"machineryId\": \"replace-with-machinery-id\",\n  \"date\": \"2026-06-20T00:00:00.000Z\",\n  \"slot\": \"Morning\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/machinery/book",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "book"]
+            }
+          }
+        },
+        {
+          "name": "Get Bookings (Farmer perspective)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/machinery/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Get Owner Registered Listings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/machinery/owner/listings",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "owner", "listings"]
+            }
+          }
+        },
+        {
+          "name": "Get Owner Received Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/machinery/owner/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "owner", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Update Booking Status (Owner confirm / cancel)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/machinery/bookings/replace-with-booking-id/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["machinery", "bookings", "replace-with-booking-id", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "jwt-access-token-placeholder",
+      "type": "string"
+    }
+  ]
+}

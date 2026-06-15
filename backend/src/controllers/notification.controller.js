@@ -28,7 +28,7 @@ const getNotifications = async (req, res, next) => {
         const welcomeNotifications = [
           {
             userId,
-            title: '🌿 Welcome to Edhigo Pani!',
+            title: '🌿 Welcome to Dinasari!',
             body: 'We are excited to have you join our network. You can now post jobs, find nearby agricultural work, and connect with local leaders.',
             data: { screen: 'WorkerHome' },
             isRead: false,

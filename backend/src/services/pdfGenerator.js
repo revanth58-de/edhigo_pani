@@ -14,7 +14,7 @@ const generateEarningsPdf = (stream, worker, earningsData) => {
     size: 'A4',
     info: {
       Title: `Earnings Certificate - ${worker.name || 'Worker'}`,
-      Author: 'Edhigo Pani Platform',
+      Author: 'Dinasari Platform',
       Subject: 'Official Earnings Summary and Work Verification',
     },
   });
@@ -35,7 +35,7 @@ const generateEarningsPdf = (stream, worker, earningsData) => {
   doc.fillColor(primaryColor)
      .fontSize(24)
      .font('Helvetica-Bold')
-     .text('🌾 EDHIGO PANI', 50, 45);
+     .text('🌾 DINASARI', 50, 45);
 
   doc.fillColor('#6B7280')
      .fontSize(10)
@@ -187,7 +187,7 @@ const generateEarningsPdf = (stream, worker, earningsData) => {
   doc.fillColor('#6B7280')
      .fontSize(8)
      .font('Helvetica')
-     .text('This document certifies valid automated records securely logged on the Dinasari (Edhigo Pani) platform.', 65, badgeY + 24);
+     .text('This document certifies valid automated records securely logged on the Dinasari platform.', 65, badgeY + 24);
 
   // Footer notes
   doc.fillColor('#9CA3AF')

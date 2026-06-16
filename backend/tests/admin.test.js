@@ -148,3 +148,43 @@ describe('Admin Middleware Initialization Checks (S6)', () => {
     }).not.toThrow();
   });
 });
+
+describe('System Settings Endpoints', () => {
+  test('✅ GET /api/admin/settings → 200 + retrieve initialized default settings', async () => {
+    const res = await request(app).get('/api/admin/settings').set(adminH);
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('settings');
+    expect(res.body.settings['wages.minDailyWage']).toBeDefined();
+    expect(res.body.settings['app.platformCommission']).toBe('5');
+  });
+
+  test('✅ PATCH /api/admin/settings → 200 + update settings successfully', async () => {
+    const res = await request(app)
+      .patch('/api/admin/settings')
+      .set(adminH)
+      .send({
+        'wages.minDailyWage': '480',
+        'app.platformCommission': '8'
+      });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('settings');
+    expect(res.body.settings['wages.minDailyWage']).toBe('480');
+    expect(res.body.settings['app.platformCommission']).toBe('8');
+
+    // Restore defaults for other tests
+    await request(app)
+      .patch('/api/admin/settings')
+      .set(adminH)
+      .send({
+        'wages.minDailyWage': '400',
+        'app.platformCommission': '5'
+      });
+  });
+
+  test('❌ PATCH /api/admin/settings unauthorized → 401/403', async () => {
+    const res = await request(app)
+      .patch('/api/admin/settings')
+      .send({ 'wages.minDailyWage': '999' });
+    expect([401, 403]).toContain(res.statusCode);
+  });
+});

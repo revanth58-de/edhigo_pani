@@ -64,6 +64,9 @@
       <div class="nav-item" data-page="audit">
         <span class="nav-item-icon">🛡️</span> Audit Logs
       </div>
+      <div class="nav-item" data-page="settings">
+        <span class="nav-item-icon">⚙️</span> Settings
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -111,6 +114,7 @@
       <div id="page-ratings"    class="page"></div>
       <div id="page-audit"      class="page"></div>
       <div id="page-disputes"   class="page"></div>
+      <div id="page-settings"   class="page"></div>
     </main>
   </div>
 </div>
@@ -230,6 +234,7 @@
   import { loadRatings }    from './pages/ratings.js';
   import { loadAudit }      from './pages/audit.js';
   import { loadDisputes }   from './pages/disputes.js';
+  import { loadSettings }   from './pages/settings.js';
 
   guardAuth();
 
@@ -241,8 +246,9 @@
     groups:     { load: loadGroups,     title: 'Worker Groups',       sub: 'View all active worker groups' },
     attendance: { load: loadAttendance, title: 'Attendance Records',  sub: 'Check-in and check-out log' },
     ratings:    { load: loadRatings,    title: 'Ratings & Reviews',   sub: 'Platform user feedback' },
-    audit:      { load: loadAudit,      title: 'Audit Logs',          sub: 'System security and action logs' },
+    audit:      { load: loadAudit,          title: 'Audit Logs',          sub: 'System security and action logs' },
     disputes:   { load: loadDisputes,   title: 'Disputes Management', sub: 'Investigate and resolve user disputes' },
+    settings:   { load: loadSettings,   title: 'System Settings',     sub: 'Configure wages, rents, telemetry, and platform settings' },
   };
 
   let currentPage = 'stats';

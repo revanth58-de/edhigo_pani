@@ -75,7 +75,16 @@ const makePayment = async (req, res, next) => {
       }
 
       const isCompleted = method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING;
-      const commissionAmount = Math.round((parsedAmount * 0.05) * 100) / 100;
+      let commissionPct = 0.05;
+      try {
+        const setting = await prisma.systemSetting.findUnique({ where: { key: 'app.platformCommission' } });
+        if (setting) {
+          commissionPct = parseFloat(setting.value) / 100;
+        }
+      } catch (err) {
+        logger.error('Failed to load platform commission setting', { message: err.message });
+      }
+      const commissionAmount = Math.round((parsedAmount * commissionPct) * 100) / 100;
       const workerAmount = Math.round((parsedAmount - commissionAmount) * 100) / 100;
 
       const payment = await prisma.payment.create({
@@ -212,7 +221,16 @@ const makePayment = async (req, res, next) => {
     const rawPerWorker = amount / attendances.length;
     const perWorkerAmount = Math.round(rawPerWorker * 100) / 100; // round to 2 decimal places
 
-    const commissionAmount = Math.round((perWorkerAmount * 0.05) * 100) / 100;
+    let commissionPct = 0.05;
+    try {
+      const setting = await prisma.systemSetting.findUnique({ where: { key: 'app.platformCommission' } });
+      if (setting) {
+        commissionPct = parseFloat(setting.value) / 100;
+      }
+    } catch (err) {
+      logger.error('Failed to load platform commission setting', { message: err.message });
+    }
+    const commissionAmount = Math.round((perWorkerAmount * commissionPct) * 100) / 100;
     const workerAmount = Math.round((perWorkerAmount - commissionAmount) * 100) / 100;
 
     for (const att of attendances) {

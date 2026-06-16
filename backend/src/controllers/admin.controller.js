@@ -672,6 +672,74 @@ const updateDisputeStatus = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const defaultSettings = [
+  { key: 'wages.minDailyWage', value: '400' },
+  { key: 'wages.cropRates', value: JSON.stringify({ paddy_harvesting: 500, sugarcane_cutting: 600, watering: 350, ploughing: 450 }) },
+  { key: 'rents.machineryCommission', value: '10' },
+  { key: 'rents.machineryBaseRates', value: JSON.stringify({ Tractor: 800, Harvester: 1500, 'Pump Set': 200 }) },
+  { key: 'app.telemetryPingInterval', value: '30' },
+  { key: 'app.telemetryDistanceThreshold', value: '20' },
+  { key: 'app.maintenanceMode', value: 'false' },
+  { key: 'app.platformCommission', value: '5' },
+  { key: 'app.notificationsEnabled', value: 'true' }
+];
+
+const initializeSystemSettings = async () => {
+  try {
+    for (const item of defaultSettings) {
+      const existing = await prisma.systemSetting.findUnique({ where: { key: item.key } });
+      if (!existing) {
+        await prisma.systemSetting.create({ data: item });
+      }
+    }
+  } catch (err) {
+    console.error('Failed to initialize default system settings:', err.message);
+  }
+};
+
+const getSettings = async (req, res, next) => {
+  try {
+    await initializeSystemSettings();
+    const settings = await prisma.systemSetting.findMany();
+    const configMap = {};
+    settings.forEach(s => {
+      configMap[s.key] = s.value;
+    });
+    res.json({ settings: configMap });
+  } catch (err) { next(err); }
+};
+
+const updateSettings = async (req, res, next) => {
+  try {
+    const updates = req.body;
+    
+    // Log in audit log
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'settings_update',
+        targetId: 'system_settings',
+        details: updates
+      }
+    });
+
+    for (const [key, value] of Object.entries(updates)) {
+      await prisma.systemSetting.upsert({
+        where: { key },
+        update: { value: String(value) },
+        create: { key, value: String(value) }
+      });
+    }
+    
+    const settings = await prisma.systemSetting.findMany();
+    const configMap = {};
+    settings.forEach(s => {
+      configMap[s.key] = s.value;
+    });
+    res.json({ message: 'Settings updated successfully', settings: configMap });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getStats,
   invalidateStats,
@@ -692,4 +760,6 @@ module.exports = {
   settlePayment: _withCacheInvalidation(settlePayment),
   getDisputes,
   updateDisputeStatus: _withCacheInvalidation(updateDisputeStatus),
+  getSettings,
+  updateSettings
 };

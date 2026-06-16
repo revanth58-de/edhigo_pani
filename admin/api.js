@@ -47,4 +47,6 @@ export const api = {
   getAuditLogs:   ()           => call('/audit'),
   getDisputes:    (q = '')     => call(`/disputes${q}`),
   updateDispute:  (id, data)   => call(`/disputes/${id}`, 'PATCH', data),
+  getSettings:    ()           => call('/settings'),
+  updateSettings: (data)       => call('/settings', 'PATCH', data),
 };

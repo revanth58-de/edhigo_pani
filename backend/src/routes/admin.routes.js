@@ -9,6 +9,7 @@ const {
   getAttendance, getRatings, getGroups,
   getAuditLogs, getSettlements, settlePayment,
   getDisputes, updateDisputeStatus,
+  getSettings, updateSettings
 } = require('../controllers/admin.controller');
 
 // FIX #1: Public login endpoint — rate-limited but no auth guard.
@@ -48,5 +49,9 @@ router.get('/groups', getGroups);
 // Disputes Admin endpoints
 router.get('/disputes', getDisputes);
 router.patch('/disputes/:id', updateDisputeStatus);
+
+// System Settings Control endpoints
+router.get('/settings', getSettings);
+router.patch('/settings', updateSettings);
 
 module.exports = router;

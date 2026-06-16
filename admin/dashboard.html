@@ -86,6 +86,11 @@
         <div class="topbar-sub" id="topbarSub">Real-time agricultural platform statistics</div>
       </div>
       <div class="topbar-right">
+        <!-- Command palette search trigger -->
+        <div style="display:flex;align-items:center;background:rgba(0,0,0,0.4);border:1px solid var(--glass-border);border-radius:12px;padding:8px 16px;cursor:pointer;margin-right:12px;transition:var(--transition)" id="topbarSearchTrigger">
+          <span style="font-size:14px;margin-right:8px;color:var(--text-muted)">🔍</span>
+          <span style="font-size:13px;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">Search everything... (Ctrl+K)</span>
+        </div>
         <div class="topbar-live">
           <div class="topbar-live-dot"></div>
           <span class="topbar-live-text">Live</span>
@@ -169,6 +174,49 @@
   </div>
 </div>
 
+<!-- Inspect User Modal -->
+<div class="modal-overlay" id="inspectUserModal">
+  <div class="modal" style="width: 520px;">
+    <div class="modal-title" id="inspectUserTitle">User Profile Inspect</div>
+    <div class="modal-sub" id="inspectUserSubtitle"></div>
+    <div class="card-body" id="inspectUserContent" style="padding:0;max-height:60vh;overflow-y:auto;margin-top:16px">
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-outline btn-sm" id="inspectUserClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inspect Job Modal -->
+<div class="modal-overlay" id="inspectJobModal">
+  <div class="modal" style="width: 560px;">
+    <div class="modal-title" id="inspectJobTitle">Job Details Inspect</div>
+    <div class="modal-sub" id="inspectJobSubtitle"></div>
+    <div class="card-body" id="inspectJobContent" style="padding:0;max-height:60vh;overflow-y:auto;margin-top:16px">
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-outline btn-sm" id="inspectJobClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Command Palette Overlay -->
+<div class="modal-overlay" id="commandPaletteModal">
+  <div class="modal" style="width: 600px;background:rgba(20,20,22,0.95);border-color:var(--primary)">
+    <div class="search-box" style="padding:16px;border-radius:16px;margin-bottom:16px">
+      <span class="search-icon" style="font-size:20px">🔍</span>
+      <input type="text" id="commandPaletteInput" placeholder="Search users, jobs, disputes, pages..." style="font-size:16px" autocomplete="off" />
+    </div>
+    <div style="max-height:350px;overflow-y:auto" id="commandPaletteResults">
+      <div style="padding:12px;color:var(--text-dim);font-size:13px;text-align:center">Start typing to search anything...</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;border-top:1px solid var(--glass-border);padding-top:12px;font-size:11px;color:var(--text-dim)">
+      <span>Type to search • <b>Enter</b> to select</span>
+      <span><b>ESC</b> to close</span>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -227,6 +275,223 @@
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.page));
   });
+
+  // Modals close triggers
+  document.getElementById('inspectUserClose').addEventListener('click', () => {
+    document.getElementById('inspectUserModal').classList.remove('open');
+  });
+  document.getElementById('inspectJobClose').addEventListener('click', () => {
+    document.getElementById('inspectJobModal').classList.remove('open');
+  });
+
+  // Global inspect functions
+  window._inspectUser = async (id) => {
+    try {
+      const data = await api.getUsers();
+      const u = (data.users || []).find(user => user.id === id);
+      if (!u) {
+        window.showToast('User not found', 'error');
+        return;
+      }
+      document.getElementById('inspectUserTitle').textContent = u.name || 'Anonymous User';
+      document.getElementById('inspectUserSubtitle').textContent = `Role: ${u.role?.toUpperCase()} • Ph: ${u.phone} • ID: ${u.id}`;
+      
+      let animalsHtml = '—';
+      if (u.animals && u.animals.length > 0) {
+        animalsHtml = u.animals.map(a => `<span class="badge badge-gray" style="margin:2px">${a.type} (${a.count})</span>`).join('');
+      }
+
+      let cropsHtml = '—';
+      try {
+        const crops = typeof u.skills === 'string' ? JSON.parse(u.skills) : (u.skills || []);
+        if (crops.length > 0) {
+          cropsHtml = crops.map(c => `<span class="badge badge-purple" style="margin:2px">${c}</span>`).join('');
+        }
+      } catch(_) {}
+
+      document.getElementById('inspectUserContent').innerHTML = `
+        <div style="display:flex;gap:20px;align-items:center;margin-bottom:20px;background:rgba(255,255,255,0.02);padding:16px;border-radius:16px;border:1px solid var(--glass-border)">
+          <div class="avatar" style="width:64px;height:64px;font-size:24px;background:linear-gradient(135deg, var(--primary), var(--accent))">${u.name ? u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : '?'}</div>
+          <div>
+            <div style="font-size:18px;font-weight:800;color:#fff">${u.name || '—'}</div>
+            <div style="font-size:13px;color:var(--text-muted)">Village: <b>${u.village || '—'}</b></div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Language: <b>${u.language === 'te' ? 'తెలుగు (te)' : 'English (en)'}</b></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:12px;border:1px solid var(--glass-border)">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700">Profile Details</div>
+            <div style="font-size:14px;color:#fff;font-weight:600;margin-top:4px">Age: ${u.age || '—'} • Gender: ${u.gender || '—'}</div>
+            <div style="font-size:14px;color:#fff;font-weight:600;margin-top:2px">Exp: ${u.experience ? u.experience + ' years' : '—'}</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:12px;border:1px solid var(--glass-border)">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700">Platform Performance</div>
+            <div style="font-size:14px;color:var(--warning);font-weight:800;margin-top:4px">★ ${u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : 'Unrated'} (${u.ratingCount || 0} ratings)</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Jobs: ${u._count?.jobsPosted || u._count?.attendances || 0} completed</div>
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,0.2);padding:16px;border-radius:16px;border:1px solid var(--glass-border);margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-bottom:8px">Crops &amp; Agriculture Portfolio</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Crops Grown:</div>
+          <div style="margin-bottom:12px">${cropsHtml}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Animals Reared:</div>
+          <div>${animalsHtml}</div>
+        </div>
+      `;
+      document.getElementById('inspectUserModal').classList.add('open');
+    } catch(e) { window.showToast(e.message, 'error'); }
+  };
+
+  window._inspectJob = async (id) => {
+    try {
+      const data = await api.getJobs();
+      const j = (data.jobs || []).find(job => job.id === id);
+      if (!j) {
+        window.showToast('Job not found', 'error');
+        return;
+      }
+      document.getElementById('inspectJobTitle').textContent = `Job: ${j.workType}`;
+      document.getElementById('inspectJobSubtitle').textContent = `ID: ${j.id} • Posted on ${new Date(j.createdAt).toLocaleDateString()}`;
+      
+      document.getElementById('inspectJobContent').innerHTML = `
+        <div style="background:rgba(255,255,255,0.02);padding:16px;border-radius:16px;border:1px solid var(--glass-border);margin-bottom:16px">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-bottom:6px">Farmer Details</div>
+          <div style="font-size:15px;font-weight:800;color:#fff">${j.farmer?.name || '—'}</div>
+          <div style="font-size:13px;color:var(--text-muted)">Phone: <b>${j.farmer?.phone || '—'}</b></div>
+          <div style="font-size:13px;color:var(--text-muted)">Location: 📍 <b>${j.farmer?.village || '—'}</b></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:12px;border:1px solid var(--glass-border)">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700">Salary &amp; Capacity</div>
+            <div style="font-size:18px;color:var(--primary);font-weight:900;margin-top:4px">₹${j.payPerDay}/day</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Workers: <b>${j.workersNeeded}</b> requested</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:12px;border:1px solid var(--glass-border)">
+            <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700">Job Specifications</div>
+            <div style="font-size:15px;color:#fff;font-weight:700;margin-top:4px;text-transform:capitalize">Type: ${j.workerType || 'individual'}</div>
+            <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Duration: <b>${j.durationDays || '1'} days</b></div>
+          </div>
+        </div>
+        <div style="background:rgba(0,0,0,0.2);padding:14px;border-radius:14px;border:1px solid var(--glass-border);margin-bottom:12px">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-bottom:6px">Job Description &amp; Instructions</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.4">${j.description || 'No specific instructions provided.'}</div>
+        </div>
+      `;
+      document.getElementById('inspectJobModal').classList.add('open');
+    } catch(e) { window.showToast(e.message, 'error'); }
+  };
+
+  // Command Palette Handler
+  const cpModal = document.getElementById('commandPaletteModal');
+  const cpInput = document.getElementById('commandPaletteInput');
+  const cpResults = document.getElementById('commandPaletteResults');
+
+  const openCommandPalette = () => {
+    cpInput.value = '';
+    cpResults.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:13px;text-align:center">Start typing to search anything...</div>';
+    cpModal.classList.add('open');
+    setTimeout(() => cpInput.focus(), 100);
+  };
+
+  document.getElementById('topbarSearchTrigger').addEventListener('click', openCommandPalette);
+
+  // Ctrl+K key shortcut
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      openCommandPalette();
+    }
+    if (e.key === 'Escape') {
+      cpModal.classList.remove('open');
+      document.getElementById('inspectUserModal').classList.remove('open');
+      document.getElementById('inspectJobModal').classList.remove('open');
+    }
+  });
+
+  cpInput.addEventListener('input', async () => {
+    const q = cpInput.value.trim().toLowerCase();
+    if (!q) {
+      cpResults.innerHTML = '<div style="padding:12px;color:var(--text-dim);font-size:13px;text-align:center">Start typing to search anything...</div>';
+      return;
+    }
+
+    try {
+      const [uData, jData, dData] = await Promise.all([
+        api.getUsers(),
+        api.getJobs(),
+        api.getDisputes()
+      ]);
+
+      const users = (uData.users || []).filter(u => `${u.name} ${u.phone} ${u.village}`.toLowerCase().includes(q)).slice(0, 5);
+      const jobs = (jData.jobs || []).filter(j => `${j.workType} ${j.farmer?.name}`.toLowerCase().includes(q)).slice(0, 5);
+      const disputes = (dData.disputes || []).filter(d => `${d.category} ${d.description}`.toLowerCase().includes(q)).slice(0, 3);
+      
+      const navs = Object.entries(pages).filter(([k, p]) => p.title.toLowerCase().includes(q) || k.toLowerCase().includes(q));
+
+      let html = '';
+
+      if (navs.length > 0) {
+        html += '<div style="font-size:11px;color:var(--primary);text-transform:uppercase;font-weight:800;letter-spacing:1px;padding:8px 12px 4px">Navigation Pages</div>';
+        navs.forEach(([k, p]) => {
+          html += `
+            <div style="padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:var(--transition)" class="cp-item" onclick="window._cpNavigate('${k}')">
+              <span style="font-weight:600;font-size:13px">⊞ Go to ${p.title}</span>
+              <span style="font-size:11px;color:var(--text-dim)">Section</span>
+            </div>
+          `;
+        });
+      }
+
+      if (users.length > 0) {
+        html += '<div style="font-size:11px;color:var(--accent);text-transform:uppercase;font-weight:800;letter-spacing:1px;padding:8px 12px 4px;margin-top:8px">Users</div>';
+        users.forEach(u => {
+          html += `
+            <div style="padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:var(--transition)" class="cp-item" onclick="window._cpUser('${u.id}')">
+              <span style="font-weight:600;font-size:13px">👤 ${u.name || ''} (${u.role})</span>
+              <span style="font-size:11px;color:var(--text-dim)">Ph: ${u.phone}</span>
+            </div>
+          `;
+        });
+      }
+
+      if (jobs.length > 0) {
+        html += '<div style="font-size:11px;color:var(--info);text-transform:uppercase;font-weight:800;letter-spacing:1px;padding:8px 12px 4px;margin-top:8px">Jobs</div>';
+        jobs.forEach(j => {
+          html += `
+            <div style="padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:var(--transition)" class="cp-item" onclick="window._cpJob('${j.id}')">
+              <span style="font-weight:600;font-size:13px">💼 ${j.workType} (₹${j.payPerDay}/day)</span>
+              <span style="font-size:11px;color:var(--text-dim)">Farmer: ${j.farmer?.name || ''}</span>
+            </div>
+          `;
+        });
+      }
+
+      if (html === '') {
+        html = '<div style="padding:16px;color:var(--text-dim);font-size:13px;text-align:center">No matches found.</div>';
+      }
+
+      cpResults.innerHTML = html;
+    } catch (err) {
+      cpResults.innerHTML = `<div style="padding:12px;color:var(--danger);font-size:13px;text-align:center">Error fetching data.</div>`;
+    }
+  });
+
+  window._cpNavigate = (page) => {
+    cpModal.classList.remove('open');
+    navigate(page);
+  };
+
+  window._cpUser = (id) => {
+    cpModal.classList.remove('open');
+    navigate('users');
+    setTimeout(() => window._inspectUser(id), 200);
+  };
+
+  window._cpJob = (id) => {
+    cpModal.classList.remove('open');
+    navigate('jobs');
+    setTimeout(() => window._inspectJob(id), 200);
+  };
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
     const btn = document.getElementById('refreshBtn');

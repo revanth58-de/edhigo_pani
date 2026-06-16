@@ -3,6 +3,8 @@ import { api } from '../api.js';
 let allJobs = [];
 let page = 1;
 const PER_PAGE = 10;
+let sortField = 'workType';
+let sortOrder = 'asc';
 
 export async function loadJobs() {
   const el = document.getElementById('page-jobs');
@@ -44,11 +46,17 @@ export async function loadJobs() {
       <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>Work Type</th><th>Farmer</th><th>Village</th>
-            <th>Workers</th><th>Pay/Day</th><th>Status</th>
-            <th>Attendance</th><th>Date</th><th>Action</th>
+            <th class="sort-header" data-sort="workType">Work Type <span id="sort-workType-icon">↕</span></th>
+            <th>Farmer</th>
+            <th>Village</th>
+            <th class="sort-header" data-sort="workersNeeded">Workers <span id="sort-workersNeeded-icon">↕</span></th>
+            <th class="sort-header" data-sort="payPerDay">Pay/Day <span id="sort-payPerDay-icon">↕</span></th>
+            <th class="sort-header" data-sort="status">Status <span id="sort-status-icon">↕</span></th>
+            <th class="sort-header" data-sort="attendanceCount">Attendance <span id="sort-attendanceCount-icon">↕</span></th>
+            <th class="sort-header" data-sort="createdAt">Date <span id="sort-createdAt-icon">↕</span></th>
+            <th>Action</th>
           </tr></thead>
-          <tbody id="jobsBody"><tr><td colspan="9" class="table-loading"><div class="spinner"></div></td></tr></tbody>
+          <tbody id="jobsBody"><tr><td colspan="10" class="table-loading"><div class="spinner"></div></td></tr></tbody>
         </table>
       </div>
       <div class="pagination" id="jobsPagination" style="display:none"></div>
@@ -58,6 +66,19 @@ export async function loadJobs() {
   el.querySelector('#jobStatusFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#jobTypeFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#exportJobsCsvBtn').addEventListener('click', exportJobsCsv);
+
+  el.querySelectorAll('.sort-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if (sortField === field) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = field;
+        sortOrder = 'asc';
+      }
+      renderJobs();
+    });
+  });
 
   try {
     const data = await api.getJobs();
@@ -79,10 +100,39 @@ function renderJobs() {
     (!search || `${j.workType} ${j.farmer?.name} ${j.farmer?.village} ${j.farmAddress}`.toLowerCase().includes(search))
   );
 
+  const sorted = [...filtered].sort((a, b) => {
+    let valA = a[sortField];
+    let valB = b[sortField];
+    if (sortField === 'attendanceCount') {
+      valA = a._count?.attendances || 0;
+      valB = b._count?.attendances || 0;
+    }
+    valA = valA || '';
+    valB = valB || '';
+    if (typeof valA === 'string') {
+      return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    }
+  });
+
+  // Update sort icons after DOM elements are drawn
+  setTimeout(() => {
+    document.querySelectorAll('.sort-header span').forEach(span => {
+      span.textContent = '↕';
+      span.style.color = 'var(--text-dim)';
+    });
+    const activeIcon = document.getElementById(`sort-${sortField}-icon`);
+    if (activeIcon) {
+      activeIcon.textContent = sortOrder === 'asc' ? '↑' : '↓';
+      activeIcon.style.color = 'var(--primary)';
+    }
+  }, 0);
+
   const total = filtered.length;
   const totalPages = Math.ceil(total / PER_PAGE) || 1;
   if (page > totalPages) page = 1;
-  const slice = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const slice = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const statusBadge = s => ({
     pending: 'badge-blue', accepted: 'badge-yellow', completed: 'badge-green',
@@ -91,7 +141,7 @@ function renderJobs() {
 
   const rows = slice.map(j => `
     <tr>
-      <td><strong>${j.workType}</strong></td>
+      <td><strong style="cursor:pointer;text-decoration:underline;color:#fff" onclick="window._inspectJob('${j.id}')">${j.workType}</strong></td>
       <td>${j.farmer?.name || '—'}<br><span style="color:var(--text-muted);font-size:12px">${j.farmer?.phone || ''}</span></td>
       <td style="color:var(--text-muted)">${j.farmer?.village || '—'}</td>
       <td>${j.workersNeeded}</td>

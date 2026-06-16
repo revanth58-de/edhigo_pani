@@ -336,7 +336,7 @@ async function loadLiveJobs(byStatus) {
           <div class="live-job-item">
             <div class="live-job-icon">${icons[i % icons.length]}</div>
             <div class="live-job-info">
-              <div class="live-job-title">${j.workType}</div>
+              <div class="live-job-title" style="${j.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${j.id ? `window._inspectJob('${j.id}')` : ''}">${j.workType}</div>
               <div class="live-job-sub">${j.farmer?.village || '—'} • ${j.workersNeeded} slots</div>
             </div>
             <span class="live-job-badge ${j.status === 'open' ? 'active' : 'filled'}">${j.status === 'open' ? 'Active' : 'Filled'}</span>
@@ -355,7 +355,7 @@ async function loadRecentUsers() {
         <td>
           <div class="user-cell">
             <div class="avatar" style="background:${avatarColor(u.name)}">${initials(u.name)}</div>
-            <div><div class="user-cell-name">${u.name||'—'}</div><div class="user-cell-id">${u.phone}</div></div>
+            <div><div class="user-cell-name" style="${u.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${u.id ? `window._inspectUser('${u.id}')` : ''}">${u.name||'—'}</div><div class="user-cell-id">${u.phone}</div></div>
           </div>
         </td>
         <td><span class="badge ${roleBadge(u.role)}">${u.role}</span></td>

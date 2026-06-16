@@ -492,3 +492,32 @@ tbody td { padding: 16px 24px; font-size: 14px; color: #f8fafc; font-weight: 500
   gap: 6px;
 }
 
+/* ── Interactive Command Palette & Sort Headers ── */
+.cp-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px !important;
+  margin-bottom: 4px;
+}
+.cp-item:hover {
+  background: var(--glass-hover) !important;
+  border-left: 3px solid var(--primary);
+  transform: translateX(4px);
+}
+.sort-header {
+  cursor: pointer;
+  user-select: none;
+  transition: var(--transition);
+}
+.sort-header:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--primary) !important;
+}
+.sort-header span {
+  font-size: 11px;
+  margin-left: 6px;
+  color: var(--text-dim);
+  transition: var(--transition);
+}
+

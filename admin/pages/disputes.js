@@ -4,6 +4,8 @@ import { initials, avatarColor } from './stats.js';
 let allDisputes = [];
 let page = 1;
 const PER_PAGE = 8;
+let sortField = 'createdAt';
+let sortOrder = 'desc';
 
 export async function loadDisputes() {
   const el = document.getElementById('page-disputes');
@@ -34,8 +36,12 @@ export async function loadDisputes() {
       <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>Initiator</th><th>Category</th><th>Details</th>
-            <th>Related Job/Payment</th><th>Status</th><th>Actions</th>
+            <th class="sort-header" data-sort="initiator">Initiator <span id="sort-initiator-icon">↕</span></th>
+            <th class="sort-header" data-sort="category">Category <span id="sort-category-icon">↕</span></th>
+            <th class="sort-header" data-sort="createdAt">Details <span id="sort-createdAt-icon">↕</span></th>
+            <th>Related Job/Payment</th>
+            <th class="sort-header" data-sort="status">Status <span id="sort-status-icon">↕</span></th>
+            <th>Actions</th>
           </tr></thead>
           <tbody id="disputesBody"><tr><td colspan="6" class="table-loading"><div class="spinner"></div></td></tr></tbody>
         </table>
@@ -45,6 +51,19 @@ export async function loadDisputes() {
 
   el.querySelector('#disputeSearch').addEventListener('input', () => { page = 1; renderDisputes(); });
   el.querySelector('#disputeStatusFilter').addEventListener('change', () => { page = 1; renderDisputes(); });
+
+  el.querySelectorAll('.sort-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if (sortField === field) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = field;
+        sortOrder = 'asc';
+      }
+      renderDisputes();
+    });
+  });
 
   try {
     const data = await api.getDisputes();
@@ -80,10 +99,43 @@ function renderDisputes() {
     return matchesSearch && matchesStatus;
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    let valA, valB;
+    if (sortField === 'initiator') {
+      valA = a.initiator?.name || '';
+      valB = b.initiator?.name || '';
+    } else if (sortField === 'createdAt') {
+      valA = new Date(a.createdAt || 0);
+      valB = new Date(b.createdAt || 0);
+    } else {
+      valA = a[sortField] || '';
+      valB = b[sortField] || '';
+    }
+    
+    if (typeof valA === 'string') {
+      return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    }
+  });
+
+  // Update sort icons after DOM elements are drawn
+  setTimeout(() => {
+    document.querySelectorAll('.sort-header span').forEach(span => {
+      span.textContent = '↕';
+      span.style.color = 'var(--text-dim)';
+    });
+    const activeIcon = document.getElementById(`sort-${sortField}-icon`);
+    if (activeIcon) {
+      activeIcon.textContent = sortOrder === 'asc' ? '↑' : '↓';
+      activeIcon.style.color = 'var(--primary)';
+    }
+  }, 0);
+
   const total = filtered.length;
   const totalPages = Math.ceil(total / PER_PAGE);
   if (page > totalPages) page = 1;
-  const slice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const slice = sorted.slice((page-1)*PER_PAGE, page*PER_PAGE);
 
   const statusBadgeClass = s => {
     switch(s) {
@@ -113,7 +165,7 @@ function renderDisputes() {
             ${initials(d.initiator?.name||'')}
           </div>
           <div>
-            <div class="user-cell-name">${d.initiator?.name||'System Admin'}</div>
+            <div class="user-cell-name" style="${d.initiator?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${d.initiator?.id ? `window._inspectUser('${d.initiator.id}')` : ''}">${d.initiator?.name||'System Admin'}</div>
             <div class="user-cell-id" style="text-transform: capitalize">${d.initiator?.role || 'admin'} · ${d.initiator?.phone || ''}</div>
           </div>
         </div>
@@ -130,7 +182,7 @@ function renderDisputes() {
       </td>
       <td>
         <div style="font-size:12px;line-height:1.4">
-          <div>💼 Job: #${d.jobId.slice(-4).toUpperCase()}</div>
+          <div style="${d.jobId ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${d.jobId ? `window._inspectJob('${d.jobId}')` : ''}">💼 Job: #${d.jobId.slice(-4).toUpperCase()}</div>
           ${d.payment ? `<div>💳 Payment: ${d.payment.amount ? '₹' + d.payment.amount : '—'} (${d.payment.method.toUpperCase()})</div>` : ''}
         </div>
       </td>

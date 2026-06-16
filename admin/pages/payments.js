@@ -6,6 +6,10 @@ let activeTab = 'transactions'; // 'transactions' or 'settlements'
 let payPage = 1;
 let settlePage = 1;
 const PER_PAGE = 8;
+let paySortField = 'createdAt';
+let paySortOrder = 'desc';
+let settleSortField = 'createdAt';
+let settleSortOrder = 'desc';
 
 export async function loadPayments() {
   const el = document.getElementById('page-payments');
@@ -137,15 +141,75 @@ function renderActiveTab() {
 }
 
 function renderTransactions() {
-  const headers = ['Transaction ID', 'Booking ID', 'Farmer → Worker', 'Gross Paid', '5% Fee', '95% Worker Net', 'Method', 'Status', 'Action'];
-  document.getElementById('tableHeaders').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+  const headers = [
+    { label: 'Transaction ID', sort: 'id' },
+    { label: 'Booking ID' },
+    { label: 'Farmer → Worker' },
+    { label: 'Gross Paid', sort: 'amount' },
+    { label: '5% Fee' },
+    { label: '95% Worker Net' },
+    { label: 'Method' },
+    { label: 'Date', sort: 'createdAt' },
+    { label: 'Status', sort: 'status' },
+    { label: 'Action' }
+  ];
+  document.getElementById('tableHeaders').innerHTML = headers.map(h => {
+    if (h.sort) {
+      return `<th class="sort-header" data-sort="${h.sort}">${h.label} <span id="sort-${h.sort}-icon">↕</span></th>`;
+    }
+    return `<th>${h.label}</th>`;
+  }).join('');
+
+  // Re-attach event listeners to headers
+  document.querySelectorAll('#financialTable th.sort-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if (paySortField === field) {
+        paySortOrder = paySortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        paySortField = field;
+        paySortOrder = 'asc';
+      }
+      renderActiveTab();
+    });
+  });
 
   const status = document.getElementById('payStatusFilter')?.value || '';
   const filtered = allPayments.filter(p => !status || p.status === status);
+
+  const sorted = [...filtered].sort((a, b) => {
+    let valA = a[paySortField];
+    let valB = b[paySortField];
+    if (paySortField === 'createdAt') {
+      valA = new Date(valA || 0);
+      valB = new Date(valB || 0);
+    }
+    valA = valA || '';
+    valB = valB || '';
+    if (typeof valA === 'string') {
+      return paySortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return paySortOrder === 'asc' ? valA - valB : valB - valA;
+    }
+  });
+
+  // Update sort icons after DOM elements are drawn
+  setTimeout(() => {
+    document.querySelectorAll('#financialTable th.sort-header span').forEach(span => {
+      span.textContent = '↕';
+      span.style.color = 'var(--text-dim)';
+    });
+    const activeIcon = document.getElementById(`sort-${paySortField}-icon`);
+    if (activeIcon) {
+      activeIcon.textContent = paySortOrder === 'asc' ? '↑' : '↓';
+      activeIcon.style.color = 'var(--primary)';
+    }
+  }, 0);
+
   const total = filtered.length;
   const totalPages = Math.ceil(total / PER_PAGE);
   if (payPage > totalPages) payPage = 1;
-  const slice = filtered.slice((payPage-1)*PER_PAGE, payPage*PER_PAGE);
+  const slice = sorted.slice((payPage-1)*PER_PAGE, payPage*PER_PAGE);
 
   const statusBadge = s => ({completed:'badge-green',pending:'badge-yellow',failed:'badge-red'}[s]||'badge-gray');
   const methodIcon  = m => m==='upi' ? '🏦' : m==='cash' ? '💵' : '💳';
@@ -158,15 +222,16 @@ function renderTransactions() {
     
     return `<tr>
       <td style="font-weight:700;color:var(--text)">${txId}</td>
-      <td style="color:var(--primary-dark);font-weight:600">${jobId}</td>
+      <td style="color:var(--primary-dark);font-weight:600;${p.jobId ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${p.jobId ? `window._inspectJob('${p.jobId}')` : ''}">${jobId}</td>
       <td>
-        <div style="font-size:13px">${p.farmer?.name||'—'}</div>
-        <div style="font-size:12px;color:var(--text-muted)">→ ${p.worker?.name||'—'}</div>
+        <div style="font-size:13px;${p.farmer?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${p.farmer?.id ? `window._inspectUser('${p.farmer.id}')` : ''}">${p.farmer?.name||'—'}</div>
+        <div style="font-size:12px;color:var(--text-muted)">→ <span style="${p.worker?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${p.worker?.id ? `window._inspectUser('${p.worker.id}')` : ''}">${p.worker?.name||'—'}</span></div>
       </td>
       <td style="font-weight:700">₹${(p.amount||0).toLocaleString('en-IN')}</td>
       <td style="color:var(--danger)">₹${com.toLocaleString('en-IN')}</td>
       <td style="color:var(--primary-dark);font-weight:800">₹${net.toLocaleString('en-IN')}</td>
       <td>${methodIcon(p.method)} ${p.method?.toUpperCase()||'—'}</td>
+      <td style="color:var(--text-muted);font-size:13px">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
       <td><span class="badge ${statusBadge(p.status)}">${p.status}</span></td>
       <td>
         ${p.status!=='completed'
@@ -174,19 +239,77 @@ function renderTransactions() {
           : `<span style="color:var(--text-dim);font-size:12px">Processed</span>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="9" class="table-empty">No payments found.</td></tr>`;
+  }).join('') || `<tr><td colspan="10" class="table-empty">No payments found.</td></tr>`;
 
   renderPagination(total, payPage, 'pay');
 }
 
 function renderSettlements() {
-  const headers = ['Settlement ID', 'Booking ID', 'Worker Details', 'Bank/UPI coordinate', 'Platform Comm (5%)', 'Worker Share (95%)', 'Status', 'Action'];
-  document.getElementById('tableHeaders').innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+  const headers = [
+    { label: 'Settlement ID', sort: 'id' },
+    { label: 'Booking ID' },
+    { label: 'Worker Details' },
+    { label: 'Bank/UPI coordinate' },
+    { label: 'Platform Comm (5%)' },
+    { label: 'Worker Share (95%)', sort: 'amount' },
+    { label: 'Date', sort: 'createdAt' },
+    { label: 'Status', sort: 'status' },
+    { label: 'Action' }
+  ];
+  document.getElementById('tableHeaders').innerHTML = headers.map(h => {
+    if (h.sort) {
+      return `<th class="sort-header" data-sort="${h.sort}">${h.label} <span id="sort-${h.sort}-icon">↕</span></th>`;
+    }
+    return `<th>${h.label}</th>`;
+  }).join('');
+
+  // Re-attach event listeners to headers
+  document.querySelectorAll('#financialTable th.sort-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if (settleSortField === field) {
+        settleSortOrder = settleSortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        settleSortField = field;
+        settleSortOrder = 'asc';
+      }
+      renderActiveTab();
+    });
+  });
+
+  const sorted = [...allSettlements].sort((a, b) => {
+    let valA = a[settleSortField];
+    let valB = b[settleSortField];
+    if (settleSortField === 'createdAt') {
+      valA = new Date(valA || 0);
+      valB = new Date(valB || 0);
+    }
+    valA = valA || '';
+    valB = valB || '';
+    if (typeof valA === 'string') {
+      return settleSortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return settleSortOrder === 'asc' ? valA - valB : valB - valA;
+    }
+  });
+
+  // Update sort icons after DOM elements are drawn
+  setTimeout(() => {
+    document.querySelectorAll('#financialTable th.sort-header span').forEach(span => {
+      span.textContent = '↕';
+      span.style.color = 'var(--text-dim)';
+    });
+    const activeIcon = document.getElementById(`sort-${settleSortField}-icon`);
+    if (activeIcon) {
+      activeIcon.textContent = settleSortOrder === 'asc' ? '↑' : '↓';
+      activeIcon.style.color = 'var(--primary)';
+    }
+  }, 0);
 
   const total = allSettlements.length;
   const totalPages = Math.ceil(total / PER_PAGE);
   if (settlePage > totalPages) settlePage = 1;
-  const slice = allSettlements.slice((settlePage-1)*PER_PAGE, settlePage*PER_PAGE);
+  const slice = sorted.slice((settlePage-1)*PER_PAGE, settlePage*PER_PAGE);
 
   const statusBadge = s => ({settled:'badge-green',pending:'badge-yellow'}[s]||'badge-gray');
 
@@ -197,14 +320,15 @@ function renderSettlements() {
     
     return `<tr>
       <td style="font-weight:700;color:var(--text)">${settleId}</td>
-      <td style="color:var(--primary-dark);font-weight:600">${jobId}</td>
+      <td style="color:var(--primary-dark);font-weight:600;${s.payment?.job?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${s.payment?.job?.id ? `window._inspectJob('${s.payment.job.id}')` : ''}">${jobId}</td>
       <td>
-        <div style="font-size:13px;font-weight:700">${s.worker?.name||'—'}</div>
+        <div style="font-size:13px;font-weight:700;${s.worker?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${s.worker?.id ? `window._inspectUser('${s.worker.id}')` : ''}">${s.worker?.name||'—'}</div>
         <div style="font-size:12px;color:var(--text-muted)">Ph: ${s.worker?.phone||'—'}</div>
       </td>
       <td style="color:var(--primary-dark);font-weight:700">${s.worker?.upiId || `${s.worker?.phone}@upi`}</td>
       <td style="color:var(--danger)">₹${com.toLocaleString('en-IN')}</td>
       <td style="color:var(--primary-dark);font-weight:900;font-size:14px">₹${(s.amount||0).toLocaleString('en-IN')}</td>
+      <td style="color:var(--text-muted);font-size:13px">${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '—'}</td>
       <td><span class="badge ${statusBadge(s.status)}">${s.status}</span></td>
       <td>
         ${s.status === 'pending'
@@ -212,7 +336,7 @@ function renderSettlements() {
           : `<span style="color:var(--text-dim);font-size:12px">Transferred</span>`}
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="8" class="table-empty">No pending payouts found.</td></tr>`;
+  }).join('') || `<tr><td colspan="9" class="table-empty">No pending payouts found.</td></tr>`;
 
   renderPagination(total, settlePage, 'settle');
 }

@@ -4,6 +4,8 @@ import { initials, avatarColor } from './stats.js';
 let allUsers = [];
 let page = 1;
 const PER_PAGE = 8;
+let sortField = 'name';
+let sortOrder = 'asc';
 
 export async function loadUsers() {
   const el = document.getElementById('page-users');
@@ -41,8 +43,12 @@ export async function loadUsers() {
       <div class="table-scroll">
         <table>
           <thead><tr>
-            <th>User Name</th><th>Role</th><th>Location</th>
-            <th>Status</th><th>Rating</th><th>Actions</th>
+            <th class="sort-header" data-sort="name">User Name <span id="sort-name-icon">↕</span></th>
+            <th class="sort-header" data-sort="role">Role <span id="sort-role-icon">↕</span></th>
+            <th class="sort-header" data-sort="village">Location <span id="sort-village-icon">↕</span></th>
+            <th class="sort-header" data-sort="status">Status <span id="sort-status-icon">↕</span></th>
+            <th class="sort-header" data-sort="rating">Rating <span id="sort-rating-icon">↕</span></th>
+            <th>Actions</th>
           </tr></thead>
           <tbody id="usersBody"><tr><td colspan="6" class="table-loading"><div class="spinner"></div></td></tr></tbody>
         </table>
@@ -54,6 +60,19 @@ export async function loadUsers() {
   el.querySelector('#userRoleFilter').addEventListener('change', () => { page=1; renderUsers(); });
   el.querySelector('#userStatusFilter').addEventListener('change', () => { page=1; renderUsers(); });
   el.querySelector('#exportUsersCsvBtn').addEventListener('click', exportUsersCsv);
+
+  el.querySelectorAll('.sort-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const field = header.dataset.sort;
+      if (sortField === field) {
+        sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortField = field;
+        sortOrder = 'asc';
+      }
+      renderUsers();
+    });
+  });
 
   try {
     const data = await api.getUsers();
@@ -82,10 +101,39 @@ function renderUsers() {
     (!search || `${u.name} ${u.phone} ${u.village}`.toLowerCase().includes(search))
   );
 
+  const sorted = [...filtered].sort((a, b) => {
+    let valA = a[sortField];
+    let valB = b[sortField];
+    if (sortField === 'rating') {
+      valA = a.ratingAvg || 0;
+      valB = b.ratingAvg || 0;
+    }
+    valA = valA || '';
+    valB = valB || '';
+    if (typeof valA === 'string') {
+      return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    } else {
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    }
+  });
+
+  // Update sort icons after DOM elements are drawn
+  setTimeout(() => {
+    document.querySelectorAll('.sort-header span').forEach(span => {
+      span.textContent = '↕';
+      span.style.color = 'var(--text-dim)';
+    });
+    const activeIcon = document.getElementById(`sort-${sortField}-icon`);
+    if (activeIcon) {
+      activeIcon.textContent = sortOrder === 'asc' ? '↑' : '↓';
+      activeIcon.style.color = 'var(--primary)';
+    }
+  }, 0);
+
   const total = filtered.length;
   const totalPages = Math.ceil(total / PER_PAGE);
   if (page > totalPages) page = 1;
-  const slice = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const slice = sorted.slice((page-1)*PER_PAGE, page*PER_PAGE);
 
   const roleBadge   = r => r==='farmer' ? 'badge-blue' : r==='leader' ? 'badge-purple' : 'badge-yellow';
   const statusBadge = s => s==='active'||!s ? 'badge-green' : 'badge-red';
@@ -101,7 +149,7 @@ function renderUsers() {
             ${isSuspended ? '🚫' : initials(u.name||'')}
           </div>
           <div>
-            <div class="user-cell-name">${u.name||'—'}${
+            <div class="user-cell-name" style="cursor:pointer;text-decoration:underline" onclick="window._inspectUser('${u.id}')">${u.name||'—'}${
               isSuspended ? ' <span style="font-size:10px;color:#EF4444;font-weight:800;letter-spacing:1px">SUSPENDED</span>' : ''
             }</div>
             <div class="user-cell-id">ID: #${u.id.slice(-4).toUpperCase()}</div>

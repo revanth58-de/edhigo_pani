@@ -21,11 +21,11 @@ import { colors } from '../../theme/colors';
 import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
-  const { workType, repostJob } = route.params || {};
+  const { workType, repostJob, workersNeeded: routeWorkersNeeded, durationDays: routeDurationDays } = route.params || {};
   const user = useAuthStore((state) => state.user);
   const [workerType, setWorkerType] = useState(repostJob?.workerType || 'group'); // 'individual' or 'group'
-  const [workersNeeded, setWorkersNeeded] = useState(repostJob?.workersNeeded || 10);
-  const [durationDays, setDurationDays] = useState(repostJob?.durationDays || 1);
+  const [workersNeeded, setWorkersNeeded] = useState(repostJob?.workersNeeded || routeWorkersNeeded || 10);
+  const [durationDays, setDurationDays] = useState(repostJob?.durationDays || routeDurationDays || 1);
   const [payPerDay, setPayPerDay] = useState(repostJob?.payPerDay ? String(repostJob.payPerDay) : '500');
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();

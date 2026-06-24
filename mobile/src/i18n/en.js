@@ -358,8 +358,8 @@ export default {
     groundnut: 'Groundnut',
   },
   cropWorkTypes: {
-    title: '%{crop} Operations',
-    searchPlaceholder: 'Search agricultural operations...',
+    title: '%{crop} Works',
+    searchPlaceholder: 'Search agricultural works...',
     acreageLabel: 'Enter Farm Size (Acres)',
     labourNeeded: 'Recommended Labour',
     estimatedDuration: 'Estimated Duration',

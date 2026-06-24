@@ -51,10 +51,14 @@ const AvailableWorkersScreen = ({ route, navigation }) => {
 
       // 2. Fetch workers
       const response = await jobAPI.getNearbyWorkers({ latitude: lat, longitude: lng, radius: 50 });
-      if (response.success && response.data?.workers) {
+      if (response.data?.success && Array.isArray(response.data?.workers)) {
         setWorkers(response.data.workers);
-      } else if (response.data) {
+      } else if (response.data?.workers) {
+        setWorkers(response.data.workers);
+      } else if (Array.isArray(response.data)) {
         setWorkers(response.data);
+      } else {
+        setWorkers([]);
       }
     } catch (error) {
       console.log('Error fetching workers:', error);
@@ -138,14 +142,14 @@ const AvailableWorkersScreen = ({ route, navigation }) => {
       };
 
       const response = await jobAPI.createJob(jobData);
-      if (response.success) {
+      if (response.data?.success) {
         navigation.navigate('Payment', {
-          job: response.data,
+          job: response.data.data || response.data.job,
           workers: selectedWorkersList,
           isNewHire: true,
         });
       } else {
-        Alert.alert('Error', response.message || 'Failed to initiate hire.');
+        Alert.alert('Error', response.data?.message || 'Failed to initiate hire.');
       }
     } catch (err) {
       console.log('Error hiring group:', err);

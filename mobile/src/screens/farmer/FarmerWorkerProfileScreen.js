@@ -67,14 +67,14 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
       };
 
       const response = await jobAPI.createJob(jobData);
-      if (response.success) {
+      if (response.data?.success) {
         navigation.navigate('Payment', {
-          job: response.data,
+          job: response.data.data || response.data.job,
           worker: worker,
           isNewHire: true,
         });
       } else {
-        Alert.alert('Error', response.message || 'Failed to hire worker.');
+        Alert.alert('Error', response.data?.message || 'Failed to hire worker.');
       }
     } catch (err) {
       console.log('Error hiring worker:', err);

@@ -90,7 +90,7 @@ const ConfettiRain = () => {
 };
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery, workers, worker } = route.params || {};
+  const { job, booking, isMachinery, workers, worker, isNewHire } = route.params || {};
   const { t } = useTranslation();
   const { user, language } = useAuthStore();
 
@@ -545,14 +545,25 @@ const PaymentScreen = ({ navigation, route }) => {
               <Text style={styles.receiptActionButtonText}>Back to Home</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.receiptActionButton, styles.receiptActionButtonPrimary]}
-              onPress={() => navigation.navigate('RateWorker', { job, booking, isMachinery, workers: workerList })}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.receiptActionButtonTextPrimary}>Rate Worker</Text>
-              <MaterialIcons name="star" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            {isNewHire ? (
+              <TouchableOpacity
+                style={[styles.receiptActionButton, styles.receiptActionButtonPrimary]}
+                onPress={() => navigation.navigate('RequestAccepted', { job })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.receiptActionButtonTextPrimary}>Track Job</Text>
+                <MaterialIcons name="navigation" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[styles.receiptActionButton, styles.receiptActionButtonPrimary]}
+                onPress={() => navigation.navigate('RateWorker', { job, booking, isMachinery, workers: workerList })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.receiptActionButtonTextPrimary}>Rate Worker</Text>
+                <MaterialIcons name="star" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}

@@ -29,6 +29,8 @@ model User {
   otpExpiresAt  DateTime?
   otpFailCount  Int      @default(0)  // S3: tracks consecutive wrong OTP attempts (max 5)
   experience    Int?     // Years of farming experience (set by worker)
+  dailyWage     Int      @default(500)
+  cropExperience Json?
   avatarIcon  String?  // Profile icon key e.g. 'person', 'agriculture'
   matchingRadius Float?   // B10: custom matching radius preference (in km)
   createdAt   DateTime  @default(now())

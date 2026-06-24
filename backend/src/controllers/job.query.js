@@ -303,6 +303,8 @@ const getNearbyWorkers = async (req, res, next) => {
         location: true,
         status: true,
         experience: true,
+        dailyWage: true,
+        cropExperience: true,
       }
     });
 

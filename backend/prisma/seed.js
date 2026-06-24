@@ -49,6 +49,9 @@ async function main() {
       language: 'te',
       name: 'Venkat Reddy',
       status: 'available',
+      skills: JSON.stringify(['harvesting', 'sowing', 'cutting']),
+      dailyWage: 550,
+      cropExperience: { paddy: 5, chilli: 2, mango: 1 },
       location: {
         create: {
           latitude: 17.386044,
@@ -65,10 +68,51 @@ async function main() {
       language: 'te',
       name: 'Srinivas',
       status: 'available',
+      skills: JSON.stringify(['sowing', 'plowing']),
+      dailyWage: 480,
+      cropExperience: { paddy: 3, groundnut: 2 },
       location: {
         create: {
           latitude: 17.387044,
           longitude: 78.488671
+        }
+      }
+    }
+  });
+
+  const worker3 = await prisma.user.create({
+    data: {
+      phone: '+919876543213',
+      role: 'worker',
+      language: 'te',
+      name: 'Anji',
+      status: 'available',
+      skills: JSON.stringify(['harvesting', 'spraying']),
+      dailyWage: 600,
+      cropExperience: { paddy: 4, chilli: 4, mango: 3 },
+      location: {
+        create: {
+          latitude: 17.385500,
+          longitude: 78.486900
+        }
+      }
+    }
+  });
+
+  const worker4 = await prisma.user.create({
+    data: {
+      phone: '+919876543214',
+      role: 'worker',
+      language: 'hi',
+      name: 'Ramesh',
+      status: 'available',
+      skills: JSON.stringify(['weeding', 'labour']),
+      dailyWage: 450,
+      cropExperience: { banana: 3, groundnut: 1 },
+      location: {
+        create: {
+          latitude: 17.384500,
+          longitude: 78.485900
         }
       }
     }
@@ -134,6 +178,8 @@ async function main() {
   console.log(`    - Job ID: ${job2.id} (Sowing)`);
   console.log('  Worker 1: +919876543211 (Venkat Reddy)');
   console.log('  Worker 2: +919876543212 (Srinivas)');
+  console.log('  Worker 3: +919876543213 (Anji)');
+  console.log('  Worker 4: +919876543214 (Ramesh)');
 }
 
 main()

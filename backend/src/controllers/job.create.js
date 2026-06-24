@@ -9,7 +9,6 @@ const {
   notifyWorkerJobCancelled
 } = require('../services/pushNotification');
 
-// Create a new job
 const createJob = async (req, res, next) => {
   try {
     const {
@@ -27,6 +26,7 @@ const createJob = async (req, res, next) => {
       startDate,
       radiusKm, // B10: custom matching radius (in km)
       durationDays, // D5: duration of the job in days
+      workerIds, // NEW: optional list of directly hired worker IDs
     } = req.body;
 
     // Always use the authenticated user's ID — not from body
@@ -43,23 +43,77 @@ const createJob = async (req, res, next) => {
     const finalLongitude = farmLongitude || longitude;
     const finalStartTime = startTime || startDate || new Date();
 
+    const hasWorkerIds = Array.isArray(workerIds) && workerIds.length > 0;
+    const initialStatus = hasWorkerIds ? 'accepted' : JobStatus.PENDING;
+
     const job = await prisma.job.create({
       data: {
         farmerId,
         workType,
         workerType: workerType || 'individual',
-        workersNeeded: parseInt(workersNeeded) || 1,
+        workersNeeded: hasWorkerIds ? workerIds.length : (parseInt(workersNeeded) || 1),
         payPerDay: parseFloat(payPerDay),
         farmLatitude: finalLatitude ? parseFloat(finalLatitude) : null,
         farmLongitude: finalLongitude ? parseFloat(finalLongitude) : null,
         farmAddress,
         startTime: new Date(finalStartTime),
         description: description || null,
-        status: JobStatus.PENDING,
+        status: initialStatus,
         radiusKm: radiusKm !== undefined && radiusKm !== null ? parseFloat(radiusKm) : null,
         durationDays: durationDays !== undefined && durationDays !== null ? parseInt(durationDays) : null,
       },
     });
+
+    if (hasWorkerIds) {
+      // Create accepted job applications for each worker
+      await Promise.all(
+        workerIds.map((workerId) =>
+          prisma.jobApplication.create({
+            data: {
+              jobId: job.id,
+              workerId,
+              status: 'accepted',
+            },
+          })
+        )
+      );
+
+      // Notify the workers about the direct hire
+      const io = req.app.get('io');
+      try {
+        const hiredWorkers = await prisma.user.findMany({
+          where: { id: { in: workerIds } },
+          select: { id: true, pushToken: true, name: true }
+        });
+
+        if (io) {
+          hiredWorkers.forEach((worker) => {
+            io.to(`user:${worker.id}`).emit('job:new-offer', {
+              jobId: job.id,
+              workType: job.workType,
+              payPerDay: job.payPerDay,
+              farmAddress: job.farmAddress,
+              farmLatitude: job.farmLatitude,
+              farmLongitude: job.farmLongitude,
+              distanceLabel: 'Directly Hired',
+              workersNeeded: job.workersNeeded,
+            });
+          });
+        }
+
+        // 📲 Send push notifications
+        await notifyWorkersNewJob(hiredWorkers, job);
+      } catch (notifyErr) {
+        logger.error('Direct hire notification error', { message: notifyErr.message });
+      }
+
+      return res.status(201).json({
+        success: true,
+        message: 'Job created and workers hired successfully',
+        job,
+        data: job,
+      });
+    }
 
     // ── Smart Worker Matching ─────────────────────────────────────────
     // Find available workers near the farm that have matching skills.

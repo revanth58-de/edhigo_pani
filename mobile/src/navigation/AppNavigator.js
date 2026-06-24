@@ -60,6 +60,9 @@ import WorkInProgressScreen from '../screens/farmer/WorkInProgressScreen';
 import PaymentScreen from '../screens/farmer/PaymentScreen';
 import RateWorkerScreen from '../screens/farmer/RateWorkerScreen';
 import MachineryBookingScreen from '../screens/farmer/MachineryBookingScreen';
+import CropWorkTypesScreen from '../screens/farmer/CropWorkTypesScreen';
+import AvailableWorkersScreen from '../screens/farmer/AvailableWorkersScreen';
+import FarmerWorkerProfileScreen from '../screens/farmer/FarmerWorkerProfileScreen';
 
 // Worker Screens
 import WorkerHomeScreen from '../screens/worker/WorkerHomeScreen';
@@ -182,6 +185,9 @@ const FarmerNavigator = () => (
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
     <Stack.Screen name="Dispute" component={DisputeScreen} />
     <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
+    <Stack.Screen name="CropWorkTypes" component={CropWorkTypesScreen} />
+    <Stack.Screen name="AvailableWorkers" component={AvailableWorkersScreen} />
+    <Stack.Screen name="FarmerWorkerProfile" component={FarmerWorkerProfileScreen} />
   </Stack.Navigator>
 );
 

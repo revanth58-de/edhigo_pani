@@ -66,23 +66,26 @@ const SkeletonCard = ({ shimmer }) => {
 };
 
 // ── Work-type card (real content) ─────────────────────────────────────────────
-const WorkTypeCard = ({ workType, onPress }) => (
+const CropCard = ({ crop, onPress }) => (
   <TouchableOpacity
     style={styles.workTypeWrapper}
     activeOpacity={0.8}
-    onPress={() => onPress(workType)}
+    onPress={() => onPress(crop)}
   >
     <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
       <View style={styles.imageHeader}>
-        <Image source={{ uri: workType.image }} style={styles.cardImage} />
+        <Image source={{ uri: crop.image }} style={styles.cardImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0, 0, 0, 0.4)']}
           style={styles.cardGradient}
         />
+        <View style={[styles.cropIconBadge, { backgroundColor: crop.gradient[0] }]}>
+          <MaterialIcons name={crop.icon} size={20} color="#FFF" />
+        </View>
       </View>
       <View style={styles.cardContent}>
         <Text style={styles.workTypeName} numberOfLines={1}>
-          {workType.name}
+          {crop.name}
         </Text>
       </View>
     </GlassCard>
@@ -261,54 +264,45 @@ const FarmerHomeScreen = ({ navigation }) => {
     };
   }, [user?.id]);
 
-  const handleWorkTypeSelect = (wType) => {
-    if (wType.id === 'tractor' || wType.id === 'harvester') {
-      navigation.navigate('MachineryBooking', { machineType: wType.id === 'tractor' ? 'Tractor' : 'Harvester' });
-    } else {
-      navigation.navigate('LiveMapDiscovery', { workType: wType.name });
-    }
+  const handleCropSelect = (crop) => {
+    navigation.navigate('CropWorkTypes', { cropId: crop.id, cropName: crop.name, cropGradient: crop.gradient });
   };
 
-  const workTypes = [
+  const crops = [
     {
-      id: 'sowing',
-      name: t('farmerHome.sowing') || 'Sowing',
-      image: 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg?auto=compress&cs=tinysrgb&w=800',
-    },
-    {
-      id: 'harvesting',
-      name: t('farmerHome.harvesting') || 'Harvesting',
+      id: 'paddy',
+      name: t('crops.paddy') || 'Paddy (Rice)',
       image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
+      gradient: ['#10B981', '#059669'], // Green themed
+      icon: 'grain',
     },
     {
-      id: 'irrigation',
-      name: t('farmerHome.irrigation') || 'Irrigation',
-      image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=800',
-    },
-    {
-      id: 'labour',
-      name: t('farmerHome.labour') || 'General Labour',
-      image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800',
-    },
-    {
-      id: 'tractor',
-      name: t('farmerHome.tractor') || 'Tractor',
-      image: 'https://images.pexels.com/photos/1595108/pexels-photo-1595108.jpeg?auto=compress&cs=tinysrgb&w=800',
-    },
-    {
-      id: 'harvester',
-      name: 'Harvester Machine',
-      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800',
-    },
-    {
-      id: 'pesticide',
-      name: 'Pesticide Spraying',
+      id: 'chilli',
+      name: t('crops.chilli') || 'Chilli',
       image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
+      gradient: ['#EF4444', '#DC2626'], // Red themed
+      icon: 'local-fire-department',
     },
     {
-      id: 'ploughing',
-      name: 'Ploughing',
-      image: 'https://images.pexels.com/photos/2886937/pexels-photo-2886937.jpeg?auto=compress&cs=tinysrgb&w=800',
+      id: 'mango',
+      name: t('crops.mango') || 'Mango',
+      image: 'https://images.pexels.com/photos/2290740/pexels-photo-2290740.jpeg?auto=compress&cs=tinysrgb&w=800',
+      gradient: ['#F59E0B', '#D97706'], // Amber themed
+      icon: 'eco',
+    },
+    {
+      id: 'banana',
+      name: t('crops.banana') || 'Banana',
+      image: 'https://images.pexels.com/photos/2872755/pexels-photo-2872755.jpeg?auto=compress&cs=tinysrgb&w=800',
+      gradient: ['#FBBF24', '#F59E0B'], // Yellow/Orange
+      icon: 'spa',
+    },
+    {
+      id: 'groundnut',
+      name: t('crops.groundnut') || 'Groundnut',
+      image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
+      gradient: ['#8B5CF6', '#7C3AED'], // Violet themed
+      icon: 'grass',
     },
   ];
 
@@ -388,11 +382,11 @@ const FarmerHomeScreen = ({ navigation }) => {
         {/* M2: Show 6 skeleton cards while loading, then real cards */}
         <View style={styles.grid}>
           {loading
-            ? Array.from({ length: 6 }).map((_, i) => (
+            ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonCard key={i} shimmer={shimmerAnim} />
               ))
-            : workTypes.map((workType) => (
-                <WorkTypeCard key={workType.id} workType={workType} onPress={handleWorkTypeSelect} />
+            : crops.map((crop) => (
+                <CropCard key={crop.id} crop={crop} onPress={handleCropSelect} />
               ))
           }
         </View>
@@ -924,6 +918,18 @@ const styles = StyleSheet.create({
   greetingText:      { fontSize: 22, fontWeight: '800', color: '#131811' },
   greetingSubText:   { fontSize: 14, color: '#6f8961', marginTop: 2 },
   workTypeDescription: { fontSize: 12, color: '#64748B', lineHeight: 16 },
+  cropIconBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
 });
 
 export default FarmerHomeScreen;

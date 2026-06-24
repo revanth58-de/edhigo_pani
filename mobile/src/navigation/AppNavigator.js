@@ -1,5 +1,5 @@
 // Complete App Navigation Structure - All 32 Screens Wired
-// Re-bundle trigger
+// Re-bundle trigger - force update 1
 import React, { useEffect, useState } from 'react';
 import { View, Platform, TouchableOpacity, Alert } from 'react-native';
 import CustomLoader from '../components/CustomLoader';
@@ -61,7 +61,6 @@ import PaymentScreen from '../screens/farmer/PaymentScreen';
 import RateWorkerScreen from '../screens/farmer/RateWorkerScreen';
 import MachineryBookingScreen from '../screens/farmer/MachineryBookingScreen';
 import CropWorkTypesScreen from '../screens/farmer/CropWorkTypesScreen';
-import AvailableWorkersScreen from '../screens/farmer/AvailableWorkersScreen';
 import FarmerWorkerProfileScreen from '../screens/farmer/FarmerWorkerProfileScreen';
 
 // Worker Screens
@@ -186,7 +185,6 @@ const FarmerNavigator = () => (
     <Stack.Screen name="Dispute" component={DisputeScreen} />
     <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
     <Stack.Screen name="CropWorkTypes" component={CropWorkTypesScreen} />
-    <Stack.Screen name="AvailableWorkers" component={AvailableWorkersScreen} />
     <Stack.Screen name="FarmerWorkerProfile" component={FarmerWorkerProfileScreen} />
   </Stack.Navigator>
 );

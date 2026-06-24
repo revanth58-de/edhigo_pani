@@ -179,7 +179,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
             <MaterialIcons name="arrow-back" size={28} color="#FFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {t('cropWorkTypes.title').replace('%{crop}', cropName) || `${cropName} Works`}
+            {cropName} Works
           </Text>
           <View style={{ width: 28 }} />
         </View>
@@ -244,8 +244,8 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
 
         {/* Section title */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionHeadline}>Select Work Type</Text>
-          <Text style={styles.sectionSubline}>Choose a work type to find nearby specialists</Text>
+          <Text style={styles.sectionHeadline}>Select Work</Text>
+          <Text style={styles.sectionSubline}>Choose a work to book nearby labour instantly</Text>
         </View>
 
         {/* Search Input */}
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(31, 138, 61, 0.9)',
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,

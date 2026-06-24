@@ -102,13 +102,13 @@ const SelectWorkersScreen = ({ navigation, route }) => {
 
       const response = await jobService.createJob(jobData);
 
-      if (response.success) {
-        const jobObj = response.data.data || response.data;
+      if (response.data?.success) {
+        const jobObj = response.data?.data || response.data;
         navigation.navigate('RequestSent', {
           job: { ...jobObj, workersNeeded, payPerDay: parsedPay },
         });
       } else {
-        Alert.alert('Error', response.message || 'Failed to create job');
+        Alert.alert('Error', response.data?.message || 'Failed to create job');
       }
     } catch (error) {
       console.error('Create Job Error:', error);

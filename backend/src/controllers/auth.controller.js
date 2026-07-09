@@ -105,7 +105,10 @@ const sendOTP = async (req, res, next) => {
     const otpHash = await bcrypt.hash(otp, 10);
     const otpExpiresAt = new Date(Date.now() + config.otpExpiryMinutes * 60 * 1000);
 
-    // OTP value intentionally NOT logged — devOtp field in response serves dev testing
+    // Log the OTP in development mode so developers can easily see it without an SMS gateway
+    if (config.nodeEnv === 'development' || config.nodeEnv === 'test') {
+      logger.info(`🛠️ DEV OTP for ${phone}: ${otp}`);
+    }
 
     // Upsert user — create if doesn't exist, update OTP if exists
     await prisma.user.upsert({

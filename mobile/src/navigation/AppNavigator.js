@@ -107,6 +107,7 @@ import WorkCategoriesScreen from '../screens/shared/WorkCategoriesScreen';
 import AIChatbotScreen from '../screens/shared/AIChatbotScreen';
 import DisputeScreen from '../screens/shared/DisputeScreen';
 import DisputeHistoryScreen from '../screens/shared/DisputeHistoryScreen';
+import SupportAndLegalScreen from '../screens/shared/SupportAndLegalScreen';
 
 // Stores
 import useNotificationStore from '../store/notificationStore';
@@ -158,6 +159,7 @@ const AuthNavigator = () => (
     <Stack.Screen name="Login" component={LoginScreen} />
     <Stack.Screen name="OTP" component={OTPScreen} />
     <Stack.Screen name="RoleSelection" component={RoleSelectionScreen} />
+    <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );
 
@@ -186,6 +188,7 @@ const FarmerNavigator = () => (
     <Stack.Screen name="DisputeHistory" component={DisputeHistoryScreen} />
     <Stack.Screen name="CropWorkTypes" component={CropWorkTypesScreen} />
     <Stack.Screen name="FarmerWorkerProfile" component={FarmerWorkerProfileScreen} />
+    <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );
 
@@ -222,6 +225,7 @@ const WorkerNavigator = () => (
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
+    <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );
 
@@ -256,6 +260,7 @@ const LeaderNavigator = () => (
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
+    <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );
 
@@ -278,6 +283,7 @@ const MachineryNavigator = () => (
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
+    <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );
 

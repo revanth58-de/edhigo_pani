@@ -1,8 +1,8 @@
-# 🌾 FarmConnect — Product Requirements Document (PRD)
+# 🌾 Dinasari — Product Requirements Document (PRD)
 
 ## 1. Product Vision
 
-**FarmConnect** (internally "Edhigo Pani") is a mobile-first marketplace that connects **farmers** who need agricultural labor with **workers** (individual or group) who provide it. The app is designed for rural India, with a **voice-first, low-literacy UI** supporting Telugu, Hindi, and English.
+**Dinasari** (internally "Edhigo Pani") is a mobile-first marketplace that connects **farmers** who need agricultural labor with **workers** (individual or group) who provide it. The app is designed for rural India, with a **voice-first, low-literacy UI** supporting Telugu, Hindi, and English.
 
 > [!IMPORTANT]
 > The entire UX is built around the principle: **"If someone can't read, they can still use the app."** Every screen has voice guidance, oversized emoji/icon touch targets, and minimal text.

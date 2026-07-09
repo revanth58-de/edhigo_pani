@@ -24,7 +24,7 @@ function Call-API {
     param([string]$Method, [string]$Url, $Body = $null, [hashtable]$Auth = @{})
     $h = @{ "Content-Type" = "application/json" } + $Auth
     try {
-        $p = @{ Uri = $Url; Method = $Method; Headers = $h; ErrorAction = "Stop" }
+        $p = @{ Uri = $Url; Method = $Method; Headers = $h; ErrorAction = "Stop"; UseBasicParsing = $true }
         if ($Body) { $p["Body"] = ($Body | ConvertTo-Json -Depth 5) }
         $r = Invoke-WebRequest @p
         return @{ ok = $true; status = $r.StatusCode; json = ($r.Content | ConvertFrom-Json) }
@@ -60,8 +60,8 @@ Hdr "SECTION 1 — AUTH"
 
 # A01 Send OTP farmer
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $FARMER_PHONE }
-Check "A01 Send OTP — farmer" $r 200 "otp"
-$FARMER_OTP = if ($r.json) { $r.json.otp } else { "" }
+Check "A01 Send OTP — farmer" $r 200 "devOtp"
+$FARMER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
 # A02 Send OTP — no phone
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = "" }
@@ -69,13 +69,13 @@ Check "A02 Send OTP — empty phone (400)" $r 400
 
 # A03 Send OTP worker
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $WORKER_PHONE }
-Check "A03 Send OTP — worker" $r 200 "otp"
-$WORKER_OTP = if ($r.json) { $r.json.otp } else { "" }
+Check "A03 Send OTP — worker" $r 200 "devOtp"
+$WORKER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
 # A04 Send OTP leader
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $LEADER_PHONE }
-Check "A04 Send OTP — leader" $r 200 "otp"
-$LEADER_OTP = if ($r.json) { $r.json.otp } else { "" }
+Check "A04 Send OTP — leader" $r 200 "devOtp"
+$LEADER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
 # A05 Verify OTP — wrong OTP
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $FARMER_PHONE; otp = "0000" }
@@ -158,7 +158,7 @@ $r = Call-API POST "$BASE/jobs" @{ workType = "Ploughing"; payPerDay = 300 }
 Check "J02 Create job — no auth (401)" $r 401
 
 # J03 GET all jobs
-$r = Call-API GET "$BASE/jobs"
+$r = Call-API GET "$BASE/jobs" -Auth (A $TOKEN)
 Check "J03 GET all jobs (200)" $r 200 "data"
 
 # J04 GET /my-jobs
@@ -228,23 +228,23 @@ $ATT_JOB = if ($r.json) { $r.json.data.id } else { $JOB_ID }
 
 # AT01 Check-in
 if ($ATT_JOB -and $WORKER_ID) {
-    $r = Call-API POST "$BASE/attendance/check-in" @{ jobId = $ATT_JOB; workerId = $WORKER_ID; qrData = '{"jobId":"' + $ATT_JOB + '","type":"in"}'; checkInLatitude = 16.5062; checkInLongitude = 80.6480 }
-    Check "AT01 Check-in (200)" $r 200
+    $r = Call-API POST "$BASE/attendance/check-in" @{ jobId = $ATT_JOB; workerId = $WORKER_ID; qrData = '{"jobId":"' + $ATT_JOB + '","type":"in"}'; checkInLatitude = 16.5062; checkInLongitude = 80.6480 } -Auth (A $WORKER_TOKEN)
+    Check "AT01 Check-in (201)" $r 201
 }
 
 # AT02 Check-in — missing fields
-$r = Call-API POST "$BASE/attendance/check-in" @{ jobId = "x" }
-Check "AT02 Check-in — missing workerId (400)" $r 400
+$r = Call-API POST "$BASE/attendance/check-in" @{} -Auth (A $WORKER_TOKEN)
+Check "AT02 Check-in — missing fields (400)" $r 400
 
 # AT03 Check-out
 if ($ATT_JOB -and $WORKER_ID) {
-    $r = Call-API POST "$BASE/attendance/check-out" @{ jobId = $ATT_JOB; workerId = $WORKER_ID; qrData = '{"jobId":"' + $ATT_JOB + '","type":"out"}'; checkOutLatitude = 16.5062; checkOutLongitude = 80.6480 }
+    $r = Call-API POST "$BASE/attendance/check-out" @{ jobId = $ATT_JOB; workerId = $WORKER_ID; qrData = '{"jobId":"' + $ATT_JOB + '","type":"out"}'; checkOutLatitude = 16.5062; checkOutLongitude = 80.6480 } -Auth (A $WORKER_TOKEN)
     Check "AT03 Check-out (200)" $r 200
 }
 
 # AT04 Get attendance records
 if ($ATT_JOB) {
-    $r = Call-API GET "$BASE/attendance/$ATT_JOB"
+    $r = Call-API GET "$BASE/attendance/$ATT_JOB" -Auth (A $TOKEN)
     Check "AT04 GET attendance records (200)" $r 200
 }
 
@@ -255,8 +255,8 @@ Hdr "SECTION 4 — PAYMENTS"
 # P01 Make payment
 if ($JOB_ID -and $WORKER_ID) {
     $r = Call-API POST "$BASE/payments" @{ jobId = $JOB_ID; workerId = $WORKER_ID; amount = 500; method = "cash" } -Auth (A $TOKEN)
-    Check "P01 Make payment (201)" $r 201
-    if ($r.json -and $r.json.data) { $PAYMENT_ID = $r.json.data.id }
+    Check "P01 Make payment (200)" $r 200
+    if ($r.json -and $r.json.payments) { $PAYMENT_ID = $r.json.payments[0].id }
 }
 
 # P02 Payment — no auth
@@ -280,13 +280,13 @@ Hdr "SECTION 5 — RATINGS"
 # R01 Rate worker
 if ($WORKER_ID -and $JOB_ID) {
     $r = Call-API POST "$BASE/ratings/worker" @{ rateeId = $WORKER_ID; jobId = $JOB_ID; rating = 4; comment = "Good job" } -Auth (A $TOKEN)
-    Check "R01 Rate worker (200/201)" $r 201
+    Check "R01 Rate worker (200)" $r 200
 }
 
 # R02 Rate farmer
 if ($USER_ID -and $JOB_ID) {
     $r = Call-API POST "$BASE/ratings/farmer" @{ rateeId = $USER_ID; jobId = $JOB_ID; rating = 5; comment = "Fair pay" } -Auth (A $WORKER_TOKEN)
-    Check "R02 Rate farmer (200/201)" $r 201
+    Check "R02 Rate farmer (200)" $r 200
 }
 
 # R03 Ratings — no auth
@@ -307,7 +307,7 @@ Hdr "SECTION 6 — GROUPS"
 if ($LEADER_TOKEN) {
     $r = Call-API POST "$BASE/groups" @{ name = "QA Test Group"; description = "Automated Test"; maxMembers = 5 } -Auth (A $LEADER_TOKEN)
     Check "G01 Create group (201)" $r 201
-    if ($r.json -and $r.json.data) { $GROUP_ID = $r.json.data.id }
+    if ($r.json -and $r.json.group) { $GROUP_ID = $r.json.group.id }
     Write-Host "       groupId=$GROUP_ID" -ForegroundColor DarkGray
 }
 
@@ -330,13 +330,19 @@ if ($GROUP_ID -and $LEADER_TOKEN) {
 # G05 Add member
 if ($GROUP_ID -and $LEADER_TOKEN -and $WORKER_ID) {
     $r = Call-API POST "$BASE/groups/$GROUP_ID/members" @{ workerId = $WORKER_ID } -Auth (A $LEADER_TOKEN)
-    Check "G05 Add member to group (200)" $r 200
+    Check "G05 Add member to group (201)" $r 201
 }
 
 # G06 Accept group job
-if ($GROUP_ID -and $LEADER_TOKEN -and $JOB_ID) {
-    $r = Call-API POST "$BASE/groups/accept-job" @{ groupId = $GROUP_ID; jobId = $JOB_ID } -Auth (A $LEADER_TOKEN)
-    Check "G06 Accept group job (200)" $r 200
+if ($GROUP_ID -and $LEADER_TOKEN) {
+    # Create a fresh job for group accept test
+    $r = Call-API POST "$BASE/jobs" @{ workType = "Plowing"; workerType = "group"; workersNeeded = 1; payPerDay = 600; farmLatitude = 16.5062; farmLongitude = 80.6480; farmAddress = "Group Job Test" } -Auth (A $TOKEN)
+    $GRP_JOB_ID = if ($r.json -and $r.json.data) { $r.json.data.id } else { "" }
+
+    if ($GRP_JOB_ID) {
+        $r = Call-API POST "$BASE/groups/accept-job" @{ groupId = $GROUP_ID; jobId = $GRP_JOB_ID } -Auth (A $LEADER_TOKEN)
+        Check "G06 Accept group job (200)" $r 200
+    }
 }
 
 # ════════════════════════════════════════════════

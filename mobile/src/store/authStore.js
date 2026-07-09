@@ -32,7 +32,8 @@ const SecureStorage = {
     try {
       const available = await SecureStore.isAvailableAsync();
       if (available) {
-        return await SecureStore.getItemAsync(key);
+        const val = await SecureStore.getItemAsync(key);
+        if (val !== null) return val;
       }
       return await AsyncStorage.getItem(key);
     } catch (err) {
@@ -45,9 +46,8 @@ const SecureStorage = {
       const available = await SecureStore.isAvailableAsync();
       if (available) {
         await SecureStore.deleteItemAsync(key);
-      } else {
-        await AsyncStorage.removeItem(key);
       }
+      await AsyncStorage.removeItem(key);
     } catch (err) {
       console.warn(`SecureStorage.remove fallback for ${key}:`, err.message);
       await AsyncStorage.removeItem(key);

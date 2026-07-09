@@ -1,6 +1,6 @@
 # 🔍 Worker Searching Logic
 
-This document details the complete logic for how the FarmConnect app finds and matches workers with farmers.
+This document details the complete logic for how the Dinasari app finds and matches workers with farmers.
 
 ---
 

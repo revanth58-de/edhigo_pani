@@ -1,4 +1,4 @@
-# 📘 FarmConnect — System Design Document (SDD)
+# 📘 Dinasari — System Design Document (SDD)
 
 > **Version:** 1.0
 > **Status:** In Development
@@ -8,7 +8,7 @@
 
 ## 1. 🏗️ High-Level Architecture
 
-FarmConnect follows a **Monolithic client-server architecture** optimized for real-time interaction and offline-first mobile usage.
+Dinasari follows a **Monolithic client-server architecture** optimized for real-time interaction and offline-first mobile usage.
 
 ### System Context Diagram
 ```mermaid

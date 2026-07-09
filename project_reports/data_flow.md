@@ -1,4 +1,4 @@
-# 🔄 FarmConnect — Complete Data Flow
+# 🔄 Dinasari — Complete Data Flow
 
 ## 1. Authentication Flow
 

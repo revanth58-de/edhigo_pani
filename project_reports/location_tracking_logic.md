@@ -1,6 +1,6 @@
 # 📍 Real-Time Location Tracking Logic
 
-This document explains how FarmConnect tracks users (Farmers, Workers, Leaders) in real-time.
+This document explains how Dinasari tracks users (Farmers, Workers, Leaders) in real-time.
 
 ---
 

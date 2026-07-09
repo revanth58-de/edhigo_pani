@@ -105,7 +105,7 @@ In India, UPI P2P (Person-to-Person) is free.
 ### Implementation Logic
 1.  **Farmer clicks "Pay ₹500".**
 2.  **App constructs UPI Deep Link:**
-    `upi://pay?pa=worker_vpa@okicici&pn=Ramesh_Worker&am=500&tn=FarmConnect_Wage`
+    `upi://pay?pa=worker_vpa@okicici&pn=Ramesh_Worker&am=500&tn=Dinasari_Wage`
 3.  **App opens PhonePe/GPay/Paytm** installed on the device.
 4.  **Farmer authorizes payment.**
 5.  **Validation:**

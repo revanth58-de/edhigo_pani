@@ -658,6 +658,17 @@ const WorkerProfileScreen = ({ navigation }) => {
                       Disputes History
                     </Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.actionButton}
+                    onPress={() => navigation.navigate('SupportAndLegal')}
+                    activeOpacity={0.8}
+                  >
+                    <MaterialIcons name="info-outline" size={24} color={colors.primary} />
+                    <Text style={styles.actionButtonText} adjustsFontSizeToFit numberOfLines={1}>
+                      Support & Legal
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </>
             )}

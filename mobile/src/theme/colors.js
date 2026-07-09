@@ -1,4 +1,4 @@
-// FarmConnect Design System — extracted from HTML mocks
+// Dinasari Design System — extracted from HTML mocks
 // Primary: #5bec13, Background Light: #f6f8f6, Background Dark: #162210
 
 export const colors = {

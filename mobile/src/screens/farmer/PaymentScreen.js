@@ -130,7 +130,11 @@ const PaymentScreen = ({ navigation, route }) => {
   const platformFee = Math.round((totalAmount * 0.05) * 100) / 100;
   const workerEarning = Math.round((totalAmount - platformFee) * 100) / 100;
 
-  const upiId = user?.upiId || `${user?.phone || 'farmer'}@upi`;
+  const currentWorker = workerList[0] || {};
+  const recipientPhone = currentWorker.phone || job?.workerPhone || booking?.machinery?.owner?.phone || '';
+  const cleanPhone = recipientPhone.replace(/^\+91|^91/, '').trim();
+  const recipientUpiId = currentWorker.upiId || (cleanPhone ? `${cleanPhone}@upi` : '9999999999@upi');
+  const recipientName = currentWorker.name || job?.workerName || booking?.machinery?.owner?.name || 'Worker';
   const transactionId = useMemo(() => `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`, []);
 
   // Animations
@@ -226,30 +230,48 @@ const PaymentScreen = ({ navigation, route }) => {
         const confirmId = isMachinery ? booking.id : job.id;
 
         if (['upi', 'gpay', 'phonepe', 'paytm'].includes(paymentMethod)) {
-          // Deep link UPI
-          const appQuery = paymentMethod === 'gpay' ? '&pn=DINASARI&pa=' + upiId 
-                         : paymentMethod === 'phonepe' ? '&pn=DINASARI&pa=' + upiId
-                         : '&pn=DINASARI&pa=' + upiId;
+          // Construct the appropriate UPI scheme
+          let upiUrl = `upi://pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
+          
+          if (paymentMethod === 'gpay') {
+            upiUrl = `tez://upi/pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
+          } else if (paymentMethod === 'phonepe') {
+            upiUrl = `phonepe://pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
+          } else if (paymentMethod === 'paytm') {
+            upiUrl = `paytmmp://pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
+          }
 
-          const upiUrl = `upi://pay?pa=${upiId}&pn=DINASARI&am=${totalAmount}&cu=INR&tn=FarmWork+Payment&tr=${transactionId}${appQuery}`;
-          const canOpen = await Linking.canOpenURL(upiUrl);
-
-          if (canOpen) {
-            await Linking.openURL(upiUrl);
-            const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
-            if (confirmResp.success) {
-              setStep('success');
-            } else {
-              setStep('success'); // Fallback to avoid blocking farmer
+          let opened = false;
+          try {
+            const canOpen = await Linking.canOpenURL(upiUrl);
+            if (canOpen) {
+              await Linking.openURL(upiUrl);
+              opened = true;
             }
+          } catch (e) {
+            console.warn('Could not launch custom UPI app scheme:', e.message);
+          }
+
+          // Fallback to generic UPI if custom app scheme failed to open
+          if (!opened && paymentMethod !== 'upi') {
+            const genericUpiUrl = `upi://pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
+            try {
+              const canOpenGeneric = await Linking.canOpenURL(genericUpiUrl);
+              if (canOpenGeneric) {
+                await Linking.openURL(genericUpiUrl);
+                opened = true;
+              }
+            } catch (e) {
+              console.warn('Could not launch generic UPI scheme:', e.message);
+            }
+          }
+
+          // Process backend confirmation
+          const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
+          if (confirmResp.success) {
+            setStep('success');
           } else {
-            // Fallback for emulator / non-supported devices: simulate success
-            const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
-            if (confirmResp.success) {
-              setStep('success');
-            } else {
-              setStep('success');
-            }
+            setStep('success'); // Fallback to avoid blocking farmer in UI
           }
         } else {
           // Cards & Netbanking: Simulate seamless instant processing success
@@ -269,8 +291,6 @@ const PaymentScreen = ({ navigation, route }) => {
       setLoading(false);
     }
   };
-
-  const currentWorker = workerList[0] || {};
 
   return (
     <LinearGradient

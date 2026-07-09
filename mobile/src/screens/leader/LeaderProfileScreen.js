@@ -282,6 +282,17 @@ const LeaderProfileScreen = ({ navigation }) => {
         {!isEditing && (
           <TouchableOpacity
             style={[styles.editBtn, { marginBottom: 12 }]}
+            onPress={() => navigation.navigate('SupportAndLegal')}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="info-outline" size={22} color={colors.primary} />
+            <Text style={styles.editBtnText}>Support & Legal</Text>
+          </TouchableOpacity>
+        )}
+
+        {!isEditing && (
+          <TouchableOpacity
+            style={[styles.editBtn, { marginBottom: 12 }]}
             onPress={() => navigation.navigate('Notifications')}
             activeOpacity={0.8}
           >

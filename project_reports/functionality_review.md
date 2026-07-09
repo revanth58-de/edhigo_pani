@@ -1,6 +1,6 @@
 # 💰 Functionality Review & Cost Optimization Strategy
 
-This document analyzes every major functionality of **FarmConnect**, reviewing its current implementation and proposing specific strategies to **reduce costs** and **improve performance**.
+This document analyzes every major functionality of **Dinasari**, reviewing its current implementation and proposing specific strategies to **reduce costs** and **improve performance**.
 
 ---
 

@@ -26,8 +26,8 @@ try {
         -ContentType "application/json"
     
     Write-Host "   ✅ OTP endpoint working" -ForegroundColor Green
-    Write-Host "   OTP Code: $($otpResponse.otp)" -ForegroundColor Cyan
-    $testOtp = $otpResponse.otp
+    Write-Host "   OTP Code: $($otpResponse.devOtp)" -ForegroundColor Cyan
+    $testOtp = $otpResponse.devOtp
 } catch {
     Write-Host "   ❌ Send OTP failed: $($_.Exception.Message)" -ForegroundColor Red
     $testOtp = $null

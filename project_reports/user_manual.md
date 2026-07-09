@@ -1,16 +1,16 @@
-# FarmConnect User Manual
+# Dinasari User Manual
 
-## 📱 Welcome to FarmConnect
+## 📱 Welcome to Dinasari
 
-FarmConnect is a comprehensive digital platform connecting Farmers with labor (Workers and Groups) for efficient, transparent, and fair agricultural work management.
+Dinasari is a comprehensive digital platform connecting Farmers with labor (Workers and Groups) for efficient, transparent, and fair agricultural work management.
 
 ---
 
 ## 🚀 Getting Started
 
 ### 1. Installation
-*   **Android/iOS:** Download "FarmConnect" from the App Store or Play Store.
-*   **Web:** Visit `app.farmconnect.com`.
+*   **Android/iOS:** Download "Dinasari" from the App Store or Play Store.
+*   **Web:** Visit `app.dinasari.com`.
 
 ### 2. Launch & Language
 *   Open the app.

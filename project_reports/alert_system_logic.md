@@ -1,6 +1,6 @@
 # 🔔 Alert System Logic
 
-This document details how FarmConnect ensures important updates (Job Offers, Emergency Alerts) reach the user reliably.
+This document details how Dinasari ensures important updates (Job Offers, Emergency Alerts) reach the user reliably.
 
 ---
 

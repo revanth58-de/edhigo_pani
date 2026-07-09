@@ -1,4 +1,4 @@
-# 🗺️ FarmConnect — Sitemap
+# 🗺️ Dinasari — Sitemap
 
 ## 1. Authentication (All Users)
 - **Splash Screen** `(Screens/Auth/SplashScreen.js)`

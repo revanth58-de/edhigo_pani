@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/env');
 const prisma = require('../config/database');
+const { logger } = require('./errorHandler');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -13,6 +14,7 @@ const authenticate = async (req, res, next) => {
     }
 
     if (!token) {
+      logger.warn('Auth failed: No token provided', { method: req.method, url: req.originalUrl, ip: req.ip });
       return res.status(401).json({ error: 'No token provided' });
     }
 
@@ -23,12 +25,14 @@ const authenticate = async (req, res, next) => {
     });
 
     if (!user) {
+      logger.warn('Auth failed: User not found in database', { userId: decoded.userId, url: req.originalUrl, ip: req.ip });
       return res.status(401).json({ error: 'User not found' });
     }
 
     req.user = user;
     next();
   } catch (error) {
+    logger.warn('Auth failed: JWT verification error', { error: error.message, url: req.originalUrl, ip: req.ip });
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expired' });
     }

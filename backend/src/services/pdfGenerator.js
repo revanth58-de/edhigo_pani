@@ -40,7 +40,7 @@ const generateEarningsPdf = (stream, worker, earningsData) => {
   doc.fillColor('#6B7280')
      .fontSize(10)
      .font('Helvetica')
-     .text('FARMCONNECT MARKETPLACE', 50, 72);
+     .text('DINASARI MARKETPLACE', 50, 72);
 
   // Document Title (Right-aligned)
   doc.fillColor(textColor)

@@ -1,4 +1,4 @@
-# 🛠️ FarmConnect — Tech Stack
+# 🛠️ Dinasari — Tech Stack
 
 ## Frontend (Mobile)
 

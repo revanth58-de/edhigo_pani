@@ -1,4 +1,4 @@
-# FarmConnect — Screen-by-Screen Build
+# Dinasari — Screen-by-Screen Build
 
 ## Phase 0: Foundation
 - [x] Project setup (backend + frontend scaffolding)

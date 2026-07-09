@@ -1,6 +1,6 @@
-# FarmConnect (edhigo_pani) 🌾
+# Dinasari (edhigo_pani) 🌾
 
-A full-stack mobile platform that directly connects **Farmers**, **Workers**, and **Group Leaders** for agricultural job management. FarmConnect digitizes the entire workflow — from job posting & discovery, real-time notifications, QR-based attendance, payments, to ratings — all in one place.
+A full-stack mobile platform that directly connects **Farmers**, **Workers**, and **Group Leaders** for agricultural job management. Dinasari digitizes the entire workflow — from job posting & discovery, real-time notifications, QR-based attendance, payments, to ratings — all in one place.
 
 ---
 
@@ -174,7 +174,7 @@ edhigo_pani/
 
    The server will start on `http://localhost:5000`. You should see:
 
-   > `🚀 FarmConnect server running on port 5000`
+   > `🚀 Dinasari server running on port 5000`
 
 ---
 

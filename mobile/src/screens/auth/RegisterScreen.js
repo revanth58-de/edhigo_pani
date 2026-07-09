@@ -34,6 +34,9 @@ const LABELS = {
         continue: 'కొనసాగించు',
         required: 'అన్ని ఫీల్డ్‌లు అవసరం',
         phoneError: 'సరైన 10 అంకెల నంబర్ నమోదు చేయండి',
+        agreeCheckbox: 'నేను నిబంధనలు & షరతులు మరియు గోప్యతా విధానాన్ని అంగీకరిస్తున్నాను',
+        readPolicies: 'నిబంధనలు & గోప్యతా విధానం చదవండి',
+        agreeError: 'నమోదు చేసుకోవడానికి మీరు నిబంధనలు & షరతులను అంగీకరించాలి',
     },
     hi: {
         title: 'पंजीकरण करें',
@@ -52,6 +55,9 @@ const LABELS = {
         continue: 'जारी रखें',
         required: 'सभी फ़ील्ड आवश्यक हैं',
         phoneError: 'सही 10 अंकों का नंबर दर्ज करें',
+        agreeCheckbox: 'मैं नियम व शर्तें और गोपनीयता नीति स्वीकार करता हूँ',
+        readPolicies: 'नियम और गोपनीयता नीति पढ़ें',
+        agreeError: 'पंजीकरण करने के लिए आपको नियम और शर्तें स्वीकार करनी होंगी',
     },
     en: {
         title: 'Register',
@@ -77,6 +83,9 @@ const LABELS = {
         required: 'All fields are required',
         phoneError: 'Enter a valid 10-digit number',
         ageError: 'You must be at least 18 years old to register',
+        agreeCheckbox: 'I agree to the Terms & Conditions and Privacy Policy',
+        readPolicies: 'Read Terms & Privacy Policy',
+        agreeError: 'You must accept the Terms & Conditions and Privacy Policy to register',
     },
 };
 
@@ -108,6 +117,7 @@ const RegisterScreen = ({ navigation }) => {
     const [selectedRole, setSelectedRole] = useState('');
     const [showExistsModal, setShowExistsModal] = useState(false);
     const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
+    const [agree, setAgree] = useState(false);
 
     // Handle OTP cooldown countdown
     useEffect(() => {
@@ -139,6 +149,11 @@ const RegisterScreen = ({ navigation }) => {
         const ageNum = parseInt(age.trim(), 10);
         if (isNaN(ageNum) || ageNum < 18) {
             Alert.alert('⚠️', L.ageError || 'You must be at least 18 years old to register');
+            return;
+        }
+
+        if (!agree) {
+            Alert.alert('⚠️', L.agreeError);
             return;
         }
 
@@ -397,6 +412,33 @@ const RegisterScreen = ({ navigation }) => {
                         </View>
                     </View>
 
+                    {/* Agreement Checkbox */}
+                    <View style={styles.agreeContainer}>
+                        <TouchableOpacity
+                            style={styles.checkboxRow}
+                            onPress={() => setAgree(!agree)}
+                            activeOpacity={0.7}
+                        >
+                            <MaterialIcons
+                                name={agree ? 'check-box' : 'check-box-outline-blank'}
+                                size={24}
+                                color={agree ? colors.primary : '#6B7280'}
+                            />
+                            <Text style={styles.agreeText}>
+                                {L.agreeCheckbox}
+                            </Text>
+                        </TouchableOpacity>
+                        
+                        <TouchableOpacity 
+                            style={styles.readPoliciesLink}
+                            onPress={() => navigation.navigate('SupportAndLegal')}
+                        >
+                            <Text style={styles.readPoliciesText}>
+                                {L.readPolicies} →
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
                     {/* Continue Button */}
                     <TouchableOpacity
                         style={[styles.continueBtn, (isLoading || otpCooldownSeconds > 0) && { opacity: 0.7 }]}
@@ -516,6 +558,34 @@ const styles = StyleSheet.create({
     modalLoginBtnText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
     modalDismissBtn: { paddingVertical: 8 },
     modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },
+
+    // Agreement Checkbox styles
+    agreeContainer: {
+        marginTop: 10,
+        gap: 8,
+    },
+    checkboxRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingRight: 10,
+    },
+    agreeText: {
+        fontSize: 15,
+        color: '#4B5563',
+        flexShrink: 1,
+        lineHeight: 20,
+    },
+    readPoliciesLink: {
+        alignSelf: 'flex-start',
+        paddingVertical: 2,
+    },
+    readPoliciesText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: colors.primary,
+        textDecorationLine: 'underline',
+    },
 });
 
 export default RegisterScreen;

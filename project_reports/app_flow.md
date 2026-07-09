@@ -1,4 +1,4 @@
-# 🗺️ FarmConnect — App Flow & Mock File Mapping
+# 🗺️ Dinasari — App Flow & Mock File Mapping
 
 ## 1. High-Level App Flow
 

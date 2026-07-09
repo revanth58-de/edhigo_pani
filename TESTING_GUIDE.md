@@ -6,7 +6,7 @@ A systematic guide to test all 32 screens and ensure everything is working witho
 
 ### Servers Running
 
-- [ ] **Backend Server**: `npm run dev` in `/backend` → Should show `🚀 FarmConnect server running on port 5000`
+- [ ] **Backend Server**: `npm run dev` in `/backend` → Should show `🚀 Dinasari server running on port 5000`
 - [ ] **Expo Server**: `npx expo start --tunnel` in `/mobile` → Should show QR code
 - [ ] **App Loaded on iPhone**: Scan QR code, wait for bundle to load
 

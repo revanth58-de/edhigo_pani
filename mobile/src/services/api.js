@@ -27,7 +27,10 @@ const getTokenSafe = async (key) => {
     try {
         const SecureStore = await import('expo-secure-store');
         const available = await SecureStore.isAvailableAsync();
-        if (available) return await SecureStore.getItemAsync(key);
+        if (available) {
+            const val = await SecureStore.getItemAsync(key);
+            if (val !== null) return val;
+        }
         return await AsyncStorage.getItem(key);
     } catch {
         return await AsyncStorage.getItem(key);
@@ -40,9 +43,8 @@ const deleteTokenSafe = async (key) => {
         const available = await SecureStore.isAvailableAsync();
         if (available) {
             await SecureStore.deleteItemAsync(key);
-        } else {
-            await AsyncStorage.removeItem(key);
         }
+        await AsyncStorage.removeItem(key);
     } catch {
         await AsyncStorage.removeItem(key);
     }

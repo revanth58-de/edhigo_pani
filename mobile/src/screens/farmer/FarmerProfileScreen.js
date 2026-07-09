@@ -907,6 +907,15 @@ const FarmerProfileScreen = ({ navigation }) => {
               <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>Disputes History</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: '#FFFFFF', marginTop: 12, borderWidth: 2, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('SupportAndLegal')}
+            >
+              <MaterialIcons name="info-outline" size={26} color={colors.primary} />
+              <Text style={[styles.editButtonText, { color: colors.primary, fontSize: 18 }]}>Support & Legal</Text>
+            </TouchableOpacity>
+
+
             {/* Defer heavy off-screen elements (switchers, logouts) by 150ms for performance */}
             {isReady && (
               <>

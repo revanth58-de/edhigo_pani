@@ -1,4 +1,4 @@
-# 🔗 FarmConnect — Frontend ↔ Backend ↔ Mobile Connection Map
+# 🔗 Dinasari — Frontend ↔ Backend ↔ Mobile Connection Map
 
 ## Project Structure
 

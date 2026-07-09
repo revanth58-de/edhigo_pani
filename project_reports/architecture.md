@@ -1,4 +1,4 @@
-# 🏗️ FarmConnect — System Architecture
+# 🏗️ Dinasari — System Architecture
 
 ## 1. Architecture Overview
 
@@ -60,7 +60,7 @@ flowchart TB
 ## 2. Project Structure
 
 ```
-farmconnect/
+dinasari/
 ├── mobile/                          # React Native (Expo)
 │   ├── app.json
 │   ├── src/

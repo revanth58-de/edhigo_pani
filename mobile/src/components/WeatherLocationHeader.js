@@ -27,11 +27,33 @@ const WeatherLocationHeader = () => {
           placeName = geo[0].city || geo[0].district || geo[0].subregion || geo[0].region || 'Your Location';
         }
 
+        const getMockWeather = () => {
+          const hour = new Date().getHours();
+          let tempVal = 30;
+          let condition = 'Sunny';
+          if (hour >= 18 || hour <= 6) {
+            tempVal = 24;
+            condition = 'Clear';
+          } else if (hour >= 12 && hour <= 15) {
+            tempVal = 34;
+            condition = 'Sunny';
+          } else if (hour >= 16 && hour <= 17) {
+            tempVal = 28;
+            condition = 'Cloudy';
+          }
+          return { temp: tempVal + '°C', condition };
+        };
+
         // Fetch real weather from OpenWeatherMap using API key
         try {
           const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
           if (!apiKey) {
-            throw new Error('OpenWeatherMap API Key is missing');
+            const mock = getMockWeather();
+            if (isMounted) {
+              setLocationName(placeName);
+              setWeather(mock);
+            }
+            return;
           }
           const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${apiKey}`);
           const data = await response.json();
@@ -55,10 +77,11 @@ const WeatherLocationHeader = () => {
             setWeather({ temp, condition });
           }
         } catch (err) {
-          console.warn('Weather fetch failed:', err);
+          console.warn('Weather fetch failed, falling back to mock weather:', err.message);
+          const mock = getMockWeather();
           if (isMounted) {
             setLocationName(placeName);
-            setWeather({ temp: '--', condition: 'Clear' });
+            setWeather(mock);
           }
         }
       } catch (e) {

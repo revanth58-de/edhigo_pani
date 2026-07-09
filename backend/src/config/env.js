@@ -13,8 +13,8 @@ if (!process.env.JWT_REFRESH_SECRET) {
 
 // ── Warn if default/placeholder secrets are used in production ───────────
 const PLACEHOLDER_SECRETS = [
-  'farmconnect_super_secret_key_change_in_production',
-  'farmconnect_refresh_secret_change_in_production',
+  'dinasari_super_secret_key_change_in_production',
+  'dinasari_refresh_secret_change_in_production',
   'REPLACE_WITH_64_CHAR_RANDOM_STRING',
   'REPLACE_WITH_DIFFERENT_64_CHAR_RANDOM_STRING',
 ];

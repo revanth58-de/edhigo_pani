@@ -10,6 +10,7 @@ import {
     TextInput,
     Alert,
     Modal,
+    Linking,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -431,7 +432,7 @@ const RegisterScreen = ({ navigation }) => {
                         
                         <TouchableOpacity 
                             style={styles.readPoliciesLink}
-                            onPress={() => navigation.navigate('SupportAndLegal')}
+                            onPress={() => Linking.openURL('https://dinasari.co.in/')}
                         >
                             <Text style={styles.readPoliciesText}>
                                 {L.readPolicies} →

@@ -101,17 +101,17 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
 
           <View style={styles.breakupRow}>
             <Text style={styles.breakupLabel}>Farmer Name</Text>
-            <Text style={styles.breakupVal}>{payment?.farmerName || 'Farmer'}</Text>
+            <Text style={styles.breakupVal}>{payment?.farmerName || payment?.farmer?.name || 'Farmer'}</Text>
           </View>
 
           <View style={styles.breakupRow}>
             <Text style={styles.breakupLabel}>Work category</Text>
-            <Text style={styles.breakupVal}>{payment?.workType?.toUpperCase() || 'AGRICULTURE WORK'}</Text>
+            <Text style={styles.breakupVal}>{(payment?.workType || payment?.job?.workType)?.toUpperCase() || 'AGRICULTURE WORK'}</Text>
           </View>
 
           <View style={styles.breakupRow}>
             <Text style={styles.breakupLabel}>Farm Location</Text>
-            <Text style={styles.breakupVal} numberOfLines={1}>{payment?.farmAddress || 'Rural Farm'}</Text>
+            <Text style={styles.breakupVal} numberOfLines={1}>{payment?.farmAddress || payment?.job?.farmAddress || 'Rural Farm'}</Text>
           </View>
 
           <View style={styles.breakupRow}>

@@ -39,14 +39,30 @@ const ANIMALS = [
 
 // ─── Crop Data with emoji ───
 const ALL_CROPS = [
-  { key: 'Rice', emoji: '🌾' },
-  { key: 'Wheat', emoji: '🌿' },
-  { key: 'Cotton', emoji: '🌱' },
-  { key: 'Maize', emoji: '🌽' },
+  { key: 'Paddy', emoji: '🌾' },
+  { key: 'Mango', emoji: '🥭' },
+  { key: 'Banana', emoji: '🍌' },
+  { key: 'Orange', emoji: '🍊' },
+  { key: 'Lemon', emoji: '🍋' },
+  { key: 'Papaya', emoji: '🥭' },
+  { key: 'Sapota', emoji: '🍐' },
+  { key: 'Pomegranate', emoji: '❤️' },
+  { key: 'Guava', emoji: '🍈' },
+  { key: 'Pulses', emoji: '🌱' },
+  { key: 'Cotton', emoji: '🌿' },
   { key: 'Sugarcane', emoji: '🎋' },
-  { key: 'Soybean', emoji: '🫘' },
+  { key: 'Tobacco', emoji: '🚬' },
+  { key: 'Cashew', emoji: '🌰' },
   { key: 'Groundnut', emoji: '🥜' },
-  { key: 'Turmeric', emoji: '🟡' },
+  { key: 'Sesame', emoji: '🌾' },
+  { key: 'Sunflower', emoji: '🌻' },
+  { key: 'Castor', emoji: '🌿' },
+  { key: 'Red Gram', emoji: '🫘' },
+  { key: 'Black Gram', emoji: '🫘' },
+  { key: 'Green Gram', emoji: '🫘' },
+  { key: 'Bengal Gram', emoji: '🫘' },
+  { key: 'Chilli', emoji: '🌶️' },
+  { key: 'Oilseeds', emoji: '🟡' },
 ];
 
 // ─── Equipment Data with emoji ───

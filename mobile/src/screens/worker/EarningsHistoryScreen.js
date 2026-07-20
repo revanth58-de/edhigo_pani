@@ -12,7 +12,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import CustomLoader from '../../components/CustomLoader';
 import { colors } from '../../theme/colors';
-import { workerAPI } from '../../services/api';
+import { workerAPI, paymentAPI } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavBar from '../../components/BottomNavBar';
@@ -30,8 +30,15 @@ const EarningsHistoryScreen = ({ navigation }) => {
   const fetchHistory = async (isRef = false) => {
     if (!isRef) setLoading(true);
     try {
-      const res = await workerAPI.getEarnings();
-      setPayments(res?.data?.recentPayments || res?.recentPayments || []);
+      let paymentsData = [];
+      if (role === 'leader' && user?.id) {
+        const res = await paymentAPI.getHistory(user.id);
+        paymentsData = res?.data?.payments || res?.payments || [];
+      } else {
+        const res = await workerAPI.getEarnings();
+        paymentsData = res?.data?.recentPayments || res?.recentPayments || [];
+      }
+      setPayments(paymentsData);
     } catch (e) {
       console.warn('Failed to fetch earnings history:', e.message);
     } finally {
@@ -81,7 +88,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
               <MaterialIcons name="person" size={20} color="#6F8961" />
             </View>
             <View>
-              <Text style={styles.farmerName}>{item.farmerName || 'Farmer'}</Text>
+              <Text style={styles.farmerName}>{item.farmerName || item.farmer?.name || 'Farmer'}</Text>
               <Text style={styles.dateText}>{formattedDate}</Text>
             </View>
           </View>
@@ -93,7 +100,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
         <View style={styles.cardBody}>
           <View style={styles.breakupItem}>
             <Text style={styles.breakupLabel}>Job Type</Text>
-            <Text style={styles.breakupVal}>{item.workType?.toUpperCase() || 'AGRICULTURE WORK'}</Text>
+            <Text style={styles.breakupVal}>{(item.workType || item.job?.workType)?.toUpperCase() || 'AGRICULTURE WORK'}</Text>
           </View>
           <View style={styles.breakupItem}>
             <Text style={styles.breakupLabel}>Farmer Paid</Text>

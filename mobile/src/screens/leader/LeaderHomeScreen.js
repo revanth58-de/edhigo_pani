@@ -21,7 +21,7 @@ import BottomNavBar from '../../components/BottomNavBar';
 import WeatherLocationHeader from '../../components/WeatherLocationHeader';
 import GlassCard from '../../components/GlassCard';
 import { socketService } from '../../services/socketService';
-import { jobAPI, authAPI } from '../../services/api';
+import { jobAPI, authAPI, groupAPI, paymentAPI } from '../../services/api';
 import * as Location from 'expo-location';
 
 const LeaderHomeScreen = ({ navigation, route }) => {
@@ -30,6 +30,8 @@ const LeaderHomeScreen = ({ navigation, route }) => {
   const activeTab = route.params?.tab || 'home';
   const [pendingJob, setPendingJob]   = useState(null);
   const [refreshing, setRefreshing]   = useState(false); // M6
+  const [groups, setGroups] = useState([]);
+  const [payments, setPayments] = useState([]);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Fetch available group jobs from the server (for manual browse / poll fallback)
@@ -55,10 +57,25 @@ const LeaderHomeScreen = ({ navigation, route }) => {
     }
   }, [pendingJob]);
 
+  const fetchStatsAndDetails = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [groupsResp, paymentsResp] = await Promise.all([
+        groupAPI.getMyGroups(),
+        paymentAPI.getHistory(user.id),
+      ]);
+      setGroups(groupsResp?.data?.groups || []);
+      setPayments(paymentsResp?.data?.payments || []);
+    } catch (e) {
+      console.warn('Failed to fetch stats details:', e.message);
+    }
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
       fetchGroupJobs();
+      fetchStatsAndDetails();
 
       // Update GPS + status so matchWorkers can find this leader
       (async () => {
@@ -78,7 +95,7 @@ const LeaderHomeScreen = ({ navigation, route }) => {
           console.warn('Leader GPS update failed:', gpsErr.message);
         }
       })();
-    }, [refreshProfile, fetchGroupJobs])
+    }, [refreshProfile, fetchGroupJobs, fetchStatsAndDetails])
   );
 
   // Pulse animation for the job alert banner
@@ -93,6 +110,12 @@ const LeaderHomeScreen = ({ navigation, route }) => {
     loop.start();
     return () => loop.stop();
   }, [pendingJob]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStatsAndDetails();
+    }
+  }, [user?.id, fetchStatsAndDetails]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -137,7 +160,7 @@ const LeaderHomeScreen = ({ navigation, route }) => {
             refreshing={refreshing}
             onRefresh={async () => {
               setRefreshing(true);
-              await Promise.all([refreshProfile(), fetchGroupJobs()]);
+              await Promise.all([refreshProfile(), fetchGroupJobs(), fetchStatsAndDetails()]);
               setRefreshing(false);
             }}
             colors={[colors.primary]}
@@ -264,8 +287,182 @@ const LeaderHomeScreen = ({ navigation, route }) => {
               <Text style={styles.statVal}>{user?.jobsDone ?? 0}</Text>
               <Text style={styles.statLab}>Jobs Completed</Text>
             </GlassCard>
+            <GlassCard intensity={10} style={styles.statCardOuter} contentStyle={styles.statCardInner}>
+              <Text style={styles.statVal}>
+                {user?.ratingAvg && user?.ratingAvg > 0 ? `⭐ ${user.ratingAvg.toFixed(1)}` : '⭐ 5.0'}
+              </Text>
+              <Text style={styles.statLab}>Avg Rating</Text>
+            </GlassCard>
           </View>
         </View>
+
+        {/* Group Wallet Section */}
+        {(() => {
+          const completedPayments = payments.filter(p => p.workerId === user?.id && p.status === 'completed');
+          const totalEarned = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+          const pendingPayments = payments.filter(p => p.workerId === user?.id && p.status === 'pending');
+          const pendingEarned = pendingPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+          return (
+            <View style={styles.walletSection}>
+              <Text style={styles.sectionTitle}>Group Wallet</Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate('EarningsHistory')}
+              >
+                <GlassCard intensity={15} style={styles.walletCardOuter} contentStyle={styles.walletCardInner}>
+                  <View style={styles.walletHeaderRow}>
+                    <View style={styles.walletTitleCol}>
+                      <Text style={styles.walletLabelText}>TOTAL EARNINGS</Text>
+                      <Text style={styles.walletValueText}>₹{totalEarned.toLocaleString('en-IN')}</Text>
+                    </View>
+                    <View style={styles.walletIconContainer}>
+                      <MaterialIcons name="account-balance-wallet" size={32} color="#FFF" />
+                    </View>
+                  </View>
+
+                  <View style={styles.walletDivider} />
+
+                  <View style={styles.walletSubRow}>
+                    <View style={styles.walletSubCol}>
+                      <Text style={styles.walletSubLabel}>Pending Settlement</Text>
+                      <Text style={styles.walletSubValue}>₹{pendingEarned.toLocaleString('en-IN')}</Text>
+                    </View>
+                    <View style={styles.walletSubCol}>
+                      <Text style={styles.walletSubLabel}>Transactions</Text>
+                      <Text style={styles.walletSubValue}>{completedPayments.length + pendingPayments.length} Total</Text>
+                    </View>
+                  </View>
+
+                  {payments.length > 0 && (
+                    <View style={styles.recentTxSection}>
+                      <Text style={styles.txListTitle}>Recent Group Earnings</Text>
+                      {payments.slice(0, 3).map((p) => (
+                        <View key={p.id} style={styles.txRow}>
+                          <View style={styles.txLeft}>
+                            <MaterialIcons 
+                              name={p.status === 'completed' ? "check-circle" : "watch-later"} 
+                              size={20} 
+                              color={p.status === 'completed' ? "#10B981" : "#D97706"} 
+                            />
+                            <Text style={styles.txWorkType}>{p.job?.workType ? p.job.workType.toUpperCase() : 'FARM WORK'}</Text>
+                          </View>
+                          <View style={styles.txRight}>
+                            <Text style={styles.txAmount}>₹{p.amount}</Text>
+                            <Text style={[styles.txStatus, { color: p.status === 'completed' ? "#10B981" : "#D97706" }]}>
+                              {p.status === 'completed' ? 'Paid' : 'Pending'}
+                            </Text>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </GlassCard>
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
+
+        {/* Attendance Tracker Section */}
+        {(() => {
+          const ledGroups = groups.filter(g => g.leaderId === user?.id);
+          if (ledGroups.length === 0) return null;
+          return (
+            <View style={styles.attendanceSection}>
+              <Text style={styles.sectionTitle}>Attendance Tracker</Text>
+              {ledGroups.map((group) => {
+                const joinedMembers = (group.members || []).filter(
+                  m => m.status === 'joined' || m.status === 'checked_in' || m.status === 'checked_out'
+                );
+                const checkedInCount = (group.members || []).filter(m => m.status === 'checked_in').length;
+                
+                return (
+                  <GlassCard key={group.id} intensity={10} style={styles.attendanceCardOuter} contentStyle={styles.attendanceCardInner}>
+                    <View style={styles.groupHeaderRow}>
+                      <View style={styles.groupMetaCol}>
+                        <Text style={styles.groupNameText}>{group.name}</Text>
+                        <Text style={styles.groupTypeText}>{group.type || 'General Work'}</Text>
+                      </View>
+                      <View style={styles.attendanceBadge}>
+                        <Text style={styles.attendanceBadgeText}>
+                          Present: {checkedInCount}/{joinedMembers.length + 1}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.membersListHeader}>
+                      <Text style={styles.membersListTitle}>Crew Attendance Status</Text>
+                    </View>
+
+                    {/* Leader Row */}
+                    <View style={styles.memberRow}>
+                      <View style={styles.memberLeft}>
+                        <View style={styles.avatarCircle}>
+                          <Text style={styles.avatarLetter}>L</Text>
+                        </View>
+                        <View>
+                          <Text style={styles.memberName}>{user?.name || 'Leader'} (You)</Text>
+                          <Text style={styles.memberRole}>Leader</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.statusBadge, styles.badgeActive]}>
+                        <Text style={styles.badgeTextActive}>🟢 PRESENT</Text>
+                      </View>
+                    </View>
+
+                    {/* Members Rows */}
+                    {joinedMembers.length === 0 ? (
+                      <Text style={styles.noMembersText}>No group members joined yet.</Text>
+                    ) : (
+                      joinedMembers.map((m) => {
+                        const name = m.name || m.worker?.name || 'Worker';
+                        const role = m.role || 'Member';
+                        
+                        let badgeStyle = styles.badgeInvited;
+                        let badgeText = '⚪ INVITED';
+                        
+                        if (m.status === 'checked_in') {
+                          badgeStyle = styles.badgeActive;
+                          badgeText = '🟢 PRESENT';
+                        } else if (m.status === 'checked_out') {
+                          badgeStyle = styles.badgeCompleted;
+                          badgeText = '🔵 COMPLETED';
+                        } else if (m.status === 'joined') {
+                          badgeStyle = styles.badgeJoined;
+                          badgeText = '🟡 READY';
+                        }
+
+                        return (
+                          <View key={m.id} style={styles.memberRow}>
+                            <View style={styles.memberLeft}>
+                              <View style={styles.avatarCircle}>
+                                <Text style={styles.avatarLetter}>{name.charAt(0).toUpperCase()}</Text>
+                              </View>
+                              <View>
+                                <Text style={styles.memberName}>{name}</Text>
+                                <Text style={styles.memberRole}>{role}</Text>
+                              </View>
+                            </View>
+                            <View style={[styles.statusBadge, badgeStyle]}>
+                              <Text style={[
+                                styles.badgeText,
+                                m.status === 'checked_in' && styles.badgeTextActive,
+                                m.status === 'checked_out' && styles.badgeTextCompleted,
+                                m.status === 'joined' && styles.badgeTextJoined,
+                              ]}>
+                                {badgeText}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })
+                    )}
+                  </GlassCard>
+                );
+              })}
+            </View>
+          );
+        })()}
 
         {/* How it works */}
         <GlassCard intensity={5} style={styles.infoCardOuter} contentStyle={styles.infoCardInner}>
@@ -508,6 +705,256 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   offerBadgeText: { color: '#FFF', fontSize: 12, fontWeight: '900' },
+  walletSection: {
+    paddingHorizontal: 24,
+    marginTop: 32,
+  },
+  walletCardOuter: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    elevation: 4,
+  },
+  walletCardInner: {
+    padding: 24,
+  },
+  walletHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  walletTitleCol: {
+    flex: 1,
+  },
+  walletLabelText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 1.2,
+  },
+  walletValueText: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: colors.primary,
+    marginTop: 4,
+  },
+  walletIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletDivider: {
+    height: 1,
+    backgroundColor: '#F1F5F9',
+    marginVertical: 20,
+  },
+  walletSubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+  },
+  walletSubCol: {
+    flex: 1,
+  },
+  walletSubLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  walletSubValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 4,
+  },
+  recentTxSection: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 20,
+  },
+  txListTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 12,
+  },
+  txRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  txLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  txWorkType: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  txRight: {
+    alignItems: 'flex-end',
+  },
+  txAmount: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#334155',
+  },
+  txStatus: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  attendanceSection: {
+    paddingHorizontal: 24,
+    marginTop: 32,
+  },
+  attendanceCardOuter: {
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 20,
+    elevation: 4,
+  },
+  attendanceCardInner: {
+    padding: 24,
+  },
+  groupHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  groupMetaCol: {
+    flex: 1,
+  },
+  groupNameText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  groupTypeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  attendanceBadge: {
+    backgroundColor: 'rgba(31, 138, 61, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  attendanceBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  membersListHeader: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#F1F5F9',
+    paddingBottom: 8,
+    marginBottom: 12,
+  },
+  membersListTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  memberLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(31, 138, 61, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarLetter: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.primary,
+  },
+  memberName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  memberRole: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeActive: {
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  badgeTextActive: {
+    color: '#10B981',
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  badgeInvited: {
+    backgroundColor: '#F1F5F9',
+  },
+  badgeCompleted: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  badgeTextCompleted: {
+    color: '#3B82F6',
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  badgeJoined: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+  },
+  badgeTextJoined: {
+    color: '#F59E0B',
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  badgeText: {
+    color: '#64748B',
+    fontWeight: '900',
+    fontSize: 11,
+  },
+  noMembersText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingVertical: 12,
+  },
 });
 
 export default LeaderHomeScreen;

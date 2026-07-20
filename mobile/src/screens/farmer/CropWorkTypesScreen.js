@@ -32,86 +32,235 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
   const [isCalcExpanded, setIsCalcExpanded] = useState(false);
   const [calcCost, setCalcCost] = useState(null);
 
-  // Define operations with images, icons, and calculation rules
-  const operations = [
-    {
-      id: 'landPrep',
-      name: t('cropWorkTypes.landPrep') || 'Land Preparation',
-      skillKeyword: 'tractor',
-      icon: 'agriculture',
-      image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop',
-      calc: (acres) => {
-        const workers = Math.max(1, Math.round(2 * acres));
-        return { workers, duration: Math.max(1, Math.round(1 * acres)) };
+  // Define dynamic operations list based on crop selection
+  const getOperationsForCrop = () => {
+    if (cropId === 'paddy') {
+      return [
+        {
+          id: 'landPrep',
+          name: t('cropWorkTypes.paddyLandPrep') || 'Land Preparation (Ploughing)',
+          skillKeyword: 'tractor',
+          icon: 'agriculture',
+          image: require('../../../assets/crops/paddy_landprep.jpg'),
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: Math.max(1, Math.round(1 * acres)) }),
+        },
+        {
+          id: 'nurseryPrep',
+          name: t('cropWorkTypes.nurseryPrep') || 'Nursery Preparation',
+          skillKeyword: 'sowing',
+          icon: 'grass',
+          image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
+        },
+        {
+          id: 'transplanting',
+          name: t('cropWorkTypes.transplanting') || 'Transplanting',
+          skillKeyword: 'sowing',
+          icon: 'spa',
+          image: require('../../../assets/crops/paddy_transplanting.jpg'),
+          calc: (acres) => ({ workers: Math.max(2, Math.round(5 * acres)), duration: 1 }),
+        },
+        {
+          id: 'directSeeding',
+          name: t('cropWorkTypes.directSeeding') || 'Direct Seeding',
+          skillKeyword: 'sowing',
+          icon: 'grain',
+          image: 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg?auto=compress&cs=tinysrgb&w=800',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'irrigation',
+          name: t('cropWorkTypes.irrigationOrchard') || 'Irrigation',
+          skillKeyword: 'labour',
+          icon: 'opacity',
+          image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
+        },
+        {
+          id: 'fertilizerApp',
+          name: t('cropWorkTypes.fertilizerAppOrchard') || 'Fertilizer Application',
+          skillKeyword: 'labour',
+          icon: 'bubble-chart',
+          image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'weeding',
+          name: t('cropWorkTypes.weedingOrchard') || 'Weed Removal',
+          skillKeyword: 'labour',
+          icon: 'filter-hdr',
+          image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+        },
+        {
+          id: 'spraying',
+          name: t('cropWorkTypes.sprayingOrchard') || 'Pesticide Spraying',
+          skillKeyword: 'labour',
+          icon: 'waves',
+          image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
+        },
+        {
+          id: 'harvesting',
+          name: t('cropWorkTypes.harvesting') || 'Harvesting',
+          skillKeyword: 'harvesting',
+          icon: 'grain',
+          image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
+          calc: (acres) => ({ workers: Math.max(4, Math.round(8 * acres)), duration: 1 }),
+        },
+        {
+          id: 'threshing',
+          name: t('cropWorkTypes.threshing') || 'Threshing',
+          skillKeyword: 'harvesting',
+          icon: 'waves',
+          image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
+        },
+        {
+          id: 'drying',
+          name: t('cropWorkTypes.drying') || 'Drying',
+          skillKeyword: 'labour',
+          icon: 'wb-sunny',
+          image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'bagFilling',
+          name: t('cropWorkTypes.bagFilling') || 'Bag Filling',
+          skillKeyword: 'labour',
+          icon: 'shopping-bag',
+          image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'loading',
+          name: t('cropWorkTypes.loadingOrchard') || 'Loading',
+          skillKeyword: 'labour',
+          icon: 'local-shipping',
+          image: 'https://images.unsplash.com/photo-1588710922810-ee8a11516e88?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
+    // Default Fruit / Orchard / General List
+    return [
+      {
+        id: 'landPrepOrchard',
+        name: t('cropWorkTypes.landPrepOrchard') || 'Land Preparation',
+        skillKeyword: 'tractor',
+        icon: 'agriculture',
+        image: require('../../../assets/crops/orchard_landprep.png'),
+        calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: Math.max(1, Math.round(1 * acres)) }),
       },
-    },
-    {
-      id: 'nurseryPrep',
-      name: t('cropWorkTypes.nurseryPrep') || 'Nursery Preparation',
-      skillKeyword: 'sowing',
-      icon: 'grass',
-      image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
-      calc: (acres) => {
-        const workers = Math.max(1, Math.round(3 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'pitDigging',
+        name: t('cropWorkTypes.pitDigging') || 'Pit Digging',
+        skillKeyword: 'labour',
+        icon: 'gavel',
+        image: require('../../../assets/crops/orchard_pitdigging.jpg'),
+        calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
       },
-    },
-    {
-      id: 'transplanting',
-      name: t('cropWorkTypes.transplanting') || 'Transplanting',
-      skillKeyword: 'sowing',
-      icon: 'spa',
-      image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=800&auto=format&fit=crop',
-      calc: (acres) => {
-        const workers = Math.max(2, Math.round(5 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'plantingSaplings',
+        name: t('cropWorkTypes.plantingSaplings') || 'Planting Saplings',
+        skillKeyword: 'sowing',
+        icon: 'park',
+        image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
       },
-    },
-    {
-      id: 'weeding',
-      name: t('cropWorkTypes.weeding') || 'Weeding',
-      skillKeyword: 'labour',
-      icon: 'filter-hdr',
-      image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop',
-      calc: (acres) => {
-        const workers = Math.max(2, Math.round(3 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'irrigationOrchard',
+        name: t('cropWorkTypes.irrigationOrchard') || 'Irrigation',
+        skillKeyword: 'labour',
+        icon: 'opacity',
+        image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
       },
-    },
-    {
-      id: 'harvesting',
-      name: t('cropWorkTypes.harvesting') || 'Harvesting',
-      skillKeyword: 'harvesting',
-      icon: 'grain',
-      image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
-      calc: (acres) => {
-        const workers = Math.max(4, Math.round(8 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'fertilizerAppOrchard',
+        name: t('cropWorkTypes.fertilizerAppOrchard') || 'Fertilizer Application',
+        skillKeyword: 'labour',
+        icon: 'bubble-chart',
+        image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
       },
-    },
-    {
-      id: 'spraying',
-      name: t('cropWorkTypes.spraying') || 'Spraying',
-      skillKeyword: 'labour',
-      icon: 'waves',
-      image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
-      calc: (acres) => {
-        const workers = Math.max(1, Math.round(1 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'sprayingOrchard',
+        name: t('cropWorkTypes.sprayingOrchard') || 'Pesticide Spraying',
+        skillKeyword: 'labour',
+        icon: 'waves',
+        image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
       },
-    },
-    {
-      id: 'sowing',
-      name: t('cropWorkTypes.sowing') || 'Sowing',
-      skillKeyword: 'sowing',
-      icon: 'wb-sunny',
-      image: 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg?auto=compress&cs=tinysrgb&w=800',
-      calc: (acres) => {
-        const workers = Math.max(1, Math.round(2 * acres));
-        return { workers, duration: 1 };
+      {
+        id: 'pruning',
+        name: t('cropWorkTypes.pruning') || 'Pruning',
+        skillKeyword: 'labour',
+        icon: 'content-cut',
+        image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
       },
-    },
-  ];
+      {
+        id: 'weedingOrchard',
+        name: t('cropWorkTypes.weedingOrchard') || 'Weed Removal',
+        skillKeyword: 'labour',
+        icon: 'filter-hdr',
+        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+      },
+      {
+        id: 'fruitThinning',
+        name: t('cropWorkTypes.fruitThinning') || 'Fruit Thinning',
+        skillKeyword: 'labour',
+        icon: 'nature',
+        image: 'https://images.unsplash.com/photo-1617113930975-f9c7243ae527?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+      },
+      {
+        id: 'harvestingOrchard',
+        name: t('cropWorkTypes.harvestingOrchard') || 'Harvesting',
+        skillKeyword: 'harvesting',
+        icon: 'grain',
+        image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
+        calc: (acres) => ({ workers: Math.max(3, Math.round(6 * acres)), duration: 1 }),
+      },
+      {
+        id: 'sortingGrading',
+        name: t('cropWorkTypes.sortingGrading') || 'Sorting & Grading',
+        skillKeyword: 'labour',
+        icon: 'sort',
+        image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
+        calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
+      },
+      {
+        id: 'packing',
+        name: t('cropWorkTypes.packing') || 'Packing',
+        skillKeyword: 'labour',
+        icon: 'inbox',
+        image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
+      },
+      {
+        id: 'loadingOrchard',
+        name: t('cropWorkTypes.loadingOrchard') || 'Loading',
+        skillKeyword: 'labour',
+        icon: 'local-shipping',
+        image: 'https://images.unsplash.com/photo-1588710922810-ee8a11516e88?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+      },
+      {
+        id: 'orchardCleaning',
+        name: t('cropWorkTypes.orchardCleaning') || 'Orchard Cleaning',
+        skillKeyword: 'labour',
+        icon: 'cleaning-services',
+        image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=800&auto=format&fit=crop',
+        calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
+      },
+    ];
+  };
+
+  const operations = getOperationsForCrop();
 
   const filteredOps = operations.filter((op) =>
     op.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -278,7 +427,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
                   activeOpacity={0.9}
                 >
                   <View style={styles.cardImageContainer}>
-                    <Image source={{ uri: op.image }} style={styles.cardImage} />
+                    <Image source={typeof op.image === 'string' ? { uri: op.image } : op.image} style={styles.cardImage} />
                     <LinearGradient
                       colors={['transparent', 'rgba(0, 0, 0, 0.75)']}
                       style={styles.cardGradient}

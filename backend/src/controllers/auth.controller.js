@@ -34,8 +34,29 @@ const sanitizeUser = (user) => {
     }
   }
   safeUser.animals = animalsObj;
+  safeUser.groupsLed = user.groupsLedCount ?? 0;
+  safeUser.jobsDone = user.jobsDoneCount ?? 0;
 
   return safeUser;
+};
+
+const augmentUserStats = async (user) => {
+  if (!user) return null;
+  const groupsLedCount = await prisma.group.count({
+    where: { leaderId: user.id }
+  });
+  const jobsDoneCount = await prisma.jobApplication.count({
+    where: {
+      workerId: user.id,
+      status: 'accepted',
+      job: {
+        status: 'completed'
+      }
+    }
+  });
+  user.groupsLedCount = groupsLedCount;
+  user.jobsDoneCount = jobsDoneCount;
+  return user;
 };
 
 // Generate JWT tokens and save refresh token to DB
@@ -238,6 +259,8 @@ const verifyOTP = async (req, res, next) => {
 
     logger.info(`✅ Auth Success: User logged in. ID: ${user.id}, Phone: ${phone}`, { ip: req.ip });
 
+    await augmentUserStats(updatedUser);
+
     res.json({
       message: 'OTP verified successfully',
       user: sanitizeUser(updatedUser),
@@ -268,6 +291,8 @@ const setRole = async (req, res, next) => {
         animals: true,
       }
     });
+
+    await augmentUserStats(user);
 
     res.json({
       message: 'Role set successfully',
@@ -316,6 +341,8 @@ const getMe = async (req, res, next) => {
         animals: true,
       }
     });
+
+    await augmentUserStats(user);
 
     res.json({
       user: sanitizeUser(user),
@@ -472,6 +499,8 @@ const updateProfile = async (req, res, next) => {
         animals: true,
       }
     });
+
+    await augmentUserStats(user);
 
     res.json({
       message: 'Profile updated successfully',

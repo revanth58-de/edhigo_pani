@@ -14,6 +14,7 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { WebView } from 'react-native-webview';
 import CustomLoader from '../../components/CustomLoader';
 import QRCode from 'react-native-qrcode-svg';
 import { paymentService } from '../../services/api/paymentService';
@@ -99,6 +100,8 @@ const PaymentScreen = ({ navigation, route }) => {
   const [paymentMethod, setPaymentMethod] = useState('upi'); // 'upi' | 'gpay' | 'phonepe' | 'paytm' | 'card' | 'netbanking' | 'cash'
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showRazorpay, setShowRazorpay] = useState(false);
+  const [razorpayOrder, setRazorpayOrder] = useState(null);
 
   // Support either single `worker` or multiple `workers`
   let workerList = workers || (worker ? [worker] : []);
@@ -183,12 +186,148 @@ const PaymentScreen = ({ navigation, route }) => {
     Speech.speak(textToSpeak, { language: language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : 'en-IN' });
   };
 
+  const razorpayHtml = useMemo(() => {
+    if (!razorpayOrder) return '';
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+        <style>
+          body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #FDFBF7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1E293B;
+          }
+          .loader {
+            border: 4px solid #F1F5F9;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .title {
+            margin-top: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1E293B;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="loader"></div>
+        <div class="title" id="status-text">Connecting to secure gateway...</div>
+
+        <script>
+          const options = {
+            key: "${razorpayOrder.key}",
+            amount: "${razorpayOrder.amount}",
+            currency: "${razorpayOrder.currency}",
+            name: "Dinasari",
+            description: "Dinasari Work Payment",
+            order_id: "${razorpayOrder.id}",
+            handler: function (response) {
+              document.getElementById('status-text').innerText = 'Verification in progress...';
+              window.ReactNativeWebView.postMessage(JSON.stringify({
+                status: 'success',
+                data: response
+              }));
+            },
+            prefill: {
+              name: "${user?.name || ''}",
+              contact: "${user?.phone || ''}"
+            },
+            theme: {
+              color: "#4CAF50"
+            },
+            modal: {
+              ondismiss: function() {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                  status: 'dismissed'
+                }));
+              }
+            }
+          };
+
+          const rzp = new Razorpay(options);
+          
+          rzp.on('payment.failed', function (response) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              status: 'failed',
+              error: response.error
+            }));
+          });
+
+          window.onload = function() {
+            document.getElementById('status-text').innerText = 'Opening gateway...';
+            rzp.open();
+          };
+        </script>
+      </body>
+      </html>
+    `;
+  }, [razorpayOrder, user]);
+
+  const handleRazorpayMessage = async (event) => {
+    try {
+      const response = JSON.parse(event.nativeEvent.data);
+      setShowRazorpay(false);
+
+      if (response.status === 'success') {
+        setStep('processing');
+        setLoading(true);
+
+        const verifyResp = await paymentService.verifyRazorpayPayment({
+          razorpay_order_id: response.data.razorpay_order_id,
+          razorpay_payment_id: response.data.razorpay_payment_id,
+          razorpay_signature: response.data.razorpay_signature,
+          jobId: job?.id,
+          bookingId: booking?.id,
+          amount: totalAmount,
+        });
+
+        if (verifyResp.success) {
+          setStep('success');
+        } else {
+          setErrorMessage(verifyResp.message || 'Signature verification failed');
+          setStep('failed');
+        }
+      } else if (response.status === 'failed') {
+        setErrorMessage(response.error?.description || 'Transaction failed. Please try again.');
+        setStep('failed');
+      } else {
+        // Dismissed
+        setStep('summary');
+      }
+    } catch (err) {
+      console.error('Razorpay Webview Message Error:', err);
+      setShowRazorpay(false);
+      setStep('failed');
+      setErrorMessage('Verification failed due to a communication error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePayment = async () => {
     setStep('processing');
     setLoading(true);
     
     // Simulate minor visual buffer to feel premium
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
       const payload = isMachinery
@@ -214,22 +353,23 @@ const PaymentScreen = ({ navigation, route }) => {
           setStep('failed');
         }
       } else {
-        // Digital Payment: Register pending payment in backend
-        const response = await paymentService.makePayment(payload);
-
-        if (!response.success) {
-          if (response.message?.includes('already')) {
-            setStep('success');
+        // Digital Payment: Register pending payment in backend for UPI
+        const isUPI = ['upi', 'gpay', 'phonepe', 'paytm'].includes(paymentMethod);
+        
+        if (isUPI) {
+          const response = await paymentService.makePayment(payload);
+          if (!response.success) {
+            if (response.message?.includes('already')) {
+              setStep('success');
+              return;
+            }
+            setErrorMessage(response.message || 'Could not initiate secure payment');
+            setStep('failed');
             return;
           }
-          setErrorMessage(response.message || 'Could not initiate secure payment');
-          setStep('failed');
-          return;
-        }
 
-        const confirmId = isMachinery ? booking.id : job.id;
+          const confirmId = isMachinery ? booking.id : job.id;
 
-        if (['upi', 'gpay', 'phonepe', 'paytm'].includes(paymentMethod)) {
           // Construct the appropriate UPI scheme
           let upiUrl = `upi://pay?pa=${recipientUpiId}&pn=${encodeURIComponent(recipientName)}&am=${totalAmount}&cu=INR&tn=${encodeURIComponent('Dinasari Work Payment')}&tr=${transactionId}`;
           
@@ -274,12 +414,20 @@ const PaymentScreen = ({ navigation, route }) => {
             setStep('success'); // Fallback to avoid blocking farmer in UI
           }
         } else {
-          // Cards & Netbanking: Simulate seamless instant processing success
-          const confirmResp = await paymentService.confirmPayment(confirmId, transactionId);
-          if (confirmResp.success) {
-            setStep('success');
+          // Cards & Netbanking: Initiate real Razorpay Payment Order
+          const orderResp = await paymentService.createRazorpayOrder({
+            amount: totalAmount,
+            jobId: job?.id,
+            bookingId: booking?.id,
+          });
+
+          if (orderResp.success && orderResp.data?.order) {
+            setRazorpayOrder(orderResp.data.order);
+            setShowRazorpay(true);
+            setStep('summary'); // Reset loader and show overlay
           } else {
-            setStep('success');
+            setErrorMessage(orderResp.message || 'Failed to initiate secure card checkout');
+            setStep('failed');
           }
         }
       }
@@ -631,6 +779,19 @@ const PaymentScreen = ({ navigation, route }) => {
       )}
       {['summary', 'method'].includes(step) && (
         <BottomNavBar role="farmer" activeTab="Bookings" />
+      )}
+      {showRazorpay && (
+        <View style={styles.webViewOverlay}>
+          <WebView
+            source={{ html: razorpayHtml }}
+            onMessage={handleRazorpayMessage}
+            style={{ flex: 1 }}
+            javaScriptEnabled={true}
+            domStorageEnabled={true}
+            startInLoadingState={true}
+            originWhitelist={['*']}
+          />
+        </View>
       )}
     </LinearGradient>
   );
@@ -1226,6 +1387,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+  webViewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 99999,
+    backgroundColor: '#FFFFFF',
   },
 });
 

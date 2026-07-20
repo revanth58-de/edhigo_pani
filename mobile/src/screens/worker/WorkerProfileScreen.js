@@ -36,8 +36,12 @@ const AVATAR_OPTIONS = [
 ];
 
 const ALL_SKILLS = [
-  'Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving',
-  'Pruning', 'Fertilizing', 'Pesticide Spray', 'Cleaning',
+  'Land Preparation', 'Pit Digging', 'Planting Saplings', 'Irrigation',
+  'Fertilizer Application', 'Pesticide Spraying', 'Pruning', 'Weed Removal',
+  'Fruit Thinning', 'Harvesting', 'Sorting & Grading', 'Packing',
+  'Loading', 'Orchard Cleaning', 'Nursery Preparation', 'Transplanting',
+  'Direct Seeding', 'Threshing', 'Drying', 'Bag Filling',
+  'Tractor Driving', 'Sowing'
 ];
 
 const SkillChip = React.memo(({ skill, isSelected, onPress, isEditing, onRemove }) => {

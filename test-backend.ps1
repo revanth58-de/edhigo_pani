@@ -22,7 +22,7 @@ Write-Host "2. Testing Send OTP Endpoint..." -ForegroundColor Yellow
 try {
     $otpResponse = Invoke-RestMethod -Uri "$apiUrl/auth/send-otp" `
         -Method POST `
-        -Body (@{phone="+919876543210"} | ConvertTo-Json) `
+        -Body (@{phone="9876543210"} | ConvertTo-Json) `
         -ContentType "application/json"
     
     Write-Host "   ✅ OTP endpoint working" -ForegroundColor Green
@@ -40,7 +40,7 @@ if ($testOtp) {
     try {
         $authResponse = Invoke-RestMethod -Uri "$apiUrl/auth/verify-otp" `
             -Method POST `
-            -Body (@{phone="+919876543210"; otp=$testOtp} | ConvertTo-Json) `
+            -Body (@{phone="9876543210"; otp=$testOtp} | ConvertTo-Json) `
             -ContentType "application/json"
         
         Write-Host "   ✅ Verify OTP working" -ForegroundColor Green

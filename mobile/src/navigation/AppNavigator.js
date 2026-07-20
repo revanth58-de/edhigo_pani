@@ -260,6 +260,10 @@ const LeaderNavigator = () => (
     <Stack.Screen name="MachineryBooking" component={MachineryBookingScreen} />
     <Stack.Screen name="QRAttendance" component={QRAttendanceScreen} />
     <Stack.Screen name="QRAttendanceOUT" component={QRAttendanceOUTScreen} />
+    <Stack.Screen name="EarningsDashboard" component={EarningsDashboard} />
+    <Stack.Screen name="EarningsHistory" component={EarningsHistoryScreen} />
+    <Stack.Screen name="SettlementStatus" component={SettlementStatusScreen} />
+    <Stack.Screen name="WorkerPaymentDetails" component={WorkerPaymentDetailsScreen} />
     <Stack.Screen name="SupportAndLegal" component={SupportAndLegalScreen} />
   </Stack.Navigator>
 );

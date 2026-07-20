@@ -84,7 +84,11 @@ const AvailableWorkersScreen = ({ route, navigation }) => {
     const skillsList = parseJson(w.skills) || [];
     const cropExp = parseJson(w.cropExperience) || {};
     
-    const matchesSkill = !skillKeyword || skillsList.map(s => s.toLowerCase()).includes(skillKeyword.toLowerCase());
+    const matchesSkill = !skillKeyword || skillsList.map(s => s.toLowerCase()).some(s => 
+      s === skillKeyword.toLowerCase() || 
+      (operationName && s === operationName.toLowerCase()) || 
+      (operationId && s === operationId.toLowerCase())
+    );
     const expYears = cropExp[cropId.toLowerCase()] || 0;
     const hasCropExp = expYears > 0;
 

@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-// import * as Notifications from 'expo-notifications';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import * as Speech from 'expo-speech';
 import { colors } from '../theme/colors';
 import useAuthStore from '../store/authStore';
 
-// Stubbing out expo-notifications for Expo Go compatibility in SDK 53
-const Notifications = {
-  addNotificationReceivedListener: () => ({ remove: () => {} }),
-  addNotificationResponseReceivedListener: () => ({ remove: () => {} }),
-};
+const isExpoGo = Platform.OS !== 'web' && (
+  Constants.appOwnership === 'expo' ||
+  Constants.appOwnership === 'expo-go' ||
+  Constants.executionEnvironment === 'storeClient'
+);
 
 const NotificationOverlay = () => {
   const user = useAuthStore(state => state.user);
@@ -32,22 +33,26 @@ const NotificationOverlay = () => {
       }
     };
 
-    // 1. Fired whenever a notification is received while the app is open
-    const sub1 = Notifications.addNotificationReceivedListener(noti => {
-      const { title, body, data } = noti.request.content;
-      handleIncoming(title, body, data);
-    });
+    if (Platform.OS === 'web' || isExpoGo) return;
 
-    // 2. Fired whenever a user taps on a notification (from locked or background state)
-    const sub2 = Notifications.addNotificationResponseReceivedListener(response => {
-      const { title, body, data } = response.notification.request.content;
-      handleIncoming(title, body, data);
-    });
+    try {
+      const sub1 = Notifications.addNotificationReceivedListener(noti => {
+        const { title, body, data } = noti.request.content;
+        handleIncoming(title, body, data);
+      });
 
-    return () => {
-      if (sub1) sub1.remove();
-      if (sub2) sub2.remove();
-    };
+      const sub2 = Notifications.addNotificationResponseReceivedListener(response => {
+        const { title, body, data } = response.notification.request.content;
+        handleIncoming(title, body, data);
+      });
+
+      return () => {
+        if (sub1) sub1.remove();
+        if (sub2) sub2.remove();
+      };
+    } catch (err) {
+      console.warn('Failed to bind native notification listeners:', err.message);
+    }
   }, [user?.language]);
 
   if (!visible || !notification) return null;

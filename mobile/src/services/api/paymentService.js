@@ -58,5 +58,33 @@ export const paymentService = {
       return { success: false, data: null };
     }
   },
+
+  // Create a Razorpay Order
+  createRazorpayOrder: async (data) => {
+    try {
+      const response = await paymentAPI.createRazorpayOrder(data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Create Razorpay Order Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Failed to initialize gateway order',
+      };
+    }
+  },
+
+  // Verify Razorpay Payment Signature
+  verifyRazorpayPayment: async (data) => {
+    try {
+      const response = await paymentAPI.verifyRazorpayPayment(data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error('Verify Razorpay Payment Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.error || 'Signature verification failed',
+      };
+    }
+  },
 };
 

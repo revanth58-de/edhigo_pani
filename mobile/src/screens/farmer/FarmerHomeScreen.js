@@ -74,7 +74,7 @@ const CropCard = ({ crop, onPress }) => (
   >
     <GlassCard intensity={40} tint="light" style={styles.workTypeGlassCard}>
       <View style={styles.imageHeader}>
-        <Image source={{ uri: crop.image }} style={styles.cardImage} />
+        <Image source={typeof crop.image === 'string' ? { uri: crop.image } : crop.image} style={styles.cardImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0, 0, 0, 0.4)']}
           style={styles.cardGradient}
@@ -268,41 +268,192 @@ const FarmerHomeScreen = ({ navigation }) => {
     navigation.navigate('CropWorkTypes', { cropId: crop.id, cropName: crop.name, cropGradient: crop.gradient });
   };
 
-  const crops = [
+  const categories = [
     {
-      id: 'paddy',
-      name: t('crops.paddy') || 'Paddy (Rice)',
-      image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
-      gradient: ['#10B981', '#059669'], // Green themed
-      icon: 'grain',
+      title: t('cropCategories.foodCrops') || 'Food Crops (ఆహార పంటలు / खाद्यान्न)',
+      crops: [
+        {
+          id: 'paddy',
+          name: t('crops.paddy') || 'Paddy',
+          image: require('../../../assets/crops/paddy.png'),
+          gradient: ['#10B981', '#059669'],
+          icon: 'grain',
+        },
+        {
+          id: 'chilli',
+          name: t('crops.chilli') || 'Chilli',
+          image: require('../../../assets/crops/chilli.jpg'),
+          gradient: ['#EF4444', '#DC2626'],
+          icon: 'local-fire-department',
+        },
+        {
+          id: 'pulses',
+          name: t('crops.pulses') || 'Pulses',
+          image: 'https://images.unsplash.com/photo-1547058886-f390097f482d?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#F59E0B', '#B45309'],
+          icon: 'grain',
+        },
+      ],
     },
     {
-      id: 'chilli',
-      name: t('crops.chilli') || 'Chilli',
-      image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
-      gradient: ['#EF4444', '#DC2626'], // Red themed
-      icon: 'local-fire-department',
+      title: t('cropCategories.cashCrops') || 'Cash Crops (నగదు పంటలు / नकदी फसल)',
+      crops: [
+        {
+          id: 'cotton',
+          name: t('crops.cotton') || 'Cotton',
+          image: require('../../../assets/crops/cotton.png'),
+          gradient: ['#E2E8F0', '#94A3B8'],
+          icon: 'cloud',
+        },
+        {
+          id: 'sugarcane',
+          name: t('crops.sugarcane') || 'Sugarcane',
+          image: require('../../../assets/crops/sugarcane.jpg'),
+          gradient: ['#4ADE80', '#16A34A'],
+          icon: 'format-align-justify',
+        },
+        {
+          id: 'tobacco',
+          name: t('crops.tobacco') || 'Tobacco',
+          image: require('../../../assets/crops/tobacco.jpg'),
+          gradient: ['#B45309', '#78350F'],
+          icon: 'eco',
+        },
+        {
+          id: 'cashew',
+          name: t('crops.cashew') || 'Cashew',
+          image: require('../../../assets/crops/cashew.png'),
+          gradient: ['#EAB308', '#A16207'],
+          icon: 'eco',
+        },
+      ],
     },
     {
-      id: 'mango',
-      name: t('crops.mango') || 'Mango',
-      image: 'https://images.pexels.com/photos/2290740/pexels-photo-2290740.jpeg?auto=compress&cs=tinysrgb&w=800',
-      gradient: ['#F59E0B', '#D97706'], // Amber themed
-      icon: 'eco',
+      title: t('cropCategories.pulseVarieties') || 'Pulse Varieties (పప్పులు / दालें)',
+      crops: [
+        {
+          id: 'redgram',
+          name: t('crops.redgram') || 'Red Gram',
+          image: require('../../../assets/crops/redgram.png'),
+          gradient: ['#FCA5A5', '#DC2626'],
+          icon: 'grain',
+        },
+        {
+          id: 'blackgram',
+          name: t('crops.blackgram') || 'Black Gram',
+          image: require('../../../assets/crops/blackgram.png'),
+          gradient: ['#374151', '#111827'],
+          icon: 'grain',
+        },
+        {
+          id: 'greengram',
+          name: t('crops.greengram') || 'Green Gram',
+          image: require('../../../assets/crops/greengram.png'),
+          gradient: ['#86EFAC', '#15803D'],
+          icon: 'grain',
+        },
+        {
+          id: 'bengalgram',
+          name: t('crops.bengalgram') || 'Bengal Gram',
+          image: require('../../../assets/crops/bengalgram.jpg'),
+          gradient: ['#FED7AA', '#DD6B20'],
+          icon: 'grain',
+        },
+      ],
     },
     {
-      id: 'banana',
-      name: t('crops.banana') || 'Banana',
-      image: 'https://images.pexels.com/photos/2872755/pexels-photo-2872755.jpeg?auto=compress&cs=tinysrgb&w=800',
-      gradient: ['#FBBF24', '#F59E0B'], // Yellow/Orange
-      icon: 'spa',
+      title: t('cropCategories.fruits') || 'Fruits (పండ్లు / फल)',
+      crops: [
+        {
+          id: 'mango',
+          name: t('crops.mango') || 'Mango',
+          image: require('../../../assets/crops/mango.jpg'),
+          gradient: ['#F59E0B', '#D97706'],
+          icon: 'eco',
+        },
+        {
+          id: 'banana',
+          name: t('crops.banana') || 'Banana',
+          image: require('../../../assets/crops/banana.jpg'),
+          gradient: ['#FBBF24', '#F59E0B'],
+          icon: 'spa',
+        },
+        {
+          id: 'orange',
+          name: t('crops.orange') || 'Orange',
+          image: require('../../../assets/crops/orange.jpg'),
+          gradient: ['#F97316', '#EA580C'],
+          icon: 'brightness-7',
+        },
+        {
+          id: 'lemon',
+          name: t('crops.lemon') || 'Lemon',
+          image: 'https://images.unsplash.com/photo-1590502593747-42a996133562?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#FDE047', '#EAB308'],
+          icon: 'brightness-5',
+        },
+        {
+          id: 'papaya',
+          name: t('crops.papaya') || 'Papaya',
+          image: require('../../../assets/crops/papaya.jpg'),
+          gradient: ['#F59E0B', '#EA580C'],
+          icon: 'nature',
+        },
+        {
+          id: 'sapota',
+          name: t('crops.sapota') || 'Sapota',
+          image: require('../../../assets/crops/sapota.png'),
+          gradient: ['#78350F', '#451A03'],
+          icon: 'eco',
+        },
+        {
+          id: 'pomegranate',
+          name: t('crops.pomegranate') || 'Pomegranate',
+          image: require('../../../assets/crops/pomegranate.png'),
+          gradient: ['#EF4444', '#B91C1C'],
+          icon: 'fiber-manual-record',
+        },
+        {
+          id: 'guava',
+          name: t('crops.guava') || 'Guava',
+          image: require('../../../assets/crops/guava.png'),
+          gradient: ['#A3E635', '#65A30D'],
+          icon: 'park',
+        },
+      ],
     },
     {
-      id: 'groundnut',
-      name: t('crops.groundnut') || 'Groundnut',
-      image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
-      gradient: ['#8B5CF6', '#7C3AED'], // Violet themed
-      icon: 'grass',
+      title: t('cropCategories.oilseedCrops') || 'Oilseed Crops (నూనెగింజలు / तिलहन)',
+      crops: [
+        {
+          id: 'groundnut',
+          name: t('crops.groundnut') || 'Groundnut',
+          image: require('../../../assets/crops/groundnut.png'),
+          gradient: ['#8B5CF6', '#7C3AED'],
+          icon: 'grass',
+        },
+        {
+          id: 'sesame',
+          name: t('crops.sesame') || 'Sesame',
+          image: require('../../../assets/crops/sesame.png'),
+          gradient: ['#F1F5F9', '#CBD5E1'],
+          icon: 'grain',
+        },
+        {
+          id: 'sunflower',
+          name: t('crops.sunflower') || 'Sunflower',
+          image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#FDE047', '#CA8A04'],
+          icon: 'wb-sunny',
+        },
+        {
+          id: 'castor',
+          name: t('crops.castor') || 'Castor',
+          image: require('../../../assets/crops/castor.png'),
+          gradient: ['#A7F3D0', '#047857'],
+          icon: 'nature',
+        },
+      ],
     },
   ];
 
@@ -379,17 +530,25 @@ const FarmerHomeScreen = ({ navigation }) => {
           )}
         </View>
 
-        {/* M2: Show 6 skeleton cards while loading, then real cards */}
-        <View style={styles.grid}>
-          {loading
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <SkeletonCard key={i} shimmer={shimmerAnim} />
-              ))
-            : crops.map((crop) => (
-                <CropCard key={crop.id} crop={crop} onPress={handleCropSelect} />
-              ))
-          }
-        </View>
+        {/* M2: Show 6 skeleton cards while loading, then categorized real cards */}
+        {loading ? (
+          <View style={styles.grid}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonCard key={i} shimmer={shimmerAnim} />
+            ))}
+          </View>
+        ) : (
+          categories.map((category, index) => (
+            <View key={index} style={styles.categoryBlock}>
+              <Text style={styles.categoryHeader}>{category.title}</Text>
+              <View style={styles.grid}>
+                {category.crops.map((crop) => (
+                  <CropCard key={crop.id} crop={crop} onPress={handleCropSelect} />
+                ))}
+              </View>
+            </View>
+          ))
+        )}
 
         {/* Modern Machinery Section */}
         <View style={styles.machinerySection}>
@@ -929,6 +1088,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#FFF',
+  },
+  categoryBlock: {
+    marginBottom: 24,
+  },
+  categoryHeader: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    paddingHorizontal: 24,
+    marginTop: 8,
+    marginBottom: 4,
+    letterSpacing: -0.2,
   },
 });
 

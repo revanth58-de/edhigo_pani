@@ -50,7 +50,14 @@ const LeaderProfileScreen = ({ navigation }) => {
     typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || [])
   );
 
-  const ALL_SKILLS = ['Team Management', 'Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving', 'Logistics', 'Quality Control'];
+  const ALL_SKILLS = [
+    'Team Management', 'Land Preparation', 'Pit Digging', 'Planting Saplings', 'Irrigation',
+    'Fertilizer Application', 'Pesticide Spraying', 'Pruning', 'Weed Removal',
+    'Fruit Thinning', 'Harvesting', 'Sorting & Grading', 'Packing',
+    'Loading', 'Orchard Cleaning', 'Nursery Preparation', 'Transplanting',
+    'Direct Seeding', 'Threshing', 'Drying', 'Bag Filling',
+    'Tractor Driving', 'Sowing', 'Logistics', 'Quality Control'
+  ];
 
   const toggleSkill = (skill) => {
     if (editSkills.includes(skill)) {

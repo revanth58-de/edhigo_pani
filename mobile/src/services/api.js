@@ -177,6 +177,8 @@ export const paymentAPI = {
     getHistory: (userId) => apiClient.get(`/payments/history/${userId}`),
     getDetails: (paymentId) => apiClient.get(`/payments/${paymentId}`),
     confirmPayment: (jobId, upiRef) => apiClient.patch(`/payments/${jobId}/confirm`, { upiRef }),
+    createRazorpayOrder: (data) => apiClient.post('/payments/razorpay/order', data),
+    verifyRazorpayPayment: (data) => apiClient.post('/payments/razorpay/verify', data),
 };
 
 

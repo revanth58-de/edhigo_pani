@@ -8,7 +8,15 @@
     "ios": "expo start --ios --offline",
     "web": "expo start --web --offline",
     "test": "jest --watchAll=false",
-    "test:watch": "jest --watchAll"
+    "test:watch": "jest --watchAll",
+    "prebuild": "expo prebuild --platform android --no-install",
+    "build": "expo export",
+    "build:android": "cd android && gradlew.bat bundleRelease",
+    "build:android:apk": "cd android && gradlew.bat assembleRelease",
+    "build:android:clean": "cd android && gradlew.bat clean",
+    "build:eas": "eas build --platform android --profile production",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

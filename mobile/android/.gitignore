@@ -1,0 +1,28 @@
+# OSX
+#
+.DS_Store
+
+# Android/IntelliJ
+#
+build/
+.idea
+.gradle
+.gradle-home
+local.properties
+*.iml
+*.hprof
+.cxx/
+
+# Bundle artifacts
+*.jsbundle
+
+# Signing credentials - NEVER commit these
+keystore.properties
+*.jks
+
+# Build outputs
+app/build/
+
+# Sentry generated files
+app/src/main/assets/modules.json
+

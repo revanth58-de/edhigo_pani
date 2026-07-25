@@ -61,4 +61,6 @@ export const API_CONFIG_INFO = {
   socketUrl: SOCKET_BASE_URL,
 };
 
-console.log('🌐 API Configuration:', API_CONFIG_INFO);
+if (__DEV__) {
+  console.log('🌐 API Configuration:', API_CONFIG_INFO);
+}

@@ -1,0 +1,27 @@
+{
+  "app": {
+    "name": "Dinasari",
+    "packageName": "com.dinasari.app",
+    "versionCode": 1,
+    "versionName": "1.0.0",
+    "releaseDate": "2026-07-25",
+    "targetSdkVersion": 36,
+    "minSdkVersion": 24
+  },
+  "changelog": [
+    {
+      "versionCode": 1,
+      "versionName": "1.0.0",
+      "date": "2026-07-25",
+      "notes": [
+        "Initial release of Dinasari",
+        "Connect agricultural workers with farmers",
+        "OTP-based authentication",
+        "Real-time worker tracking with Google Maps",
+        "QR code attendance system",
+        "In-app push notifications",
+        "Multi-language support"
+      ]
+    }
+  ]
+}

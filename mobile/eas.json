@@ -27,7 +27,7 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.edhigo-pani.com"
+        "EXPO_PUBLIC_API_URL": "https://www.dinasari.co.in"
       }
     }
   },

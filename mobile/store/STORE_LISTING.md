@@ -55,7 +55,7 @@ Everyone
 ## Contact Details
 - Email: support@dinasari.co.in
 - Website: https://www.dinasari.co.in
-- Privacy Policy: https://www.dinasari.co.in/privacy-policy
+- Privacy Policy: https://www.dinasari.co.in/privacy
 
 ## Required Assets for Play Console
 - App icon: 512x512 PNG (source: assets/icon.png — resize to 512x512)

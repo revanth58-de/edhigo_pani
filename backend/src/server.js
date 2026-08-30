@@ -148,7 +148,7 @@ app.use('/api/machinery', machineryRoutes);
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 
 // Serve public privacy policy (required for Google Play Store compliance)
-app.get(['/privacy-policy', '/privacy-policy.html'], (req, res) => {
+app.get(['/privacy', '/privacy-policy', '/privacy-policy.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../../admin/privacy-policy.html'));
 });
 

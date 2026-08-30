@@ -172,7 +172,7 @@ Navigate to **Grow > Store presence > Main store listing**:
 - **Screenshots**: Upload at least 2 phone screenshots
 - **Category**: Business
 - **Email**: support@dinasari.co.in
-- **Privacy Policy URL**: https://www.dinasari.co.in/privacy-policy
+- **Privacy Policy URL**: https://www.dinasari.co.in/privacy
 
 ### 7d. Set up Content Rating
 
@@ -256,7 +256,7 @@ cd android
 
 | Issue | Fix |
 |-------|-----|
-| Missing privacy policy | Host policy at https://www.dinasari.co.in/privacy-policy |
+| Missing privacy policy | Host policy at https://www.dinasari.co.in/privacy |
 | Incomplete data safety section | Fill all fields in Play Console > App content > Data safety |
 | App crashes on launch | Test on a physical device before submitting |
 | Missing content rating | Complete the content rating questionnaire |

@@ -9,7 +9,10 @@ const {
   getAttendance, getRatings, getGroups,
   getAuditLogs, getSettlements, settlePayment,
   getDisputes, updateDisputeStatus,
-  getSettings, updateSettings
+  getSettings, updateSettings,
+  getMachinery, updateMachinery, deleteMachinery, getMachineryBookings,
+  getNotifications, sendBroadcastNotification,
+  getAdminAlerts
 } = require('../controllers/admin.controller');
 
 // FIX #1: Public login endpoint — rate-limited but no auth guard.
@@ -26,7 +29,7 @@ router.get('/stats', getStats);
 router.post('/stats/invalidate', invalidateStats);
 router.get('/stats/activity', getActivity);
 router.get('/audit', getAuditLogs);
-
+router.get('/alerts', getAdminAlerts);
 
 router.get('/users', getUsers);
 router.patch('/users/:id', updateUser);
@@ -49,6 +52,16 @@ router.get('/groups', getGroups);
 // Disputes Admin endpoints
 router.get('/disputes', getDisputes);
 router.patch('/disputes/:id', updateDisputeStatus);
+
+// Machinery Admin endpoints
+router.get('/machinery', getMachinery);
+router.patch('/machinery/:id', updateMachinery);
+router.delete('/machinery/:id', deleteMachinery);
+router.get('/machinery-bookings', getMachineryBookings);
+
+// Broadcast & Notifications Admin endpoints
+router.get('/notifications', getNotifications);
+router.post('/notifications/broadcast', sendBroadcastNotification);
 
 // System Settings Control endpoints
 router.get('/settings', getSettings);

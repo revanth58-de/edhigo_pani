@@ -674,14 +674,16 @@ const updateDisputeStatus = async (req, res, next) => {
 
 const defaultSettings = [
   { key: 'wages.minDailyWage', value: '400' },
-  { key: 'wages.cropRates', value: JSON.stringify({ paddy_harvesting: 500, sugarcane_cutting: 600, watering: 350, ploughing: 450 }) },
+  { key: 'wages.enforceMinimum', value: 'true' },
+  { key: 'wages.cropRates', value: JSON.stringify({ paddy_harvesting: 500, sugarcane_cutting: 600, watering: 350, ploughing: 450, cotton_picking: 480, chilli_harvesting: 520 }) },
   { key: 'rents.machineryCommission', value: '10' },
-  { key: 'rents.machineryBaseRates', value: JSON.stringify({ Tractor: 800, Harvester: 1500, 'Pump Set': 200 }) },
+  { key: 'rents.machineryBaseRates', value: JSON.stringify({ Tractor: 800, Harvester: 1500, 'Pump Set': 200, Plough: 350, Sprayer: 250, Thresher: 900 }) },
   { key: 'app.telemetryPingInterval', value: '30' },
   { key: 'app.telemetryDistanceThreshold', value: '20' },
   { key: 'app.maintenanceMode', value: 'false' },
   { key: 'app.platformCommission', value: '5' },
-  { key: 'app.notificationsEnabled', value: 'true' }
+  { key: 'app.notificationsEnabled', value: 'true' },
+  { key: 'app.adminJobAlerts', value: 'true' }
 ];
 
 const initializeSystemSettings = async () => {
@@ -693,7 +695,7 @@ const initializeSystemSettings = async () => {
       }
     }
   } catch (err) {
-    console.error('Failed to initialize default system settings:', err.message);
+    console.error('Failed to initialize settings:', err);
   }
 };
 
@@ -740,6 +742,246 @@ const updateSettings = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─── Machinery Management ───
+const getMachinery = async (req, res, next) => {
+  try {
+    const { take, skip, page } = getPagination(req.query);
+    const { type, status, search } = req.query;
+
+    const where = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { owner: { name: { contains: search, mode: 'insensitive' } } },
+        { owner: { phone: { contains: search } } },
+      ];
+    }
+
+    const [total, machinery] = await Promise.all([
+      prisma.machinery.count({ where }),
+      prisma.machinery.findMany({
+        where,
+        take,
+        skip,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          owner: {
+            select: { id: true, name: true, phone: true, village: true }
+          },
+          _count: {
+            select: { bookings: true }
+          }
+        }
+      })
+    ]);
+
+    res.json({
+      machinery,
+      pagination: { total, page, limit: take, pages: Math.ceil(total / take) }
+    });
+  } catch (err) { next(err); }
+};
+
+const updateMachinery = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, pricePerHour, name, type } = req.body;
+
+    const updated = await prisma.machinery.update({
+      where: { id },
+      data: {
+        ...(status ? { status } : {}),
+        ...(pricePerHour ? { pricePerHour: parseFloat(pricePerHour) } : {}),
+        ...(name ? { name } : {}),
+        ...(type ? { type } : {})
+      },
+      include: {
+        owner: { select: { id: true, name: true, phone: true } }
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'machinery_update',
+        targetId: id,
+        details: { status, pricePerHour }
+      }
+    });
+
+    res.json({ message: 'Machinery updated successfully', machinery: updated });
+  } catch (err) { next(err); }
+};
+
+const deleteMachinery = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await prisma.machinery.delete({ where: { id } });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'machinery_delete',
+        targetId: id,
+        details: { deletedAt: new Date() }
+      }
+    });
+
+    res.json({ message: 'Machinery deleted successfully' });
+  } catch (err) { next(err); }
+};
+
+const getMachineryBookings = async (req, res, next) => {
+  try {
+    const { take, skip, page } = getPagination(req.query);
+    const { status } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+
+    const [total, bookings] = await Promise.all([
+      prisma.machineryBooking.count({ where }),
+      prisma.machineryBooking.findMany({
+        where,
+        take,
+        skip,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          farmer: { select: { id: true, name: true, phone: true, village: true } },
+          machinery: {
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              pricePerHour: true,
+              owner: { select: { id: true, name: true, phone: true } }
+            }
+          }
+        }
+      })
+    ]);
+
+    res.json({
+      bookings,
+      pagination: { total, page, limit: take, pages: Math.ceil(total / take) }
+    });
+  } catch (err) { next(err); }
+};
+
+// ─── Broadcast & Notifications ───
+const getNotifications = async (req, res, next) => {
+  try {
+    const { take, skip, page } = getPagination(req.query, 20);
+    const [total, notifications] = await Promise.all([
+      prisma.notification.count(),
+      prisma.notification.findMany({
+        take,
+        skip,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, name: true, phone: true, role: true } }
+        }
+      })
+    ]);
+
+    res.json({
+      notifications,
+      pagination: { total, page, limit: take, pages: Math.ceil(total / take) }
+    });
+  } catch (err) { next(err); }
+};
+
+const sendBroadcastNotification = async (req, res, next) => {
+  try {
+    const { title, body, targetRole, category = 'announcement' } = req.body;
+    if (!title || !body) {
+      return res.status(400).json({ error: 'Title and body are required for broadcast.' });
+    }
+
+    const where = {};
+    if (targetRole && targetRole !== 'all') {
+      where.role = targetRole;
+    }
+
+    const targetUsers = await prisma.user.findMany({
+      where,
+      select: { id: true, pushToken: true, name: true }
+    });
+
+    if (targetUsers.length === 0) {
+      return res.json({ message: 'No target users found for broadcast', count: 0 });
+    }
+
+    // Batch insert notifications
+    const createData = targetUsers.map(u => ({
+      userId: u.id,
+      title,
+      body,
+      data: { category, broadcastAt: new Date().toISOString() }
+    }));
+
+    await prisma.notification.createMany({ data: createData });
+
+    // Emit live via socket
+    const io = req.app.get('io');
+    if (io) {
+      targetUsers.forEach(u => {
+        io.to(`user:${u.id}`).emit('notification:new', {
+          title,
+          body,
+          category,
+          createdAt: new Date().toISOString()
+        });
+      });
+    }
+
+    // Log broadcast in AuditLog
+    await prisma.auditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: 'broadcast_sent',
+        details: { title, targetRole: targetRole || 'all', recipientCount: targetUsers.length, category }
+      }
+    });
+
+    res.json({
+      message: `Broadcast successfully dispatched to ${targetUsers.length} users`,
+      recipientCount: targetUsers.length
+    });
+  } catch (err) { next(err); }
+};
+
+// ─── Admin Alerts (Real-time feed) ───
+const getAdminAlerts = async (req, res, next) => {
+  try {
+    const [recentJobs, recentDisputes, recentUsers] = await Promise.all([
+      prisma.job.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: { farmer: { select: { name: true, phone: true, village: true } } }
+      }),
+      prisma.dispute.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        include: { initiator: { select: { name: true, phone: true, role: true } } }
+      }),
+      prisma.user.findMany({
+        take: 5,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, phone: true, role: true, village: true, createdAt: true }
+      })
+    ]);
+
+    res.json({
+      recentJobs,
+      recentDisputes,
+      recentUsers
+    });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getStats,
   invalidateStats,
@@ -761,5 +1003,12 @@ module.exports = {
   getDisputes,
   updateDisputeStatus: _withCacheInvalidation(updateDisputeStatus),
   getSettings,
-  updateSettings
+  updateSettings,
+  getMachinery,
+  updateMachinery,
+  deleteMachinery,
+  getMachineryBookings,
+  getNotifications,
+  sendBroadcastNotification,
+  getAdminAlerts
 };

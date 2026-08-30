@@ -44,6 +44,9 @@
       <div class="nav-item" data-page="jobs">
         <span class="nav-item-icon">💼</span> Jobs
       </div>
+      <div class="nav-item" data-page="machinery">
+        <span class="nav-item-icon">🚜</span> Machinery
+      </div>
       <div class="nav-item" data-page="payments">
         <span class="nav-item-icon">💳</span> Payments
       </div>
@@ -63,6 +66,9 @@
       <div class="nav-section-label">System</div>
       <div class="nav-item" data-page="audit">
         <span class="nav-item-icon">🛡️</span> Audit Logs
+      </div>
+      <div class="nav-item" data-page="notifications">
+        <span class="nav-item-icon">📢</span> Broadcast
       </div>
       <div class="nav-item" data-page="settings">
         <span class="nav-item-icon">⚙️</span> Settings
@@ -100,21 +106,38 @@
         </div>
         <div class="topbar-time" id="topbarTime"></div>
         <button class="icon-btn refresh-btn" id="refreshBtn" title="Refresh">↻</button>
-        <button class="icon-btn" title="Notifications">🔔</button>
+        <button class="icon-btn" id="themeToggleBtn" title="Cycle Theme (Obsidian / Emerald / Midnight / Sunset)">🎨</button>
+        <div style="position:relative" id="alertsBellWrap">
+          <button class="icon-btn" id="alertsBellBtn" title="Job Alerts" style="position:relative">🔔
+            <span id="alertsBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:10px;font-weight:800;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center">0</span>
+          </button>
+          <!-- Alerts Dropdown -->
+          <div id="alertsDropdown" style="display:none;position:absolute;right:0;top:calc(100% + 8px);width:360px;background:rgba(16,18,22,0.97);border:1px solid var(--glass-border);border-radius:16px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.5);overflow:hidden">
+            <div style="padding:14px 18px;border-bottom:1px solid var(--glass-border);display:flex;justify-content:space-between;align-items:center">
+              <span style="font-weight:800;font-size:14px;color:#fff">🔔 Job Alerts</span>
+              <button onclick="document.getElementById('alertsDropdown').style.display='none'" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1">×</button>
+            </div>
+            <div id="alertsList" style="max-height:340px;overflow-y:auto;padding:8px 0">
+              <div style="padding:20px;text-align:center;color:var(--text-dim);font-size:13px">No new alerts</div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
     <main class="content">
-      <div id="page-stats"      class="page active"></div>
-      <div id="page-users"      class="page"></div>
-      <div id="page-jobs"       class="page"></div>
-      <div id="page-payments"   class="page"></div>
-      <div id="page-groups"     class="page"></div>
-      <div id="page-attendance" class="page"></div>
-      <div id="page-ratings"    class="page"></div>
-      <div id="page-audit"      class="page"></div>
-      <div id="page-disputes"   class="page"></div>
-      <div id="page-settings"   class="page"></div>
+      <div id="page-stats"         class="page active"></div>
+      <div id="page-users"         class="page"></div>
+      <div id="page-jobs"          class="page"></div>
+      <div id="page-machinery"     class="page"></div>
+      <div id="page-payments"      class="page"></div>
+      <div id="page-groups"        class="page"></div>
+      <div id="page-attendance"    class="page"></div>
+      <div id="page-ratings"       class="page"></div>
+      <div id="page-audit"         class="page"></div>
+      <div id="page-disputes"      class="page"></div>
+      <div id="page-settings"      class="page"></div>
+      <div id="page-notifications" class="page"></div>
     </main>
   </div>
 </div>
@@ -224,31 +247,53 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-  import { guardAuth, clearSession } from './auth.js';
-  import { loadStats }      from './pages/stats.js';
-  import { loadUsers }      from './pages/users.js';
-  import { loadJobs }       from './pages/jobs.js';
-  import { loadPayments }   from './pages/payments.js';
-  import { loadGroups }     from './pages/groups.js';
-  import { loadAttendance } from './pages/attendance.js';
-  import { loadRatings }    from './pages/ratings.js';
-  import { loadAudit }      from './pages/audit.js';
-  import { loadDisputes }   from './pages/disputes.js';
-  import { loadSettings }   from './pages/settings.js';
+  import { guardAuth, clearSession, getBaseUrl, getToken } from './auth.js';
+  import { loadStats }         from './pages/stats.js';
+  import { loadUsers }         from './pages/users.js';
+  import { loadJobs }          from './pages/jobs.js';
+  import { loadPayments }      from './pages/payments.js';
+  import { loadGroups }        from './pages/groups.js';
+  import { loadAttendance }    from './pages/attendance.js';
+  import { loadRatings }       from './pages/ratings.js';
+  import { loadAudit }         from './pages/audit.js';
+  import { loadDisputes }      from './pages/disputes.js';
+  import { loadSettings }      from './pages/settings.js';
+  import { loadNotifications } from './pages/notifications.js';
+  import { loadMachinery }     from './pages/machinery.js';
+  import { api } from './api.js';
 
   guardAuth();
 
+  // ─── Theme Switcher Initialization ─────────────────────────────────
+  const themes = ['', 'theme-emerald', 'theme-midnight', 'theme-sunset'];
+  const themeNames = ['Obsidian Dark', 'Forest Emerald', 'Midnight Blue', 'Sunset Amber'];
+  let currentThemeIndex = parseInt(localStorage.getItem('admin_theme_idx') || '0', 10);
+  function applyTheme(idx) {
+    themes.forEach(t => t && document.body.classList.remove(t));
+    if (themes[idx]) document.body.classList.add(themes[idx]);
+    localStorage.setItem('admin_theme_idx', String(idx));
+  }
+  applyTheme(currentThemeIndex);
+
+  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
+    currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+    applyTheme(currentThemeIndex);
+    window.showToast(`🎨 Theme switched to ${themeNames[currentThemeIndex]}`);
+  });
+
   const pages = {
-    stats:      { load: loadStats,      title: 'Dashboard Overview',  sub: 'Real-time agricultural platform statistics' },
-    users:      { load: loadUsers,      title: 'User Management',     sub: 'Control access and verify status for all network participants' },
-    jobs:       { load: loadJobs,       title: 'Job Management',      sub: 'View and manage all posted jobs' },
-    payments:   { load: loadPayments,   title: 'Payments & Financials', sub: 'Monitor platform-wide transaction health' },
-    groups:     { load: loadGroups,     title: 'Worker Groups',       sub: 'View all active worker groups' },
-    attendance: { load: loadAttendance, title: 'Attendance Records',  sub: 'Check-in and check-out log' },
-    ratings:    { load: loadRatings,    title: 'Ratings & Reviews',   sub: 'Platform user feedback' },
-    audit:      { load: loadAudit,          title: 'Audit Logs',          sub: 'System security and action logs' },
-    disputes:   { load: loadDisputes,   title: 'Disputes Management', sub: 'Investigate and resolve user disputes' },
-    settings:   { load: loadSettings,   title: 'System Settings',     sub: 'Configure wages, rents, telemetry, and platform settings' },
+    stats:         { load: loadStats,         title: 'Dashboard Overview',     sub: 'Real-time agricultural platform statistics' },
+    users:         { load: loadUsers,         title: 'User Management',        sub: 'Control access and verify status for all network participants' },
+    jobs:          { load: loadJobs,          title: 'Job Management',         sub: 'View and manage all posted jobs' },
+    machinery:     { load: loadMachinery,     title: 'Machinery & Equipment',  sub: 'Manage machinery listings, hourly rates, and rental bookings' },
+    payments:      { load: loadPayments,      title: 'Payments & Financials',  sub: 'Monitor platform-wide transaction health' },
+    groups:        { load: loadGroups,        title: 'Worker Groups',          sub: 'View all active worker groups' },
+    attendance:    { load: loadAttendance,    title: 'Attendance Records',     sub: 'Check-in and check-out log' },
+    ratings:       { load: loadRatings,       title: 'Ratings & Reviews',      sub: 'Platform user feedback' },
+    audit:         { load: loadAudit,         title: 'Audit Logs',             sub: 'System security and action logs' },
+    disputes:      { load: loadDisputes,      title: 'Disputes Management',    sub: 'Investigate and resolve user disputes' },
+    settings:      { load: loadSettings,      title: 'System Settings',        sub: 'Configure wages, rents, telemetry, and platform settings' },
+    notifications: { load: loadNotifications, title: 'Broadcast Notifications',sub: 'Send alerts and announcements to platform users' },
   };
 
   let currentPage = 'stats';
@@ -280,6 +325,92 @@
 
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => navigate(el.dataset.page));
+  });
+
+  // ─── Real-time Admin Job Alerts via Socket.IO ───────────────────────
+  let alertsCount = 0;
+  const alertsList = document.getElementById('alertsList');
+  const alertsBadge = document.getElementById('alertsBadge');
+
+  function addAlert(job) {
+    alertsCount++;
+    alertsBadge.textContent = alertsCount;
+    alertsBadge.style.display = 'block';
+
+    // Remove "no alerts" placeholder
+    const empty = alertsList.querySelector('[data-empty]');
+    if (empty) empty.remove();
+
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:12px 18px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;transition:background 0.2s';
+    item.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#fff">💼 New Job: ${job.workType}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">📍 ${job.farmer?.village || '—'} · ₹${job.payPerDay}/day · ${job.workersNeeded} worker${job.workersNeeded !== 1 ? 's' : ''}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px">👤 ${job.farmer?.name || 'Farmer'} · ${job.farmer?.phone || ''}</div>
+        </div>
+        <div style="font-size:10px;color:var(--text-dim);white-space:nowrap;margin-left:8px">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+    `;
+    item.addEventListener('mouseenter', () => item.style.background = 'rgba(255,255,255,0.04)');
+    item.addEventListener('mouseleave', () => item.style.background = '');
+    item.addEventListener('click', () => {
+      document.getElementById('alertsDropdown').style.display = 'none';
+      navigate('jobs');
+    });
+    alertsList.prepend(item);
+
+    // Toast popup
+    window.showToast(`🔔 New job posted: ${job.workType} in ${job.farmer?.village || 'Unknown Village'}`);
+  }
+
+  // Seed existing recent alerts on load
+  api.getAlerts().then(data => {
+    if (data.recentJobs && data.recentJobs.length > 0) {
+      alertsList.innerHTML = '';
+      const empty = document.createElement('div');
+      empty.dataset.empty = '1';
+      empty.style.cssText = 'padding:20px;text-align:center;color:var(--text-dim);font-size:13px';
+      empty.textContent = 'No new alerts';
+      data.recentJobs.slice(0, 5).forEach(j => {
+        addAlert({ ...j, farmer: j.farmer });
+      });
+      alertsCount = 0; // don't count historic items in badge
+      alertsBadge.style.display = 'none';
+    }
+  }).catch(() => {});
+
+  // Try Socket.IO for live alerts
+  try {
+    const socketScript = document.createElement('script');
+    socketScript.src = getBaseUrl() + '/socket.io/socket.io.js';
+    socketScript.onload = () => {
+      const socket = window.io(getBaseUrl(), {
+        auth: { token: getToken() },
+        transports: ['websocket']
+      });
+      socket.on('connect', () => console.log('Admin socket connected for alerts'));
+      socket.on('admin:job_created', (job) => addAlert(job));
+      socket.on('disconnect', () => console.log('Admin socket disconnected'));
+    };
+    document.head.appendChild(socketScript);
+  } catch (_) {}
+
+  // Bell toggle
+  document.getElementById('alertsBellBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const dd = document.getElementById('alertsDropdown');
+    dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+    if (dd.style.display === 'block') {
+      alertsCount = 0;
+      alertsBadge.style.display = 'none';
+    }
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('alertsBellWrap').contains(e.target)) {
+      document.getElementById('alertsDropdown').style.display = 'none';
+    }
   });
 
   // Modals close triggers
@@ -422,15 +553,17 @@
     }
 
     try {
-      const [uData, jData, dData] = await Promise.all([
+      const [uData, jData, dData, mData] = await Promise.all([
         api.getUsers(),
         api.getJobs(),
-        api.getDisputes()
+        api.getDisputes(),
+        api.getMachinery()
       ]);
 
-      const users = (uData.users || []).filter(u => `${u.name} ${u.phone} ${u.village}`.toLowerCase().includes(q)).slice(0, 5);
-      const jobs = (jData.jobs || []).filter(j => `${j.workType} ${j.farmer?.name}`.toLowerCase().includes(q)).slice(0, 5);
-      const disputes = (dData.disputes || []).filter(d => `${d.category} ${d.description}`.toLowerCase().includes(q)).slice(0, 3);
+      const users = (uData.users || []).filter(u => `${u.name} ${u.phone} ${u.village}`.toLowerCase().includes(q)).slice(0, 4);
+      const jobs = (jData.jobs || []).filter(j => `${j.workType} ${j.farmer?.name}`.toLowerCase().includes(q)).slice(0, 4);
+      const machinery = (mData.machinery || []).filter(m => `${m.name} ${m.type} ${m.owner?.name}`.toLowerCase().includes(q)).slice(0, 3);
+      const disputes = (dData.disputes || []).filter(d => `${d.category} ${d.description}`.toLowerCase().includes(q)).slice(0, 2);
       
       const navs = Object.entries(pages).filter(([k, p]) => p.title.toLowerCase().includes(q) || k.toLowerCase().includes(q));
 
@@ -467,6 +600,18 @@
             <div style="padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:var(--transition)" class="cp-item" onclick="window._cpJob('${j.id}')">
               <span style="font-weight:600;font-size:13px">💼 ${j.workType} (₹${j.payPerDay}/day)</span>
               <span style="font-size:11px;color:var(--text-dim)">Farmer: ${j.farmer?.name || ''}</span>
+            </div>
+          `;
+        });
+      }
+
+      if (machinery.length > 0) {
+        html += '<div style="font-size:11px;color:var(--warning);text-transform:uppercase;font-weight:800;letter-spacing:1px;padding:8px 12px 4px;margin-top:8px">Machinery</div>';
+        machinery.forEach(m => {
+          html += `
+            <div style="padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:var(--transition)" class="cp-item" onclick="window._cpNavigate('machinery')">
+              <span style="font-weight:600;font-size:13px">🚜 ${m.name} (${m.type})</span>
+              <span style="font-size:11px;color:var(--text-dim)">₹${m.pricePerHour}/hr</span>
             </div>
           `;
         });

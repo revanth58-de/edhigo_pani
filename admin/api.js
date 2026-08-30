@@ -49,4 +49,14 @@ export const api = {
   updateDispute:  (id, data)   => call(`/disputes/${id}`, 'PATCH', data),
   getSettings:    ()           => call('/settings'),
   updateSettings: (data)       => call('/settings', 'PATCH', data),
+  // Machinery
+  getMachinery:         (q = '')   => call(`/machinery${q}`),
+  updateMachinery:      (id, data) => call(`/machinery/${id}`, 'PATCH', data),
+  deleteMachinery:      (id)       => call(`/machinery/${id}`, 'DELETE'),
+  getMachineryBookings: (q = '')   => call(`/machinery-bookings${q}`),
+  // Notifications & Broadcast
+  getNotifications: ()     => call('/notifications'),
+  sendBroadcast:    (data) => call('/notifications/broadcast', 'POST', data),
+  // Admin Alerts
+  getAlerts: () => call('/alerts'),
 };

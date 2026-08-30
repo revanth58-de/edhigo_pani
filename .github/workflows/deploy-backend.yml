@@ -93,7 +93,7 @@ jobs:
         # Run migrate deploy (not db push) in production to preserve migration history
         run: |
           cd backend
-          npm ci
+          npm ci --legacy-peer-deps
           npx prisma migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

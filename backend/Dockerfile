@@ -16,7 +16,7 @@ RUN apk add --no-cache python3 make g++
 
 # Copy package files first for layer caching — only reinstall if lock changes
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy Prisma schema and generate the client
 COPY prisma ./prisma
@@ -37,7 +37,7 @@ ENV PORT=8080
 
 # Copy only production node_modules (no devDependencies)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # Copy generated Prisma client from builder
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

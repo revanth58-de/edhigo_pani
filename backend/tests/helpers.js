@@ -64,29 +64,27 @@ async function createTestUsers() {
 async function cleanupTestUsers() {
   try {
     // Delete in strict reverse dependency order to avoid foreign key errors
-    await prisma.machineryBooking.deleteMany({});
-    await prisma.machinery.deleteMany({});
-    await prisma.notification.deleteMany({});
-    await prisma.rating.deleteMany({});
-    await prisma.settlement.deleteMany({});
-    await prisma.payment.deleteMany({});
-    await prisma.attendance.deleteMany({});
-    await prisma.jobApplication.deleteMany({});
-    await prisma.groupMessage.deleteMany({});
-    await prisma.groupMember.deleteMany({});
-    await prisma.group.deleteMany({});
-    await prisma.job.deleteMany({});
-    await prisma.refreshToken.deleteMany({});
-    await prisma.userLocation.deleteMany({});
-    await prisma.userAnimal.deleteMany({});
+    await prisma.machineryBooking.deleteMany({}).catch(() => {});
+    await prisma.machinery.deleteMany({}).catch(() => {});
+    await prisma.notification.deleteMany({}).catch(() => {});
+    await prisma.rating.deleteMany({}).catch(() => {});
+    await prisma.settlement.deleteMany({}).catch(() => {});
+    await prisma.payment.deleteMany({}).catch(() => {});
+    await prisma.attendance.deleteMany({}).catch(() => {});
+    await prisma.jobApplication.deleteMany({}).catch(() => {});
+    await prisma.groupMessage.deleteMany({}).catch(() => {});
+    await prisma.groupMember.deleteMany({}).catch(() => {});
+    await prisma.group.deleteMany({}).catch(() => {});
+    await prisma.job.deleteMany({}).catch(() => {});
+    await prisma.refreshToken.deleteMany({}).catch(() => {});
+    await prisma.userLocation.deleteMany({}).catch(() => {});
+    await prisma.userAnimal.deleteMany({}).catch(() => {});
     await prisma.user.deleteMany({
       where: { phone: { startsWith: TEST_PHONE_PREFIX } }
-    });
+    }).catch(() => {});
   } catch (err) {
-    console.warn('⚠️ Cleanup warning (likely empty DB or constraint):', err.message);
-  } finally {
-    await prisma.$disconnect();
+    console.warn('⚠️ Cleanup warning:', err.message);
   }
 }
 
-module.exports = { createTestUsers, cleanupTestUsers };
+module.exports = { createTestUsers, cleanupTestUsers, makeToken };

@@ -15,6 +15,7 @@ A full-stack mobile platform that directly connects **Farmers**, **Workers**, an
   - [Mobile Setup](#mobile-setup)
 - [Development Scripts](#development-scripts)
 - [API Overview](#api-overview)
+- [Security & API Key Management](#security--api-key-management)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
 
@@ -256,6 +257,25 @@ The backend runs on `http://localhost:5000`. Key endpoints:
 | `POST /api/attendance/check-out` | Record QR check-out                  |
 | `POST /api/ratings`              | Submit a rating                      |
 | `GET  /health`                   | Server health check                  |
+
+---
+
+## 🔒 Security & API Key Management
+
+### Google Maps API Key Restrictions (Required for Production)
+The mobile app dynamically injects the Google Maps API key via `mobile/app.config.js` reading from the environment (`GOOGLE_MAPS_API_KEY` or `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY`).
+
+To prevent unauthorized quota usage and billing exposure:
+1. **Rotate Exposed Keys**: If an API key was previously committed to version control, generate a new key immediately in [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. **Apply Key Restrictions**:
+   - **Android**: Restrict by package name (`com.dinasari.app`) and SHA-1 release signing fingerprint.
+   - **iOS**: Restrict by iOS bundle identifier (`com.dinasari.app`).
+   - **Web / Development**: Restrict by authorized HTTP referrers or IP addresses.
+3. **API Scope Restrictions**: Restrict the key to only the required APIs:
+   - *Maps SDK for Android*
+   - *Maps SDK for iOS*
+   - *Maps JavaScript API*
+   - *Geocoding API / Places API* (if applicable)
 
 ---
 

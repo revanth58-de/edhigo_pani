@@ -147,6 +147,11 @@ app.use('/api/machinery', machineryRoutes);
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 
+// Serve public privacy policy (required for Google Play Store compliance)
+app.get(['/privacy-policy', '/privacy-policy.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../../admin/privacy-policy.html'));
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

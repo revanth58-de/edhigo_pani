@@ -115,7 +115,13 @@ describe('Admin Middleware Initialization Checks (S6)', () => {
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    Object.keys(process.env).forEach((key) => {
+      if (!(key in originalEnv)) {
+        delete process.env[key];
+      }
+    });
+    Object.assign(process.env, originalEnv);
+    jest.resetModules();
   });
 
   test('❌ Throw error in production if ADMIN_JWT_SECRET is identical to JWT_SECRET', () => {

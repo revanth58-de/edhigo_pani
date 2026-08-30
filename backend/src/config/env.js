@@ -1,7 +1,6 @@
 require('dotenv').config();
 
-// ── Fail fast on missing required secrets ────────────────────────────────
-// If these are undefined, ALL auth will silently break — crash immediately instead.
+// ── Fail fast on missing required secrets in any environment ────────────────
 if (!process.env.JWT_SECRET) {
   console.error('❌ JWT_SECRET missing in environment!');
   throw new Error('FATAL: JWT_SECRET is not set in environment variables. Check your .env file.');
@@ -11,29 +10,91 @@ if (!process.env.JWT_REFRESH_SECRET) {
   throw new Error('FATAL: JWT_REFRESH_SECRET is not set in environment variables. Check your .env file.');
 }
 
-// ── Warn if default/placeholder secrets are used in production ───────────
-const PLACEHOLDER_SECRETS = [
-  'dinasari_super_secret_key_change_in_production',
-  'dinasari_refresh_secret_change_in_production',
-  'REPLACE_WITH_64_CHAR_RANDOM_STRING',
-  'REPLACE_WITH_DIFFERENT_64_CHAR_RANDOM_STRING',
+// ── Production Secrets & Security Self-Check ────────────────────────────────
+const PLACEHOLDER_PATTERNS = [
+  /REPLACE_WITH/i,
+  /YOUR_/i,
+  /placeholder/i,
+  /change_in_production/i,
+  /^dev_/i,
+  /^test-/i,
 ];
 
+const isPlaceholder = (val) => {
+  if (!val || typeof val !== 'string') return true;
+  return PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(val));
+};
+
 if (process.env.NODE_ENV === 'production') {
-  if (
-    PLACEHOLDER_SECRETS.includes(process.env.JWT_SECRET) ||
-    PLACEHOLDER_SECRETS.includes(process.env.JWT_REFRESH_SECRET)
-  ) {
-    console.error('🚨 CRITICAL SECURITY WARNING: You are using default/placeholder JWT secrets in production!');
-    throw new Error('FATAL: Replace JWT_SECRET and JWT_REFRESH_SECRET with strong random values before deployment.');
+  const validationErrors = [];
+
+  // Required Production Secrets Matrix
+  const requiredSecrets = [
+    { key: 'DATABASE_URL', name: 'Database Connection (PostgreSQL)' },
+    { key: 'JWT_SECRET', name: 'JWT Auth Secret (min 64 chars)' },
+    { key: 'JWT_REFRESH_SECRET', name: 'JWT Refresh Token Secret' },
+    { key: 'ADMIN_SECRET', name: 'Admin Master Password' },
+    { key: 'ADMIN_JWT_SECRET', name: 'Admin JWT Secret' },
+    { key: 'FAST2SMS_API_KEY', name: 'Fast2SMS Gateway Key' },
+    { key: 'RAZORPAY_KEY_ID', name: 'Razorpay Key ID' },
+    { key: 'RAZORPAY_KEY_SECRET', name: 'Razorpay Key Secret' },
+    { key: 'CLOUDINARY_CLOUD_NAME', name: 'Cloudinary Cloud Name' },
+    { key: 'CLOUDINARY_API_KEY', name: 'Cloudinary API Key' },
+    { key: 'CLOUDINARY_API_SECRET', name: 'Cloudinary API Secret' },
+    { key: 'SENTRY_DSN', name: 'Sentry Crash Reporting DSN' },
+  ];
+
+  for (const { key, name } of requiredSecrets) {
+    const val = process.env[key];
+    if (!val || val.trim() === '') {
+      validationErrors.push(`❌ ${key} (${name}) is MISSING in environment`);
+    } else if (isPlaceholder(val)) {
+      validationErrors.push(`⚠️ ${key} (${name}) contains an unconfigured placeholder: "${val}"`);
+    }
   }
-  if (!process.env.ADMIN_JWT_SECRET) {
-    console.error('❌ ADMIN_JWT_SECRET missing in environment!');
-    throw new Error('FATAL: ADMIN_JWT_SECRET must be explicitly set when running in production mode!');
+
+  // Database URL sanity check: SQLite is strictly forbidden in production
+  if (process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL.startsWith('file:') || process.env.DATABASE_URL.includes('.db')) {
+      validationErrors.push('❌ DATABASE_URL is configured for SQLite ("file:..."). Production requires a PostgreSQL connection string.');
+    }
   }
-  if (process.env.ADMIN_JWT_SECRET === process.env.JWT_SECRET) {
-    console.error('❌ ADMIN_JWT_SECRET cannot be identical to JWT_SECRET!');
-    throw new Error('FATAL: ADMIN_JWT_SECRET must not be identical to JWT_SECRET in production mode!');
+
+  // Admin JWT secret isolation check
+  if (process.env.ADMIN_JWT_SECRET && process.env.JWT_SECRET) {
+    if (process.env.ADMIN_JWT_SECRET === process.env.JWT_SECRET) {
+      validationErrors.push('❌ ADMIN_JWT_SECRET cannot be identical to JWT_SECRET in production mode.');
+    }
+  }
+
+  // CORS warning check
+  if (!process.env.ALLOWED_ORIGIN || process.env.ALLOWED_ORIGIN === '*') {
+    console.warn('⚠️ SECURITY WARNING: ALLOWED_ORIGIN is set to wildcard "*" or empty in production. Set to https://www.dinasari.co.in.');
+  }
+
+  // Geofencing verification
+  if (process.env.GEOFENCE_ENABLED !== 'true') {
+    console.warn('⚠️ SECURITY WARNING: GEOFENCE_ENABLED is not set to "true" in production! QR check-in/out will NOT enforce 100m GPS proximity verification.');
+  }
+
+  if (validationErrors.length > 0) {
+    console.error('\n═══════════════════════════════════════════════════════════════════════════════');
+    console.error('🚨 FATAL: Production Environment Configuration Self-Check Failed!');
+    console.error('The server cannot start in production mode with missing or placeholder secrets.');
+    console.error('═══════════════════════════════════════════════════════════════════════════════');
+    validationErrors.forEach((err) => console.error(`  ${err}`));
+    console.error('═══════════════════════════════════════════════════════════════════════════════\n');
+
+    const errMessage = `FATAL: Production environment self-check failed with ${validationErrors.length} error(s):\n${validationErrors.join('\n')}`;
+    
+    // In actual production runtime, terminate the process immediately.
+    // In test runner context, throw Error so Jest can assert on error conditions.
+    if (process.env.NODE_ENV === 'production' && !process.env.JEST_WORKER_ID) {
+      process.exit(1);
+    }
+    throw new Error(errMessage);
+  } else {
+    console.log('✅ Production environment self-check passed: All 12 production secrets & configurations validated.');
   }
 }
 

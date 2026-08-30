@@ -70,8 +70,8 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
 
-      - name: Sync database schema
-        run: npx prisma db push --accept-data-loss
+      - name: Apply Prisma Migrations
+        run: npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
 
@@ -82,6 +82,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
           JWT_SECRET: ci-test-jwt-secret-not-production
           JWT_REFRESH_SECRET: ci-test-refresh-secret
+          ADMIN_SECRET: ci-admin-secret-2024
           ADMIN_JWT_SECRET: ci-test-admin-jwt-secret
           PORT: 5001
 

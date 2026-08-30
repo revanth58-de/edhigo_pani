@@ -32,12 +32,16 @@ npm start
 ```
 
 ### Docker / Containerized Deployment
-In Dockerized environments, run migration execution during the release phase or container startup:
+In Dockerized environments (Cloud Run, ECS, Kubernetes, Render), database migrations run automatically on every container startup:
 
 ```dockerfile
-# Dockerfile / entrypoint.sh
+# backend/Dockerfile CMD
 CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
 ```
+
+> **Why this is safe**: `npx prisma migrate deploy` is strictly **idempotent** — it queries the `_prisma_migrations` table and skips any migration that has already been applied, executing only new pending migrations in milliseconds.
+>
+> **Best Practice**: Whenever a new migration is introduced in a release, monitor the initial container deployment logs to ensure the migration applies cleanly before the server begins accepting traffic.
 
 ---
 

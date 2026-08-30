@@ -165,19 +165,17 @@ const GroupChatScreen = ({ navigation, route }) => {
         setHasMore(!!meta.hasMore);
       } else if (delta) {
         // Delta mode: merge incoming deltas with cached messages
-        setMessages(prev => {
-          const merged = [...prev, ...page];
-          const unique = merged.filter((msg, index, self) => 
-            self.findIndex(m => m.id === msg.id) === index
-          );
-          const finalMessages = unique.slice(-50);
-          setCachedMessages(groupId, finalMessages);
-          
-          if (finalMessages.length > 0) {
-            setNextCursor(finalMessages[0].id);
-          }
-          return finalMessages;
-        });
+        const merged = [...cachedMessagesRef.current, ...page];
+        const unique = merged.filter((msg, index, self) => 
+          self.findIndex(m => m.id === msg.id) === index
+        );
+        const finalMessages = unique.slice(-50);
+        setMessages(finalMessages);
+        setCachedMessages(groupId, finalMessages);
+        
+        if (finalMessages.length > 0) {
+          setNextCursor(finalMessages[0].id);
+        }
       } else {
         // Standard full load
         setMessages(page);

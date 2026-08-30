@@ -7,13 +7,13 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
-  SafeAreaView,
   Platform,
   Image,
   Animated,
   Easing,
   LayoutAnimation,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../i18n';

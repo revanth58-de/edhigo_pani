@@ -18,15 +18,15 @@ const OfflineBanner = () => {
   const slideAnim = useRef(new Animated.Value(-60)).current;
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener((state) => {
+    return NetInfo.addEventListener((state) => {
       const offline = !state.isConnected || !state.isInternetReachable;
       setIsOffline(offline);
       if (offline) setWasOffline(true);
     });
-    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
+    let timer;
     if (isOffline) {
       // Slide down
       Animated.spring(slideAnim, {
@@ -37,7 +37,7 @@ const OfflineBanner = () => {
       }).start();
     } else if (wasOffline) {
       // Briefly show "Back online", then slide up
-      setTimeout(() => {
+      timer = setTimeout(() => {
         Animated.timing(slideAnim, {
           toValue: -60,
           duration: 400,
@@ -45,6 +45,9 @@ const OfflineBanner = () => {
         }).start(() => setWasOffline(false));
       }, 2000);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [isOffline]);
 
   if (!isOffline && !wasOffline) return null;

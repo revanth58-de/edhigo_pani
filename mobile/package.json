@@ -16,7 +16,8 @@
     "build:android:clean": "cd android && gradlew.bat clean",
     "build:eas": "eas build --platform android --profile production",
     "cap:sync": "npx cap sync",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",

@@ -55,78 +55,78 @@ function Check {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 1 — AUTH"
+Hdr "SECTION 1 - AUTH"
 # ════════════════════════════════════════════════
 
 # A01 Send OTP farmer
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $FARMER_PHONE }
-Check "A01 Send OTP — farmer" $r 200 "devOtp"
+Check "A01 Send OTP - farmer" $r 200 "devOtp"
 $FARMER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
-# A02 Send OTP — no phone
+# A02 Send OTP - no phone
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = "" }
-Check "A02 Send OTP — empty phone (400)" $r 400
+Check "A02 Send OTP - empty phone (400)" $r 400
 
 # A03 Send OTP worker
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $WORKER_PHONE }
-Check "A03 Send OTP — worker" $r 200 "devOtp"
+Check "A03 Send OTP - worker" $r 200 "devOtp"
 $WORKER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
 # A04 Send OTP leader
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = $LEADER_PHONE }
-Check "A04 Send OTP — leader" $r 200 "devOtp"
+Check "A04 Send OTP - leader" $r 200 "devOtp"
 $LEADER_OTP = if ($r.json) { $r.json.devOtp } else { "" }
 
-# A05 Verify OTP — wrong OTP
+# A05 Verify OTP - wrong OTP
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $FARMER_PHONE; otp = "0000" }
-Check "A05 Verify OTP — wrong OTP (401)" $r 401
+Check "A05 Verify OTP - wrong OTP (401)" $r 401
 
-# A06 Verify OTP — missing otp field
+# A06 Verify OTP - missing otp field
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $FARMER_PHONE }
-Check "A06 Verify OTP — missing field (400)" $r 400
+Check "A06 Verify OTP - missing field (400)" $r 400
 
-# A07 Verify OTP — farmer valid
+# A07 Verify OTP - farmer valid
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $FARMER_PHONE; otp = $FARMER_OTP; name = "QA Farmer"; role = "farmer" }
-Check "A07 Verify OTP — farmer (200)" $r 200 "accessToken"
+Check "A07 Verify OTP - farmer (200)" $r 200 "accessToken"
 if ($r.json) { $TOKEN = $r.json.accessToken; $REFRESH = $r.json.refreshToken; $USER_ID = $r.json.user.id }
 Write-Host "       userId=$USER_ID" -ForegroundColor DarkGray
 
-# A08 Verify OTP — worker valid
+# A08 Verify OTP - worker valid
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $WORKER_PHONE; otp = $WORKER_OTP; name = "QA Worker"; role = "worker"; village = "Test Village" }
-Check "A08 Verify OTP — worker (200)" $r 200 "accessToken"
+Check "A08 Verify OTP - worker (200)" $r 200 "accessToken"
 if ($r.json) { $WORKER_TOKEN = $r.json.accessToken; $WORKER_ID = $r.json.user.id }
 Write-Host "       workerId=$WORKER_ID" -ForegroundColor DarkGray
 
-# A09 Verify OTP — leader valid
+# A09 Verify OTP - leader valid
 $r = Call-API POST "$BASE/auth/verify-otp" @{ phone = $LEADER_PHONE; otp = $LEADER_OTP; name = "QA Leader"; role = "leader" }
-Check "A09 Verify OTP — leader (200)" $r 200 "accessToken"
+Check "A09 Verify OTP - leader (200)" $r 200 "accessToken"
 if ($r.json) { $LEADER_TOKEN = $r.json.accessToken }
 
-# A10 GET /me — authenticated
+# A10 GET /me - authenticated
 $r = Call-API GET "$BASE/auth/me" -Auth (A $TOKEN)
-Check "A10 GET /me — with valid JWT (200)" $r 200 "user"
+Check "A10 GET /me - with valid JWT (200)" $r 200 "user"
 
-# A11 GET /me — no token
+# A11 GET /me - no token
 $r = Call-API GET "$BASE/auth/me"
-Check "A11 GET /me — no token (401)" $r 401
+Check "A11 GET /me - no token (401)" $r 401
 
-# A12 GET /me — tampered JWT
+# A12 GET /me - tampered JWT
 $r = Call-API GET "$BASE/auth/me" -Auth @{ Authorization = "Bearer FAKE.TOKEN.HERE" }
-Check "A12 GET /me — tampered JWT (401)" $r 401
+Check "A12 GET /me - tampered JWT (401)" $r 401
 
-# A13 Set role — valid
+# A13 Set role - valid
 $r = Call-API POST "$BASE/auth/set-role" @{ role = "farmer" } -Auth (A $TOKEN)
-Check "A13 Set role — farmer (200)" $r 200
+Check "A13 Set role - farmer (200)" $r 200
 
-# A14 Set role — invalid role
+# A14 Set role - invalid role
 $r = Call-API POST "$BASE/auth/set-role" @{ role = "admin" } -Auth (A $TOKEN)
-Check "A14 Set role — invalid (400)" $r 400
+Check "A14 Set role - invalid (400)" $r 400
 
-# A15 Set language — te
+# A15 Set language - te
 $r = Call-API PUT "$BASE/auth/language" @{ language = "te" } -Auth (A $TOKEN)
 Check "A15 Set language te (200)" $r 200
 
-# A16 Set language — invalid
+# A16 Set language - invalid
 $r = Call-API PUT "$BASE/auth/language" @{ language = "fr" } -Auth (A $TOKEN)
 Check "A16 Set language invalid (400)" $r 400
 
@@ -134,17 +134,17 @@ Check "A16 Set language invalid (400)" $r 400
 $r = Call-API PUT "$BASE/auth/profile" @{ name = "QA Farmer Updated"; village = "Guntur"; landAcres = 5.5 } -Auth (A $TOKEN)
 Check "A17 Update profile (200)" $r 200 "user"
 
-# A18 Refresh token — valid
+# A18 Refresh token - valid
 $r = Call-API POST "$BASE/auth/refresh" @{ refreshToken = $REFRESH }
-Check "A18 Refresh token — valid (200)" $r 200 "accessToken"
+Check "A18 Refresh token - valid (200)" $r 200 "accessToken"
 if ($r.json) { $TOKEN = $r.json.accessToken }
 
-# A19 Refresh token — bad
+# A19 Refresh token - bad
 $r = Call-API POST "$BASE/auth/refresh" @{ refreshToken = "badtoken" }
-Check "A19 Refresh token — invalid (401)" $r 401
+Check "A19 Refresh token - invalid (401)" $r 401
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 2 — JOBS"
+Hdr "SECTION 2 - JOBS"
 # ════════════════════════════════════════════════
 
 # J01 Create job
@@ -153,9 +153,9 @@ Check "J01 Create job (201)" $r 201 "data"
 if ($r.json) { $JOB_ID = $r.json.data.id }
 Write-Host "       jobId=$JOB_ID" -ForegroundColor DarkGray
 
-# J02 Create job — no auth
+# J02 Create job - no auth
 $r = Call-API POST "$BASE/jobs" @{ workType = "Ploughing"; payPerDay = 300 }
-Check "J02 Create job — no auth (401)" $r 401
+Check "J02 Create job - no auth (401)" $r 401
 
 # J03 GET all jobs
 $r = Call-API GET "$BASE/jobs" -Auth (A $TOKEN)
@@ -165,9 +165,9 @@ Check "J03 GET all jobs (200)" $r 200 "data"
 $r = Call-API GET "$BASE/jobs/my-jobs" -Auth (A $TOKEN)
 Check "J04 GET my-jobs (200)" $r 200 "data"
 
-# J05 GET /my-jobs — no auth
+# J05 GET /my-jobs - no auth
 $r = Call-API GET "$BASE/jobs/my-jobs"
-Check "J05 GET my-jobs — no auth (401)" $r 401
+Check "J05 GET my-jobs - no auth (401)" $r 401
 
 # J06 GET nearby-workers
 $nearbyUrl = "$BASE/jobs/nearby-workers?lat=16.5062" + "`&lng=80.6480"
@@ -180,9 +180,9 @@ if ($JOB_ID) {
     Check "J07 GET job by ID (200)" $r 200 "data"
 }
 
-# J08 GET job — bad ID
+# J08 GET job - bad ID
 $r = Call-API GET "$BASE/jobs/nonexistent-id-9999" -Auth (A $TOKEN)
-Check "J08 GET job — bad ID (404)" $r 404
+Check "J08 GET job - bad ID (404)" $r 404
 
 # J09 Worker accepts job
 if ($JOB_ID -and $WORKER_ID) {
@@ -196,16 +196,16 @@ if ($JOB_ID -and $WORKER_ID) {
     Check "J10 Accept already-matched job (400)" $r 400
 }
 
-# J11 Update job status — owner
+# J11 Update job status - owner
 if ($JOB_ID) {
     $r = Call-API PUT "$BASE/jobs/$JOB_ID/status" @{ status = "completed" } -Auth (A $TOKEN)
-    Check "J11 Update job status — owner (200)" $r 200
+    Check "J11 Update job status - owner (200)" $r 200
 }
 
-# J12 Update job status — wrong user (403)
+# J12 Update job status - wrong user (403)
 if ($JOB_ID) {
     $r = Call-API PUT "$BASE/jobs/$JOB_ID/status" @{ status = "cancelled" } -Auth (A $WORKER_TOKEN)
-    Check "J12 Update job status — wrong user (403)" $r 403
+    Check "J12 Update job status - wrong user (403)" $r 403
 }
 
 # J13 Create + delete a job
@@ -219,7 +219,7 @@ if ($DEL_JOB_ID) {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 3 — ATTENDANCE"
+Hdr "SECTION 3 - ATTENDANCE"
 # ════════════════════════════════════════════════
 
 # Create a fresh job for attendance tests
@@ -232,9 +232,9 @@ if ($ATT_JOB -and $WORKER_ID) {
     Check "AT01 Check-in (201)" $r 201
 }
 
-# AT02 Check-in — missing fields
+# AT02 Check-in - missing fields
 $r = Call-API POST "$BASE/attendance/check-in" @{} -Auth (A $WORKER_TOKEN)
-Check "AT02 Check-in — missing fields (400)" $r 400
+Check "AT02 Check-in - missing fields (400)" $r 400
 
 # AT03 Check-out
 if ($ATT_JOB -and $WORKER_ID) {
@@ -249,7 +249,7 @@ if ($ATT_JOB) {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 4 — PAYMENTS"
+Hdr "SECTION 4 - PAYMENTS"
 # ════════════════════════════════════════════════
 
 # P01 Make payment
@@ -259,9 +259,9 @@ if ($JOB_ID -and $WORKER_ID) {
     if ($r.json -and $r.json.payments) { $PAYMENT_ID = $r.json.payments[0].id }
 }
 
-# P02 Payment — no auth
+# P02 Payment - no auth
 $r = Call-API POST "$BASE/payments" @{ jobId = "x"; workerId = "y"; amount = 100 }
-Check "P02 Payment — no auth (401)" $r 401
+Check "P02 Payment - no auth (401)" $r 401
 
 # P03 Payment history
 $r = Call-API GET "$BASE/payments/history/$USER_ID" -Auth (A $TOKEN)
@@ -274,7 +274,7 @@ if ($PAYMENT_ID) {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 5 — RATINGS"
+Hdr "SECTION 5 - RATINGS"
 # ════════════════════════════════════════════════
 
 # R01 Rate worker
@@ -289,9 +289,9 @@ if ($USER_ID -and $JOB_ID) {
     Check "R02 Rate farmer (200)" $r 200
 }
 
-# R03 Ratings — no auth
+# R03 Ratings - no auth
 $r = Call-API POST "$BASE/ratings" @{ rateeId = "x"; rating = 3 }
-Check "R03 Ratings — no auth (401)" $r 401
+Check "R03 Ratings - no auth (401)" $r 401
 
 # R04 Get user ratings
 if ($WORKER_ID) {
@@ -300,7 +300,7 @@ if ($WORKER_ID) {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 6 — GROUPS"
+Hdr "SECTION 6 - GROUPS"
 # ════════════════════════════════════════════════
 
 # G01 Create group
@@ -311,9 +311,9 @@ if ($LEADER_TOKEN) {
     Write-Host "       groupId=$GROUP_ID" -ForegroundColor DarkGray
 }
 
-# G02 Create group — no auth
+# G02 Create group - no auth
 $r = Call-API POST "$BASE/groups" @{ name = "No Auth Group" }
-Check "G02 Create group — no auth (401)" $r 401
+Check "G02 Create group - no auth (401)" $r 401
 
 # G03 Get group details
 if ($GROUP_ID -and $LEADER_TOKEN) {
@@ -346,7 +346,7 @@ if ($GROUP_ID -and $LEADER_TOKEN) {
 }
 
 # ════════════════════════════════════════════════
-Hdr "SECTION 7 — SECURITY EDGE CASES"
+Hdr "SECTION 7 - SECURITY EDGE CASES"
 # ════════════════════════════════════════════════
 
 # S01 Tampered JWT
@@ -355,7 +355,7 @@ Check "S01 Tampered JWT (401)" $r 401
 
 # S02 SQL injection attempt
 $r = Call-API POST "$BASE/auth/send-otp" @{ phone = "'; DROP TABLE users; --" }
-Check "S02 SQL injection — no crash (400 or 200)" $r 400
+Check "S02 SQL injection - no crash (400 or 200)" $r 400
 
 # S03 Wrong user updates job (already tested, confirm 403)
 if ($JOB_ID) {
@@ -369,7 +369,7 @@ Check "S04 Missing Bearer prefix (401)" $r 401
 
 # S05 Empty refresh token body
 $r = Call-API POST "$BASE/auth/refresh" @{}
-Check "S05 Refresh — missing token (400)" $r 400
+Check "S05 Refresh - missing token (400)" $r 400
 
 # ════════════════════════════════════════════════
 Hdr "FINAL RESULTS"

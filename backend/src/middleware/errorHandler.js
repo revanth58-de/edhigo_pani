@@ -1,15 +1,29 @@
 const winston = require('winston');
+const { AsyncLocalStorage } = require('async_hooks');
+const { v4: uuidv4 } = require('uuid');
+
+const asyncLocalStorage = new AsyncLocalStorage();
+
+// Custom Winston format to inject request ID from context
+const requestIdFormat = typeof winston.format === 'function' ? winston.format((info) => {
+  const store = asyncLocalStorage.getStore();
+  if (store && store.requestId) {
+    info.requestId = store.requestId;
+  }
+  return info;
+}) : () => ({});
 
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
   format: winston.format.combine(
     winston.format.timestamp(),
+    requestIdFormat(),
     winston.format.json()
   ),
   transports: [
-    // Write all logs with level 'error' and below to 'error.log'
+    // Write all logs with level 'error' and below to 'logs/error.log'
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    // Write all logs with level 'info' and below to 'combined.log'
+    // Write all logs with level 'info' and below to 'logs/combined.log'
     new winston.transports.File({ filename: 'logs/combined.log' }),
     new winston.transports.Console({
       format: winston.format.combine(
@@ -28,6 +42,16 @@ if (process.env.GCP_PROJECT_ID) {
   });
   logger.add(loggingWinston);
 }
+
+// Request trace middleware to generate request IDs and bind AsyncLocalStorage context
+const traceMiddleware = (req, res, next) => {
+  const requestId = req.headers['x-request-id'] || uuidv4();
+  req.id = requestId;
+  res.setHeader('X-Request-ID', requestId);
+  asyncLocalStorage.run({ requestId }, () => {
+    next();
+  });
+};
 
 const errorHandler = (err, req, res, next) => {
   const status = err.status || 500;
@@ -56,4 +80,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = { errorHandler, logger };
+module.exports = { errorHandler, logger, traceMiddleware, asyncLocalStorage };

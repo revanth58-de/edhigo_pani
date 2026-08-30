@@ -1,66 +1,39 @@
-# Dinasari — Google Play Store Listing
+# Dinasari — Google Play Store Listing Metadata
 
-## App Title
-Dinasari
+## 1. App Metadata Details
 
-## Short Description (80 chars max)
-Connect farmers with local agricultural workers. Instant job matching.
+*   **App Name:** Dinasari
+*   **Short Description (Max 80 characters):**
+    Connect farmers with local agricultural workers. Instant job matching.
+*   **Category:** Business / Productivity
+*   **Target Audience:** 18 and over
 
-## Full Description (4000 chars max)
-Dinasari is India's dedicated platform for agricultural labor management, connecting farmers directly with skilled local workers in real time.
+---
 
-**For Farmers:**
-- Post job requirements in seconds — specify crop type, worker count, and work date
-- Browse nearby available workers on a live map
-- Track worker arrival in real time with live GPS navigation
-- Manage group attendance with QR code check-in and check-out
-- Review past job history and worker ratings
-- Pay workers digitally at job completion
+## 2. Full Description (Max 4000 characters)
 
-**For Agricultural Workers:**
-- Discover job offers from nearby farmers instantly
-- Accept or decline offers with a single tap
-- Get turn-by-turn navigation to the farm
-- Check in and out of work using QR code scanning
-- Build your reputation with ratings from farmers
-- Track your earnings history
+**Dinasari** connects farmers directly with skilled agricultural laborers in rural India. Designed with a voice-first, low-literacy interface supporting Telugu, Hindi, and English, Dinasari ensures that if someone cannot read, they can still easily find work or hire workers.
 
-**For Group Leaders:**
-- Organize and lead groups of workers to job sites
-- Coordinate arrival and departure for the entire group
-- Manage group check-in via QR scanning
+### Key Features:
 
-**Key Features:**
-* Real-time location matching between farmers and workers
-* OTP-based phone number authentication — no passwords needed
-* QR code attendance tracking for accurate work records
-* Push notifications for job offers and status updates
-* Offline-capable with graceful network degradation
-* Supports multiple Indian regional language preferences
-* Sentry-powered crash monitoring for maximum reliability
+#### 🚜 For Farmers:
+*   **Instant Postings:** Select crop and work type (sowing, harvesting, irrigation, manual labor, machinery rentals) with simple oversized touch grids.
+*   **Geospatial Matching:** Locate nearby available workers or group leaders on a live map in real time.
+*   **Geo-fenced QR Check-in/out:** Verify attendance securely. Workers must be physically on the farm (within 100m) to check in or out.
+*   **Wage Calculator:** Automatically calculates hourly or daily wages based on checkout times, eliminating disputes.
+*   **0% MDR Payments:** Pay workers instantly and directly using Cash or integrated UPI deep links (zero platform surcharge).
+*   **Emoji-based Feedback:** Rate worker performance using simple emojis.
 
-Dinasari is built for rural India — lightweight, reliable, and designed to work on low-bandwidth mobile connections.
+#### 🔧 For Workers:
+*   **Online/Offline Toggles:** Set your availability status with a single tap.
+*   **Personalized Shifts:** Receive instant job offers nearby with pay rate, distance, and farmer ratings.
+*   **Turn-by-turn Directions:** Navigate directly to farm fields using integrated maps.
+*   **QR Scanner:** Check in and check out by scanning the farmer’s code.
+*   **Earnings Wallet:** View full payments history and download verified earnings statements.
 
-Download Dinasari today and transform how agricultural labor is organized in your region.
+#### 👥 For Group Leaders:
+*   **Collective Management:** Invite and coordinate entire teams of workers.
+*   **Group QR Code:** Show a single QR code for simultaneous group check-in/out.
+*   **Split Payments:** Manage group job bookings and distribute earnings fairly among members.
 
-## Keywords
-agriculture, farmers, farm workers, agricultural labor, farming jobs, krishi, kisan, rural jobs, daily wage, farm help
-
-## Category
-Business
-
-## Content Rating
-Everyone
-
-## Contact Details
-- Email: support@dinasari.co.in
-- Website: https://www.dinasari.co.in
-- Privacy Policy: https://www.dinasari.co.in/privacy-policy
-
-## Required Assets for Play Console
-- App icon: 512x512 PNG (source: assets/icon.png — resize to 512x512)
-- Feature graphic: 1024x500 PNG (create a branded banner)
-- Screenshots: Minimum 2 per form factor (phone)
-  - Recommended: 5-8 screenshots showcasing key screens
-  - Aspect ratio: 16:9 or 9:16
-  - Minimum dimension: 320px, maximum: 3840px
+Simplify your farming work and labor management with Dinasari today!

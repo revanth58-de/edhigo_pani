@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: dinasari-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: dinasari
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: dinasari-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dinasari-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/dinasari?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=supersecretjwtkeyforlocaldinasaridevelopment12345
+      - JWT_REFRESH_SECRET=supersecretjwtrefreshkeyforlocaldinasaridevelopment12345
+      - ADMIN_SECRET=adminpassword123
+      - ALLOWED_ORIGIN=*
+      - GEOFENCE_ENABLED=false
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:

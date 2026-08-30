@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const { apiLimiter, uploadLimiter } = require('./middleware/rateLimiter');
 const { Server } = require('socket.io');
 const config = require('./config/env');
-const { errorHandler, logger } = require('./middleware/errorHandler');
+const { errorHandler, logger, traceMiddleware } = require('./middleware/errorHandler');
 const { setIO } = require('./config/socket');
 
 // Import routes
@@ -41,6 +41,9 @@ if (process.env.SENTRY_DSN) {
 // Initialize Express
 const app = express();
 
+// Use request tracing middleware
+app.use(traceMiddleware);
+
 
 // Trust proxy for correct IP detection behind Nginx/Load Balancers
 app.set('trust proxy', 1);
@@ -48,13 +51,27 @@ app.set('trust proxy', 1);
 // FIX #18: Health check endpoint — required by Cloud Run, Kubernetes, and load
 // balancers to verify the service is alive before routing traffic to it.
 // Must be registered BEFORE the rate limiter to avoid throttling infra checks.
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: Math.floor(process.uptime()),
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0',
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const prisma = require('./config/database');
+    // Run a fast ping check against PostgreSQL
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      uptime: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || '1.0.0',
+    });
+  } catch (err) {
+    logger.error('Health check failed', { error: err.message });
+    res.status(503).json({
+      status: 'error',
+      database: 'disconnected',
+      message: err.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 const server = http.createServer(app);
@@ -147,14 +164,10 @@ app.use('/api/machinery', machineryRoutes);
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+// Serve uploaded profile images
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+
 
 // ─── Socket.io ───
 // SEC-2 FIX: Authenticate every socket connection before allowing room joins.

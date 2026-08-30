@@ -10,6 +10,33 @@ const isDev = config.nodeEnv !== 'production';
 // In production, enforce strict limits to block abuse.
 const skipInDev = () => isDev;
 
+// Configure RedisStore for distributed rate limiting if Redis URL is available and not in dev/test
+let redisStore = undefined;
+const redisUrl = process.env.REDIS_URL || (process.env.REDIS_HOST ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT || 6379}` : null);
+
+if (redisUrl && !isDev) {
+  try {
+    const { createClient } = require('redis');
+    const { RedisStore } = require('rate-limit-redis');
+
+    const client = createClient({ url: redisUrl });
+    client.on('error', (err) => logger.error('Redis RateLimiter Client Error', { message: err.message }));
+    
+    // Connect client asynchronously
+    client.connect().catch((err) => {
+      logger.error('Redis connection for rate limiter failed', { message: err.message });
+    });
+
+    redisStore = new RedisStore({
+      sendCommand: (...args) => client.sendCommand(args),
+      prefix: 'rl:', // short prefix to save memory
+    });
+    logger.info('RedisStore configured for distributed rate limiting');
+  } catch (err) {
+    logger.error('Failed to initialize RedisStore for rate limiting', { message: err.message });
+  }
+}
+
 /**
  * Strict limiter for OTP generation — prevents SMS bombing.
  * 5 requests per 30 minutes per IP in production.
@@ -19,6 +46,7 @@ const otpLimiter = rateLimit({
   windowMs: 30 * 60 * 1000, // 30 minutes
   max: 5,
   skip: skipInDev,
+  store: redisStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many OTP requests from this IP, please try again in 30 minutes' },
@@ -37,6 +65,7 @@ const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10,
   skip: skipInDev,
+  store: redisStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts, please try again in 15 minutes' },
@@ -55,6 +84,7 @@ const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100,
   skip: skipInDev,
+  store: redisStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
@@ -69,6 +99,7 @@ const uploadLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 5,
   skip: skipInDev,
+  store: redisStore,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many upload requests, please wait before uploading again' },

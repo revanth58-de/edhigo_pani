@@ -27,6 +27,51 @@ import BottomNavBar from '../../components/BottomNavBar';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Premium individual Confetti particle rendering component
+const ConfettiParticle = ({ p }) => {
+  const fallAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(p.delay),
+        Animated.timing(fallAnim, {
+          toValue: 1,
+          duration: p.duration,
+          easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const translateY = fallAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-20, SCREEN_HEIGHT + 20],
+  });
+
+  const rotate = fallAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', `${Math.random() * 360 + 360}deg`],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        styles.confettiParticle,
+        {
+          left: p.left,
+          width: p.size,
+          height: p.size,
+          borderRadius: p.size / 2,
+          backgroundColor: p.color,
+          transform: [{ translateY }, { rotate }],
+        },
+      ]}
+    />
+  );
+};
+
 // Premium local Confetti particle generator for premium success UI
 const ConfettiRain = () => {
   const particles = useMemo(() => {
@@ -42,50 +87,9 @@ const ConfettiRain = () => {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {particles.map((p) => {
-        const fallAnim = useRef(new Animated.Value(0)).current;
-
-        useEffect(() => {
-          Animated.loop(
-            Animated.sequence([
-              Animated.delay(p.delay),
-              Animated.timing(fallAnim, {
-                toValue: 1,
-                duration: p.duration,
-                easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-                useNativeDriver: true,
-              }),
-            ])
-          ).start();
-        }, []);
-
-        const translateY = fallAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [-20, SCREEN_HEIGHT + 20],
-        });
-
-        const rotate = fallAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: ['0deg', `${Math.random() * 360 + 360}deg`],
-        });
-
-        return (
-          <Animated.View
-            key={p.id}
-            style={[
-              styles.confettiParticle,
-              {
-                left: p.left,
-                width: p.size,
-                height: p.size,
-                borderRadius: p.size / 2,
-                backgroundColor: p.color,
-                transform: [{ translateY }, { rotate }],
-              },
-            ]}
-          />
-        );
-      })}
+      {particles.map((p) => (
+        <ConfettiParticle key={p.id} p={p} />
+      ))}
     </View>
   );
 };

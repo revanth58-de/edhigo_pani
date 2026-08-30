@@ -9,6 +9,8 @@
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
+    "db:backup": "node scripts/db-backup.js",
+    "db:restore": "node scripts/db-restore.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit"
   },
   "devDependencies": {
@@ -43,6 +45,7 @@
     "pdfkit": "^0.18.0",
     "prisma": "^6.1.0",
     "qrcode": "^1.5.3",
+    "rate-limit-redis": "^6.0.1",
     "redis": "^6.0.0",
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1",

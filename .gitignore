@@ -40,3 +40,8 @@ Desktop.ini
 *.p8
 *.p12
 *.mobileprovision
+
+# ── Backups ──
+backups/
+backend/backups/
+

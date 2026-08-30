@@ -51,6 +51,13 @@ Before launching the mobile app or uploading to the store, configure your hostin
 
 ## 🔒 Phase 3: Android Keystore & Google Cloud Console (Action Required by You)
 
+> ### 🚨 CRITICAL SECURITY ACTION: ROTATE BOTH PREVIOUSLY COMMITTED MAPS KEYS
+> Both historical Google Maps API keys (`AIzaSyAOVYRIgup...` and `AIzaSyCa2HegR...`) were committed to git history in earlier development commits.
+> 1. Open [Google Cloud Console > APIs & Services > Credentials](https://console.cloud.google.com/apis/credentials).
+> 2. **Delete or Regenerate (Rotate)** any existing exposed API keys.
+> 3. Create a **fresh Maps API Key** and store it exclusively in your local `mobile/.env` (which is `.gitignore`'d).
+> 4. Apply strict SHA-1 fingerprint and package name restrictions to the new key as outlined below.
+
 - [ ] **Generate Production Upload Keystore** (Keep in a secure vault, NEVER commit to git):
   ```bash
   keytool -genkeypair -v -storetype PKCS12 -keystore dinasari-release-key.jks \
@@ -60,9 +67,9 @@ Before launching the mobile app or uploading to the store, configure your hostin
   ```bash
   keytool -list -v -keystore dinasari-release-key.jks -alias dinasari-key-alias
   ```
-- [ ] **Restrict Google Maps API Key in Google Cloud Console**:
+- [ ] **Restrict New Google Maps API Key in Google Cloud Console**:
   - Open [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials).
-  - Select Maps API Key (`AIzaSyCa2HegR7olgi1xLuvDHo4-PM_--S7_OxU`).
+  - Select your newly created Maps API Key.
   - Set **Application restrictions** → **Android apps**.
   - Add Package Name: `com.dinasari.app`.
   - Add SHA-1 Fingerprint: (From your upload keystore AND Google Play App Signing certificate once created).

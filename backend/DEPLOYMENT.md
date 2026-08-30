@@ -92,3 +92,50 @@ After every deployment, verify the live server using the automated smoke test sc
 ```bash
 node scripts/smoke-test-production.js https://www.dinasari.co.in
 ```
+
+---
+
+## 6. Pre-Flight Local Verification
+
+Before deploying new versions, run these copy-paste commands in your terminal to verify database clients, tests, and containers locally:
+
+### A. Prisma Generation & Unit/Integration Tests
+```bash
+cd backend
+npx prisma generate
+npm test
+```
+- **What Success Looks Like**:
+  - `✔ Generated Prisma Client (v6.19.3)`
+  - `Test Suites: 16 passed, 16 total`
+  - `Tests: 154 passed, 154 total`
+- **What Failure Looks Like**:
+  - If Prisma binary download fails (e.g. offline/firewall blocking `binaries.prisma.sh`): check network connectivity or set `PRISMA_ENGINES_MIRROR`.
+  - If tests fail: look for failed assertion traces in `tests/` output.
+
+### B. Docker Build Verification
+```bash
+# Run from repository root (where backend/ folder is located)
+docker build -t dinasari-backend-test ./backend
+```
+- **What Success Looks Like**:
+  - Multi-stage build completes all steps (`Stage 1 [builder]` and `Stage 2 [runner]`).
+  - Successfully tagged `dinasari-backend-test:latest`.
+  - `npx prisma migrate deploy` in `CMD` does **not** fail during build time because `CMD` only executes when a container is instantiated with a live `DATABASE_URL`.
+- **What Failure Looks Like**:
+  - Missing native build tools: `apk add python3 make g++` handles native modules.
+  - Omitted dependencies: `prisma` is under `dependencies` in `package.json` to ensure runtime CLI availability.
+
+---
+
+## 7. Security & Dependency Vulnerability Context
+
+### Prisma Tooling Advisory (GHSA-ggr8-5vv4-36mx / `deepmerge-ts`)
+- **Package Chain**: `backend` → `prisma@6.19.3` → `@prisma/config@6.19.3` → `deepmerge-ts@7.1.5`
+- **Advisory Details**: High-severity advisory for `deepmerge-ts < 8.0.0` regarding potential stack exhaustion when merging deeply recursive object graphs.
+- **Risk Assessment for Dinasari**: **Negligible / Zero Runtime Risk**.
+  - `deepmerge-ts` is used exclusively during build and deployment CLI configuration parsing (`npx prisma generate` / `npx prisma migrate deploy`).
+  - It is never invoked during runtime HTTP request processing and is never exposed to user-controlled payloads.
+- **Monitoring & Remediation**:
+  - Automated CI dependency audit (`.github/workflows/backend-tests.yml`) monitors for any newly introduced high-severity vulnerabilities while allowlisting this build-time tool.
+  - Upgrade to Prisma 7.x/8.x will be scheduled once Prisma publishes a stable migration path for the serverless database adapter ecosystem.

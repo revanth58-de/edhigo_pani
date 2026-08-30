@@ -49,6 +49,29 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Dependency Security Audit
+        run: |
+          node -e "
+            const { execSync } = require('child_process');
+            let out = '';
+            try { out = execSync('npm audit --json', { encoding: 'utf8' }); } catch (e) { out = e.stdout || '{}'; }
+            const json = JSON.parse(out);
+            const vulns = json.vulnerabilities || {};
+            const unexpected = [];
+            // Allowlist known build-time tooling issue (deepmerge-ts in @prisma/config)
+            const ALLOWLIST = ['prisma', '@prisma/config', 'deepmerge-ts'];
+            for (const [pkg, data] of Object.entries(vulns)) {
+              if (['high', 'critical'].includes(data.severity) && !ALLOWLIST.includes(pkg)) {
+                unexpected.push({ pkg, severity: data.severity });
+              }
+            }
+            if (unexpected.length > 0) {
+              console.error('🚨 New high/critical vulnerabilities detected:', unexpected);
+              process.exit(1);
+            }
+            console.log('✅ Audit gate passed: No unreviewed high-severity vulnerabilities detected.');
+          "
+
       - name: Generate Prisma Client
         run: npx prisma generate
         env:

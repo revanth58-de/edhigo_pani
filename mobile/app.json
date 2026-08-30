@@ -23,9 +23,6 @@
         "NSLocationWhenInUseUsageDescription": "DINASARI needs your location to match workers with nearby farmers and provide route directions.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "DINASARI needs your location to match workers with nearby farmers and provide route directions.",
         "NSCameraUsageDescription": "DINASARI needs access to your camera to scan attendance QR codes."
-      },
-      "config": {
-        "googleMapsApiKey": "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao"
       }
     },
     "android": {
@@ -43,21 +40,11 @@
         "INTERNET",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao"
-        }
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyAOVYRIgupAurZup5y1PRh8Ismb1A3lLao"
-        }
-      }
+      "bundler": "metro"
     },
     "plugins": [
       "expo-secure-store",

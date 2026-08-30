@@ -53,16 +53,16 @@ EXPO_PUBLIC_OPENWEATHER_API_KEY=YOUR_OPENWEATHER_API_KEY
 
 ---
 
-## Step 3: Regenerate the Android Folder (if needed)
+## Step 3: Regenerate the Android Folder (When Native Configs / Env Change)
 
-The `android/` folder has already been generated via `expo prebuild`. If you need to regenerate it (e.g., after adding a new native plugin):
+> ⚠️ **CRITICAL ARCHITECTURE NOTE**: Any time `app.config.js` env vars change (such as `GOOGLE_MAPS_API_KEY`), `android/` must be regenerated via `npx expo prebuild --platform android --clean` for native manifest changes to take effect — this does NOT happen automatically at runtime.
 
 ```bash
-# WARNING: This will overwrite android/ folder customizations
-npx expo prebuild --platform android --no-install
+# Regenerate native Android project from app.config.js
+npx expo prebuild --platform android --clean
 ```
 
-> After regenerating, re-apply the Gradle signing config changes from Step 4.
+> **Important**: After running `prebuild --clean`, verify that your Gradle signing config in `android/app/build.gradle` and ProGuard rules in `android/app/proguard-rules.pro` remain intact.
 
 ---
 
@@ -172,7 +172,7 @@ Navigate to **Grow > Store presence > Main store listing**:
 - **Screenshots**: Upload at least 2 phone screenshots
 - **Category**: Business
 - **Email**: support@dinasari.co.in
-- **Privacy Policy URL**: https://www.dinasari.co.in/privacy-policy
+- **Privacy Policy URL**: https://www.dinasari.co.in/privacy
 
 ### 7d. Set up Content Rating
 
@@ -256,7 +256,7 @@ cd android
 
 | Issue | Fix |
 |-------|-----|
-| Missing privacy policy | Host policy at https://www.dinasari.co.in/privacy-policy |
+| Missing privacy policy | Host policy at https://www.dinasari.co.in/privacy |
 | Incomplete data safety section | Fill all fields in Play Console > App content > Data safety |
 | App crashes on launch | Test on a physical device before submitting |
 | Missing content rating | Complete the content rating questionnaire |

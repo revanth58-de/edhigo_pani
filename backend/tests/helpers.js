@@ -199,10 +199,8 @@ async function cleanupTestUsers() {
       where: { phone: { startsWith: TEST_PHONE_PREFIX } }
     });
   } catch (err) {
-    console.warn('⚠️ Cleanup warning (likely empty DB or constraint):', err.message);
-  } finally {
-    await prisma.$disconnect();
+    console.warn('⚠️ Cleanup warning:', err.message);
   }
 }
 
-module.exports = { createTestUsers, cleanupTestUsers };
+module.exports = { createTestUsers, cleanupTestUsers, makeToken };

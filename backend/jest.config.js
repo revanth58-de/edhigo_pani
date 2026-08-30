@@ -1,6 +1,6 @@
 module.exports = {
   testEnvironment: 'node',
-  testMatch: ['**/tests/**/*.test.js'],
+  testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.test.js'],
   setupFiles: ['<rootDir>/tests/setup.js'],
   moduleFileExtensions: ['js', 'jsx', 'json', 'node'],
   moduleNameMapper: {

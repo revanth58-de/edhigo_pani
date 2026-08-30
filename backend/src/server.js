@@ -167,7 +167,10 @@ app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 // Serve uploaded profile images
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-
+// Serve public privacy policy (required for Google Play Store compliance)
+app.get(['/privacy', '/privacy-policy', '/privacy-policy.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../../admin/privacy-policy.html'));
+});
 
 // ─── Socket.io ───
 // SEC-2 FIX: Authenticate every socket connection before allowing room joins.

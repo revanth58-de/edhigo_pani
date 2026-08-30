@@ -1,0 +1,94 @@
+name: Backend Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  test:
+    name: Run Backend Unit & Integration Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Dependency Security Audit
+        run: |
+          node -e "
+            const { execSync } = require('child_process');
+            let out = '';
+            try { out = execSync('npm audit --json', { encoding: 'utf8' }); } catch (e) { out = e.stdout || '{}'; }
+            const json = JSON.parse(out);
+            const vulns = json.vulnerabilities || {};
+            const unexpected = [];
+            // Allowlist known build-time tooling issue (deepmerge-ts in @prisma/config)
+            const ALLOWLIST = ['prisma', '@prisma/config', 'deepmerge-ts'];
+            for (const [pkg, data] of Object.entries(vulns)) {
+              if (['high', 'critical'].includes(data.severity) && !ALLOWLIST.includes(pkg)) {
+                unexpected.push({ pkg, severity: data.severity });
+              }
+            }
+            if (unexpected.length > 0) {
+              console.error('🚨 New high/critical vulnerabilities detected:', unexpected);
+              process.exit(1);
+            }
+            console.log('✅ Audit gate passed: No unreviewed high-severity vulnerabilities detected.');
+          "
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+
+      - name: Run Prisma Migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+
+      - name: Run Backend Test Suite
+        run: npm test
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ci
+          JWT_SECRET: ci-test-jwt-secret-not-production
+          JWT_REFRESH_SECRET: ci-test-refresh-secret
+          ADMIN_SECRET: ci-admin-secret-2024
+          ADMIN_JWT_SECRET: ci-test-admin-jwt-secret
+          PORT: 5001

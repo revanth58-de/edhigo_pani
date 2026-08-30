@@ -106,8 +106,26 @@ describe('GET /api/admin/attendance', () => {
   });
 });
 
-describe('Admin Middleware Initialization Checks (S6)', () => {
+describe('Admin Middleware & Production Self-Check (S6)', () => {
   let originalEnv;
+
+  const setMockProductionEnv = () => {
+    process.env.NODE_ENV = 'production';
+    process.env.DATABASE_URL = 'postgresql://user:pass@localhost:5432/dinasari';
+    process.env.JWT_SECRET = 'valid-production-jwt-secret-string-64-bytes-abc1234567890';
+    process.env.JWT_REFRESH_SECRET = 'valid-production-jwt-refresh-secret-string-64-bytes-def0987654321';
+    process.env.ADMIN_SECRET = 'strong-admin-password-123';
+    process.env.ADMIN_JWT_SECRET = 'valid-admin-jwt-secret-string-64-bytes-ghi1234567890';
+    process.env.FAST2SMS_API_KEY = 'real-fast2sms-api-key-string';
+    process.env.RAZORPAY_KEY_ID = 'rzp_live_realKey123456';
+    process.env.RAZORPAY_KEY_SECRET = 'realRazorpaySecretString';
+    process.env.CLOUDINARY_CLOUD_NAME = 'realCloudName';
+    process.env.CLOUDINARY_API_KEY = '123456789012345';
+    process.env.CLOUDINARY_API_SECRET = 'realCloudinaryApiSecret';
+    process.env.SENTRY_DSN = 'https://abc@sentry.io/123456';
+    process.env.GEOFENCE_ENABLED = 'true';
+    process.env.ALLOWED_ORIGIN = 'https://www.dinasari.co.in';
+  };
 
   beforeEach(() => {
     originalEnv = { ...process.env };
@@ -115,26 +133,39 @@ describe('Admin Middleware Initialization Checks (S6)', () => {
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    Object.keys(process.env).forEach((key) => {
+      if (!(key in originalEnv)) {
+        delete process.env[key];
+      }
+    });
+    Object.assign(process.env, originalEnv);
+    jest.resetModules();
   });
 
   test('❌ Throw error in production if ADMIN_JWT_SECRET is identical to JWT_SECRET', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.JWT_SECRET = 'same-secret-123';
-    process.env.ADMIN_JWT_SECRET = 'same-secret-123';
+    setMockProductionEnv();
+    process.env.JWT_SECRET = 'same-secret-64-characters-long-unique-sample-string-abc-1234567890';
+    process.env.ADMIN_JWT_SECRET = 'same-secret-64-characters-long-unique-sample-string-abc-1234567890';
 
     expect(() => {
-      require('../src/middleware/admin.middleware');
-    }).toThrow(/ADMIN_JWT_SECRET must not be identical to JWT_SECRET/);
+      require('../src/config/env');
+    }).toThrow(/ADMIN_JWT_SECRET cannot be identical to JWT_SECRET/);
   });
 
-  test('✅ Do not throw in production if ADMIN_JWT_SECRET is different from JWT_SECRET', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.JWT_SECRET = 'secret-a';
-    process.env.ADMIN_JWT_SECRET = 'secret-b';
+  test('❌ Throw error in production if any required secret contains placeholder markers', () => {
+    setMockProductionEnv();
+    process.env.FAST2SMS_API_KEY = 'YOUR_FAST2SMS_API_KEY_HERE';
 
     expect(() => {
-      require('../src/middleware/admin.middleware');
+      require('../src/config/env');
+    }).toThrow(/Production environment self-check failed/);
+  });
+
+  test('✅ Do not throw in production if all secrets are valid and distinct', () => {
+    setMockProductionEnv();
+
+    expect(() => {
+      require('../src/config/env');
     }).not.toThrow();
   });
 

@@ -8,9 +8,11 @@
     "start": "node src/server.js",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate deploy",
     "db:studio": "npx prisma studio",
     "db:backup": "node scripts/db-backup.js",
     "db:restore": "node scripts/db-restore.js",
+    "smoke:test": "node scripts/smoke-test-production.js",
     "test": "jest --runInBand --detectOpenHandles --forceExit"
   },
   "devDependencies": {

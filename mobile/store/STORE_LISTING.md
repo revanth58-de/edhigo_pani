@@ -64,3 +64,16 @@ Everyone
   - Recommended: 5-8 screenshots showcasing key screens
   - Aspect ratio: 16:9 or 9:16
   - Minimum dimension: 320px, maximum: 3840px
+
+---
+
+## 📌 TODO: Visual Assets Checklist for Play Console Submission
+
+> **Note for Release Manager**: No placeholder or mock graphics are stored in the repo. Real device screenshots and brand artwork must be captured and uploaded directly to the Google Play Console before store publication.
+
+| Asset Type | Play Console Specifications | Status / Action Required |
+|---|---|---|
+| **App Icon** | 512 × 512 px, 32-bit PNG (with alpha), max 1024 KB | 🔲 Export from `mobile/assets/icon.png` at 512×512 |
+| **Feature Graphic** | 1024 × 500 px, JPEG or 24-bit PNG (no alpha), max 15 MB | 🔲 Design branded agricultural marketing banner (1024×500) |
+| **Phone Screenshots** | Minimum 2 (recommended: 6–8), 16:9 or 9:16 ratio, min 320px, max 3840px (e.g., 1080×1920 or 1080×2400 PNG/JPEG) | 🔲 Capture from physical device or Android emulator (e.g. Login, Home Dashboard, Job Posting, Live Map Navigation, Attendance QR Scan, Earnings History) |
+| **Tablet Screenshots** (Optional) | 7-inch & 10-inch screenshots if targeting tablet distribution | 🔲 Optional for initial release |

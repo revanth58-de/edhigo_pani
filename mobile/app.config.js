@@ -1,8 +1,11 @@
 // mobile/app.config.js
 // Dynamic Expo configuration to securely inject environment variables without committing secrets.
+const path = require('path');
 
 try {
-  require('dotenv').config();
+  const dotenv = require('dotenv');
+  dotenv.config({ path: path.resolve(__dirname, '.env') });
+  dotenv.config({ path: path.resolve(__dirname, '.env.production') });
 } catch (e) {
   // dotenv might not be bundled in some production CI pipelines
 }

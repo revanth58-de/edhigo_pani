@@ -11,6 +11,7 @@ import {
     Alert,
     Modal,
     Linking,
+    Platform,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -472,8 +473,13 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.backgroundLight },
     content: { padding: 16 },
 
-    header: { alignItems: 'center', paddingTop: 120, paddingBottom: 24, position: 'relative' },
-    backBtn: { position: 'absolute', top: 20, left: 0, padding: 8 },
+    header: {
+        alignItems: 'center',
+        paddingTop: Platform.OS === 'ios' ? 36 : 20,
+        paddingBottom: 16,
+        position: 'relative',
+    },
+    backBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 36 : 20, left: 0, padding: 8 },
     logoCircle: {
         width: 80, height: 80, borderRadius: 40,
         backgroundColor: `${colors.primary}1A`, borderWidth: 3, borderColor: colors.primary,

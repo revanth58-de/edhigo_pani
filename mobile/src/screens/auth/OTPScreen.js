@@ -8,6 +8,7 @@ import {
   StatusBar,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import CustomLoader from '../../components/CustomLoader';
@@ -135,8 +136,6 @@ const OTPScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={{ height: 40 }} />
-
         {/* OTP Input Section */}
         <View style={styles.otpInputSection}>
           <View style={styles.labelRow}>
@@ -261,7 +260,12 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  otpInputSection: { paddingHorizontal: 24, paddingTop: 120, paddingBottom: 24, alignItems: 'center' },
+  otpInputSection: {
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 32 : 20,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '700', color: '#6f8961', letterSpacing: 2 },
   otpBoxRow: {

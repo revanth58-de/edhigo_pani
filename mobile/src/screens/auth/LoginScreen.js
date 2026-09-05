@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   Modal,
+  Platform,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -256,7 +257,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  displaySection: { paddingHorizontal: 24, paddingTop: 320, paddingBottom: 24, alignItems: 'center' },
+  displaySection: {
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 32 : 20,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   label: { fontSize: 14, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },
   phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 2, paddingVertical: 16 },

@@ -21,7 +21,44 @@ import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
 import { jobService } from '../../services/api/jobService';
 import MapDashboard from '../../components/MapDashboard';
-import BottomNavBar from '../../components/BottomNavBar';
+
+const parseWorkers = (jobData) => {
+  if (!jobData) return [];
+  if (jobData.worker) {
+    return [{
+      id: jobData.worker.id || jobData.worker._id || jobData.workerId,
+      name: jobData.worker.name || jobData.worker.fullName || 'Worker',
+      rating: Number(jobData.worker.ratingAvg || jobData.worker.rating || 4.8),
+      phone: jobData.worker.phone || null,
+      skills: jobData.worker.skills || null,
+      village: jobData.worker.village || null,
+    }];
+  }
+  if (Array.isArray(jobData.applications)) {
+    const accepted = jobData.applications
+      .filter(a => a.status === 'accepted')
+      .map(a => ({
+        id: a.worker?.id || a.worker?._id || a.workerId || a.id,
+        name: a.worker?.name || a.worker?.fullName || 'Worker',
+        rating: Number(a.worker?.ratingAvg || a.worker?.rating || 4.8),
+        phone: a.worker?.phone || null,
+        skills: a.worker?.skills || null,
+        village: a.worker?.village || null,
+      }));
+    if (accepted.length > 0) return accepted;
+  }
+  if (Array.isArray(jobData.acceptedWorkers)) {
+    return jobData.acceptedWorkers.map(w => ({
+      id: w.id || w._id,
+      name: w.name || w.fullName || 'Worker',
+      rating: Number(w.ratingAvg || w.rating || 4.8),
+      phone: w.phone || null,
+      skills: w.skills || null,
+      village: w.village || null,
+    }));
+  }
+  return [];
+};
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
   const { job: initialJob, jobId } = route.params || {};
@@ -29,7 +66,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
 
-  const [workers, setWorkers] = useState([]);   // all accepted workers
+  const [workers, setWorkers] = useState(() => parseWorkers(initialJob)); // all accepted workers
   const [eta, setEta] = useState('--');
   const [workerLocations, setWorkerLocations] = useState([]);
   const sheetAnim = useRef(new Animated.Value(0)).current;
@@ -47,25 +84,26 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
     ).start();
   }, []);
 
-  const targetJobId = jobId || initialJob?.id || initialJob?.jobId;
+  const targetJobId = jobId || initialJob?.id || initialJob?.jobId || initialJob?._id;
 
   useEffect(() => {
     fetchJobDetails();
   }, [targetJobId]);
 
   useEffect(() => {
-    if (!job?.id) return;
+    if (!job?.id && !targetJobId) return;
+    const currentId = job?.id || targetJobId;
 
     socketService.connect();
-    socketService.joinJobRoom(job.id);
+    socketService.joinJobRoom(currentId);
 
     const handleArrival = (data) => {
-      if (data.jobId === job.id) navigation.navigate('ArrivalAlert', { job });
+      if (data.jobId === currentId) navigation.navigate('ArrivalAlert', { job });
     };
     socketService.on('job:arrival', handleArrival);
 
     socketService.onLocationUpdate((data) => {
-      if (data.jobId === job.id || data.workerId) {
+      if (data.jobId === currentId || data.workerId) {
         if (data.eta) setEta(data.eta);
         setWorkerLocations(prev => {
           const filtered = prev.filter(w => w.id !== (data.userId || data.workerId));
@@ -84,25 +122,16 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
       socketService.off('job:arrival', handleArrival);
       socketService.offLocationUpdate();
     };
-  }, [job?.id]);
+  }, [job?.id, targetJobId]);
 
   const fetchJobDetails = async () => {
     if (!targetJobId) return;
     try {
       const response = await jobService.getJob(targetJobId);
-      if (response.success && response.data?.data) {
-        const jobData = response.data.data;
+      const jobData = response?.data?.job || response?.data?.data || response?.data || response?.job;
+      if (jobData) {
         setJob(jobData);
-        const accepted = (jobData.applications || [])
-          .filter(a => a.status === 'accepted')
-          .map(a => ({
-            id: a.worker?.id || a.workerId,
-            name: a.worker?.name || 'Worker',
-            rating: a.worker?.ratingAvg || 0,
-            phone: a.worker?.phone || null,
-            skills: a.worker?.skills || null,
-            village: a.worker?.village || null,
-          }));
+        const accepted = parseWorkers(jobData);
         if (accepted.length > 0) setWorkers(accepted);
       }
     } catch (_) {}
@@ -212,8 +241,8 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
         {/* Workers list */}
         {workers.length === 0 ? (
           <View style={styles.noWorkerRow}>
-            <MaterialIcons name="people" size={24} color="#9CA3AF" />
-            <Text style={styles.noWorkerText}>Loading worker details…</Text>
+            <MaterialIcons name="hourglass-empty" size={24} color="#9CA3AF" />
+            <Text style={styles.noWorkerText}>Connecting with assigned workers…</Text>
           </View>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 180 }}>
@@ -267,8 +296,6 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
       </Animated.View>
-
-      <BottomNavBar role="farmer" activeTab="Discovery" />
     </View>
   );
 };
@@ -337,7 +364,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.12,

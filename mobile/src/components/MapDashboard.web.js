@@ -1,52 +1,118 @@
-import React from 'react';
-import { View, StyleSheet, Text, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-const MapDashboard = ({ markers = [], userLocation, height = 300, role = 'farmer', fullScreen = false }) => {
+const MapDashboard = ({
+    markers = [],
+    userLocation,
+    height = 300,
+    onMarkerPress,
+    role = 'farmer',
+    fullScreen = false,
+}) => {
     const isFullScreen = Boolean(fullScreen);
+    const [activeMarkerId, setActiveMarkerId] = useState(null);
+
+    // Filter valid markers
+    const validMarkers = (markers || []).filter(
+        (m) => m && (m.latitude != null || m.lat != null || m.id != null || m.name != null)
+    );
 
     return (
         <View style={isFullScreen ? styles.fullContainer : [styles.container, { height }]}>
-            {/* Background grid pattern simulation for web map */}
-            <View style={styles.gridOverlay}>
+            {/* Visual Cartographic Map Background */}
+            <View style={styles.mapCanvas}>
+                {/* Subtle topographic grid & roads */}
                 <View style={styles.gridLineH1} />
                 <View style={styles.gridLineH2} />
                 <View style={styles.gridLineV1} />
                 <View style={styles.gridLineV2} />
-                <View style={styles.roadLine} />
+                <View style={styles.roadMain} />
+                <View style={styles.roadSecondary} />
             </View>
 
-            {/* Simulated Live Location / Farm Destination Marker */}
-            <View style={styles.farmMarker}>
-                <View style={styles.farmPin}>
-                    <MaterialIcons name="agriculture" size={20} color="#FFFFFF" />
-                </View>
-                <View style={styles.markerLabelContainer}>
-                    <Text style={styles.markerLabel}>Farm Location</Text>
-                </View>
-            </View>
-
-            {/* Simulated Worker Markers if any */}
-            {(markers.length > 0 ? markers : [{ id: 'w1' }]).slice(0, 3).map((m, idx) => (
-                <View
-                    key={m.id || idx}
-                    style={[
-                        styles.workerMarker,
-                        idx === 0 ? styles.workerPos1 : idx === 1 ? styles.workerPos2 : styles.workerPos3
-                    ]}
-                >
-                    <View style={styles.workerPulse} />
-                    <View style={styles.workerPin}>
-                        <MaterialIcons name="directions-walk" size={16} color="#FFFFFF" />
+            {/* User / Current Location Marker if provided */}
+            {userLocation && (
+                <View style={styles.userLocationMarker}>
+                    <View style={styles.userLocationPulse} />
+                    <View style={styles.userLocationPin}>
+                        <MaterialIcons
+                            name={role === 'farmer' ? 'agriculture' : 'my-location'}
+                            size={18}
+                            color="#FFFFFF"
+                        />
+                    </View>
+                    <View style={styles.userLocationTag}>
+                        <Text style={styles.userLocationText}>
+                            {role === 'farmer' ? 'Farm Location' : 'My Location'}
+                        </Text>
                     </View>
                 </View>
-            ))}
+            )}
 
-            {/* Map Info Badge */}
-            <View style={styles.mapBadge}>
-                <MaterialIcons name="satellite" size={14} color="#15803D" />
-                <Text style={styles.mapBadgeText}>Live GPS Tracking</Text>
+            {/* Dynamic Workers / Markers */}
+            {validMarkers.length > 0 ? (
+                validMarkers.map((marker, idx) => {
+                    // Compute pseudo-random distributed positions around center for web preview
+                    const topPercent = 22 + ((idx * 37 + 13) % 52);
+                    const leftPercent = 18 + ((idx * 43 + 29) % 64);
+                    const markerColor = marker.type === 'job' ? '#EF4444' : '#10B981';
+                    const iconName = marker.type === 'job' ? 'work' : 'directions-walk';
+                    const isSelected = activeMarkerId === (marker.id || idx);
+
+                    return (
+                        <TouchableOpacity
+                            key={marker.id || idx}
+                            style={[
+                                styles.dynamicMarker,
+                                { top: `${topPercent}%`, left: `${leftPercent}%` },
+                            ]}
+                            onPress={() => {
+                                setActiveMarkerId(isSelected ? null : (marker.id || idx));
+                                if (onMarkerPress) onMarkerPress(marker);
+                            }}
+                            activeOpacity={0.85}
+                        >
+                            <View style={[styles.markerPulse, { backgroundColor: `${markerColor}33` }]} />
+                            <View style={[styles.markerDot, { backgroundColor: markerColor }]}>
+                                <MaterialIcons name={iconName} size={15} color="#FFFFFF" />
+                            </View>
+                            {marker.name ? (
+                                <View style={styles.markerNameCard}>
+                                    <Text style={styles.markerNameText} numberOfLines={1}>
+                                        {marker.name}
+                                    </Text>
+                                    {marker.ratingAvg || marker.rating ? (
+                                        <View style={styles.ratingRow}>
+                                            <MaterialIcons name="star" size={10} color="#F59E0B" />
+                                            <Text style={styles.ratingText}>
+                                                {Number(marker.ratingAvg || marker.rating).toFixed(1)}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            ) : null}
+                        </TouchableOpacity>
+                    );
+                })
+            ) : (
+                /* Empty Radar Scan State when no markers are online */
+                <View style={styles.emptyRadarContainer}>
+                    <View style={styles.radarRing3} />
+                    <View style={styles.radarRing2} />
+                    <View style={styles.radarRing1} />
+                    <View style={styles.radarCenterPin}>
+                        <MaterialIcons name="share-location" size={22} color={colors.primary} />
+                    </View>
+                </View>
+            )}
+
+            {/* Map Controls */}
+            <View style={styles.controls}>
+                <View style={styles.controlBtn}>
+                    <MaterialIcons name="my-location" size={20} color={colors.primary} />
+                </View>
             </View>
         </View>
     );
@@ -56,37 +122,36 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         minHeight: 300,
-        backgroundColor: '#E8F5E9',
+        backgroundColor: '#EAF5EC',
         borderRadius: 16,
         overflow: 'hidden',
         position: 'relative',
         borderWidth: 1,
-        borderColor: colors.gray200,
+        borderColor: '#D3ECD8',
     },
     fullContainer: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#E8F5E9',
+        backgroundColor: '#EAF5EC',
         overflow: 'hidden',
     },
-    gridOverlay: {
+    mapCanvas: {
         ...StyleSheet.absoluteFillObject,
-        opacity: 0.35,
     },
     gridLineH1: {
         position: 'absolute',
-        top: '30%',
+        top: '32%',
         left: 0,
         right: 0,
         height: 1,
-        backgroundColor: '#A3D9A5',
+        backgroundColor: '#D1E9D7',
     },
     gridLineH2: {
         position: 'absolute',
-        top: '65%',
+        top: '68%',
         left: 0,
         right: 0,
         height: 1,
-        backgroundColor: '#A3D9A5',
+        backgroundColor: '#D1E9D7',
     },
     gridLineV1: {
         position: 'absolute',
@@ -94,7 +159,7 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         width: 1,
-        backgroundColor: '#A3D9A5',
+        backgroundColor: '#D1E9D7',
     },
     gridLineV2: {
         position: 'absolute',
@@ -102,82 +167,97 @@ const styles = StyleSheet.create({
         top: 0,
         bottom: 0,
         width: 1,
-        backgroundColor: '#A3D9A5',
+        backgroundColor: '#D1E9D7',
     },
-    roadLine: {
+    roadMain: {
         position: 'absolute',
-        top: '45%',
-        left: -50,
-        right: -50,
+        top: '48%',
+        left: -60,
+        right: -60,
         height: 8,
-        backgroundColor: '#D1E7DD',
-        transform: [{ rotate: '-15deg' }],
+        backgroundColor: '#FAF5EA',
+        transform: [{ rotate: '-12deg' }],
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: '#B2D8C7',
+        borderColor: '#E8DEC8',
     },
-    farmMarker: {
+    roadSecondary: {
         position: 'absolute',
-        top: '35%',
+        top: '15%',
+        bottom: -20,
         left: '52%',
-        alignItems: 'center',
-        zIndex: 4,
+        width: 6,
+        backgroundColor: '#FAF5EA',
+        transform: [{ rotate: '25deg' }],
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderColor: '#E8DEC8',
     },
-    farmPin: {
+    userLocationMarker: {
+        position: 'absolute',
+        top: '42%',
+        left: '50%',
+        transform: [{ translateX: -18 }, { translateY: -18 }],
+        alignItems: 'center',
+        zIndex: 5,
+    },
+    userLocationPulse: {
+        position: 'absolute',
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+    },
+    userLocationPin: {
         width: 36,
         height: 36,
         borderRadius: 18,
         backgroundColor: colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
+        borderWidth: 2.5,
         borderColor: '#FFFFFF',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
+        shadowOpacity: 0.2,
         shadowRadius: 4,
-        elevation: 5,
+        elevation: 4,
     },
-    markerLabelContainer: {
+    userLocationTag: {
         backgroundColor: '#FFFFFF',
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 6,
         marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.15,
+        shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
     },
-    markerLabel: {
+    userLocationText: {
         fontSize: 10,
         fontWeight: '700',
         color: '#1F2937',
     },
-    workerMarker: {
+    dynamicMarker: {
         position: 'absolute',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 3,
+        zIndex: 4,
     },
-    workerPos1: {
-        top: '25%',
-        left: '28%',
+    markerPulse: {
+        position: 'absolute',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
     },
-    workerPos2: {
-        top: '42%',
-        left: '75%',
-    },
-    workerPos3: {
-        top: '20%',
-        left: '60%',
-    },
-    workerPin: {
+    markerDot: {
         width: 28,
         height: 28,
         borderRadius: 14,
-        backgroundColor: '#059669',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
@@ -186,38 +266,108 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 3,
-        elevation: 4,
+        elevation: 3,
     },
-    workerPulse: {
+    markerNameCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    markerNameText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#1F2937',
+        maxWidth: 70,
+    },
+    ratingRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 1,
+    },
+    ratingText: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#4B5563',
+    },
+    emptyRadarContainer: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: [{ translateX: -60 }, { translateY: -60 }],
+        width: 120,
+        height: 120,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2,
+    },
+    radarRing3: {
+        position: 'absolute',
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 1,
+        borderColor: 'rgba(34, 197, 94, 0.15)',
+    },
+    radarRing2: {
+        position: 'absolute',
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        borderWidth: 1,
+        borderColor: 'rgba(34, 197, 94, 0.25)',
+    },
+    radarRing1: {
         position: 'absolute',
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(16, 185, 129, 0.25)',
+        backgroundColor: 'rgba(34, 197, 94, 0.12)',
     },
-    mapBadge: {
-        position: 'absolute',
-        top: 20,
-        right: 20,
-        flexDirection: 'row',
+    radarCenterPin: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#DCFCE7',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.15,
         shadowRadius: 3,
+        elevation: 2,
+    },
+    controls: {
+        position: 'absolute',
+        bottom: 12,
+        right: 12,
         zIndex: 5,
     },
-    mapBadgeText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#15803D',
+    controlBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
 });
 

@@ -1,0 +1,338 @@
+[
+  {
+    "name": "Splash Screen",
+    "category": "Authentication & Onboarding",
+    "filename": "01-app-splash.png",
+    "isMobile": true
+  },
+  {
+    "name": "Language Selection",
+    "category": "Authentication & Onboarding",
+    "filename": "02-app-language-selection.png",
+    "isMobile": true
+  },
+  {
+    "name": "Phone Login Screen",
+    "category": "Authentication & Onboarding",
+    "filename": "03-app-login.png",
+    "isMobile": true
+  },
+  {
+    "name": "User Registration Screen",
+    "category": "Authentication & Onboarding",
+    "filename": "04-app-register.png",
+    "isMobile": true
+  },
+  {
+    "name": "OTP Verification Screen",
+    "category": "Authentication & Onboarding",
+    "filename": "05-app-otp-verification.png",
+    "isMobile": true
+  },
+  {
+    "name": "Role Selection Screen",
+    "category": "Authentication & Onboarding",
+    "filename": "06-app-role-selection.png",
+    "isMobile": true
+  },
+  {
+    "name": "Support & Legal Guidelines",
+    "category": "Authentication & Onboarding",
+    "filename": "07-app-support-legal.png",
+    "isMobile": true
+  },
+  {
+    "name": "Farmer Dashboard",
+    "category": "Farmer Flow",
+    "filename": "08-farmer-home.png",
+    "isMobile": true
+  },
+  {
+    "name": "Crop & Work Types",
+    "category": "Farmer Flow",
+    "filename": "09-farmer-crop-work-types.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Selection & Split",
+    "category": "Farmer Flow",
+    "filename": "10-farmer-select-workers.png",
+    "isMobile": true
+  },
+  {
+    "name": "Request Sent Confirmation",
+    "category": "Farmer Flow",
+    "filename": "11-farmer-request-sent.png",
+    "isMobile": true
+  },
+  {
+    "name": "Request Accepted State",
+    "category": "Farmer Flow",
+    "filename": "12-farmer-request-accepted.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Arrival Alert",
+    "category": "Farmer Flow",
+    "filename": "13-farmer-arrival-alert.png",
+    "isMobile": true
+  },
+  {
+    "name": "QR Attendance IN Generator",
+    "category": "Farmer Flow",
+    "filename": "14-farmer-qr-attendance-in.png",
+    "isMobile": true
+  },
+  {
+    "name": "Work In Progress Live Timer",
+    "category": "Farmer Flow",
+    "filename": "15-farmer-work-in-progress.png",
+    "isMobile": true
+  },
+  {
+    "name": "QR Attendance OUT Generator",
+    "category": "Farmer Flow",
+    "filename": "16-farmer-qr-attendance-out.png",
+    "isMobile": true
+  },
+  {
+    "name": "Payment Settlement & UPI/Cash",
+    "category": "Farmer Flow",
+    "filename": "17-farmer-payment.png",
+    "isMobile": true
+  },
+  {
+    "name": "Rate Worker Screen",
+    "category": "Farmer Flow",
+    "filename": "18-farmer-rate-worker.png",
+    "isMobile": true
+  },
+  {
+    "name": "Farmer Profile & Settings",
+    "category": "Farmer Flow",
+    "filename": "19-farmer-profile.png",
+    "isMobile": true
+  },
+  {
+    "name": "Past Work History & Ledger",
+    "category": "Farmer Flow",
+    "filename": "20-farmer-history.png",
+    "isMobile": true
+  },
+  {
+    "name": "Tractor & Machinery Booking",
+    "category": "Farmer Flow",
+    "filename": "21-farmer-machinery-booking.png",
+    "isMobile": true
+  },
+  {
+    "name": "Agri AI Chatbot & Advice",
+    "category": "Farmer Flow",
+    "filename": "22-farmer-ai-chatbot.png",
+    "isMobile": true
+  },
+  {
+    "name": "Notification Inbox",
+    "category": "Farmer Flow",
+    "filename": "23-farmer-notifications.png",
+    "isMobile": true
+  },
+  {
+    "name": "Raise Dispute & Arbitration",
+    "category": "Farmer Flow",
+    "filename": "24-farmer-dispute-raise.png",
+    "isMobile": true
+  },
+  {
+    "name": "Dispute Resolution History",
+    "category": "Farmer Flow",
+    "filename": "25-farmer-dispute-history.png",
+    "isMobile": true
+  },
+  {
+    "name": "Live Map Worker Discovery",
+    "category": "Farmer Flow",
+    "filename": "26-farmer-live-map-discovery.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Dashboard",
+    "category": "Worker Flow",
+    "filename": "27-worker-home.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Availability Status",
+    "category": "Worker Flow",
+    "filename": "28-worker-status-toggle.png",
+    "isMobile": true
+  },
+  {
+    "name": "Job Offer Broadcast",
+    "category": "Worker Flow",
+    "filename": "29-worker-job-offer.png",
+    "isMobile": true
+  },
+  {
+    "name": "Farm Field GPS Navigation",
+    "category": "Worker Flow",
+    "filename": "30-worker-farm-navigation.png",
+    "isMobile": true
+  },
+  {
+    "name": "QR Attendance Scanner",
+    "category": "Worker Flow",
+    "filename": "31-worker-qr-scanner.png",
+    "isMobile": true
+  },
+  {
+    "name": "Attendance Confirmed Screen",
+    "category": "Worker Flow",
+    "filename": "32-worker-attendance-confirmed.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Work Progress & Clock",
+    "category": "Worker Flow",
+    "filename": "33-worker-work-status.png",
+    "isMobile": true
+  },
+  {
+    "name": "Rate Farmer Screen",
+    "category": "Worker Flow",
+    "filename": "34-worker-rate-farmer.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Earnings Dashboard",
+    "category": "Worker Flow",
+    "filename": "35-worker-earnings-dashboard.png",
+    "isMobile": true
+  },
+  {
+    "name": "Earnings Statement History",
+    "category": "Worker Flow",
+    "filename": "36-worker-earnings-history.png",
+    "isMobile": true
+  },
+  {
+    "name": "Payment Settlement Status",
+    "category": "Worker Flow",
+    "filename": "37-worker-settlement-status.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Profile & Skills",
+    "category": "Worker Flow",
+    "filename": "38-worker-profile.png",
+    "isMobile": true
+  },
+  {
+    "name": "Worker Booking History",
+    "category": "Worker Flow",
+    "filename": "39-worker-bookings.png",
+    "isMobile": true
+  },
+  {
+    "name": "Leader Dashboard",
+    "category": "Leader Flow",
+    "filename": "40-leader-home.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group & Team Setup",
+    "category": "Leader Flow",
+    "filename": "41-leader-group-setup.png",
+    "isMobile": true
+  },
+  {
+    "name": "Managed Groups List",
+    "category": "Leader Flow",
+    "filename": "42-leader-groups-list.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Members & Roster",
+    "category": "Leader Flow",
+    "filename": "43-leader-group-detail.png",
+    "isMobile": true
+  },
+  {
+    "name": "Add Member to Team",
+    "category": "Leader Flow",
+    "filename": "44-leader-add-member.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Contract Offer",
+    "category": "Leader Flow",
+    "filename": "45-leader-group-job-offer.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Master QR Attendance",
+    "category": "Leader Flow",
+    "filename": "46-leader-group-qr-attendance.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Attendance Confirmed",
+    "category": "Leader Flow",
+    "filename": "47-leader-group-attendance-confirmed.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Work In Progress",
+    "category": "Leader Flow",
+    "filename": "48-leader-group-work-status.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Team Chat",
+    "category": "Leader Flow",
+    "filename": "49-leader-group-chat.png",
+    "isMobile": true
+  },
+  {
+    "name": "Group Live Member Map",
+    "category": "Leader Flow",
+    "filename": "50-leader-group-map.png",
+    "isMobile": true
+  },
+  {
+    "name": "Leader Profile & Trust Score",
+    "category": "Leader Flow",
+    "filename": "51-leader-profile.png",
+    "isMobile": true
+  },
+  {
+    "name": "Job Cancelled Alert Screen",
+    "category": "Error Pages",
+    "filename": "52-app-job-cancelled-error.png",
+    "isMobile": true
+  },
+  {
+    "name": "React Native ErrorBoundary Crash State",
+    "category": "Error Pages",
+    "filename": "53-app-runtime-error-boundary.png",
+    "isMobile": true
+  },
+  {
+    "name": "Offline Network Disconnected Banner",
+    "category": "Error Pages",
+    "filename": "54-app-offline-network-banner.png",
+    "isMobile": true
+  },
+  {
+    "name": "Admin Portal Login",
+    "category": "Admin Portal",
+    "filename": "55-admin-portal-login.png",
+    "isMobile": true
+  },
+  {
+    "name": "Admin Operations Dashboard",
+    "category": "Admin Portal",
+    "filename": "56-admin-portal-dashboard.png",
+    "isMobile": true
+  }
+]

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edhigo Pani - Live Working App UI Gallery</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5bec13',
+                        darkbg: '#0c1308',
+                        cardbg: '#142010',
+                        accent: '#4ade80'
+                    },
+                    fontFamily: {
+                        sans: ['Lexend', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #2b451f; border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-[#0a0f07] text-zinc-100 min-h-screen font-sans selection:bg-primary selection:text-black">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-50 bg-[#0c1308]/90 backdrop-blur-md border-b border-zinc-800/80 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/20 border border-primary/40 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">smartphone</span>
+            </div>
+            <div>
+                <h1 class="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                    Edhigo Pani - Live Working App Screenshots
+                    <span class="text-xs px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-bold">56 Live Screens</span>
+                </h1>
+                <p class="text-xs text-zinc-400">Captured directly from running React Native Expo Engine & Backend</p>
+            </div>
+        </div>
+
+        <!-- Quick Stats & Filter Search -->
+        <div class="flex items-center gap-3">
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-3 top-2.5 text-zinc-500 text-lg">search</span>
+                <input type="text" id="searchInput" placeholder="Search live screens..." 
+                       class="pl-9 pr-4 py-2 text-xs bg-zinc-900/80 border border-zinc-700/60 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-primary w-64 transition-all">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-[1700px] mx-auto px-6 py-8">
+
+        <!-- Category Filter Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-4 custom-scroll mb-8" id="categoryTabs">
+            <!-- Populated dynamically -->
+        </div>
+
+        <!-- Screenshots Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="galleryGrid">
+            <!-- Populated dynamically -->
+        </div>
+    </div>
+
+    <!-- Image Modal Viewer -->
+    <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="relative max-w-4xl max-h-[95vh] flex flex-col items-center">
+            <div class="flex items-center justify-between w-full mb-3 px-2 text-white">
+                <span id="modalTitle" class="text-sm font-bold truncate"></span>
+                <div class="flex items-center gap-2">
+                    <a id="modalDownload" href="#" download class="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold flex items-center gap-1">
+                        <span class="material-symbols-outlined text-sm">download</span> Download
+                    </a>
+                    <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined text-lg">close</span>
+                    </button>
+                </div>
+            </div>
+            <img id="modalImg" src="" alt="Screen Preview" class="max-h-[82vh] max-w-full object-contain rounded-2xl shadow-2xl border border-zinc-700/50">
+        </div>
+    </div>
+
+    <script>
+        let allScreens = [];
+        let activeCategory = 'All';
+
+        fetch('manifest.json')
+            .then(res => res.json())
+            .then(data => {
+                allScreens = data;
+                initTabs();
+                renderGrid();
+            })
+            .catch(err => {
+                console.error('Failed to load manifest.json', err);
+            });
+
+        function initTabs() {
+            const categories = ['All', ...new Set(allScreens.map(s => s.category))];
+            const container = document.getElementById('categoryTabs');
+            container.innerHTML = categories.map(cat => {
+                const count = cat === 'All' ? allScreens.length : allScreens.filter(s => s.category === cat).length;
+                return `<button onclick="filterCategory('${cat}')" 
+                        class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 
+                        ${cat === activeCategory ? 'bg-primary text-black shadow-lg shadow-primary/20' : 'bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'}">
+                        <span>${cat}</span>
+                        <span class="text-[10px] px-1.5 py-0.5 rounded-md ${cat === activeCategory ? 'bg-black/20 text-black' : 'bg-zinc-800 text-zinc-400'} font-black">${count}</span>
+                    </button>`;
+            }).join('');
+        }
+
+        function filterCategory(cat) {
+            activeCategory = cat;
+            initTabs();
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allScreens.filter(screen => {
+                const matchesCat = (activeCategory === 'All' || screen.category === activeCategory);
+                const matchesSearch = screen.name.toLowerCase().includes(search) || screen.category.toLowerCase().includes(search);
+                return matchesCat && matchesSearch;
+            });
+
+            const grid = document.getElementById('galleryGrid');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full py-16 text-center text-zinc-500">
+                    <span class="material-symbols-outlined text-4xl mb-2">image_not_supported</span>
+                    <p class="text-sm font-semibold">No matching screens found</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(screen => {
+                const isError = screen.category === 'Error Pages';
+                const isSuccess = screen.category === 'Success Pages';
+                const badgeColor = isError ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                                   isSuccess ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                   'bg-zinc-800 text-zinc-300 border-zinc-700';
+
+                return `
+                <div class="group relative bg-[#121a0d] border border-zinc-800/80 rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 flex flex-col">
+                    <div class="relative overflow-hidden cursor-pointer bg-black/40 flex items-center justify-center p-3" onclick="openModal('${screen.filename}', '${screen.name}')">
+                        <img src="${screen.filename}" alt="${screen.name}" loading="lazy" 
+                             class="rounded-xl w-full object-contain max-h-[380px] group-hover:scale-[1.02] transition-transform duration-300">
+                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <span class="w-10 h-10 rounded-full bg-primary text-black flex items-center justify-center shadow-lg font-bold">
+                                <span class="material-symbols-outlined">zoom_in</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-col justify-between flex-1 border-t border-zinc-800/60 bg-[#0e160a]">
+                        <div class="mb-2">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${badgeColor}">
+                                    ${screen.category}
+                                </span>
+                                <span class="text-[10px] text-zinc-500 font-mono">${screen.isMobile ? '412×892' : '1366×850'}</span>
+                            </div>
+                            <h3 class="text-xs font-bold text-white capitalize leading-tight truncate" title="${screen.name}">
+                                ${screen.name}
+                            </h3>
+                        </div>
+                        <a href="${screen.filename}" download class="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 mt-2">
+                            <span class="material-symbols-outlined text-xs">download</span> Save PNG
+                        </a>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        document.getElementById('searchInput').addEventListener('input', renderGrid);
+
+        function openModal(filename, title) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('modalImg');
+            const titleEl = document.getElementById('modalTitle');
+            const dl = document.getElementById('modalDownload');
+            img.src = filename;
+            titleEl.textContent = title;
+            dl.href = filename;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.getElementById('imageModal').addEventListener('click', (e) => {
+            if (e.target.id === 'imageModal') closeModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   Image,
+  Platform,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -259,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60,
+    paddingTop: Platform.OS === 'ios' ? 48 : Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 12 : 16,
     paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

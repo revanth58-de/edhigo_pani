@@ -495,9 +495,9 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
   heroSection: {
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 20 : 60,
+    paddingTop: Platform.OS === 'ios' ? 48 : Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 16 : 24,
     paddingHorizontal: 24,
-    paddingBottom: 60,
+    paddingBottom: 40,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },

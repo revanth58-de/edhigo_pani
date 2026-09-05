@@ -62,8 +62,6 @@ const LanguageSelectionScreen = ({ navigation }) => {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.backgroundLight} />
 
-      <View style={{ height: 40 }} />
-
       {/* Headline */}
       <View style={styles.headlineContainer}>
         <Text style={styles.mainHeadline}>Choose your language</Text>
@@ -103,8 +101,6 @@ const LanguageSelectionScreen = ({ navigation }) => {
           <Text style={styles.helperText}>Touch any button to select</Text>
         </View>
       </View>
-
-      <View style={{ height: 40 }} />
     </ScrollView>
   );
 };

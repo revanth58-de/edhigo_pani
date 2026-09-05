@@ -32,9 +32,6 @@ const ArrivalAlertScreen = ({ navigation, route }) => {
       style={styles.container}
     >
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
-      {/* Spacer for status bar */}
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       <View style={styles.content}>
         <View style={styles.iconContainer}>

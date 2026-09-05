@@ -6,6 +6,7 @@ import {
     StyleSheet,
     StatusBar,
     Alert,
+    Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -236,7 +237,17 @@ const styles = StyleSheet.create({
     infoBadge: { position: 'absolute', top: 120, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, elevation: 4, gap: 6 },
     pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
     infoBadgeText: { fontSize: 12, fontWeight: 'bold', color: '#10B981' },
-    overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 60, justifyContent: 'space-between', paddingBottom: 40 },
+    overlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 16,
+        paddingTop: Platform.OS === 'ios' ? 48 : Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 12 : 20,
+        justifyContent: 'space-between',
+        paddingBottom: 40,
+    },
     header: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: 'rgba(255,255,255,0.9)', padding: 12, borderRadius: 20 },
     backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center', elevation: 2 },
     headerInfo: { flex: 1 },

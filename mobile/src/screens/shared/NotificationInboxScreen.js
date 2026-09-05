@@ -356,9 +356,6 @@ const NotificationInboxScreen = ({ navigation }) => {
         style={StyleSheet.absoluteFill}
       />
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      
-      {/* Spacer for status bar */}
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -450,8 +447,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
+    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 44 : Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 8 : 16,
     zIndex: 10,
   },
   backBtn: {

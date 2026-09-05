@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: 32,
     paddingHorizontal: 32,
   },
   emptyIconCircle: {

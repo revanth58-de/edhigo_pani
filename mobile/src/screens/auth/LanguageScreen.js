@@ -101,9 +101,6 @@ const LanguageScreen = ({ navigation }) => {
             <Text style={styles.hintText}>Touch any button to select</Text>
           </View>
         </View>
-
-        {/* Bottom spacer */}
-        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );

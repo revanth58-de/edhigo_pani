@@ -462,8 +462,6 @@ const FarmerHomeScreen = ({ navigation }) => {
   return (
     <LinearGradient colors={['#FDFBF7', colors.backgroundLight]} style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
-      <View style={{ height: Platform.OS === 'android' ? StatusBar.currentHeight : 44 }} />
-
       <TopBar title="DINASARI" showLogo={true} navigation={navigation} />
       <WeatherLocationHeader />
 

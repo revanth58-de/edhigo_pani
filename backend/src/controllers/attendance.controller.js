@@ -75,16 +75,35 @@ const checkIn = async (req, res, next) => {
     if (checkInLongitude == null && longitude != null) checkInLongitude = longitude;
     if (!workerId && req.user?.id) workerId = req.user.id;
 
-    if (!jobId && !bookingId && qrCodeIn) {
-      try {
-        if (typeof qrCodeIn === 'string' && qrCodeIn.startsWith('SECURE_ATTENDANCE|')) {
-          jobId = qrCodeIn.split('|')[1];
+    if (!jobId && !bookingId && (qrCodeIn || req.body.pin || req.body.jobCode)) {
+      const pinVal = req.body.pin || req.body.jobCode;
+      if (pinVal) {
+        const pinStr = String(pinVal).trim();
+        const candidateJobs = await prisma.job.findMany({
+          where: {
+            OR: [
+              { id: pinStr },
+              { id: { endsWith: pinStr } },
+            ],
+          },
+          take: 1,
+        });
+        if (candidateJobs.length > 0) {
+          jobId = candidateJobs[0].id;
         } else {
-          const parsed = JSON.parse(qrCodeIn);
-          if (parsed.jobId) jobId = parsed.jobId;
-          if (parsed.bookingId) bookingId = parsed.bookingId;
+          jobId = pinStr;
         }
-      } catch (_) {}
+      } else {
+        try {
+          if (typeof qrCodeIn === 'string' && qrCodeIn.startsWith('SECURE_ATTENDANCE|')) {
+            jobId = qrCodeIn.split('|')[1];
+          } else {
+            const parsed = JSON.parse(qrCodeIn);
+            if (parsed.jobId) jobId = parsed.jobId;
+            if (parsed.bookingId) bookingId = parsed.bookingId;
+          }
+        } catch (_) {}
+      }
     }
 
     // 1. Basic Validation
@@ -352,21 +371,41 @@ const checkOut = async (req, res, next) => {
     if (checkOutLongitude == null && longitude != null) checkOutLongitude = longitude;
     if (!workerId && req.user?.id) workerId = req.user.id;
 
-    if (!jobId && !bookingId && qrCodeOut) {
-      try {
-        if (typeof qrCodeOut === 'string' && qrCodeOut.startsWith('SECURE_ATTENDANCE|')) {
-          jobId = qrCodeOut.split('|')[1];
+    if (!jobId && !bookingId && (qrCodeOut || req.body.pin || req.body.jobCode)) {
+      const pinVal = req.body.pin || req.body.jobCode;
+      if (pinVal) {
+        const pinStr = String(pinVal).trim();
+        const candidateJobs = await prisma.job.findMany({
+          where: {
+            OR: [
+              { id: pinStr },
+              { id: { endsWith: pinStr } },
+            ],
+          },
+          take: 1,
+        });
+        if (candidateJobs.length > 0) {
+          jobId = candidateJobs[0].id;
         } else {
-          const parsed = JSON.parse(qrCodeOut);
-          if (parsed.jobId) jobId = parsed.jobId;
-          if (parsed.bookingId) bookingId = parsed.bookingId;
+          jobId = pinStr;
         }
-      } catch (_) {}
+        if (!qrCodeOut) qrCodeOut = `PIN_${pinStr}`;
+      } else {
+        try {
+          if (typeof qrCodeOut === 'string' && qrCodeOut.startsWith('SECURE_ATTENDANCE|')) {
+            jobId = qrCodeOut.split('|')[1];
+          } else {
+            const parsed = JSON.parse(qrCodeOut);
+            if (parsed.jobId) jobId = parsed.jobId;
+            if (parsed.bookingId) bookingId = parsed.bookingId;
+          }
+        } catch (_) {}
+      }
     }
 
     // Validate required fields before any QR or DB checks
-    if (!qrCodeOut) {
-      return res.status(400).json({ success: false, message: 'QR code is required for check-out' });
+    if (!qrCodeOut && !req.body.pin && !req.body.jobCode) {
+      return res.status(400).json({ success: false, message: 'QR code or PIN is required for check-out' });
     }
     if (checkOutLatitude == null || checkOutLongitude == null) {
       return res.status(400).json({ success: false, message: 'Location is required for check-out' });

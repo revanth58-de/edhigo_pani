@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   StatusBar,
@@ -71,6 +72,8 @@ const QRScannerScreen = ({ navigation, route }) => {
   const [flashOn, setFlashOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [manualPin, setManualPin] = useState('');
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   // Sync hook status with Zustand cache
@@ -228,6 +231,68 @@ const QRScannerScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleManualPinSubmit = async () => {
+    if (!manualPin || manualPin.trim().length < 4) {
+      Alert.alert('Invalid PIN', 'Please enter a valid 4-digit Job PIN / Code.');
+      return;
+    }
+    if (loading) return;
+    setLoading(true);
+    setPinModalVisible(false);
+
+    try {
+      const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
+      let coords = { latitude: 16.2359, longitude: 80.6475 };
+      if (locStatus === 'granted') {
+        try {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (loc?.coords) coords = loc.coords;
+        } catch (_) {}
+      }
+
+      const isCheckOut = route.params?.autoCheckout || (job?.status === 'in_progress');
+      const userObj = useAuthStore.getState().user;
+      const isMachineryQR = !!booking?.id || isMachinery;
+
+      const payload = isMachineryQR
+        ? {
+            bookingId: booking?.id || manualPin.trim(),
+            pin: manualPin.trim(),
+            workerId: userObj?.id,
+            [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
+            [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: `PIN_${manualPin.trim()}`,
+          }
+        : {
+            jobId: job?.id,
+            pin: manualPin.trim(),
+            workerId: userObj?.id,
+            [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
+            [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: `PIN_${manualPin.trim()}`,
+          };
+
+      const response = await (isCheckOut
+        ? attendanceService.checkOut(payload)
+        : attendanceService.checkIn(payload));
+
+      if (response.success) {
+        const farmerId = response.data?.job?.farmerId || job?.farmerId || job?.farmer?.id;
+        navigation.replace(isCheckOut ? 'RateFarmer' : 'AttendanceConfirmed', {
+          job: { ...job, id: response.data?.jobId || job?.id || manualPin.trim(), farmerId },
+        });
+      } else {
+        Alert.alert('Attendance Failed', response.message || 'Could not verify attendance with this PIN.');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Manual PIN Error:', err);
+      const msg = err?.response?.data?.message || err?.message || 'Something went wrong.';
+      Alert.alert('Error', msg);
+      setLoading(false);
+    }
+  };
+
   const handleBarCodeScanned = ({ data }) => {
     if (scanned || loading) return;
     setScanned(true);
@@ -278,6 +343,12 @@ const QRScannerScreen = ({ navigation, route }) => {
           onPress={requestPermission}
         >
           <Text style={styles.retryButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: '#374151', marginTop: 12 }]}
+          onPress={() => setPinModalVisible(true)}
+        >
+          <Text style={styles.retryButtonText}>🔢 Enter 4-Digit Job PIN (పిన్ ద్వారా హాజరు)</Text>
         </TouchableOpacity>
       </View>
     );
@@ -385,6 +456,13 @@ const QRScannerScreen = ({ navigation, route }) => {
           <Text style={styles.controlLabel}>Gallery</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.controlItem} onPress={() => setPinModalVisible(true)}>
+          <View style={[styles.controlIconWrap, { backgroundColor: '#10B981' }]}>
+             <MaterialIcons name="pin" size={24} color="#FFFFFF" />
+          </View>
+          <Text style={styles.controlLabel}>Enter PIN</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity 
           style={styles.controlItem} 
           onPress={() => {
@@ -404,6 +482,70 @@ const QRScannerScreen = ({ navigation, route }) => {
       </View>
 
       <BottomNavBar role={user?.role || "worker"} activeTab="ShowQR" />
+
+      {/* Manual PIN Modal */}
+      <Modal visible={pinModalVisible} animationType="slide" transparent>
+        <TouchableWithoutFeedback onPress={() => setPinModalVisible(false)}>
+          <View style={styles.modalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Enter 4-Digit Job PIN</Text>
+                  <TouchableOpacity onPress={() => setPinModalVisible(false)} style={styles.modalClose}>
+                    <MaterialIcons name="close" size={24} color="#6B7280" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
+                  If camera cannot scan the QR code, ask the farmer for the 4-digit code (పిన్ ఎంటర్ చేసి హాజరు మార్క్ చేయండి):
+                </Text>
+                
+                <TextInput
+                  style={{
+                    backgroundColor: '#F3F4F6',
+                    borderRadius: 12,
+                    padding: 16,
+                    fontSize: 22,
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    letterSpacing: 8,
+                    color: '#111827',
+                    borderWidth: 2,
+                    borderColor: colors.primary,
+                    marginBottom: 20
+                  }}
+                  placeholder="• • • •"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  value={manualPin}
+                  onChangeText={setManualPin}
+                  autoFocus
+                />
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: colors.primary,
+                    borderRadius: 14,
+                    paddingVertical: 16,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: colors.primary,
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4
+                  }}
+                  onPress={handleManualPinSubmit}
+                >
+                  <Text style={{ color: '#0c1308', fontWeight: '900', fontSize: 16 }}>
+                    ✓ Submit PIN (హాజరు నమోదు చేయండి)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
 
       {/* Help Modal */}
       <Modal visible={helpVisible} animationType="slide" transparent>

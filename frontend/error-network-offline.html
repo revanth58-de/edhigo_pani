@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html class="light" lang="te">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>ఇంటర్నెట్ కనెక్షన్ లేదు | No Internet Connection</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5bec13",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#162210",
+                        "earth-brown": "#4a3728",
+                    },
+                    fontFamily: { "display": ["Lexend", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        body { min-height: 884px; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-zinc-800 dark:text-zinc-100 flex flex-col justify-between p-6">
+    <!-- Top Header -->
+    <div class="flex items-center justify-between pt-6">
+        <button class="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 shadow-md flex items-center justify-center text-zinc-700 dark:text-zinc-200">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <span class="text-xs font-bold tracking-wider uppercase px-3 py-1 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">నెట్‌వర్క్ సమస్య (Network Issue)</span>
+        <button class="w-10 h-10 rounded-full bg-white dark:bg-zinc-800 shadow-md flex items-center justify-center text-zinc-700 dark:text-zinc-200">
+            <span class="material-symbols-outlined">more_vert</span>
+        </button>
+    </div>
+
+    <!-- Center Status Hero -->
+    <div class="flex flex-col items-center text-center my-auto px-2">
+        <div class="relative mb-6">
+            <div class="absolute -inset-4 bg-red-500/20 rounded-full blur-2xl"></div>
+            <div class="relative w-32 h-32 bg-red-50 dark:bg-red-950/40 rounded-full flex items-center justify-center border-4 border-red-500 shadow-xl">
+                <span class="material-symbols-outlined text-red-500 text-6xl">wifi_off</span>
+            </div>
+        </div>
+
+        <h1 class="text-2xl font-black mb-2 text-zinc-900 dark:text-white leading-tight">ఇంటర్నెట్ కనెక్షన్ లేదు</h1>
+        <h2 class="text-base font-bold text-red-500 mb-3">No Internet Connection</h2>
+        <p class="text-zinc-600 dark:text-zinc-400 text-sm max-w-xs mb-6">
+            దయచేసి మీ మొబైల్ డేటా లేదా Wi-Fi కనెక్షన్ తనిఖీ చేసి మళ్ళీ ప్రయత్నించండి.
+        </p>
+
+        <!-- Subcard detail -->
+        <div class="w-full bg-white dark:bg-zinc-800 rounded-2xl p-4 shadow-sm border border-zinc-200 dark:border-zinc-700 flex items-center gap-3 text-left">
+            <div class="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-red-500 text-2xl">offline_bolt</span>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-zinc-800 dark:text-white">ఆఫ్‌లైన్ మోడ్ సక్రియం (Offline Ready)</p>
+                <p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">గతంలో సేవ్ చేసిన బుకింగ్‌లు & QR కోడ్‌లు అందుబాటులో ఉన్నాయి</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Actions & Voice Affordance -->
+    <div class="flex flex-col gap-3 pb-6">
+        <!-- Voice Guidance Button -->
+        <div class="flex items-center justify-center gap-2 py-2.5 px-4 rounded-full bg-primary/15 text-zinc-800 dark:text-zinc-100 text-sm font-semibold border border-primary/30">
+            <span class="material-symbols-outlined text-primary text-xl">volume_up</span>
+            <span>ఇంటర్నెట్ ఆన్ చేయండి</span>
+        </div>
+        <!-- Primary Action -->
+        <button class="w-full bg-primary text-background-dark font-black py-4 rounded-2xl shadow-lg hover:brightness-105 active:scale-95 transition-all text-center text-base">
+            మళ్ళీ ప్రయత్నించండి (Retry Connection)
+        </button>
+    </div>
+</body>
+</html>

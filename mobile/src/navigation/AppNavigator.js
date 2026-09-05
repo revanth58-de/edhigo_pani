@@ -301,6 +301,11 @@ const AppNavigator = () => {
   const navigationRef = useNavigationContainerRef();
   const [canGoBack, setCanGoBack] = useState(false);
 
+  if (typeof window !== 'undefined') {
+    window.__NAV_REF = navigationRef;
+    window.__AUTH_STORE = useAuthStore;
+  }
+
   useEffect(() => {
     rehydrate();
     

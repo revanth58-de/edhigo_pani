@@ -229,9 +229,12 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 18,
+    lineHeight: 26,
     fontWeight: 'bold',
     color: '#131811',
     marginBottom: 24,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -250,15 +253,18 @@ const styles = StyleSheet.create({
   },
   feedbackLabel: {
     fontSize: 16,
+    lineHeight: 22,
     fontWeight: 'bold',
     color: '#131811',
     marginBottom: 16,
+    flexShrink: 1,
   },
   feedbackInput: {
     backgroundColor: colors.backgroundLight,
     borderRadius: 16,
     padding: 16,
     fontSize: 16,
+    lineHeight: 22,
     color: '#131811',
     minHeight: 120,
   },
@@ -280,9 +286,11 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    fontSize: 20,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: '900',
     color: colors.backgroundDark,
+    flexShrink: 1,
   },
 });
 

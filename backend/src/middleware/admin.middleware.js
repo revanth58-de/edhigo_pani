@@ -94,12 +94,13 @@ const adminAuth = async (req, res, next) => {
             name: 'System Admin',
             role: 'farmer',
             status: 'offline',
+            deletedAt: new Date(0), // System reserved account; excluded from public search
           }
         });
       }
       req.user = adminUser;
     } catch (err) {
-      req.user = { id: 'admin-system-id', name: 'System Admin' };
+      req.user = { id: 'admin-system-id', name: 'System Admin', role: 'farmer', isAdmin: true };
     }
     next();
   };

@@ -66,6 +66,11 @@ async function cleanupTestUsers() {
     // Delete in strict reverse dependency order to avoid foreign key errors.
     // We filter by TEST_PHONE_PREFIX to ensure tests NEVER delete production data.
     
+    // 0. AuditLog
+    await prisma.auditLog.deleteMany({
+      where: { admin: { phone: { startsWith: TEST_PHONE_PREFIX } } }
+    });
+
     // 1. Machinery Booking
     await prisma.machineryBooking.deleteMany({
       where: {

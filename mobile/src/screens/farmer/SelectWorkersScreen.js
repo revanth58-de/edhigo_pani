@@ -355,12 +355,15 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 26,
+    lineHeight: 34,
     fontWeight: '900',
     color: '#131811',
     letterSpacing: -0.5,
+    flexShrink: 1,
   },
   sectionSubtitle: {
     fontSize: 15,
+    lineHeight: 22,
     color: '#6f8961',
     marginTop: 6,
     fontWeight: '600',
@@ -402,8 +405,10 @@ const styles = StyleSheet.create({
   },
   workerTypeText: {
     fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     color: '#131811',
+    textAlign: 'center',
   },
   stepperContainer: {
     paddingHorizontal: 20,

@@ -278,18 +278,23 @@ const styles = StyleSheet.create({
     borderColor: `${colors.primary}22`,
   },
   workerName: {
-    fontSize: 28,
+    fontSize: 26,
+    lineHeight: 34,
     fontWeight: '900',
     color: '#131811',
     letterSpacing: -0.5,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   jobType: {
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 20,
     color: '#6f8961',
     fontWeight: '700',
     marginTop: 4,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   ratingSection: {
     backgroundColor: '#FFFFFF',
@@ -306,10 +311,12 @@ const styles = StyleSheet.create({
   },
   ratingLabel: {
     fontSize: 18,
+    lineHeight: 26,
     fontWeight: '800',
     color: '#131811',
     marginBottom: 24,
     textAlign: 'center',
+    flexShrink: 1,
   },
   starsContainer: {
     flexDirection: 'row',
@@ -318,6 +325,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 20,
+    lineHeight: 28,
     fontWeight: '900',
     color: colors.primary,
     letterSpacing: 1,
@@ -342,14 +350,17 @@ const styles = StyleSheet.create({
   },
   feedbackLabel: {
     fontSize: 16,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#131811',
+    flexShrink: 1,
   },
   feedbackInput: {
     backgroundColor: '#F9FAFB',
     borderRadius: 20,
     padding: 20,
     fontSize: 16,
+    lineHeight: 22,
     color: '#131811',
     minHeight: 140,
     borderWidth: 1,
@@ -377,9 +388,11 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     fontSize: 18,
+    lineHeight: 26,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 1,
+    flexShrink: 1,
   },
 });
 

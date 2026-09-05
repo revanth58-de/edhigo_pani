@@ -110,4 +110,3 @@ adb exec-out screencap -p > mobile/store/screenshots/05_qr_attendance.png
 # 6. Navigate to Worker Earnings / Payments -> Capture
 adb exec-out screencap -p > mobile/store/screenshots/06_earnings_wallet.png
 ```
->>>>>>> bbe0e3a03e2d77d21cbcd0391ccaa31cc261d3bb

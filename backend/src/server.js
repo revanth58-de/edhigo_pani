@@ -1,3 +1,14 @@
+const Sentry = require('@sentry/node');
+
+// Initialize Sentry crash reporting before requiring express
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    environment: process.env.NODE_ENV || 'development',
+  });
+}
+
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -24,22 +35,9 @@ const disputeRoutes = require('./routes/dispute.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const machineryRoutes = require('./routes/machinery.routes');
 
-const Sentry = require('@sentry/node');
-// NOTE: @sentry/profiling-node is excluded — it requires a native binary that
-// is not yet available for Node.js v24. Error monitoring still works fully.
-// Re-enable once https://github.com/getsentry/sentry-javascript/issues ships a v24 build.
-
-// Initialize Sentry crash reporting
-if (process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
-    environment: process.env.NODE_ENV || 'development',
-  });
-}
-
 // Initialize Express
 const app = express();
+
 
 // Use request tracing middleware
 app.use(traceMiddleware);
@@ -142,9 +140,12 @@ app.use(helmet({
 app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
-// ─── Rate Limiting ───
 // General fallback: 60 req/min. Auth routes have stricter limits applied in auth.routes.js.
 app.use('/api/', apiLimiter);
+
+// Structural Read-Only Enforcement for Overnight QA Agent
+const qaReadOnlyMiddleware = require('./middleware/qaReadOnly');
+app.use('/api/', qaReadOnlyMiddleware);
 
 // ─── Routes ───
 app.use('/api/auth', authRoutes);
@@ -164,13 +165,34 @@ app.use('/api/machinery', machineryRoutes);
 // Serve admin dashboard static files
 app.use('/admin', express.static(path.join(__dirname, '../../admin')));
 
-// Serve uploaded profile images
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// Serve uploaded profile images with hardened headers
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+  dotfiles: 'ignore',
+  maxAge: '1d',
+  setHeaders: (res) => {
+    res.set('X-Content-Type-Options', 'nosniff');
+  },
+}));
 
 // Serve public privacy policy (required for Google Play Store compliance)
 app.get(['/privacy', '/privacy-policy', '/privacy-policy.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../../admin/privacy-policy.html'));
 });
+
+// Helper for socket event rate limiting (DoS prevention)
+const checkSocketRateLimit = (socket, eventName, maxPerWindow = 10, windowMs = 1000) => {
+  const now = Date.now();
+  if (!socket.rateLimits) socket.rateLimits = {};
+  if (!socket.rateLimits[eventName] || now - socket.rateLimits[eventName].resetTime > windowMs) {
+    socket.rateLimits[eventName] = { count: 1, resetTime: now };
+    return true;
+  }
+  socket.rateLimits[eventName].count++;
+  if (socket.rateLimits[eventName].count > maxPerWindow) {
+    return false;
+  }
+  return true;
+};
 
 // ─── Socket.io ───
 // SEC-2 FIX: Authenticate every socket connection before allowing room joins.
@@ -196,6 +218,7 @@ io.on('connection', (socket) => {
   // Location updates from workers — emit ONLY to the relevant farmer's room
   // data must include: { farmerId, latitude, longitude }
   socket.on('location:update', async (data) => {
+    if (!checkSocketRateLimit(socket, 'location:update', 10, 1000)) return;
     const senderId = socket.userId;
     if (!senderId) return;
 
@@ -333,6 +356,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('group:message', async (data) => {
+    if (!checkSocketRateLimit(socket, 'group:message', 5, 1000)) return;
     const { groupId, content } = data;
     // S1 FIX: Use socket.userId (verified at connection) instead of re-verifying a token.
     // The io.use() middleware already validated the JWT before this handler runs.
@@ -373,6 +397,7 @@ io.on('connection', (socket) => {
 
   // Group location updates from a member of a group
   socket.on('group:location_update', async (data) => {
+    if (!checkSocketRateLimit(socket, 'group:location_update', 10, 1000)) return;
     const { groupId, latitude, longitude } = data;
     const senderId = socket.userId;
     try {

@@ -9,7 +9,8 @@ const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
-    } else if (req.query.token) {
+    } else if (req.query.token && (req.path.endsWith('/pdf') || req.path.includes('/download'))) {
+      // Scoped exception: Direct browser/WebView document download links cannot attach custom HTTP headers
       token = req.query.token;
     }
 

@@ -50,6 +50,26 @@ const deleteTokenSafe = async (key) => {
     }
 };
 
+// ── Request interceptor: self-healing auth token ────────────────────────────
+// Reads the token from Zustand on every outgoing request as a fallback.
+// This fixes the race condition where home screens call APIs before
+// setAuthToken() has been invoked (e.g. during initial rehydration).
+apiClient.interceptors.request.use((config) => {
+    if (!config.headers['Authorization']) {
+        try {
+            // Lazy require avoids a circular import at module load time
+            const useAuthStore = require('../store/authStore').default;
+            const token = useAuthStore.getState().accessToken;
+            if (token) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
+        } catch (_) {
+            // Store not yet initialised — no-op, the request proceeds without token
+        }
+    }
+    return config;
+});
+
 // ── Single unified response interceptor ────────────────────────────────────
 //   1. Auto-retry once on tunnel transient errors (408, 503)
 //   2. Auto-refresh access token on 401 and retry the original request

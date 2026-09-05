@@ -156,7 +156,10 @@ const useAuthStore = create((set, get) => ({
       });
 
       if (saved.isAuthenticated) {
-        import('../services/socketService').then(s => s.socketService.connect());
+        // Pass the token explicitly — the store's set() above is synchronous but
+        // socketService reads via require() which can resolve before set() runs
+        // in certain hot-reload and bundler orderings.
+        import('../services/socketService').then(s => s.socketService.connect(saved.accessToken));
       }
     } else {
       set({ _hydrated: true });
@@ -245,7 +248,7 @@ const useAuthStore = create((set, get) => ({
       await saveToStorage(get());
 
       // Connect socket after auth + identify user in Sentry for crash correlation
-      import('../services/socketService').then(s => s.socketService.connect());
+      import('../services/socketService').then(s => s.socketService.connect(accessToken));
       identifySentryUser(mappedUser?.id, mappedUser?.role);
 
       // Sync full profile from server in background

@@ -170,13 +170,29 @@ const bookMachinery = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Machinery is already booked for this slot' });
     }
 
+    const SLOT_HOURS = { 'Morning': 6, 'Afternoon': 6, 'Full Day': 12 };
+    const slotHours = SLOT_HOURS[slot] || 4;
+    const defaultTotal = machinery.pricePerHour * slotHours;
+
+    let finalTotal = defaultTotal;
+    if (totalAmount !== undefined && totalAmount !== null) {
+      const parsed = parseFloat(totalAmount);
+      if (isNaN(parsed) || parsed < machinery.pricePerHour) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid amount. Minimum booking price is ₹${machinery.pricePerHour} (1 hour base rate).`,
+        });
+      }
+      finalTotal = parsed;
+    }
+
     const booking = await prisma.machineryBooking.create({
       data: {
         machineryId,
         farmerId,
         date: normalizedDate,
         slot,
-        totalAmount: parseFloat(totalAmount),
+        totalAmount: finalTotal,
         latitude: latitude ? parseFloat(latitude) : null,
         longitude: longitude ? parseFloat(longitude) : null,
         address: address || null,

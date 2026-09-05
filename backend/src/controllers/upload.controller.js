@@ -3,8 +3,13 @@ const fs = require('fs');
 const config = require('../config/env');
 const { logger } = require('../middleware/errorHandler');
 
-// Configure Cloudinary if credentials are provided
-const isCloudinaryConfigured = !!(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret);
+// Configure Cloudinary if credentials are provided and not running in automated test mode
+const isCloudinaryConfigured = !!(
+    config.cloudinary.cloudName &&
+    config.cloudinary.apiKey &&
+    config.cloudinary.apiSecret &&
+    config.nodeEnv !== 'test'
+);
 
 if (isCloudinaryConfigured) {
     cloudinary.config({

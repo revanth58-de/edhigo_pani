@@ -1,5 +1,4 @@
-// Screen 8: Select Workers - Exact match to worker-type-count.html
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,19 +17,44 @@ import { jobService } from '../../services/api/jobService';
 import useAuthStore from '../../store/authStore';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { fetchWageRates, getBenchmarkWage, getCachedWageRates } from '../../utils/wageHelper';
 import * as Location from 'expo-location';
 
 const SelectWorkersScreen = ({ navigation, route }) => {
-  const { workType, repostJob, workersNeeded: routeWorkersNeeded, durationDays: routeDurationDays } = route.params || {};
+  const {
+    workType,
+    repostJob,
+    workersNeeded: routeWorkersNeeded,
+    durationDays: routeDurationDays,
+    suggestedWage,
+    minDailyWage: routeMinWage,
+    cropId,
+    operationId,
+    skillKeyword,
+  } = route.params || {};
+
   const user = useAuthStore((state) => state.user);
+  const initialBenchmark = suggestedWage || getBenchmarkWage({ cropId, operationId, skillKeyword });
   const [workerType, setWorkerType] = useState(repostJob?.workerType || 'group'); // 'individual' or 'group'
   const [workersNeeded, setWorkersNeeded] = useState(repostJob?.workersNeeded || routeWorkersNeeded || 10);
   const [durationDays, setDurationDays] = useState(repostJob?.durationDays || routeDurationDays || 1);
-  const [payPerDay, setPayPerDay] = useState(repostJob?.payPerDay ? String(repostJob.payPerDay) : '500');
+  const [payPerDay, setPayPerDay] = useState(repostJob?.payPerDay ? String(repostJob.payPerDay) : String(initialBenchmark || '500'));
+  const [wageRates, setWageRates] = useState(getCachedWageRates());
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 
+  useEffect(() => {
+    fetchWageRates().then((rates) => {
+      if (rates) {
+        setWageRates(rates);
+        if (!repostJob?.payPerDay && !suggestedWage) {
+          const resolved = getBenchmarkWage({ cropId, operationId, skillKeyword, rates });
+          setPayPerDay(String(resolved));
+        }
+      }
+    });
+  }, [cropId, operationId, skillKeyword, repostJob, suggestedWage]);
 
   const handleIncrement = () => {
     if (workersNeeded < 200) setWorkersNeeded(workersNeeded + 1);
@@ -63,8 +87,12 @@ const SelectWorkersScreen = ({ navigation, route }) => {
     }
 
     const parsedPay = parseInt(payPerDay, 10);
-    if (!parsedPay || parsedPay < 100 || parsedPay > 5000) {
-      Alert.alert('Invalid Amount', 'Pay per day must be between ₹100 and ₹5000.');
+    const minFloor = wageRates.enforceMinimum ? (wageRates.minDailyWage || 400) : 100;
+    if (!parsedPay || parsedPay < minFloor || parsedPay > 10000) {
+      Alert.alert(
+        'Invalid Amount',
+        `Pay per day cannot be less than the minimum wage rate of ₹${minFloor} configured for the platform.`
+      );
       return;
     }
 
@@ -273,8 +301,17 @@ const SelectWorkersScreen = ({ navigation, route }) => {
 
         {/* Section: Pay Per Day */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pay Per Day</Text>
-          <Text style={styles.sectionSubtitle}>Enter amount in Rupees</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.sectionTitle}>Pay Per Day</Text>
+            <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#15803D' }}>
+                Benchmark: ₹{suggestedWage || getBenchmarkWage({ cropId, operationId, skillKeyword, rates: wageRates })}/day
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.sectionSubtitle}>
+            Platform Min Floor: ₹{wageRates.minDailyWage || 400}/day
+          </Text>
         </View>
 
         <View style={styles.payInputContainer}>
@@ -285,10 +322,42 @@ const SelectWorkersScreen = ({ navigation, route }) => {
               value={payPerDay}
               onChangeText={setPayPerDay}
               keyboardType="numeric"
-              placeholder="500"
+              placeholder={String(suggestedWage || '500')}
               placeholderTextColor="#9CA3AF"
             />
           </View>
+        </View>
+
+        {/* Quick Wage Presets */}
+        <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginTop: 8, marginBottom: 16 }}>
+          {[
+            Math.max(wageRates.minDailyWage || 400, (parseInt(payPerDay, 10) || 500) - 50),
+            parseInt(payPerDay, 10) || 500,
+            (parseInt(payPerDay, 10) || 500) + 50,
+            (parseInt(payPerDay, 10) || 500) + 100,
+          ].filter((v, i, arr) => arr.indexOf(v) === i).map((amt) => (
+            <TouchableOpacity
+              key={amt}
+              onPress={() => setPayPerDay(String(amt))}
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                backgroundColor: String(payPerDay) === String(amt) ? '#16A34A' : '#F1F5F9',
+                borderRadius: 8,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: String(payPerDay) === String(amt) ? '#16A34A' : '#E2E8F0',
+              }}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: String(payPerDay) === String(amt) ? '#FFF' : '#334155',
+              }}>
+                ₹{amt}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
 

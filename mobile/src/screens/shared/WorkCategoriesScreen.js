@@ -26,10 +26,20 @@ const ALL_WORK_CATEGORIES = [
   { id: 'tractor', name: 'Tractor Driving', image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop' },
   { id: 'drone', name: 'Drone Service', image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop' },
   { id: 'drivers', name: 'Drivers/Operators', image: 'https://images.unsplash.com/photo-1591768793355-74d7acd51bd2?q=80&w=800&auto=format&fit=crop' },
+  { id: 'masonry', name: 'Mason / Bricklayer', image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop' },
+  { id: 'carpentry', name: 'Carpenter / Formwork', image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop' },
+  { id: 'plumbing', name: 'Plumber / Piping', image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop' },
+  { id: 'electrical', name: 'Electrician / Wiring', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop' },
+  { id: 'welding', name: 'Welder / Fabrication', image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop' },
+  { id: 'painting', name: 'Painter / Surface Coating', image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop' },
+  { id: 'earthwork', name: 'Earthwork & Excavation', image: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=800&auto=format&fit=crop' },
+  { id: 'concrete', name: 'Concrete & Formwork', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop' },
+  { id: 'scaffolding', name: 'Scaffolding & Support', image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop' },
+  { id: 'machinery_operator', name: 'Heavy Machinery (JCB/Crane)', image: 'https://images.unsplash.com/photo-1581094288338-2314dddb7ece?q=80&w=800&auto=format&fit=crop' },
   { id: 'pruning', name: 'Pruning', image: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=800&auto=format&fit=crop' },
   { id: 'fertilizing', name: 'Fertilizing', image: 'https://images.unsplash.com/photo-1628352081506-83c43123ed6d?q=80&w=800&auto=format&fit=crop' },
   { id: 'spraying', name: 'Pesticide Spray', image: 'https://images.unsplash.com/photo-1563514220747-a33e83e35a63?q=80&w=800&auto=format&fit=crop' },
-  { id: 'cleaning', name: 'Field Cleaning', image: 'https://images.unsplash.com/photo-1599933334297-ba7af3e38706?q=80&w=800&auto=format&fit=crop' },
+  { id: 'cleaning', name: 'Site & Field Cleaning', image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop' },
 ];
 
 const WorkTypeCard = ({ workType, onPress, index }) => {

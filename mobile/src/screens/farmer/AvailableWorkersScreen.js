@@ -19,6 +19,7 @@ import { colors } from '../../theme/colors';
 import { jobAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import CustomLoader from '../../components/CustomLoader';
+import { getBenchmarkWage, getCachedWageRates, fetchWageRates } from '../../utils/wageHelper';
 
 const AvailableWorkersScreen = ({ route, navigation }) => {
   const { cropId, cropName, operationId, operationName, skillKeyword, acreage, workersNeeded } = route.params || {};
@@ -118,9 +119,10 @@ const AvailableWorkersScreen = ({ route, navigation }) => {
 
     setLoading(true);
     try {
+      const benchmark = getBenchmarkWage({ cropId, operationId, skillKeyword });
       const selectedWorkersList = workers.filter(w => selectedWorkerIds.includes(w.id));
-      const totalWageVal = selectedWorkersList.reduce((sum, w) => sum + (w.dailyWage || 500), 0);
-      const averageWage = totalWageVal / selectedWorkersList.length;
+      const totalWageVal = selectedWorkersList.reduce((sum, w) => sum + (w.dailyWage || benchmark || 500), 0);
+      const averageWage = Math.round(totalWageVal / selectedWorkersList.length);
 
       // Get location coordinates
       let lat = 17.385044;

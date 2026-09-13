@@ -376,6 +376,17 @@ export default {
     greengram: 'Green Gram (Moong)',
     bengalgram: 'Bengal Gram (Chana)',
     oilseeds: 'Oilseeds',
+    // Construction & Skilled Labour Categories
+    const_earthwork: 'Earthwork & Excavation',
+    const_concrete: 'Concrete & Formwork',
+    const_masonry: 'Masonry & Brickwork',
+    const_carpentry: 'Carpentry & Woodwork',
+    const_electrical_plumbing: 'Electrical & Plumbing',
+    const_steel_welding: 'Welding & Steel Fixing',
+    const_structural_scaffolding: 'Scaffolding & Structural Support',
+    const_machinery_heavy: 'Heavy Machinery Operators',
+    const_painting_finishing: 'Painting & Finishing',
+    const_maintenance: 'Site Maintenance & Safety',
   },
   cropCategories: {
     fruits: 'Fruit Crops',
@@ -383,11 +394,34 @@ export default {
     cashCrops: 'Cash Crops',
     oilseedCrops: 'Oilseed Crops',
     pulseVarieties: 'Pulse Crops',
+    construction: 'Construction & Skilled Labour',
+  },
+  construction: {
+    sectionTitle: 'Construction & Skilled Labor',
+    sectionSubtitle: 'Specialized Technical Roles & Civil Labour',
+    description: 'Semi-skilled and skilled labor involves specialized technical roles that require specific training or apprenticeships. Key positions include masons, carpenters, plumbers, electricians, welders, and painters who execute complex duties including concrete pouring, piping, wiring, heavy machinery operation, and structural steel erection.',
+    roles: {
+      mason: 'Mason / Bricklayer',
+      carpenter: 'Carpenter / Formwork & Woodwork',
+      plumber: 'Plumber / Piping Specialist',
+      electrician: 'Electrician / Wiring & Electrical',
+      welder: 'Welder / Steel Fabrication',
+      painter: 'Painter / Finishing & Coating',
+      machineryOperator: 'Heavy Machinery Operator (Crane/Excavator)',
+      steelErector: 'Structural Steel Erector / Bar Bender',
+    },
+    activities: {
+      earthwork: 'Earthwork: Excavation, grading, compaction, and tunneling',
+      concreteWork: 'Concrete Work: Mixing, formwork assembly, pouring, shotcrete, and curing',
+      structuralSupport: 'Structural Support: Scaffolding erection/dismantling, bracing, temporary structures',
+      utilityInstallation: 'Utility Installation: Laying drainage pipes, electrical conduits, storm drains',
+      maintenance: 'Maintenance: Site cleanup, tool maintenance, and traffic control',
+    },
   },
   cropWorkTypes: {
     title: '%{crop} Works',
-    searchPlaceholder: 'Search agricultural works...',
-    acreageLabel: 'Enter Farm Size (Acres)',
+    searchPlaceholder: 'Search agricultural & construction works...',
+    acreageLabel: 'Enter Farm Size (Acres) / Work Scope',
     labourNeeded: 'Recommended Labour',
     estimatedDuration: 'Estimated Duration',
     durationVal: '%{days} Day',
@@ -423,6 +457,46 @@ export default {
     threshing: 'Threshing',
     drying: 'Drying',
     bagFilling: 'Bag Filling',
+
+    // ─── Construction & Skilled Activities ───
+    // 1. Earthwork
+    excavation: 'Excavation',
+    grading: 'Grading & Leveling',
+    compaction: 'Soil Compaction',
+    tunneling: 'Tunneling & Trenching',
+
+    // 2. Concrete Work
+    concreteMixing: 'Concrete Mixing',
+    formworkAssembly: 'Formwork & Shuttering',
+    concretePouring: 'Concrete Pouring & Finishing',
+    shotcrete: 'Shotcrete Application',
+    concreteCuring: 'Concrete Curing',
+
+    // 3. Structural Support
+    scaffoldingErection: 'Scaffolding Erection',
+    scaffoldingDismantling: 'Scaffolding Dismantling',
+    structuralBracing: 'Structural Bracing',
+    temporaryStructures: 'Temporary Structures Assembly',
+
+    // 4. Utility Installation
+    drainagePipes: 'Laying Drainage Pipes',
+    electricalConduits: 'Electrical Conduits & Piping',
+    stormDrains: 'Storm Drain Installation',
+
+    // 5. Maintenance & Safety
+    siteCleanup: 'Site Cleanup & Clearing',
+    toolMaintenance: 'Tool & Equipment Maintenance',
+    trafficSafetyControl: 'Traffic & Safety Control',
+
+    // General Skilled Trades
+    masonryWork: 'Masonry & Bricklaying',
+    woodworkCarpentry: 'Carpentry & Joinery',
+    pipeFittingPlumbing: 'Pipe Fitting & Plumbing',
+    wiringInstallation: 'Electrical Wiring & Panel Installation',
+    weldingFabrication: 'Welding & Steel Fabrication',
+    steelBarBending: 'Bar Bending & Steel Erection',
+    wallPainting: 'Wall Painting & Surface Coating',
+    machineryOperationWork: 'Heavy Machinery Operation',
   },
   availableWorkers: {
     title: 'Available Workers',
@@ -437,7 +511,7 @@ export default {
   workerProfile: {
     title: 'Worker Profile',
     skills: 'Skills',
-    cropExperience: 'Crop Experience',
+    cropExperience: 'Crop & Work Experience',
     overallExp: '%{years} Years overall',
     yearsExp: '%{years} yrs exp',
     dailyWageVal: '₹%{wage}/day',

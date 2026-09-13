@@ -181,6 +181,7 @@ export const jobAPI = {
     withdrawJob: (jobId) => apiClient.post(`/jobs/${jobId}/withdraw`),  // Radio System
     cancelJob: (jobId) => apiClient.delete(`/jobs/${jobId}`),
     getNearbyWorkers: (params = {}) => apiClient.get('/jobs/nearby-workers', { params }),
+    getWageRates: () => apiClient.get('/jobs/wage-rates'),
 };
 
 

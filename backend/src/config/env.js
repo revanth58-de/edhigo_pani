@@ -124,5 +124,6 @@ module.exports = {
   razorpay: {
     keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder_key_id',
     keySecret: process.env.RAZORPAY_KEY_SECRET || 'placeholder_secret',
+    webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || 'placeholder_webhook_secret',
   },
 };

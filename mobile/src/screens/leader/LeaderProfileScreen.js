@@ -56,7 +56,14 @@ const LeaderProfileScreen = ({ navigation }) => {
     'Fruit Thinning', 'Harvesting', 'Sorting & Grading', 'Packing',
     'Loading', 'Orchard Cleaning', 'Nursery Preparation', 'Transplanting',
     'Direct Seeding', 'Threshing', 'Drying', 'Bag Filling',
-    'Tractor Driving', 'Sowing', 'Logistics', 'Quality Control'
+    'Tractor Driving', 'Sowing', 'Logistics', 'Quality Control',
+    // Construction & Skilled Roles
+    'Masonry & Bricklaying', 'Carpentry & Formwork', 'Plumbing & Piping',
+    'Electrical Wiring', 'Welding & Steel Fabrication', 'Painting & Finishing',
+    'Heavy Machinery Operation', 'Bar Bending & Steel Erection',
+    'Concrete Mixing & Pouring', 'Concrete Curing', 'Scaffolding Erection & Dismantling',
+    'Excavation & Earthwork', 'Grading & Compaction', 'Drainage & Utility Installation',
+    'Site Cleanup & Safety Control'
   ];
 
   const toggleSkill = (skill) => {

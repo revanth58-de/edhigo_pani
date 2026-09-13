@@ -68,6 +68,155 @@ export async function loadSettings() {
         </div>
       </div>
 
+      <!-- Construction & Skilled Trades Wage Rates -->
+      <div class="card" style="padding:24px;grid-column:1 / -1">
+        <div style="font-size:16px;font-weight:800;color:#F59E0B;margin-bottom:16px;display:flex;align-items:center;gap:8px">
+          <span>🏗️</span> Construction &amp; Skilled Labour Standard Rates (₹/day)
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">
+          Configure benchmark wages for the 5 core civil labour activity categories and technical specialist positions.
+        </div>
+
+        <!-- 5 Construction Categories -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-bottom:20px">
+          <!-- 1. Earthwork -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:12px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#F59E0B;margin-bottom:10px">1. మట్టి / భూమి పనులు (Earthwork)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">త్రవ్వకం (Excavation)</label>
+              <input type="number" class="form-input" id="constEarthworkExcavation" style="margin-top:2px" placeholder="550" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">స్థలాన్ని సమం చేయడం (Grading)</label>
+              <input type="number" class="form-input" id="constEarthworkGrading" style="margin-top:2px" placeholder="500" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">మట్టిని గట్టిపరచడం (Compaction)</label>
+              <input type="number" class="form-input" id="constEarthworkCompaction" style="margin-top:2px" placeholder="480" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">టన్నెలింగ్ (Tunneling)</label>
+              <input type="number" class="form-input" id="constEarthworkTunneling" style="margin-top:2px" placeholder="600" />
+            </div>
+          </div>
+
+          <!-- 2. Concrete Work -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:12px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#60A5FA;margin-bottom:10px">2. కాంక్రీట్ పనులు (Concrete Work)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">కాంక్రీట్ కలపడం (Mixing)</label>
+              <input type="number" class="form-input" id="constConcreteMixing" style="margin-top:2px" placeholder="550" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">ఫార్మ్‌వర్క్ అమర్చడం (Formwork)</label>
+              <input type="number" class="form-input" id="constConcreteFormwork" style="margin-top:2px" placeholder="650" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">కాంక్రీట్ పోయడం & ముగించడం (Pouring)</label>
+              <input type="number" class="form-input" id="constConcretePouring" style="margin-top:2px" placeholder="600" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">షాట్‌క్రీట్ (Shotcrete)</label>
+              <input type="number" class="form-input" id="constConcreteShotcrete" style="margin-top:2px" placeholder="700" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">క్యూరింగ్ (Curing)</label>
+              <input type="number" class="form-input" id="constConcreteCuring" style="margin-top:2px" placeholder="450" />
+            </div>
+          </div>
+
+          <!-- 3. Structural Support -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:12px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#34D399;margin-bottom:10px">3. నిర్మాణానికి మద్దతు ఇచ్చే పనులు (Structural Support)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">స్కాఫోల్డింగ్ ఏర్పాటు/తొలగింపు (Scaffolding)</label>
+              <input type="number" class="form-input" id="constStructuralScaffolding" style="margin-top:2px" placeholder="650" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">బ్రేసింగ్ (Bracing)</label>
+              <input type="number" class="form-input" id="constStructuralBracing" style="margin-top:2px" placeholder="600" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">తాత్కాలిక నిర్మాణాలు (Temp Structures)</label>
+              <input type="number" class="form-input" id="constStructuralTemporary" style="margin-top:2px" placeholder="550" />
+            </div>
+          </div>
+
+          <!-- 4. Utility Installation -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:12px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#38BDF8;margin-bottom:10px">4. యుటిలిటీ అమరికలు (Utility Installation)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">డ్రైనేజ్ పైపులు వేయడం (Drainage Pipes)</label>
+              <input type="number" class="form-input" id="constUtilityDrainage" style="margin-top:2px" placeholder="580" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">విద్యుత్ కండ్యూట్లు ఏర్పాటు (Conduits)</label>
+              <input type="number" class="form-input" id="constUtilityConduits" style="margin-top:2px" placeholder="620" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">తుఫాను నీటి డ్రైన్లు (Storm Drains)</label>
+              <input type="number" class="form-input" id="constUtilityStormDrains" style="margin-top:2px" placeholder="560" />
+            </div>
+          </div>
+
+          <!-- 5. Maintenance -->
+          <div style="background:rgba(255,255,255,0.02);border:1px solid var(--glass-border);border-radius:12px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:#A78BFA;margin-bottom:10px">5. నిర్వహణ మరియు శుభ్రత (Maintenance)</div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">సైట్ శుభ్రం చేయడం (Site Cleanup)</label>
+              <input type="number" class="form-input" id="constMaintenanceCleanup" style="margin-top:2px" placeholder="450" />
+            </div>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">పరికరాల నిర్వహణ (Tool Maintenance)</label>
+              <input type="number" class="form-input" id="constMaintenanceTools" style="margin-top:2px" placeholder="500" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">ట్రాఫిక్ నియంత్రణ (Traffic Control)</label>
+              <input type="number" class="form-input" id="constMaintenanceTraffic" style="margin-top:2px" placeholder="480" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Specialist Roles -->
+        <div style="border-top:1px solid var(--glass-border);padding-top:16px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:12px">ప్రధాన సాంకేతిక వృత్తులు (Key Specialist Roles ₹/day)</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px">
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🧱 మేస్త్రీలు (Masons/Bricklayers)</label>
+              <input type="number" class="form-input" id="constRoleMason" style="margin-top:4px" placeholder="800" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🪚 వడ్రంగులు (Carpenters)</label>
+              <input type="number" class="form-input" id="constRoleCarpenter" style="margin-top:4px" placeholder="800" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🔧 ప్లంబర్లు (Plumbers)</label>
+              <input type="number" class="form-input" id="constRolePlumber" style="margin-top:4px" placeholder="750" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">⚡ ఎలక్ట్రీషియన్లు (Electricians)</label>
+              <input type="number" class="form-input" id="constRoleElectrician" style="margin-top:4px" placeholder="750" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🔥 వెల్డర్లు (Welders)</label>
+              <input type="number" class="form-input" id="constRoleWelder" style="margin-top:4px" placeholder="750" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🎨 పెయింటర్లు (Painters)</label>
+              <input type="number" class="form-input" id="constRolePainter" style="margin-top:4px" placeholder="700" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🏗️ భారీ యంత్రాల ఆపరేటర్లు (Heavy Machinery)</label>
+              <input type="number" class="form-input" id="constRoleMachinery" style="margin-top:4px" placeholder="900" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size:11px;color:var(--text-muted)">🔩 స్టీల్ ఫిక్సర్లు (Steel Fixers)</label>
+              <input type="number" class="form-input" id="constRoleSteel" style="margin-top:4px" placeholder="800" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Rents and Machinery -->
       <div class="card" style="padding:24px">
         <div style="font-size:16px;font-weight:800;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px">
@@ -225,6 +374,48 @@ async function loadData() {
     document.getElementById('cropCotton').value = cropRates.cotton_picking || '';
     document.getElementById('cropChilli').value = cropRates.chilli_harvesting || '';
 
+    // Populating Construction Category Rates
+    let constRates = {};
+    try {
+      constRates = JSON.parse(settingsData['wages.constructionRates'] || '{}');
+    } catch (_) {}
+    document.getElementById('constEarthworkExcavation').value = constRates.earthwork_excavation || 550;
+    document.getElementById('constEarthworkGrading').value = constRates.earthwork_grading || 500;
+    document.getElementById('constEarthworkCompaction').value = constRates.earthwork_compaction || 480;
+    document.getElementById('constEarthworkTunneling').value = constRates.earthwork_tunneling || 600;
+
+    document.getElementById('constConcreteMixing').value = constRates.concrete_mixing || 550;
+    document.getElementById('constConcreteFormwork').value = constRates.concrete_formwork || 650;
+    document.getElementById('constConcretePouring').value = constRates.concrete_pouring || 600;
+    document.getElementById('constConcreteShotcrete').value = constRates.concrete_shotcrete || 700;
+    document.getElementById('constConcreteCuring').value = constRates.concrete_curing || 450;
+
+    document.getElementById('constStructuralScaffolding').value = constRates.structural_scaffolding || 650;
+    document.getElementById('constStructuralBracing').value = constRates.structural_bracing || 600;
+    document.getElementById('constStructuralTemporary').value = constRates.structural_temporary || 550;
+
+    document.getElementById('constUtilityDrainage').value = constRates.utility_drainage || 580;
+    document.getElementById('constUtilityConduits').value = constRates.utility_conduits || 620;
+    document.getElementById('constUtilityStormDrains').value = constRates.utility_storm_drains || 560;
+
+    document.getElementById('constMaintenanceCleanup').value = constRates.maintenance_cleanup || 450;
+    document.getElementById('constMaintenanceTools').value = constRates.maintenance_tools || 500;
+    document.getElementById('constMaintenanceTraffic').value = constRates.maintenance_traffic || 480;
+
+    // Populating Skilled Trade Rates
+    let skilledRates = {};
+    try {
+      skilledRates = JSON.parse(settingsData['wages.skilledTradeRates'] || '{}');
+    } catch (_) {}
+    document.getElementById('constRoleMason').value = skilledRates.mason || 800;
+    document.getElementById('constRoleCarpenter').value = skilledRates.carpenter || 800;
+    document.getElementById('constRolePlumber').value = skilledRates.plumber || 750;
+    document.getElementById('constRoleElectrician').value = skilledRates.electrician || 750;
+    document.getElementById('constRoleWelder').value = skilledRates.welder || 750;
+    document.getElementById('constRolePainter').value = skilledRates.painter || 700;
+    document.getElementById('constRoleMachinery').value = skilledRates.machinery_operator || 900;
+    document.getElementById('constRoleSteel').value = skilledRates.steel_erector || 800;
+
     // Populating Rental Rates
     document.getElementById('machineryCommission').value = settingsData['rents.machineryCommission'] || '10';
     
@@ -271,6 +462,36 @@ async function saveSettings() {
         ploughing: parseInt(document.getElementById('cropPloughing').value) || 450,
         cotton_picking: parseInt(document.getElementById('cropCotton').value) || 480,
         chilli_harvesting: parseInt(document.getElementById('cropChilli').value) || 520,
+      }),
+      'wages.constructionRates': JSON.stringify({
+        earthwork_excavation: parseInt(document.getElementById('constEarthworkExcavation').value) || 550,
+        earthwork_grading: parseInt(document.getElementById('constEarthworkGrading').value) || 500,
+        earthwork_compaction: parseInt(document.getElementById('constEarthworkCompaction').value) || 480,
+        earthwork_tunneling: parseInt(document.getElementById('constEarthworkTunneling').value) || 600,
+        concrete_mixing: parseInt(document.getElementById('constConcreteMixing').value) || 550,
+        concrete_formwork: parseInt(document.getElementById('constConcreteFormwork').value) || 650,
+        concrete_pouring: parseInt(document.getElementById('constConcretePouring').value) || 600,
+        concrete_shotcrete: parseInt(document.getElementById('constConcreteShotcrete').value) || 700,
+        concrete_curing: parseInt(document.getElementById('constConcreteCuring').value) || 450,
+        structural_scaffolding: parseInt(document.getElementById('constStructuralScaffolding').value) || 650,
+        structural_bracing: parseInt(document.getElementById('constStructuralBracing').value) || 600,
+        structural_temporary: parseInt(document.getElementById('constStructuralTemporary').value) || 550,
+        utility_drainage: parseInt(document.getElementById('constUtilityDrainage').value) || 580,
+        utility_conduits: parseInt(document.getElementById('constUtilityConduits').value) || 620,
+        utility_storm_drains: parseInt(document.getElementById('constUtilityStormDrains').value) || 560,
+        maintenance_cleanup: parseInt(document.getElementById('constMaintenanceCleanup').value) || 450,
+        maintenance_tools: parseInt(document.getElementById('constMaintenanceTools').value) || 500,
+        maintenance_traffic: parseInt(document.getElementById('constMaintenanceTraffic').value) || 480,
+      }),
+      'wages.skilledTradeRates': JSON.stringify({
+        mason: parseInt(document.getElementById('constRoleMason').value) || 800,
+        carpenter: parseInt(document.getElementById('constRoleCarpenter').value) || 800,
+        plumber: parseInt(document.getElementById('constRolePlumber').value) || 750,
+        electrician: parseInt(document.getElementById('constRoleElectrician').value) || 750,
+        welder: parseInt(document.getElementById('constRoleWelder').value) || 750,
+        painter: parseInt(document.getElementById('constRolePainter').value) || 700,
+        machinery_operator: parseInt(document.getElementById('constRoleMachinery').value) || 900,
+        steel_erector: parseInt(document.getElementById('constRoleSteel').value) || 800,
       }),
       'rents.machineryCommission': document.getElementById('machineryCommission').value || '10',
       'rents.machineryBaseRates': JSON.stringify({

@@ -41,7 +41,14 @@ const ALL_SKILLS = [
   'Fruit Thinning', 'Harvesting', 'Sorting & Grading', 'Packing',
   'Loading', 'Orchard Cleaning', 'Nursery Preparation', 'Transplanting',
   'Direct Seeding', 'Threshing', 'Drying', 'Bag Filling',
-  'Tractor Driving', 'Sowing'
+  'Tractor Driving', 'Sowing',
+  // Construction & Skilled Technical Roles
+  'Masonry & Bricklaying', 'Carpentry & Formwork', 'Plumbing & Piping',
+  'Electrical Wiring', 'Welding & Steel Fabrication', 'Painting & Surface Finishing',
+  'Heavy Machinery Operation (JCB/Crane)', 'Bar Bending & Steel Erection',
+  'Concrete Mixing & Pouring', 'Concrete Curing', 'Scaffolding Erection & Dismantling',
+  'Excavation & Earthwork', 'Grading & Compaction', 'Drainage & Utility Installation',
+  'Site Cleanup & Tool Maintenance'
 ];
 
 const SkillChip = React.memo(({ skill, isSelected, onPress, isEditing, onRemove }) => {

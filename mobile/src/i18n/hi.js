@@ -374,6 +374,17 @@ export default {
     greengram: 'मूंग',
     bengalgram: 'चना',
     oilseeds: 'तिलहन',
+    // Construction & Skilled Labour Categories
+    const_earthwork: 'मिट्टी का काम और खुदाई',
+    const_concrete: 'कंक्रीट और फॉर्मवर्क',
+    const_masonry: 'राजमिस्त्री और ईंट का काम',
+    const_carpentry: 'बढ़ईगीरी और लकड़ी का काम',
+    const_electrical_plumbing: 'इलेक्ट्रिकल और प्लंबिंग',
+    const_steel_welding: 'वेल्डिंग और स्टील फिक्सिंग',
+    const_structural_scaffolding: 'मचान और संरचनात्मक सहायता',
+    const_machinery_heavy: 'भारी मशीनरी ऑपरेटर',
+    const_painting_finishing: 'पेंटिंग और फिनिशिंग',
+    const_maintenance: 'साइट रखरखाव और सुरक्षा',
   },
   cropCategories: {
     fruits: 'फल फसलें',
@@ -381,11 +392,34 @@ export default {
     cashCrops: 'नकदी फसलें',
     oilseedCrops: 'तिलहन फसलें',
     pulseVarieties: 'दलहन फसलें',
+    construction: 'निर्माण एवं कुशल श्रमिक',
+  },
+  construction: {
+    sectionTitle: 'निर्माण एवं कुशल मजदूर (Construction & Skilled Labor)',
+    sectionSubtitle: 'विशेषज्ञ तकनीकी भूमिकाएं और निर्माण कार्य',
+    description: 'अर्ध-कुशल और कुशल श्रमिकों में विशेष तकनीकी भूमिकाएं शामिल हैं जिनके लिए प्रशिक्षण की आवश्यकता होती है। मुख्य पदों में राजमिस्त्री, बढ़ई, प्लंबर, इलेक्ट्रीशियन, वेल्डर और पेंटर शामिल हैं जो कंक्रीट ढलाई, पाइपिंग, वायरिंग, भारी मशीनरी संचालन और स्टील निर्माण जैसे कार्य करते हैं।',
+    roles: {
+      mason: 'राजमिस्त्री / ईंट का काम (Mason / Bricklayer)',
+      carpenter: 'बढ़ई / फॉर्मवर्क (Carpenter / Formwork)',
+      plumber: 'प्लंबर / पाइपलाइन (Plumber / Piping)',
+      electrician: 'इलेक्ट्रीशियन / वायरिंग (Electrician / Wiring)',
+      welder: 'वेल्डर / फैब्रिकेशन (Welder / Fabrication)',
+      painter: 'पेंटर / रंगाई एवं पोताई (Painter / Finishing)',
+      machineryOperator: 'भारी मशीनरी ऑपरेटर (Heavy Machinery Operator)',
+      steelErector: 'स्टील स्ट्रक्चर व बार बेंडर (Structural Steel Erector / Bar Bender)',
+    },
+    activities: {
+      earthwork: 'मिट्टी कार्य (Earthwork: खुदाई, समतलीकरण, रोलिंग, सुरंग)',
+      concreteWork: 'कंक्रीट कार्य (Concrete Work: मिक्सिंग, फॉर्मवर्क, ढलाई, तराई)',
+      structuralSupport: 'संरचनात्मक सहायता (Structural Support: मचान बांधना व हटाना)',
+      utilityInstallation: 'उपयोगिता स्थापना (Utility Installation: ड्रेनेज पाइप, बिजली पाइप)',
+      maintenance: 'रखरखाव (Maintenance: साइट सफाई, उपकरण रखरखाव, सुरक्षा)',
+    },
   },
   cropWorkTypes: {
     title: '%{crop} के काम',
-    searchPlaceholder: 'कृषि कार्यों की खोज करें...',
-    acreageLabel: 'खेत का आकार दर्ज करें (एकड़)',
+    searchPlaceholder: 'कृषि एवं निर्माण कार्यों की खोज करें...',
+    acreageLabel: 'खेत का आकार (एकड़) / कार्य क्षेत्र',
     labourNeeded: 'अनुशंसित मजदूर',
     estimatedDuration: 'अनुमानित अवधि',
     durationVal: '%{days} दिन',
@@ -421,6 +455,46 @@ export default {
     threshing: 'मड़ाई',
     drying: 'सुखाना',
     bagFilling: 'बोरी भरना',
+
+    // ─── Construction & Skilled Activities ───
+    // 1. Earthwork
+    excavation: 'नींव व मिट्टी खुदाई (Excavation)',
+    grading: 'समतलीकरण एवं ग्रेडिंग (Grading)',
+    compaction: 'मिट्टी दबाना / कॉम्पेक्शन (Compaction)',
+    tunneling: 'सुरंग एवं ट्रेंचिंग (Tunneling)',
+
+    // 2. Concrete Work
+    concreteMixing: 'कंक्रीट मिश्रण (Concrete Mixing)',
+    formworkAssembly: 'फॉर्मवर्क एवं शटरिंग (Formwork Assembly)',
+    concretePouring: 'कंक्रीट ढलाई और फिनिशिंग (Concrete Pouring)',
+    shotcrete: 'शॉटक्रीट विधि (Shotcrete)',
+    concreteCuring: 'कंक्रीट तराई (Curing)',
+
+    // 3. Structural Support
+    scaffoldingErection: 'मचान बांधना (Scaffolding Erection)',
+    scaffoldingDismantling: 'मचान खोलना (Scaffolding Dismantling)',
+    structuralBracing: 'ब्रेसिंग एवं सपोर्ट (Structural Bracing)',
+    temporaryStructures: 'अस्थायी निर्माण (Temporary Structures)',
+
+    // 4. Utility Installation
+    drainagePipes: 'ड्रेनेज पाइप बिछाना (Laying Drainage Pipes)',
+    electricalConduits: 'इलेक्ट्रिकल पाइपिंग (Electrical Conduits)',
+    stormDrains: 'तूफानी नाले का निर्माण (Storm Drains)',
+
+    // 5. Maintenance & Safety
+    siteCleanup: 'साइट की सफाई (Site Cleanup)',
+    toolMaintenance: 'उपकरण व मशीन रखरखाव (Tool Maintenance)',
+    trafficSafetyControl: 'यातायात व सुरक्षा नियंत्रण (Traffic & Safety)',
+
+    // General Skilled Trades
+    masonryWork: 'ईंट जोड़ाई और प्लास्टर (Brickwork & Plastering)',
+    woodworkCarpentry: 'बढ़ईगीरी और शटरिंग (Carpentry & Woodwork)',
+    pipeFittingPlumbing: 'पाइप फिटिंग और प्लंबिंग (Plumbing)',
+    wiringInstallation: 'वायरिंग और पैनल स्थापना (Electrical Wiring)',
+    weldingFabrication: 'वेल्डिंग और फैब्रिकेशन (Welding)',
+    steelBarBending: 'सरिया कटाई और मोड़ना (Bar Bending & Steel)',
+    wallPainting: 'दीवार रंगाई व प्राइमर (Painting & Finishing)',
+    machineryOperationWork: 'जेसीबी / क्रेन संचालन (Heavy Machinery)',
   },
   availableWorkers: {
     title: 'उपलब्ध मजदूर',
@@ -435,7 +509,7 @@ export default {
   workerProfile: {
     title: 'मजदूर प्रोफ़ाइल',
     skills: 'कौशल',
-    cropExperience: 'फसल का अनुभव',
+    cropExperience: 'फसल व निर्माण अनुभव',
     overallExp: '%{years} वर्ष का कुल अनुभव',
     yearsExp: '%{years} वर्ष का अनुभव',
     dailyWageVal: '₹%{wage}/दिन',

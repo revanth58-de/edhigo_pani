@@ -344,4 +344,29 @@ const verifyPayment = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrder, verifyPayment };
+// POST /api/payments/razorpay/failure - Record client-side payment failure
+const recordPaymentFailure = async (req, res, next) => {
+  try {
+    const { jobId, bookingId, error, razorpay_order_id, razorpay_payment_id } = req.body;
+    const farmerId = req.user.id;
+
+    logger.warn('Payment Failure Recorded', {
+      farmerId,
+      jobId,
+      bookingId,
+      razorpay_order_id,
+      razorpay_payment_id,
+      error
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment failure recorded successfully'
+    });
+  } catch (error) {
+    logger.error('Record Payment Failure Error', { message: error.message });
+    next(error);
+  }
+};
+
+module.exports = { createOrder, verifyPayment, recordPaymentFailure };

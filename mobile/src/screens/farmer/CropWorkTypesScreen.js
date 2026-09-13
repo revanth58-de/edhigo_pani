@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
+import { fetchWageRates, getBenchmarkWage, getCachedWageRates } from '../../utils/wageHelper';
 
 const CropWorkTypesScreen = ({ route, navigation }) => {
   const { cropId, cropName, cropGradient } = route.params || {
@@ -31,9 +32,158 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
   const [acreage, setAcreage] = useState('2');
   const [isCalcExpanded, setIsCalcExpanded] = useState(false);
   const [calcCost, setCalcCost] = useState(null);
+  const [wageRates, setWageRates] = useState(getCachedWageRates());
+
+  useEffect(() => {
+    fetchWageRates().then(rates => {
+      if (rates) setWageRates(rates);
+    });
+  }, []);
 
   // Define dynamic operations list based on crop selection
   const getOperationsForCrop = () => {
+    // ─── 1. మేస్త్రీలు & కాంక్రీట్ పనులు (Masons & Concrete Work) ───
+    if (cropId === 'const_concrete' || cropId === 'const_masonry') {
+      return [
+        {
+          id: 'concreteMixing',
+          name: t('cropWorkTypes.concreteMixing') || 'కాంక్రీట్ కలపడం (Mixing)',
+          skillKeyword: 'concrete',
+          icon: 'cached',
+          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 1 }),
+        },
+        {
+          id: 'formworkAssembly',
+          name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
+          skillKeyword: 'formwork',
+          icon: 'view-quilt',
+          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
+        },
+        {
+          id: 'concretePouring',
+          name: t('cropWorkTypes.concretePouring') || 'కాంక్రీట్ పోయడం మరియు ముగించడం (Pouring & Finishing)',
+          skillKeyword: 'concrete',
+          icon: 'format-color-fill',
+          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(4, Math.round(6 * acres)), duration: 1 }),
+        },
+        {
+          id: 'shotcrete',
+          name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ (Shotcrete)',
+          skillKeyword: 'concrete',
+          icon: 'waves',
+          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+        },
+        {
+          id: 'concreteCuring',
+          name: t('cropWorkTypes.concreteCuring') || 'క్యూరింగ్ (Curing)',
+          skillKeyword: 'concrete',
+          icon: 'opacity',
+          image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 3 }),
+        },
+      ];
+    }
+
+    // ─── 2. సాంకేతిక వృత్తులు (5 Skilled Trades) ───
+    if (cropId === 'const_carpentry') {
+      return [
+        {
+          id: 'woodworkCarpentry',
+          name: t('cropWorkTypes.woodworkCarpentry') || 'వడ్రంగి పనులు (Carpenters)',
+          skillKeyword: 'carpenter',
+          icon: 'handyman',
+          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'formworkAssembly',
+          name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
+          skillKeyword: 'carpenter',
+          icon: 'view-quilt',
+          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_electrical') {
+      return [
+        {
+          id: 'wiringInstallation',
+          name: t('cropWorkTypes.wiringInstallation') || 'ఎలక్ట్రికల్ పనులు (Electricians)',
+          skillKeyword: 'electrician',
+          icon: 'electrical-services',
+          image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 2 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_painting' || cropId === 'const_painting_finishing') {
+      return [
+        {
+          id: 'wallPainting',
+          name: t('cropWorkTypes.wallPainting') || 'పెయింటింగ్ పనులు (Painters)',
+          skillKeyword: 'painter',
+          icon: 'format-paint',
+          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'shotcrete',
+          name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ / స్ప్రే (Shotcrete)',
+          skillKeyword: 'painter',
+          icon: 'waves',
+          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_plumbing' || cropId === 'const_electrical_plumbing') {
+      return [
+        {
+          id: 'pipeFittingPlumbing',
+          name: t('cropWorkTypes.pipeFittingPlumbing') || 'ప్లంబింగ్ పనులు (Plumbers)',
+          skillKeyword: 'plumber',
+          icon: 'plumbing',
+          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_welding' || cropId === 'const_steel_welding') {
+      return [
+        {
+          id: 'weldingFabrication',
+          name: t('cropWorkTypes.weldingFabrication') || 'వెల్డింగ్ పనులు (Welders)',
+          skillKeyword: 'welder',
+          icon: 'blur-on',
+          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+      ];
+    }
+          icon: 'security',
+          image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'temporaryStructures',
+          name: t('cropWorkTypes.temporaryStructures') || 'Temporary Safety Barriers',
+          skillKeyword: 'labour',
+          icon: 'home-work',
+          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
     if (cropId === 'paddy') {
       return [
         {
@@ -275,14 +425,26 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
     const acresVal = parseFloat(acreage) || 0;
     const defaultOp = operations.find(o => o.id === 'harvesting') || operations[0];
     const calcResult = defaultOp.calc(acresVal);
-    // Cost estimation = workers * duration * 500
-    const estimatedCost = calcResult.workers * calcResult.duration * 500;
+    const benchmarkWage = getBenchmarkWage({
+      cropId,
+      operationId: defaultOp.id,
+      skillKeyword: defaultOp.skillKeyword,
+      rates: wageRates,
+    });
+    // Dynamic benchmark cost estimation = workers * duration * benchmarkWage
+    const estimatedCost = calcResult.workers * calcResult.duration * benchmarkWage;
     setCalcCost(estimatedCost);
   };
 
   const handleProceed = (op) => {
     const acresVal = parseFloat(acreage) || 0;
     const calculation = op.calc(acresVal);
+    const benchmarkWage = getBenchmarkWage({
+      cropId,
+      operationId: op.id,
+      skillKeyword: op.skillKeyword,
+      rates: wageRates,
+    });
 
     navigation.navigate('SelectWorkers', {
       workType: op.name,
@@ -294,6 +456,8 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
       acreage: acresVal,
       workersNeeded: calculation.workers,
       durationDays: calculation.duration,
+      suggestedWage: benchmarkWage,
+      minDailyWage: wageRates.minDailyWage || 400,
     });
   };
 
@@ -417,6 +581,12 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         <View style={styles.grid}>
           {filteredOps.map((op) => {
             const calculation = op.calc(parseFloat(acreage) || 2);
+            const opWage = getBenchmarkWage({
+              cropId,
+              operationId: op.id,
+              skillKeyword: op.skillKeyword,
+              rates: wageRates,
+            });
             return (
               <Animated.View key={op.id} style={styles.cardContainer}>
                 <TouchableOpacity
@@ -444,6 +614,11 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
                       <Text style={styles.opEst}>
                         Est: {calculation.workers} workers · {calculation.duration} {calculation.duration === 1 ? 'day' : 'days'}
                       </Text>
+                      <View style={{ marginTop: 2, flexDirection: 'row', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#4ADE80' }}>
+                          ₹{opWage}/day
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>

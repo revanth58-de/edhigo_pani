@@ -21,6 +21,9 @@ router.get('/my-work', authenticate, jobController.getWorkerJobs);
 // Get nearby workers
 router.get('/nearby-workers', authenticate, requireRole('farmer', 'leader'), jobController.getNearbyWorkers);
 
+// Get platform wage benchmark rates & min wage policy
+router.get('/wage-rates', jobController.getWageRates);
+
 // Get a single job by ID
 router.get('/:id', authenticate, jobController.getJobById);
 

@@ -11,11 +11,35 @@ export async function loadJobs() {
   el.innerHTML = `
     <div class="section-header">
       <div>
-        <div class="section-title">Job Management</div>
-        <div class="section-sub">Monitor and manage all posted farm jobs.</div>
+        <div class="section-title">Job Management &amp; <span style="color:var(--primary)">Wage Tracker</span></div>
+        <div class="section-sub">Monitor posted jobs, track daily wage disbursements, and ensure minimum wage compliance across Agriculture and Construction sectors.</div>
       </div>
       <div class="section-controls">
         <button class="btn btn-outline btn-sm" id="exportJobsCsvBtn">⬇ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Wage Tracking Live Metric Cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;margin-bottom:20px" id="jobWageSummaryCards">
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700">💼 Total Jobs Tracked</div>
+        <div style="font-size:22px;font-weight:900;color:#fff;margin-top:4px" id="wageCardTotalJobs">0</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px">Active &amp; Completed</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700">💰 Tracked Wage Volume</div>
+        <div style="font-size:22px;font-weight:900;color:var(--primary);margin-top:4px" id="wageCardTotalVolume">₹0</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px">Sum of (Pay/day × Workers)</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700">📊 Average Daily Wage</div>
+        <div style="font-size:22px;font-weight:900;color:var(--accent);margin-top:4px" id="wageCardAvgWage">₹0</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px">Across all active contracts</div>
+      </div>
+      <div class="card" style="padding:16px">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:700">🏗️ Construction vs 🌾 Agri</div>
+        <div style="font-size:18px;font-weight:900;color:#F59E0B;margin-top:4px" id="wageCardSectorSplit">0 / 0</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:2px">Sector distribution ratio</div>
       </div>
     </div>
 
@@ -24,6 +48,11 @@ export async function loadJobs() {
         <span class="search-icon">🔍</span>
         <input type="text" id="jobSearch" placeholder="Search by work type, farmer or village..." />
       </div>
+      <select class="filter-select" id="jobSectorFilter">
+        <option value="">🌐 Sector: All</option>
+        <option value="agriculture">🌾 Agriculture</option>
+        <option value="construction">🏗️ Construction &amp; Civil</option>
+      </select>
       <select class="filter-select" id="jobStatusFilter">
         <option value="">📋 Status: All</option>
         <option value="pending">Pending</option>
@@ -33,12 +62,19 @@ export async function loadJobs() {
         <option value="cancelled">Cancelled</option>
       </select>
       <select class="filter-select" id="jobTypeFilter">
-        <option value="">🌾 Type: All</option>
+        <option value="">⚙️ Type: All</option>
         <option value="Harvesting">Harvesting</option>
         <option value="Sowing">Sowing</option>
         <option value="Irrigation">Irrigation</option>
         <option value="Labour">Labour</option>
         <option value="Tractor">Tractor</option>
+        <option value="Masonry">Masonry / మేస్త్రీ</option>
+        <option value="Carpentry">Carpentry / వడ్రంగి</option>
+        <option value="Plumbing">Plumbing / ప్లంబర్</option>
+        <option value="Electrical">Electrical / ఎలక్ట్రీషియన్</option>
+        <option value="Welding">Welding / వెల్డర్</option>
+        <option value="Earthwork">Earthwork / మట్టి పనులు</option>
+        <option value="Concrete">Concrete / కాంక్రీట్</option>
       </select>
     </div>
 
@@ -46,11 +82,11 @@ export async function loadJobs() {
       <div class="table-scroll">
         <table>
           <thead><tr>
-            <th class="sort-header" data-sort="workType">Work Type <span id="sort-workType-icon">↕</span></th>
-            <th>Farmer</th>
+            <th class="sort-header" data-sort="workType">Work Type &amp; Sector <span id="sort-workType-icon">↕</span></th>
+            <th>Farmer / Employer</th>
             <th>Village</th>
             <th class="sort-header" data-sort="workersNeeded">Workers <span id="sort-workersNeeded-icon">↕</span></th>
-            <th class="sort-header" data-sort="payPerDay">Pay/Day <span id="sort-payPerDay-icon">↕</span></th>
+            <th class="sort-header" data-sort="payPerDay">Wage &amp; Total <span id="sort-payPerDay-icon">↕</span></th>
             <th class="sort-header" data-sort="status">Status <span id="sort-status-icon">↕</span></th>
             <th class="sort-header" data-sort="attendanceCount">Attendance <span id="sort-attendanceCount-icon">↕</span></th>
             <th class="sort-header" data-sort="createdAt">Date <span id="sort-createdAt-icon">↕</span></th>
@@ -63,6 +99,7 @@ export async function loadJobs() {
     </div>`;
 
   el.querySelector('#jobSearch').addEventListener('input', () => { page = 1; renderJobs(); });
+  el.querySelector('#jobSectorFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#jobStatusFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#jobTypeFilter').addEventListener('change', () => { page = 1; renderJobs(); });
   el.querySelector('#exportJobsCsvBtn').addEventListener('click', exportJobsCsv);
@@ -89,16 +126,44 @@ export async function loadJobs() {
   }
 }
 
+function isConstructionJob(workType) {
+  const wt = (workType || '').toLowerCase();
+  return wt.includes('const') || wt.includes('mason') || wt.includes('carpenter') || wt.includes('plumb') ||
+         wt.includes('electr') || wt.includes('weld') || wt.includes('paint') || wt.includes('earthwork') ||
+         wt.includes('excavat') || wt.includes('concrete') || wt.includes('scaffold') || wt.includes('machinery') ||
+         wt.includes('మట్టి') || wt.includes('కాంక్రీట్') || wt.includes('మేస్త్రీ') || wt.includes('వడ్రంగి') ||
+         wt.includes('ప్లంబర్') || wt.includes('ఎలక్ట్రీషియన్') || wt.includes('వెల్డర్') || wt.includes('పెయింటర్');
+}
+
 function renderJobs() {
+  const sector  = document.getElementById('jobSectorFilter')?.value || '';
   const status  = document.getElementById('jobStatusFilter')?.value || '';
   const type    = document.getElementById('jobTypeFilter')?.value || '';
   const search  = document.getElementById('jobSearch')?.value.toLowerCase() || '';
 
-  const filtered = allJobs.filter(j =>
-    (!status || j.status === status) &&
-    (!type   || j.workType === type) &&
-    (!search || `${j.workType} ${j.farmer?.name} ${j.farmer?.village} ${j.farmAddress}`.toLowerCase().includes(search))
-  );
+  // Update Live Wage Tracker KPIs
+  const totalVolume = allJobs.reduce((sum, j) => sum + (Number(j.payPerDay || 0) * Number(j.workersNeeded || 1)), 0);
+  const avgWage = allJobs.length ? Math.round(allJobs.reduce((sum, j) => sum + Number(j.payPerDay || 0), 0) / allJobs.length) : 0;
+  const constJobsCount = allJobs.filter(j => isConstructionJob(j.workType)).length;
+  const agriJobsCount = allJobs.length - constJobsCount;
+
+  const elTotal = document.getElementById('wageCardTotalJobs');
+  if (elTotal) elTotal.textContent = allJobs.length;
+  const elVol = document.getElementById('wageCardTotalVolume');
+  if (elVol) elVol.textContent = '₹' + totalVolume.toLocaleString('en-IN');
+  const elAvg = document.getElementById('wageCardAvgWage');
+  if (elAvg) elAvg.textContent = '₹' + avgWage.toLocaleString('en-IN') + '/day';
+  const elSplit = document.getElementById('wageCardSectorSplit');
+  if (elSplit) elSplit.textContent = `${constJobsCount} Const / ${agriJobsCount} Agri`;
+
+  const filtered = allJobs.filter(j => {
+    const isConst = isConstructionJob(j.workType);
+    if (sector === 'construction' && !isConst) return false;
+    if (sector === 'agriculture' && isConst) return false;
+    return (!status || j.status === status) &&
+      (!type   || (j.workType || '').toLowerCase().includes(type.toLowerCase())) &&
+      (!search || `${j.workType} ${j.farmer?.name} ${j.farmer?.village} ${j.farmAddress}`.toLowerCase().includes(search));
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     let valA = a[sortField];
@@ -139,13 +204,26 @@ function renderJobs() {
     cancelled: 'badge-red', in_progress: 'badge-purple'
   }[s] || 'badge-gray');
 
-  const rows = slice.map(j => `
+  const rows = slice.map(j => {
+    const isConst = isConstructionJob(j.workType);
+    const totalWage = Number(j.payPerDay || 0) * Number(j.workersNeeded || 1);
+    const sectorTag = isConst
+      ? `<span class="badge" style="background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3);font-size:10px;margin-top:4px;display:inline-block">🏗️ Construction</span>`
+      : `<span class="badge" style="background:rgba(16,185,129,0.15);color:#10B981;border:1px solid rgba(16,185,129,0.3);font-size:10px;margin-top:4px;display:inline-block">🌾 Agriculture</span>`;
+
+    return `
     <tr>
-      <td><strong style="cursor:pointer;text-decoration:underline;color:#fff" onclick="window._inspectJob('${j.id}')">${j.workType}</strong></td>
+      <td>
+        <strong style="cursor:pointer;text-decoration:underline;color:#fff" onclick="window._inspectJob('${j.id}')">${j.workType}</strong>
+        <br>${sectorTag}
+      </td>
       <td>${j.farmer?.name || '—'}<br><span style="color:var(--text-muted);font-size:12px">${j.farmer?.phone || ''}</span></td>
       <td style="color:var(--text-muted)">${j.farmer?.village || '—'}</td>
-      <td>${j.workersNeeded}</td>
-      <td>₹${j.payPerDay}/day</td>
+      <td><strong>${j.workersNeeded}</strong> workers</td>
+      <td>
+        <span style="font-weight:800;color:var(--primary)">₹${j.payPerDay}</span>/day
+        <div style="font-size:11px;color:var(--text-dim)">Total: ₹${totalWage.toLocaleString('en-IN')}</div>
+      </td>
       <td><span class="badge ${statusBadge(j.status)}">${j.status}</span></td>
       <td>${j._count?.attendances ?? 0}</td>
       <td style="color:var(--text-muted);font-size:13px">${new Date(j.createdAt).toLocaleDateString()}</td>
@@ -160,7 +238,8 @@ function renderJobs() {
           <option value="cancelled">Cancelled</option>
         </select>
       </td>
-    </tr>`).join('') || `<tr><td colspan="9" class="table-empty">No jobs found.</td></tr>`;
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" class="table-empty">No jobs found.</td></tr>`;
 
   document.getElementById('jobsBody').innerHTML = rows;
 

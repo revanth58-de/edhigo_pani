@@ -374,6 +374,14 @@ export default {
     greengram: 'పెసలు',
     bengalgram: 'శనగలు',
     oilseeds: 'నూనెగింజలు',
+    // Construction & Skilled Labour Categories
+    const_masonry: 'మేస్త్రీలు (Masons/Bricklayers)',
+    const_concrete: 'కాంక్రీట్ పనులు (Concrete Work)',
+    const_carpentry: 'వడ్రంగులు (Carpenters)',
+    const_electrical: 'ఎలక్ట్రీషియన్లు (Electricians)',
+    const_painting: 'పెయింటర్లు (Painters)',
+    const_plumbing: 'ప్లంబర్లు (Plumbers)',
+    const_welding: 'వెల్డర్లు (Welders)',
   },
   cropCategories: {
     fruits: 'పండ్ల పంటలు',
@@ -381,11 +389,34 @@ export default {
     cashCrops: 'నగదు పంటలు',
     oilseedCrops: 'నూనె గింజల పంటలు',
     pulseVarieties: 'పప్పు పంటలు',
+    masonryConcrete: 'మేస్త్రీలు & కాంక్రీట్ పనులు (Masons & Concrete Work)',
+    skilledTrades: 'సాంకేతిక వృత్తులు (Skilled Trades)',
+    construction: 'నిర్మాణ పనులు & నైపుణ్య కార్మికులు (Construction & Skilled Labour)',
+  },
+  construction: {
+    sectionTitle: 'మేస్త్రీలు, సాంకేతిక వృత్తులు & కాంక్రీట్ పనులు',
+    sectionSubtitle: 'నిర్మాణ రంగాలు & ప్రత్యేక పనులు',
+    description: 'వడ్రంగులు, ఎలక్ట్రీషియన్లు, పెయింటర్లు, ప్లంబర్లు, వెల్డర్లు మరియు మేస్త్రీలు/కాంక్రీట్ పనులకు సంబంధించిన నైపుణ్య కార్మికులు.',
+    roles: {
+      mason: 'మేస్త్రీలు (Masons/Bricklayers) – ఇటుకలు, గోడలు మరియు కాంక్రీట్ పనులు చేయడం.',
+      carpenter: 'వడ్రంగులు (Carpenters) – ఫార్మ్‌వర్క్ మరియు నిర్మాణానికి సంబంధించిన చెక్క పనులు చేయడం.',
+      electrician: 'ఎలక్ట్రీషియన్లు (Electricians) – వైరింగ్ మరియు విద్యుత్ పరికరాలను అమర్చడం.',
+      painter: 'పెయింటర్లు (Painters) – భవనాలకు మరియు నిర్మాణాలకు రంగులు వేయడం.',
+      plumber: 'ప్లంబర్లు (Plumbers) – నీటి పైపులు మరియు ఇతర పైపింగ్ వ్యవస్థలను అమర్చడం.',
+      welder: 'వెల్డర్లు (Welders) – ఇనుము మరియు స్టీల్ భాగాలను వెల్డింగ్ చేసి అతికించడం.',
+    },
+    concreteActivities: {
+      mixing: 'కాంక్రీట్ కలపడం (Mixing) – సిమెంట్, ఇసుక, కంకర మరియు నీటిని సరైన నిష్పత్తిలో కలపడం.',
+      formwork: 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly) – కాంక్రీట్ పోయడానికి చెక్క లేదా ఇనుప చట్రాలు సిద్ధం చేయడం.',
+      pouring: 'కాంక్రీట్ పోయడం మరియు ముగించడం (Pouring & Finishing) – చట్రంలో కాంక్రీట్ పోసి ఉపరితలాన్ని సమానంగా చేయడం.',
+      shotcrete: 'షాట్‌క్రీట్ (Shotcrete) – యంత్రాల ద్వారా కాంక్రీట్‌ను గోడలపై లేదా ఉపరితలాలపై స్ప్రే చేయడం.',
+      curing: 'క్యూరింగ్ (Curing) – కాంక్రీట్ గట్టిపడటానికి నీళ్లు కొట్టడం (తడి ఉంచడం).',
+    },
   },
   cropWorkTypes: {
     title: '%{crop} పనులు',
     searchPlaceholder: 'పనుల కోసం వెతకండి...',
-    acreageLabel: 'పొలం పరిమాణం (ఎకరాలు)',
+    acreageLabel: 'పొలం పరిమాణం (ఎకరాలు) / పని విస్తీర్ణం',
     labourNeeded: 'సిఫార్సు చేసిన కూలీలు',
     estimatedDuration: 'అంచనా సమయం',
     durationVal: '%{days} రోజు',
@@ -421,6 +452,21 @@ export default {
     threshing: 'ధాన్యం వేరు చేయడం',
     drying: 'ఎండబెట్టడం',
     bagFilling: 'సంచులు నింపడం',
+
+    // ─── 2. కాంక్రీట్ పనులు (Concrete Work) & మేస్త్రీలు (Masons) ───
+    concreteMixing: 'కాంక్రీట్ కలపడం (Mixing)',
+    formworkAssembly: 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
+    concretePouring: 'కాంక్రీట్ పోయడం మరియు ముగించడం (Pouring & Finishing)',
+    shotcrete: 'షాట్‌క్రీట్ (Shotcrete)',
+    concreteCuring: 'క్యూరింగ్ (Curing)',
+
+    // Skilled Trades
+    woodworkCarpentry: 'వడ్రంగి పనులు (Carpenters)',
+    wiringInstallation: 'ఎలక్ట్రికల్ పనులు (Electricians)',
+    wallPainting: 'పెయింటింగ్ పనులు (Painters)',
+    pipeFittingPlumbing: 'ప్లంబింగ్ పనులు (Plumbers)',
+    weldingFabrication: 'వెల్డింగ్ పనులు (Welders)',
+    masonryWork: 'మేస్త్రీ పనులు (Masons/Bricklayers)',
   },
   availableWorkers: {
     title: 'అందుబాటులో ఉన్న కూలీలు',
@@ -435,7 +481,7 @@ export default {
   workerProfile: {
     title: 'కూలీ ప్రొఫైల్',
     skills: 'నైపుణ్యాలు',
-    cropExperience: 'పంటల అనుభవం',
+    cropExperience: 'పంటల & నిర్మాణ అనుభవం',
     overallExp: '%{years} సంవత్సరాల అనుభవం',
     yearsExp: '%{years} సం. అనుభవం',
     dailyWageVal: '₹%{wage}/రోజు',

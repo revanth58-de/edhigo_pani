@@ -360,6 +360,90 @@ const getNearbyWorkers = async (req, res, next) => {
   }
 };
 
+// Get platform wage benchmark rates & minimum wage policy
+const getWageRates = async (req, res, next) => {
+  try {
+    const settings = await prisma.systemSetting.findMany({
+      where: {
+        key: {
+          in: [
+            'wages.minDailyWage',
+            'wages.enforceMinimum',
+            'wages.cropRates',
+            'wages.constructionRates',
+            'wages.skilledTradeRates',
+          ]
+        }
+      }
+    });
+
+    const configMap = {
+      minDailyWage: 400,
+      enforceMinimum: true,
+      cropRates: {
+        paddy_harvesting: 500,
+        sugarcane_cutting: 600,
+        watering: 350,
+        ploughing: 450,
+        cotton_picking: 480,
+        chilli_harvesting: 520,
+      },
+      constructionRates: {
+        earthwork_excavation: 550,
+        earthwork_grading: 500,
+        earthwork_compaction: 480,
+        earthwork_tunneling: 600,
+        concrete_mixing: 550,
+        concrete_formwork: 650,
+        concrete_pouring: 600,
+        concrete_shotcrete: 700,
+        concrete_curing: 450,
+        structural_scaffolding: 650,
+        structural_bracing: 600,
+        structural_temporary: 550,
+        utility_drainage: 580,
+        utility_conduits: 620,
+        utility_storm_drains: 560,
+        maintenance_cleanup: 450,
+        maintenance_tools: 500,
+        maintenance_traffic: 480,
+      },
+      skilledTradeRates: {
+        mason: 800,
+        carpenter: 800,
+        plumber: 750,
+        electrician: 750,
+        welder: 750,
+        painter: 700,
+        machinery_operator: 900,
+        steel_erector: 800,
+      },
+    };
+
+    settings.forEach((s) => {
+      if (s.key === 'wages.minDailyWage') configMap.minDailyWage = parseFloat(s.value) || 400;
+      if (s.key === 'wages.enforceMinimum') configMap.enforceMinimum = s.value !== 'false';
+      if (s.key === 'wages.cropRates') {
+        try { configMap.cropRates = { ...configMap.cropRates, ...JSON.parse(s.value) }; } catch (_) {}
+      }
+      if (s.key === 'wages.constructionRates') {
+        try { configMap.constructionRates = { ...configMap.constructionRates, ...JSON.parse(s.value) }; } catch (_) {}
+      }
+      if (s.key === 'wages.skilledTradeRates') {
+        try { configMap.skilledTradeRates = { ...configMap.skilledTradeRates, ...JSON.parse(s.value) }; } catch (_) {}
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: configMap,
+    });
+  } catch (error) {
+    logger.error('Get wage rates error', { message: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getJobs,
   getJobById,
@@ -367,4 +451,5 @@ module.exports = {
   getWorkerHistory,
   getWorkerJobs,
   getNearbyWorkers,
+  getWageRates,
 };

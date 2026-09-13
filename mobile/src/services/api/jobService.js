@@ -118,4 +118,18 @@ export const jobService = {
       };
     }
   },
+
+  // Get dynamic wage benchmark rates & floor policy from admin settings
+  getWageRates: async () => {
+    try {
+      const response = await jobAPI.getWageRates();
+      return { success: true, data: response.data?.data || response.data };
+    } catch (error) {
+      console.error('Get Wage Rates Error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to fetch wage rates',
+      };
+    }
+  },
 };

@@ -1,5 +1,5 @@
 const { createJob } = require('./job.create');
-const { getJobs, getJobById, getMyJobs, getWorkerHistory, getWorkerJobs, getNearbyWorkers } = require('./job.query');
+const { getJobs, getJobById, getMyJobs, getWorkerHistory, getWorkerJobs, getNearbyWorkers, getWageRates } = require('./job.query');
 const { updateJobStatus, acceptJob, withdrawJob, cancelJob } = require('./job.status');
 
 module.exports = {
@@ -14,4 +14,5 @@ module.exports = {
   getWorkerHistory,
   getWorkerJobs,
   getNearbyWorkers,
+  getWageRates,
 };

@@ -78,8 +78,17 @@ if (keystorePropertiesFile.exists()) {
 }
 
 // Only use release keystore if the .jks file actually exists AND passwords are not placeholders
-def resolvedKeystoreFile = keystorePropertiesFile.exists() && keystoreProperties['storeFile'] ?
-    file(keystoreProperties['storeFile']) : null
+def rawStoreFile = keystorePropertiesFile.exists() && keystoreProperties['storeFile'] ? keystoreProperties['storeFile'] : null
+def resolvedKeystoreFile = null
+if (rawStoreFile) {
+    def f1 = file(rawStoreFile)
+    def f2 = rootProject.file(rawStoreFile)
+    if (f1.exists()) {
+        resolvedKeystoreFile = f1
+    } else if (f2.exists()) {
+        resolvedKeystoreFile = f2
+    }
+}
 def useReleaseKeystore = resolvedKeystoreFile != null &&
     resolvedKeystoreFile.exists() &&
     keystoreProperties['storePassword'] != 'YOUR_KEYSTORE_PASSWORD'

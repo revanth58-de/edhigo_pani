@@ -169,6 +169,13 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         },
       ];
     }
+
+    if (cropId === 'const_safety' || cropId === 'const_site_safety') {
+      return [
+        {
+          id: 'safetyFencing',
+          name: t('cropWorkTypes.safetyFencing') || 'Safety Fencing & Barriers',
+          skillKeyword: 'labour',
           icon: 'security',
           image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),

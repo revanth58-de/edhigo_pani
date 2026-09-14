@@ -13,12 +13,13 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // ── Production override ─────────────────────────────────────────────────────
-// Set EXPO_PUBLIC_API_URL in your .env or EAS environment to use a real server.
-// e.g. EXPO_PUBLIC_API_URL=https://api.myapp.com
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || null;
+// Connected directly to live Render backend: https://edhigo-pani.onrender.com
+const DEFAULT_CLOUD_BACKEND = 'https://edhigo-pani.onrender.com';
+const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_CLOUD_BACKEND;
 
 // ── Dev: auto-detect host from Expo manifest ────────────────────────────────
 const getDevHost = () => {
+  if (!__DEV__) return null;
   // Expo Go: debuggerHost is like "192.168.1.x:8081" — strip the port
   const debuggerHost =
     Constants.expoConfig?.hostUri ||           // SDK 46+
@@ -38,17 +39,19 @@ const getDevHost = () => {
 };
 
 const getApiUrl = () => {
-  if (Platform.OS === 'web') return 'http://localhost:5000/api';
-  if (PRODUCTION_API_URL) return `${PRODUCTION_API_URL}/api`;
-  const host = getDevHost();
-  return `http://${host}:5000/api`;
+  if (__DEV__) {
+    const host = getDevHost();
+    if (host) return `http://${host}:5000/api`;
+  }
+  return `${PRODUCTION_API_URL}/api`;
 };
 
 const getSocketUrl = () => {
-  if (Platform.OS === 'web') return 'http://localhost:5000';
-  if (PRODUCTION_API_URL) return PRODUCTION_API_URL;
-  const host = getDevHost();
-  return `http://${host}:5000`;
+  if (__DEV__) {
+    const host = getDevHost();
+    if (host) return `http://${host}:5000`;
+  }
+  return PRODUCTION_API_URL;
 };
 
 export const API_BASE_URL = getApiUrl();

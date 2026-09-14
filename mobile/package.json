@@ -7,7 +7,7 @@
     "android": "expo start --android --offline",
     "ios": "expo start --ios --offline",
     "web": "expo start --web --offline",
-    "test": "jest --watchAll=false",
+    "test": "jest --watchAll=false --runInBand --forceExit",
     "test:watch": "jest --watchAll",
     "prebuild": "expo prebuild --platform android --no-install",
     "build": "expo export",

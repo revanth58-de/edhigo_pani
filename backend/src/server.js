@@ -499,8 +499,11 @@ app.use(errorHandler);
 
 // ─── Start Server ───
 if (require.main === module) {
-  server.listen(config.port, '0.0.0.0', () => {
-    logger.info(`🚀 DINASARI server running on port ${config.port} (bound to 0.0.0.0)`);
+  const PORT = process.env.PORT || config.port || 10000;
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 DINASARI server running on port ${PORT} (bound to 0.0.0.0)`);
+    console.log(`📡 Environment: ${config.nodeEnv}`);
+    logger.info(`🚀 DINASARI server running on port ${PORT} (bound to 0.0.0.0)`);
     logger.info(`📡 Environment: ${config.nodeEnv}`);
   });
 

@@ -13,6 +13,15 @@ const requestIdFormat = typeof winston.format === 'function' ? winston.format((i
   return info;
 }) : () => ({});
 
+const fs = require('fs');
+try {
+  if (!fs.existsSync('logs')) {
+    fs.mkdirSync('logs', { recursive: true });
+  }
+} catch (e) {
+  // Ignore in read-only container environments
+}
+
 const logger = winston.createLogger({
   level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
   format: winston.format.combine(

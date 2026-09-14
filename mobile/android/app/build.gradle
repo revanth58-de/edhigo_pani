@@ -77,21 +77,20 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-// Only use release keystore if the .jks file actually exists AND passwords are not placeholders
-def rawStoreFile = keystorePropertiesFile.exists() && keystoreProperties['storeFile'] ? keystoreProperties['storeFile'] : null
 def resolvedKeystoreFile = null
-if (rawStoreFile) {
-    def f1 = file(rawStoreFile)
-    def f2 = rootProject.file(rawStoreFile)
+if (file("dinasari-release.jks").exists()) {
+    resolvedKeystoreFile = file("dinasari-release.jks")
+} else if (rootProject.file("app/dinasari-release.jks").exists()) {
+    resolvedKeystoreFile = rootProject.file("app/dinasari-release.jks")
+} else if (keystoreProperties['storeFile']) {
+    def f1 = file(keystoreProperties['storeFile'])
+    def f2 = rootProject.file(keystoreProperties['storeFile'])
     if (f1.exists()) {
         resolvedKeystoreFile = f1
     } else if (f2.exists()) {
         resolvedKeystoreFile = f2
     }
 }
-def useReleaseKeystore = resolvedKeystoreFile != null &&
-    resolvedKeystoreFile.exists() &&
-    keystoreProperties['storePassword'] != 'YOUR_KEYSTORE_PASSWORD'
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -105,6 +104,12 @@ def useReleaseKeystore = resolvedKeystoreFile != null &&
  * this variant is about 6MiB larger per architecture than default.
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+project.ext.sentryCli = [
+    autoUpload: false,
+]
+project.ext.shouldSentryAutoUploadGeneral = { -> return false }
+project.ext.shouldSentryAutoUploadNative = { -> return false }
 
 apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
 
@@ -126,25 +131,21 @@ android {
     }
     signingConfigs {
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            if (resolvedKeystoreFile != null && resolvedKeystoreFile.exists()) {
+                storeFile resolvedKeystoreFile
+                storePassword keystoreProperties['storePassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
+                keyAlias keystoreProperties['keyAlias'] ?: 'dinasari'
+                keyPassword keystoreProperties['keyPassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
+            }
         }
         release {
-            if (useReleaseKeystore) {
+            if (resolvedKeystoreFile != null && resolvedKeystoreFile.exists()) {
                 storeFile resolvedKeystoreFile
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
+                storePassword keystoreProperties['storePassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
+                keyAlias keystoreProperties['keyAlias'] ?: 'dinasari'
+                keyPassword keystoreProperties['keyPassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
             } else {
-                // Fallback to debug keystore — safe for test builds.
-                // Generate a real keystore before uploading to Play Store.
-                // See DEPLOYMENT.md Step 4.
-                storeFile file('debug.keystore')
-                storePassword 'android'
-                keyAlias 'androiddebugkey'
-                keyPassword 'android'
+                throw new GradleException("Release keystore not found.")
             }
         }
     }

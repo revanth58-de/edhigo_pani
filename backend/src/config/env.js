@@ -46,10 +46,14 @@ if (process.env.NODE_ENV === 'production') {
 
   for (const { key, name } of requiredSecrets) {
     const val = process.env[key];
-    if (!val || val.trim() === '') {
-      validationErrors.push(`❌ ${key} (${name}) is MISSING in environment`);
-    } else if (isPlaceholder(val)) {
+    if (val && isPlaceholder(val)) {
       validationErrors.push(`⚠️ ${key} (${name}) contains an unconfigured placeholder: "${val}"`);
+    } else if (!val || val.trim() === '') {
+      if (['DATABASE_URL', 'JWT_SECRET', 'JWT_REFRESH_SECRET', 'ADMIN_SECRET', 'ADMIN_JWT_SECRET'].includes(key)) {
+        validationErrors.push(`❌ ${key} (${name}) is MISSING in environment`);
+      } else {
+        console.warn(`ℹ️ Optional Service ${key} (${name}) not set — running with fallback.`);
+      }
     }
   }
 

@@ -46,15 +46,20 @@ app.use(traceMiddleware);
 // Trust proxy for correct IP detection behind Nginx/Load Balancers
 app.set('trust proxy', 1);
 
-// FIX #18: Health check endpoint — required by Cloud Run, Kubernetes, and load
-// balancers to verify the service is alive before routing traffic to it.
-// Must be registered BEFORE the rate limiter to avoid throttling infra checks.
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'DINASARI API',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/health', async (req, res) => {
   try {
     const prisma = require('./config/database');
-    // Run a fast ping check against PostgreSQL
     await prisma.$queryRaw`SELECT 1`;
-    res.json({
+    res.status(200).json({
       status: 'ok',
       database: 'connected',
       uptime: Math.floor(process.uptime()),
@@ -108,11 +113,11 @@ if (redisUrl) {
 // Enforce HTTPS in production
 if (config.nodeEnv === 'production') {
   app.use((req, res, next) => {
-    if (req.header('x-forwarded-proto') !== 'https') {
-      res.redirect(`https://${req.header('host')}${req.url}`);
-    } else {
-      next();
+    const proto = req.header('x-forwarded-proto');
+    if (proto && proto === 'http') {
+      return res.redirect(301, `https://${req.header('host')}${req.url}`);
     }
+    next();
   });
 }
 

@@ -5,6 +5,8 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node --watch-path=src src/server.js",
+    "build": "npx prisma generate",
+    "postinstall": "npx prisma generate",
     "start": "node src/server.js",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",

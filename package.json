@@ -1,8 +1,9 @@
-﻿{
+{
   "name": "edhigo-pani-root",
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "postinstall": "cd backend && npm install && npx prisma generate",
     "build": "cd backend && npm install && npx prisma generate",
     "start": "cd backend && npm start",
     "test": "cd backend && npm test",

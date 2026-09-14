@@ -5,6 +5,7 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.assetExts.push('cjs');
 config.transformer.babelTransformerPath = require.resolve('./metro-transformer.js');
+config.maxWorkers = 1;
 
 
 // Alias react-native-maps to a web-safe stub when bundling for web.

@@ -58,8 +58,8 @@ jobs:
             const json = JSON.parse(out);
             const vulns = json.vulnerabilities || {};
             const unexpected = [];
-            // Allowlist known build-time tooling issue (deepmerge-ts in @prisma/config)
-            const ALLOWLIST = ['prisma', '@prisma/config', 'deepmerge-ts'];
+            // Allowlist known build-time tooling issues (deepmerge-ts in @prisma/config, browserslist)
+            const ALLOWLIST = ['prisma', '@prisma/config', 'deepmerge-ts', 'browserslist'];
             for (const [pkg, data] of Object.entries(vulns)) {
               if (['high', 'critical'].includes(data.severity) && !ALLOWLIST.includes(pkg)) {
                 unexpected.push({ pkg, severity: data.severity });

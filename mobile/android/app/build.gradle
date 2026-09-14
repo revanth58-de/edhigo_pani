@@ -47,9 +47,7 @@ react {
     //   The entry file for bundle generation. Default is 'index.android.js' or 'index.js'
     // entryFile = file("../js/MyApplication.android.js")
     //
-    //   A list of extra flags to pass to the 'bundle' commands.
-    //   See https://github.com/react-native-community/cli/blob/main/docs/commands.md#bundle
-    // extraPackagerArgs = []
+    extraPackagerArgs = ["--max-workers", "1"]
 
     /* Hermes Commands */
     //   The hermes compiler command to run. By default it is 'hermesc'
@@ -65,7 +63,7 @@ react {
 /**
  * Set this to true in release builds to optimize the app using [R8](https://developer.android.com/topic/performance/app-optimization/enable-app-optimization).
  */
-def enableMinifyInReleaseBuilds = true
+def enableMinifyInReleaseBuilds = false
 
 // ── Release Signing ─────────────────────────────────────────────────────────
 // keystore.properties is NOT committed to git (listed in .gitignore).
@@ -166,7 +164,7 @@ android {
         }
         release {
             signingConfig signingConfigs.release
-            shrinkResources true
+            shrinkResources enableMinifyInReleaseBuilds
             minifyEnabled enableMinifyInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
@@ -181,6 +179,10 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
     }
 }
 

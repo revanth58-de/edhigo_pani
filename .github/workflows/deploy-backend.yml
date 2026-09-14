@@ -21,23 +21,16 @@
 #   CLOUD_RUN_REGION         → e.g. asia-south1
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: Deploy Backend
+name: Deploy Backend (Google Cloud Run)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
-      - 'Dockerfile'
-
-  # Allow manual trigger with a reason label
+  # Manual trigger only when Google Cloud secrets are configured
   workflow_dispatch:
     inputs:
       reason:
         description: 'Reason for manual deploy'
         required: false
-        default: 'Manual hotfix'
+        default: 'Manual deploy'
 
 # Only one deploy can run at a time — never race two deploys
 concurrency:

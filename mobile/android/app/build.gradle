@@ -35,8 +35,7 @@ react {
     // debuggableVariants = ["liteDebug", "prodDebug"]
 
     /* Bundling */
-    //   A list containing the node command and its flags. Default is just 'node'.
-    // nodeExecutableAndArgs = ["node"]
+    nodeExecutableAndArgs = ["node", "--max-old-space-size=8192"]
 
     //
     //   The path to the CLI configuration file. Default is empty.
@@ -105,13 +104,19 @@ if (file("dinasari-release.jks").exists()) {
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-project.ext.sentryCli = [
-    autoUpload: false,
-]
+apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
+
 project.ext.shouldSentryAutoUploadGeneral = { -> return false }
 project.ext.shouldSentryAutoUploadNative = { -> return false }
+project.ext.shouldSentryAutoUpload = { -> return false }
 
-apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
+afterEvaluate {
+    tasks.configureEach { task ->
+        if (task.name.contains("SentryUpload")) {
+            task.enabled = false
+        }
+    }
+}
 
 android {
     ndkVersion rootProject.ext.ndkVersion

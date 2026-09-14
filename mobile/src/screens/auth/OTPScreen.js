@@ -188,6 +188,21 @@ const OTPScreen = ({ navigation, route }) => {
             ))}
           </View>
 
+          {/* Master Test OTP 1234 Banner */}
+          <TouchableOpacity
+            style={styles.masterOtpBanner}
+            onPress={() => {
+              setOtp('1234');
+              verifyOTP('1234');
+            }}
+            activeOpacity={0.8}
+          >
+            <MaterialIcons name="bolt" size={20} color="#F59E0B" />
+            <Text style={styles.masterOtpText}>
+              Test OTP: <Text style={{ fontWeight: 'bold', color: colors.primary }}>1234</Text> (Tap to Auto-Fill)
+            </Text>
+          </TouchableOpacity>
+
           {errorMsg && (
             <View style={styles.inlineErrorContainer}>
               <MaterialIcons name="error-outline" size={16} color="#DC2626" />
@@ -415,6 +430,24 @@ const styles = StyleSheet.create({
   inlineErrorText: {
     color: '#DC2626',
     fontSize: 13,
+    fontWeight: '600',
+  },
+  masterOtpBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  masterOtpText: {
+    fontSize: 14,
+    color: '#92400E',
     fontWeight: '600',
   },
 

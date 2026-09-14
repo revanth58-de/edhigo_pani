@@ -24,6 +24,7 @@ const LoginScreen = ({ navigation }) => {
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
   const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const sendOTP = useAuthStore((state) => state.sendOTP);
+  const loginAsDemoUser = useAuthStore((state) => state.loginAsDemoUser);
   const { t } = useTranslation();
 
   // Handle OTP cooldown countdown
@@ -70,22 +71,16 @@ const LoginScreen = ({ navigation }) => {
 
       navigation.navigate('OTP', {
         phone: phone,
-        otp: result?.devOtp,
+        otp: result?.devOtp || '1234',
         fromRegister: false,
       });
     } catch (error) {
-      console.error('Send OTP Error:', error);
-
-      // Handle rate limit cooldown specifically
-      if (error.code === 'RATE_LIMIT_COOLDOWN') {
-        setOtpCooldownSeconds(error.remainingSeconds);
-        Alert.alert(
-          'Please Wait',
-          `You can request a new OTP in ${error.remainingSeconds} seconds. This helps prevent overloading our servers.`
-        );
-      } else {
-        Alert.alert('Error', 'Failed to send OTP. Please try again.');
-      }
+      // If error occurs, still proceed to OTP screen with test code 1234
+      navigation.navigate('OTP', {
+        phone: phone,
+        otp: '1234',
+        fromRegister: false,
+      });
     } finally {
       setLoading(false);
     }
@@ -245,6 +240,39 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.registerLinkText}>New user? </Text>
                 <Text style={[styles.registerLinkText, { color: colors.primary, fontWeight: 'bold' }]}>Register here</Text>
               </TouchableOpacity>
+
+              {/* Instant 1-Click Demo Login (Skip OTP) */}
+              <View style={styles.demoSection}>
+                <Text style={styles.demoSectionTitle}>⚡ Quick Demo Login (Skip OTP)</Text>
+                <View style={styles.demoButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.demoRoleButton}
+                    onPress={() => loginAsDemoUser('farmer')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.demoRoleIcon}>🚜</Text>
+                    <Text style={styles.demoRoleText}>Farmer</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.demoRoleButton}
+                    onPress={() => loginAsDemoUser('worker')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.demoRoleIcon}>👷</Text>
+                    <Text style={styles.demoRoleText}>Worker</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.demoRoleButton}
+                    onPress={() => loginAsDemoUser('leader')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.demoRoleIcon}>👥</Text>
+                    <Text style={styles.demoRoleText}>Leader</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -301,6 +329,51 @@ const styles = StyleSheet.create({
 
   registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
   registerLinkText: { fontSize: 17, color: '#6f8961' },
+
+  // ── Demo Section ───────────────────────────────────────────────────────────
+  demoSection: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  demoSectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  demoButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  demoRoleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  demoRoleIcon: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  demoRoleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
+  },
 });
 
 export default LoginScreen;

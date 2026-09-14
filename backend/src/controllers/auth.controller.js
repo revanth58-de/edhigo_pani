@@ -172,8 +172,8 @@ const sendOTP = async (req, res, next) => {
 
     res.json({
       message: 'OTP sent successfully',
-      isExistingUser: isExistingUser || true,
-      devOtp: '1234',
+      isExistingUser,
+      devOtp: (config.nodeEnv === 'development' || config.nodeEnv === 'test' || SHOW_OTP_ON_SCREEN) ? otp : undefined,
     });
   } catch (error) {
     logger.error('Send OTP error', { message: error.message }); // S3: use structured logger
@@ -204,18 +204,13 @@ const verifyOTP = async (req, res, next) => {
       });
     }
 
-    // SEC-4 FIX: Return 401 if user is not found or OTP expired
-    if (!user) {
+    // SEC-4 FIX: Return 401 if user is not found or OTP was not issued / expired
+    if (!user || !user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
       return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
     }
 
     const isMasterOtp = (otp === '1234' || otp === '9999');
-
-    if (!isMasterOtp && (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date())) {
-      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
-    }
-
-    const isMatch = isMasterOtp || (user.otp && await bcrypt.compare(otp, user.otp));
+    const isMatch = isMasterOtp || (await bcrypt.compare(otp, user.otp));
     if (!isMatch) {
       const MAX_OTP_ATTEMPTS = 5;
       const failCount = (user.otpFailCount || 0) + 1;

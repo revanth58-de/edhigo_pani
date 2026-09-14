@@ -93,6 +93,7 @@ describe('POST /api/auth/verify-otp', () => {
   });
 
   test('❌ Non-existent user → 401 (prevent enumeration)', async () => {
+    await prisma.user.deleteMany({ where: { phone: '9000000000' } });
     const res = await request(app)
       .post('/api/auth/verify-otp')
       .send({ phone: '9000000000', otp: '1234' });

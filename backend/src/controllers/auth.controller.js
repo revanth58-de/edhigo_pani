@@ -9,6 +9,9 @@ const { logger } = require('../middleware/errorHandler');
 const { UserRole, Gender, Language } = require('../config/enums'); // D1
 const { isValidPhotoUrl } = require('../utils/urlGuard');
 
+// Developer flag: show OTP on screen instead of dispatching via SMS/WhatsApp
+const SHOW_OTP_ON_SCREEN = process.env.SHOW_OTP_ON_SCREEN === 'true';
+
 // Generate a cryptographically secure 4-digit OTP
 const generateOTP = () => {
   return crypto.randomInt(1000, 10000).toString();
@@ -140,32 +143,38 @@ const sendOTP = async (req, res, next) => {
 
     logger.info('OTP saved', { isExistingUser });
 
-    // Try sending OTP via WhatsApp first; if it fails, fallback to SMS.
-    // Executed in the background so the user gets an instant HTTP response.
-    sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
-      if (whatsappSent) {
-        logger.info('OTP dispatched via WhatsApp');
-      } else {
-        logger.info('WhatsApp dispatch failed or not configured — falling back to SMS');
+    // Developer mode: skip SMS/WhatsApp entirely; OTP is shown on screen.
+    if (SHOW_OTP_ON_SCREEN) {
+      logger.info(`🛠️ SHOW_OTP_ON_SCREEN=true — Skipping SMS dispatch. OTP will display on screen.`);
+    } else {
+      // Try sending OTP via WhatsApp first; if it fails, fallback to SMS.
+      // Executed in the background so the user gets an instant HTTP response.
+      sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
+        if (whatsappSent) {
+          logger.info('OTP dispatched via WhatsApp');
+        } else {
+          logger.info('WhatsApp dispatch failed or not configured — falling back to SMS');
+          sendOTPSms(phone, otp).then((smsSent) => {
+            if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
+          }).catch((err) => {
+            logger.error('Background SMS error', { message: err.message });
+          });
+        }
+      }).catch((err) => {
+        logger.error('Background WhatsApp error, trying SMS fallback...', { message: err.message });
         sendOTPSms(phone, otp).then((smsSent) => {
           if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
         }).catch((err) => {
           logger.error('Background SMS error', { message: err.message });
         });
-      }
-    }).catch((err) => {
-      logger.error('Background WhatsApp error, trying SMS fallback...', { message: err.message });
-      sendOTPSms(phone, otp).then((smsSent) => {
-        if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
-      }).catch((err) => {
-        logger.error('Background SMS error', { message: err.message });
       });
-    });
+    }
 
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      ...((config.nodeEnv === 'development' || config.nodeEnv === 'test') && { devOtp: otp }),
+      // Include OTP in response in dev/test mode OR when SHOW_OTP_ON_SCREEN is enabled for APK testing
+      ...((config.nodeEnv === 'development' || config.nodeEnv === 'test' || SHOW_OTP_ON_SCREEN) && { devOtp: otp }),
     });
   } catch (error) {
     logger.error('Send OTP error', { message: error.message }); // S3: use structured logger

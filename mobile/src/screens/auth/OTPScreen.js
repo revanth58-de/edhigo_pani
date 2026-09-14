@@ -1,4 +1,4 @@
-// Screen 4: OTP Verification - Exact match to otp-verification.html
+// Screen 4: OTP Verification
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -6,9 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
   ScrollView,
   Platform,
+  Animated,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import CustomLoader from '../../components/CustomLoader';
@@ -23,10 +24,26 @@ const OTPScreen = ({ navigation, route }) => {
   // M13: Resend cooldown timer (120 seconds matching the backend 2-min window)
   const [resendCooldown, setResendCooldown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null); // inline error — no alert popups
+  // Track the current dev OTP — updates on Resend so the banner always shows the latest code
+  const [currentDevOtp, setCurrentDevOtp] = useState(receivedOTP || null);
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
   const sendOTPAction = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
+
+  // Pulse animation for the dev OTP banner to draw the tester's eye
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!currentDevOtp) return;
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.03, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [currentDevOtp]);
 
   // M13: Count down the resend timer every second
   useEffect(() => {
@@ -35,25 +52,14 @@ const OTPScreen = ({ navigation, route }) => {
     return () => clearTimeout(id);
   }, [resendCooldown]);
 
-  useEffect(() => {
-
-    // Display the OTP to the user
-    if (receivedOTP) {
-      Alert.alert(
-        'Your OTP Code',
-        `Enter this code: ${receivedOTP}`,
-        [{ text: 'OK' }]
-      );
-    }
-  }, [receivedOTP]);
-
   const handleNumberPress = (num) => {
     if (otp.length < 4) {
+      setErrorMsg(null);
       const newOtp = otp + num;
       setOtp(newOtp);
-      // Auto-verify when 4 digits entered
+      // Auto-verify immediately when 4th digit is entered
       if (newOtp.length === 4) {
-        setTimeout(() => verifyOTP(newOtp), 300);
+        verifyOTP(newOtp);
       }
     }
   };
@@ -62,27 +68,32 @@ const OTPScreen = ({ navigation, route }) => {
     setOtp(otp.slice(0, -1));
   };
 
+  // Developer convenience: auto-fill the OTP boxes and verify immediately
+  const handleAutoFill = () => {
+    if (!currentDevOtp) return;
+    setOtp(currentDevOtp);
+    verifyOTP(currentDevOtp);
+  };
+
   const verifyOTP = async (otpToVerify = otp) => {
-    if (otpToVerify.length !== 4) {
-      Alert.alert('Error', 'Please enter a 4-digit OTP');
-      return;
-    }
+    if (otpToVerify.length !== 4) return;
     setLoading(true);
+    setErrorMsg(null);
     try {
       const registrationData = fromRegister ? { name, village, role, age, gender } : {};
       await verifyOTPAction(phone, otpToVerify, registrationData);
-      setAttemptsRemaining(null); // clear on success
+      setAttemptsRemaining(null);
     } catch (error) {
-      // M13: Show remaining attempts from server response
+      // Show inline error — no Alert popup that says "OTP failed"
       const serverData = error?.response?.data;
       if (serverData?.locked) {
-        Alert.alert('🔒 Locked', 'Too many wrong attempts. Please request a new OTP.', [{ text: 'OK' }]);
-        setResendCooldown(0); // allow immediate resend after lockout
+        setErrorMsg('Too many attempts. Request a new OTP.');
+        setResendCooldown(0);
       } else if (serverData?.attemptsRemaining != null) {
         setAttemptsRemaining(serverData.attemptsRemaining);
-        Alert.alert('Error', `Wrong OTP. ${serverData.attemptsRemaining} attempt${serverData.attemptsRemaining !== 1 ? 's' : ''} remaining.`);
+        setErrorMsg(`Wrong OTP — ${serverData.attemptsRemaining} attempt${serverData.attemptsRemaining !== 1 ? 's' : ''} left.`);
       } else {
-        Alert.alert('Error', 'Invalid OTP. Please try again.');
+        setErrorMsg('Incorrect OTP. Please try again.');
       }
       setOtp('');
     } finally {
@@ -99,7 +110,8 @@ const OTPScreen = ({ navigation, route }) => {
       setResendCooldown(120);
       setAttemptsRemaining(null); // reset attempt counter display
       if (newOtp) {
-        Alert.alert('OTP Resent', `Your new code: ${newOtp}`, [{ text: 'OK' }]);
+        // Update the on-screen banner with the latest OTP — no Alert needed
+        setCurrentDevOtp(newOtp);
       } else {
         Alert.alert('OTP Resent', 'OTP sent successfully. Check your SMS.');
       }
@@ -136,12 +148,28 @@ const OTPScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* OTP Input Section */}
+        {/* ── OTP Input Section — label, then dev banner, then OTP boxes ── */}
         <View style={styles.otpInputSection}>
           <View style={styles.labelRow}>
             <MaterialIcons name="security" size={20} color={colors.primary} />
             <Text style={styles.label}>VERIFICATION CODE</Text>
           </View>
+
+          {/* ── Developer OTP Banner — only visible when SHOW_OTP_ON_SCREEN=true ── */}
+          {currentDevOtp && (
+            <Animated.View style={[styles.devBanner, { transform: [{ scale: pulseAnim }] }]}>
+              <View style={styles.devBannerHeader}>
+                <MaterialIcons name="developer-mode" size={16} color="#92400e" />
+                <Text style={styles.devBannerTitle}>DEV MODE — OTP ON SCREEN</Text>
+              </View>
+              <Text style={styles.devBannerOtp}>{currentDevOtp}</Text>
+              <Text style={styles.devBannerSub}>SMS is disabled. Use the code above.</Text>
+              <TouchableOpacity style={styles.autoFillBtn} onPress={handleAutoFill} activeOpacity={0.8}>
+                <MaterialIcons name="flash-on" size={16} color="#fff" />
+                <Text style={styles.autoFillBtnText}>Tap to Auto-fill & Verify</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
 
           <View style={styles.otpBoxRow}>
             {otpBoxes.map(({ index, digit, isFilled }) => (
@@ -160,10 +188,10 @@ const OTPScreen = ({ navigation, route }) => {
             ))}
           </View>
 
-          {receivedOTP && (
-            <View style={styles.otpDisplayContainer}>
-              <Text style={styles.otpDisplayLabel}>YOUR OTP CODE</Text>
-              <Text style={styles.otpDisplayCode}>{receivedOTP}</Text>
+          {errorMsg && (
+            <View style={styles.inlineErrorContainer}>
+              <MaterialIcons name="error-outline" size={16} color="#DC2626" />
+              <Text style={styles.inlineErrorText}>{errorMsg}</Text>
             </View>
           )}
         </View>
@@ -206,18 +234,18 @@ const OTPScreen = ({ navigation, route }) => {
             ))}
           </View>
 
-            {/* Attempts remaining warning */}
-            {attemptsRemaining != null && (
-              <View style={styles.attemptsWarning}>
-                <MaterialIcons name="warning" size={14} color="#DC2626" />
-                <Text style={styles.attemptsWarningText}>
-                  {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left before lockout
-                </Text>
-              </View>
-            )}
+          {/* Attempts remaining warning */}
+          {attemptsRemaining != null && (
+            <View style={styles.attemptsWarning}>
+              <MaterialIcons name="warning" size={14} color="#DC2626" />
+              <Text style={styles.attemptsWarningText}>
+                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left before lockout
+              </Text>
+            </View>
+          )}
 
-            {/* Action Buttons */}
-            <View style={styles.buttonContainer}>
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[
                 styles.verifyButton,
@@ -260,6 +288,69 @@ const styles = StyleSheet.create({
   },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
+
+  // ── Dev OTP Banner — sits between label and OTP boxes ──────────────────
+  devBanner: {
+    width: '100%',
+    marginBottom: 20,
+    backgroundColor: '#fffbeb',
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+    borderRadius: 20,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  devBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  devBannerTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#92400e',
+    letterSpacing: 1.5,
+  },
+  devBannerOtp: {
+    fontSize: 52,
+    fontWeight: '900',
+    color: '#b45309',
+    letterSpacing: 14,
+    marginBottom: 6,
+  },
+  devBannerSub: {
+    fontSize: 12,
+    color: '#78350f',
+    marginBottom: 14,
+    opacity: 0.8,
+  },
+  autoFillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f59e0b',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 9999,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  autoFillBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  // ── OTP Boxes ─────────────────────────────────────────────────────────────
   otpInputSection: {
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'ios' ? 32 : 20,
@@ -308,29 +399,26 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.primary}4D`,
     borderRadius: 2,
   },
-  otpDisplayContainer: {
-    backgroundColor: `${colors.primary}10`,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 16,
+  inlineErrorContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    backgroundColor: '#FEF2F2',
     borderWidth: 1,
-    borderColor: `${colors.primary}20`,
-    marginTop: 8,
+    borderColor: '#FCA5A5',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
-  otpDisplayLabel: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.primary,
-    letterSpacing: 2,
-    marginBottom: 4,
+  inlineErrorText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  otpDisplayCode: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.primary,
-    letterSpacing: 8,
-  },
+
+  // ── Keypad ────────────────────────────────────────────────────────────────
   keypadContainer: { padding: 16 },
   keypad: { gap: 12 },
   keypadRow: { flexDirection: 'row', gap: 12 },

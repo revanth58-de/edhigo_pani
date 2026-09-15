@@ -12,34 +12,31 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// ── Production override ─────────────────────────────────────────────────────
-// Connected directly to live Render backend: https://edhigo-pani.onrender.com
+// ── Cloud backend ────────────────────────────────────────────────────────────
+// Default target: live Render cloud backend
 const DEFAULT_CLOUD_BACKEND = 'https://edhigo-pani.onrender.com';
-const PRODUCTION_API_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_CLOUD_BACKEND;
+const PRODUCTION_API_URL = (process.env.EXPO_PUBLIC_API_URL || DEFAULT_CLOUD_BACKEND).replace(/\/$/, '');
 
-// ── Dev: auto-detect host from Expo manifest ────────────────────────────────
+// Only use local IP if EXPO_PUBLIC_USE_LOCAL_BACKEND=true is explicitly set
+const USE_LOCAL_BACKEND = process.env.EXPO_PUBLIC_USE_LOCAL_BACKEND === 'true';
+
+// ── Dev host detection (only active when USE_LOCAL_BACKEND=true) ──────────────
 const getDevHost = () => {
-  if (!__DEV__) return null;
-  // Expo Go: debuggerHost is like "192.168.1.x:8081" — strip the port
   const debuggerHost =
-    Constants.expoConfig?.hostUri ||           // SDK 46+
-    Constants.manifest2?.extra?.expoGo?.debuggerHost || // older SDK
-    Constants.manifest?.debuggerHost;          // legacy
+    Constants.expoConfig?.hostUri ||
+    Constants.manifest2?.extra?.expoGo?.debuggerHost ||
+    Constants.manifest?.debuggerHost;
 
   if (debuggerHost) {
-    // Strip port to get the bare IP/hostname
     return debuggerHost.split(':')[0];
   }
 
-  // Android emulator: 10.0.2.2 always points to the host machine
   if (Platform.OS === 'android') return '10.0.2.2';
-
-  // iOS simulator: localhost works
   return 'localhost';
 };
 
 const getApiUrl = () => {
-  if (__DEV__) {
+  if (USE_LOCAL_BACKEND && __DEV__) {
     const host = getDevHost();
     if (host) return `http://${host}:5000/api`;
   }
@@ -47,7 +44,7 @@ const getApiUrl = () => {
 };
 
 const getSocketUrl = () => {
-  if (__DEV__) {
+  if (USE_LOCAL_BACKEND && __DEV__) {
     const host = getDevHost();
     if (host) return `http://${host}:5000`;
   }
@@ -62,8 +59,7 @@ export const API_CONFIG_INFO = {
   platform: Platform.OS,
   apiUrl: API_BASE_URL,
   socketUrl: SOCKET_BASE_URL,
+  liveCloud: !USE_LOCAL_BACKEND,
 };
 
-if (__DEV__) {
-  console.log('🌐 API Configuration:', API_CONFIG_INFO);
-}
+console.log('🌐 DINASARI API Target:', API_CONFIG_INFO);

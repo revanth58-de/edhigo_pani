@@ -161,10 +161,49 @@ const clearNotifications = async (req, res, next) => {
   }
 };
 
+/**
+ * Send a test push notification to the authenticated user's registered device
+ * POST /api/notifications/test-push
+ */
+const testPush = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { title = '🌾 Dinasari Test Alert', body = 'Push notifications are working properly on your device!', data = {} } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, pushToken: true },
+    });
+
+    const token = req.body.pushToken || user?.pushToken;
+
+    // Save notification in database and emit socket event
+    const { createNotification, sendPush } = require('../services/pushNotification');
+    const notif = await createNotification(userId, title, body, data);
+
+    let pushSent = false;
+    if (token) {
+      await sendPush(token, title, body, data);
+      pushSent = true;
+    }
+
+    res.json({
+      success: true,
+      message: pushSent ? 'Push notification delivered to device' : 'In-app notification saved (no pushToken registered yet for this device)',
+      pushSent,
+      notification: notif,
+    });
+  } catch (error) {
+    logger.error('Test push error', { message: error.message });
+    next(error);
+  }
+};
+
 module.exports = {
   getNotifications,
   markAsRead,
   markAllAsRead,
   clearNotifications,
+  testPush,
 };
 

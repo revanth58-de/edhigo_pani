@@ -30,11 +30,23 @@ if (Platform.OS !== 'web' && Constants.appOwnership !== 'expo') {
       handleNotification: async () => ({
         shouldShowAlert: true,
         shouldPlaySound: true,
-        shouldSetBadge: false,
+        shouldSetBadge: true,
       }),
     });
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'Dinasari Notifications',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#2E7D32',
+        sound: 'default',
+        enableVibrate: true,
+        showBadge: true,
+      });
+    }
   } catch (e) {
-    console.warn('Notifications.setNotificationHandler not available:', e.message);
+    console.warn('Notifications setup not available:', e.message);
   }
 }
 
@@ -326,9 +338,12 @@ const AppNavigator = () => {
     checkInitialCameraPermission();
   }, []);
 
-  // ── Register push notification token after login ──────────────────────────
+  // ── Register push notification token after login & listen for push events ─
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
+
+    let notificationListener = null;
+    let responseListener = null;
 
     const registerPush = async () => {
       if (Platform.OS === 'web') return;
@@ -353,9 +368,11 @@ const AppNavigator = () => {
 
         if (projectId) {
           const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-          const token = tokenData.data;
-          console.log('📲 Expo Push Token:', token);
-          await authAPI.updateProfile({ pushToken: token });
+          const token = tokenData?.data;
+          if (token) {
+            console.log('📲 Expo Push Token:', token);
+            await authAPI.updateProfile({ pushToken: token });
+          }
         } else {
           console.warn("No valid EAS projectId found. Skipping push token registration.");
         }
@@ -365,6 +382,44 @@ const AppNavigator = () => {
     };
 
     registerPush();
+
+    if (Platform.OS !== 'web' && !isExpoGo) {
+      try {
+        // Foreground notification handler
+        notificationListener = Notifications.addNotificationReceivedListener((notification) => {
+          const content = notification?.request?.content;
+          if (content) {
+            const data = content.data || {};
+            const type = getNotificationType({ title: content.title, body: content.body, data });
+            useNotificationStore.getState().addNotification({
+              id: notification.request.identifier || `push-${Date.now()}`,
+              type,
+              title: content.title || 'Dinasari Alert',
+              body: content.body || '',
+              icon: TYPE_META[type]?.icon || 'notifications',
+              timestamp: new Date().toISOString(),
+              read: false,
+              data,
+            });
+          }
+        });
+
+        // User tapped on push notification (background/closed app)
+        responseListener = Notifications.addNotificationResponseReceivedListener((response) => {
+          const data = response?.notification?.request?.content?.data;
+          if (data?.screen && navigationRef.current?.navigate) {
+            navigationRef.current.navigate(data.screen, data.params || data);
+          }
+        });
+      } catch (err) {
+        console.warn('Push notification listeners setup error:', err.message);
+      }
+    }
+
+    return () => {
+      if (notificationListener?.remove) notificationListener.remove();
+      if (responseListener?.remove) responseListener.remove();
+    };
   }, [isAuthenticated, user?.id]);
 
   // ── On login: fetch any pending group invites missed while offline ──────────

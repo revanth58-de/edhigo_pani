@@ -12,6 +12,9 @@ router.patch('/:id/read', authenticate, notificationController.markAsRead);
 // POST /api/notifications/read-all - Mark all notifications as read
 router.post('/read-all', authenticate, notificationController.markAllAsRead);
 
+// POST /api/notifications/test-push - Send a test push notification to user
+router.post('/test-push', authenticate, notificationController.testPush);
+
 // DELETE /api/notifications - Clear all notifications for user
 router.delete('/', authenticate, notificationController.clearNotifications);
 

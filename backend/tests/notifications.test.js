@@ -160,5 +160,29 @@ describe('Notification API & Service Tests', () => {
       expect(farmerCount).toBe(1);
     });
   });
+
+  describe('POST /api/notifications/test-push', () => {
+    test('❌ Rejects unauthenticated requests', async () => {
+      const res = await request(app).post('/api/notifications/test-push');
+      expect(res.status).toBe(401);
+    });
+
+    test('✅ Sends test push and records notification in DB', async () => {
+      const res = await request(app)
+        .post('/api/notifications/test-push')
+        .set('Authorization', `Bearer ${testData.workerToken}`)
+        .send({
+          title: 'Custom Test',
+          body: 'Custom message body',
+          data: { screen: 'WorkerHome' },
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.notification).toBeDefined();
+      expect(res.body.notification.title).toBe('Custom Test');
+      expect(res.body.notification.body).toBe('Custom message body');
+    });
+  });
 });
 

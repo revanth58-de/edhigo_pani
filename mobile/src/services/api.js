@@ -162,6 +162,7 @@ apiClient.interceptors.response.use(
 export const authAPI = {
     sendOTP: (phone) => apiClient.post('/auth/send-otp', { phone }),
     verifyOTP: (phone, otp, registrationData = {}) => apiClient.post('/auth/verify-otp', { phone, otp, ...registrationData }),
+    demoLogin: (role) => apiClient.post('/auth/demo-login', { role }),
     setRole: (role) => apiClient.post('/auth/set-role', { role }),
     updateProfile: (data) => apiClient.put('/auth/profile', data),
     getMe: () => apiClient.get('/auth/me'),

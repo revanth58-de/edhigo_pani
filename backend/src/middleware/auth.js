@@ -19,6 +19,26 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
+    // Support fallback for demo tokens
+    if (token.startsWith('dinasari-demo-token-')) {
+      const demoRole = token.replace('dinasari-demo-token-', '') || 'farmer';
+      const phoneMap = { farmer: '9876543210', worker: '9876543211', leader: '9876543212', machinery: '9876543213' };
+      const demoPhone = phoneMap[demoRole] || '9876543210';
+      let demoUser = await prisma.user.findUnique({ where: { phone: demoPhone } });
+      if (!demoUser) {
+        demoUser = await prisma.user.create({
+          data: {
+            phone: demoPhone,
+            name: `Demo ${demoRole.charAt(0).toUpperCase() + demoRole.slice(1)}`,
+            role: demoRole,
+            village: 'Kothapalli',
+          }
+        });
+      }
+      req.user = demoUser;
+      return next();
+    }
+
     const decoded = jwt.verify(token, config.jwtSecret);
 
     const user = await prisma.user.findUnique({

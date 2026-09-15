@@ -297,51 +297,78 @@ const useAuthStore = create((set, get) => ({
   },
 
   loginAsDemoUser: async (role = 'farmer') => {
-    const demoProfiles = {
-      farmer: {
-        id: 'demo-farmer-01',
-        phone: '9876543210',
-        name: 'Ramesh (Farmer)',
-        village: 'Kothapalli',
-        role: 'farmer',
-        age: 38,
-        gender: 'male',
-        rating: 4.8,
-        jobsDoneCount: 22,
-        acres: '5.5',
-      },
-      worker: {
-        id: 'demo-worker-01',
-        phone: '9876543211',
-        name: 'Suresh (Worker)',
-        village: 'Peddapalli',
-        role: 'worker',
-        age: 29,
-        gender: 'male',
-        rating: 4.9,
-        jobsDoneCount: 45,
-        skills: 'Harvesting, Spraying, Sowing',
-      },
-      leader: {
-        id: 'demo-leader-01',
-        phone: '9876543212',
-        name: 'Venkat (Group Leader)',
-        village: 'Chinna Waltair',
-        role: 'leader',
-        age: 42,
-        gender: 'male',
-        rating: 5.0,
-        groupsLedCount: 4,
-        jobsDoneCount: 80,
-      },
-    };
+    set({ isLoading: true });
+    try {
+      const response = await authAPI.demoLogin(role);
+      const { user, accessToken, refreshToken } = response.data;
+      setAuthToken(accessToken);
+      const mappedUser = mapServerUser(user);
+      set({
+        user: mappedUser,
+        accessToken,
+        refreshToken,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      await saveToStorage(get());
+      return { user: mappedUser, accessToken };
+    } catch (err) {
+      console.warn('Backend demo-login failed, using local demo fallback:', err?.message);
+      const demoProfiles = {
+        farmer: {
+          id: 'demo-farmer-01',
+          phone: '9876543210',
+          name: 'Ramesh (Farmer)',
+          village: 'Kothapalli',
+          role: 'farmer',
+          age: 38,
+          gender: 'male',
+          rating: 4.8,
+          jobsDoneCount: 22,
+          acres: '5.5',
+        },
+        worker: {
+          id: 'demo-worker-01',
+          phone: '9876543211',
+          name: 'Suresh (Worker)',
+          village: 'Peddapalli',
+          role: 'worker',
+          age: 29,
+          gender: 'male',
+          rating: 4.9,
+          jobsDoneCount: 45,
+          skills: 'Harvesting, Spraying, Sowing',
+        },
+        leader: {
+          id: 'demo-leader-01',
+          phone: '9876543212',
+          name: 'Venkat (Group Leader)',
+          village: 'Chinna Waltair',
+          role: 'leader',
+          age: 42,
+          gender: 'male',
+          rating: 5.0,
+          groupsLedCount: 4,
+          jobsDoneCount: 80,
+        },
+        machinery: {
+          id: 'demo-machinery-01',
+          phone: '9876543213',
+          name: 'Rajesh (Machinery Owner)',
+          village: 'Kothapalli',
+          role: 'machinery',
+          rating: 4.9,
+          equipment: 'Tractor, Harvester',
+        },
+      };
 
-    const user = demoProfiles[role] || demoProfiles.farmer;
-    const token = 'dinasari-demo-token-' + role;
-    setAuthToken(token);
-    set({ user, accessToken: token, refreshToken: token, isAuthenticated: true, isLoading: false });
-    await saveToStorage(get());
-    return { user, accessToken: token };
+      const user = demoProfiles[role] || demoProfiles.farmer;
+      const token = 'dinasari-demo-token-' + role;
+      setAuthToken(token);
+      set({ user, accessToken: token, refreshToken: token, isAuthenticated: true, isLoading: false });
+      await saveToStorage(get());
+      return { user, accessToken: token };
+    }
   },
 
   setRole: async (role) => {

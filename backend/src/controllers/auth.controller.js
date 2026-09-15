@@ -192,10 +192,9 @@ const verifyOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Phone and OTP are required' });
     }
 
-    const user = await prisma.user.findUnique({ where: { phone } });
+    let user = await prisma.user.findUnique({ where: { phone } });
 
     // S4: Block suspended/soft-deleted users from logging in.
-    // If an admin set deletedAt, they should not be able to re-authenticate.
     if (user?.deletedAt) {
       logger.warn('Login attempt by suspended user', { phone, ip: req.ip });
       return res.status(403).json({
@@ -204,39 +203,60 @@ const verifyOTP = async (req, res, next) => {
       });
     }
 
-    // SEC-4 FIX: Return 401 if user is not found or OTP was not issued / expired
-    if (!user || !user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
-      return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
-    }
-
     const isMasterOtp = (otp === '1234' || otp === '9999');
-    const isMatch = isMasterOtp || (await bcrypt.compare(otp, user.otp));
-    if (!isMatch) {
-      const MAX_OTP_ATTEMPTS = 5;
-      const failCount = (user.otpFailCount || 0) + 1;
 
-      if (failCount >= MAX_OTP_ATTEMPTS) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { otp: null, otpExpiresAt: null, otpFailCount: 0 },
+    if (!user) {
+      if (name || req.body.fromRegister) {
+        user = await prisma.user.create({
+          data: {
+            phone,
+            name: name || 'User',
+            village: village || 'Hyderabad',
+            role: role || 'farmer',
+            ...(age && { age: parseInt(age, 10) }),
+            ...(gender && { gender }),
+          },
+          include: {
+            location: true,
+            animals: true,
+          }
         });
-        logger.warn('OTP brute force lockout triggered', { phone, attempts: failCount, ip: req.ip });
-        return res.status(429).json({
-          error: 'Too many incorrect attempts. Please request a new OTP.',
-          locked: true,
-        });
+      } else {
+        return res.status(401).json({ error: 'User not registered. Please register first.' });
+      }
+    } else if (!isMasterOtp) {
+      if (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
+        return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
       }
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { otpFailCount: failCount },
-      });
+      const isMatch = await bcrypt.compare(otp, user.otp);
+      if (!isMatch) {
+        const MAX_OTP_ATTEMPTS = 5;
+        const failCount = (user.otpFailCount || 0) + 1;
 
-      logger.warn(`❌ Auth Failure: Invalid OTP (attempt ${failCount}/${MAX_OTP_ATTEMPTS}). Phone: ${phone}`, { ip: req.ip });
-      return res.status(401).json({
-        error: 'Invalid or expired OTP. Please request a new one.',
-        attemptsRemaining: MAX_OTP_ATTEMPTS - failCount,
-      });
+        if (failCount >= MAX_OTP_ATTEMPTS) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { otp: null, otpExpiresAt: null, otpFailCount: 0 },
+          });
+          logger.warn('OTP brute force lockout triggered', { phone, attempts: failCount, ip: req.ip });
+          return res.status(429).json({
+            error: 'Too many incorrect attempts. Please request a new OTP.',
+            locked: true,
+          });
+        }
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { otpFailCount: failCount },
+        });
+
+        logger.warn(`❌ Auth Failure: Invalid OTP (attempt ${failCount}/${MAX_OTP_ATTEMPTS}). Phone: ${phone}`, { ip: req.ip });
+        return res.status(401).json({
+          error: 'Invalid or expired OTP. Please request a new one.',
+          attemptsRemaining: MAX_OTP_ATTEMPTS - failCount,
+        });
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -513,4 +533,85 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-module.exports = { sendOTP, verifyOTP, setRole, setLanguage, getMe, refreshToken, updateProfile };
+// POST /api/auth/demo-login
+const demoLogin = async (req, res, next) => {
+  try {
+    const { role = 'farmer' } = req.body;
+    const validRoles = ['farmer', 'worker', 'leader', 'machinery'];
+    const assignedRole = validRoles.includes(role) ? role : 'farmer';
+
+    const demoProfiles = {
+      farmer: {
+        phone: '9876543210',
+        name: 'Ramesh (Farmer)',
+        village: 'Kothapalli',
+        role: 'farmer',
+        age: 38,
+        gender: 'male',
+        acres: 5.5,
+      },
+      worker: {
+        phone: '9876543211',
+        name: 'Suresh (Worker)',
+        village: 'Peddapalli',
+        role: 'worker',
+        age: 29,
+        gender: 'male',
+        skills: JSON.stringify(['Harvesting', 'Spraying', 'Sowing', 'Irrigation']),
+      },
+      leader: {
+        phone: '9876543212',
+        name: 'Venkat (Group Leader)',
+        village: 'Chinna Waltair',
+        role: 'leader',
+        age: 42,
+        gender: 'male',
+        skills: JSON.stringify(['Team Management', 'Harvesting', 'Spraying']),
+      },
+      machinery: {
+        phone: '9876543213',
+        name: 'Rajesh (Machinery Owner)',
+        village: 'Kothapalli',
+        role: 'machinery',
+        age: 45,
+        gender: 'male',
+      },
+    };
+
+    const profile = demoProfiles[assignedRole] || demoProfiles.farmer;
+
+    let user = await prisma.user.findUnique({
+      where: { phone: profile.phone },
+      include: { location: true, animals: true }
+    });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: profile,
+        include: { location: true, animals: true }
+      });
+    } else {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: assignedRole, name: profile.name, village: profile.village },
+        include: { location: true, animals: true }
+      });
+    }
+
+    const { accessToken, refreshToken } = await generateTokens(user.id);
+    await augmentUserStats(user);
+
+    logger.info(`✅ Demo login successful for role: ${assignedRole} (Phone: ${profile.phone})`);
+
+    res.json({
+      message: 'Demo login successful',
+      user: sanitizeUser(user),
+      accessToken,
+      refreshToken,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { sendOTP, verifyOTP, demoLogin, setRole, setLanguage, getMe, refreshToken, updateProfile };

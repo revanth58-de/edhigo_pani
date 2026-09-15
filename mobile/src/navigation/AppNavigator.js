@@ -366,15 +366,30 @@ const AppNavigator = () => {
         const rawProjectId = Constants.expoConfig?.extra?.eas?.projectId;
         const projectId = rawProjectId !== 'placeholder-project-id' ? rawProjectId : undefined;
 
+        let token = null;
         if (projectId) {
-          const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
-          const token = tokenData?.data;
-          if (token) {
-            console.log('📲 Expo Push Token:', token);
-            await authAPI.updateProfile({ pushToken: token });
+          try {
+            const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+            token = tokenData?.data;
+          } catch (expoErr) {
+            console.warn('Expo push token retrieval failed, falling back to device push token:', expoErr.message);
           }
+        }
+
+        if (!token && Notifications.getDevicePushTokenAsync) {
+          try {
+            const deviceTokenData = await Notifications.getDevicePushTokenAsync();
+            token = deviceTokenData?.data;
+          } catch (deviceErr) {
+            console.warn('Device push token retrieval failed:', deviceErr.message);
+          }
+        }
+
+        if (token) {
+          console.log('📲 Push Token Registered (Expo / FCM):', token);
+          await authAPI.updateProfile({ pushToken: token });
         } else {
-          console.warn("No valid EAS projectId found. Skipping push token registration.");
+          console.warn("Could not retrieve push token. Skipping registration.");
         }
       } catch (err) {
         console.warn('Push token registration failed (non-fatal):', err.message);

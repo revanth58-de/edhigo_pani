@@ -1,8 +1,102 @@
 const { Expo } = require('expo-server-sdk');
+const admin = require('firebase-admin');
 const prisma = require('../config/database');
 const { logger } = require('../middleware/errorHandler');
 
 const expo = new Expo();
+
+// ── Firebase Admin SDK Initialization (for Native FCM) ──────────────────────
+let firebaseApp = null;
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    let serviceAccount;
+    try {
+      const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      if (raw.startsWith('{')) {
+        serviceAccount = JSON.parse(raw);
+      } else {
+        const decoded = Buffer.from(raw, 'base64').toString('utf8');
+        serviceAccount = JSON.parse(decoded);
+      }
+    } catch (parseErr) {
+      logger.error('Failed to parse FIREBASE_SERVICE_ACCOUNT JSON', { error: parseErr.message });
+    }
+
+    if (serviceAccount) {
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      logger.info('🔥 Firebase Admin initialized successfully for FCM');
+    }
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    firebaseApp = admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+    logger.info('🔥 Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS');
+  }
+} catch (err) {
+  logger.warn('Firebase Admin initialization skipped/failed:', { message: err.message });
+}
+
+/**
+ * Send FCM push notifications directly to native FCM registration tokens
+ */
+const sendDirectFCMPush = async (fcmTokens, title, body, data = {}) => {
+  if (!firebaseApp || !fcmTokens || fcmTokens.length === 0) return;
+  try {
+    const stringifiedData = {};
+    for (const [key, value] of Object.entries(data)) {
+      stringifiedData[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    }
+
+    const payload = {
+      notification: {
+        title,
+        body,
+      },
+      data: stringifiedData,
+      android: {
+        priority: 'high',
+        notification: {
+          channelId: 'default',
+          sound: 'default',
+          priority: 'max',
+        },
+      },
+      tokens: fcmTokens,
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(payload);
+    logger.info('🔥 FCM Multicast Sent', {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+    });
+
+    if (response.failureCount > 0) {
+      const invalidTokens = [];
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          const errCode = resp.error?.code;
+          if (
+            errCode === 'messaging/invalid-registration-token' ||
+            errCode === 'messaging/registration-token-not-registered'
+          ) {
+            invalidTokens.push(fcmTokens[idx]);
+          }
+        }
+      });
+      if (invalidTokens.length > 0) {
+        await prisma.user.updateMany({
+          where: { pushToken: { in: invalidTokens } },
+          data: { pushToken: null },
+        });
+        logger.info('Removed invalid FCM tokens from database', { count: invalidTokens.length });
+      }
+    }
+  } catch (err) {
+    logger.error('Direct FCM Push error', { message: err.message });
+  }
+};
 
 /**
  * Clean up invalid/expired push tokens from the database.
@@ -34,45 +128,54 @@ const cleanupInvalidTokens = async (receiptIds) => {
 };
 
 /**
- * Send a push notification using the official Expo SDK
+ * Send a push notification using Expo Push or Firebase Cloud Messaging (FCM)
  */
 const sendPush = async (tokens, title, body, data = {}) => {
   try {
     const tokenList = Array.isArray(tokens) ? tokens : [tokens];
-    const validTokens = tokenList.filter((t) => typeof t === 'string' && Expo.isExpoPushToken(t));
+    const validStrings = tokenList.filter((t) => typeof t === 'string' && t.trim().length > 0);
 
-    if (validTokens.length === 0) {
-      logger.info('No valid push tokens — skipping notification');
+    if (validStrings.length === 0) {
+      logger.info('No push tokens provided — skipping push notification');
       return;
     }
 
-    const messages = validTokens.map((to) => ({
-      to,
-      sound: 'default',
-      title,
-      body,
-      data,
-    }));
+    const expoTokens = validStrings.filter((t) => Expo.isExpoPushToken(t));
+    const fcmTokens = validStrings.filter((t) => !Expo.isExpoPushToken(t));
 
-    const chunks = expo.chunkPushNotifications(messages);
-    const receiptIds = [];
+    // 1. Send via Expo Push Gateway
+    if (expoTokens.length > 0) {
+      const messages = expoTokens.map((to) => ({
+        to,
+        sound: 'default',
+        title,
+        body,
+        data,
+      }));
 
-    for (let chunk of chunks) {
-      try {
-        const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-        logger.info('Push chunk sent', { count: ticketChunk.length });
-        // Collect receipt IDs from successful tickets for later validation
-        ticketChunk.forEach((ticket) => {
-          if (ticket.status === 'ok' && ticket.id) receiptIds.push(ticket.id);
-        });
-      } catch (error) {
-        logger.error('Error sending push notification chunk', { message: error.message });
+      const chunks = expo.chunkPushNotifications(messages);
+      const receiptIds = [];
+
+      for (let chunk of chunks) {
+        try {
+          const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+          logger.info('Expo Push chunk sent', { count: ticketChunk.length });
+          ticketChunk.forEach((ticket) => {
+            if (ticket.status === 'ok' && ticket.id) receiptIds.push(ticket.id);
+          });
+        } catch (error) {
+          logger.error('Error sending Expo push notification chunk', { message: error.message });
+        }
+      }
+
+      if (receiptIds.length > 0) {
+        setTimeout(() => cleanupInvalidTokens(receiptIds), 15 * 60 * 1000);
       }
     }
 
-    // Check receipts in the background — do not await so we don't block the caller
-    if (receiptIds.length > 0) {
-      setTimeout(() => cleanupInvalidTokens(receiptIds), 15 * 60 * 1000); // Wait 15 min for receipts to be ready
+    // 2. Send via direct Firebase Cloud Messaging (FCM)
+    if (fcmTokens.length > 0) {
+      await sendDirectFCMPush(fcmTokens, title, body, data);
     }
   } catch (err) {
     logger.error('Push notification setup error', { message: err.message });
@@ -80,20 +183,40 @@ const sendPush = async (tokens, title, body, data = {}) => {
 };
 
 /**
- * Send an array of personalized push messages
+ * Send an array of personalized push messages (Expo + FCM)
  */
 const sendPushMessages = async (messages) => {
   try {
-    const validMessages = messages.filter((m) => m.to && typeof m.to === 'string' && Expo.isExpoPushToken(m.to));
-    if (validMessages.length === 0) return;
+    if (!messages || messages.length === 0) return;
 
-    const chunks = expo.chunkPushNotifications(validMessages);
-    for (let chunk of chunks) {
-      try {
-        await expo.sendPushNotificationsAsync(chunk);
-      } catch (err) {
-        logger.error('Error sending custom push chunk', { message: err.message });
+    const expoMessages = [];
+    const fcmMessages = [];
+
+    messages.forEach((msg) => {
+      if (msg.to && typeof msg.to === 'string') {
+        if (Expo.isExpoPushToken(msg.to)) {
+          expoMessages.push(msg);
+        } else {
+          fcmMessages.push(msg);
+        }
       }
+    });
+
+    // 1. Send Expo messages in chunks
+    if (expoMessages.length > 0) {
+      const chunks = expo.chunkPushNotifications(expoMessages);
+      for (let chunk of chunks) {
+        try {
+          await expo.sendPushNotificationsAsync(chunk);
+        } catch (err) {
+          logger.error('Error sending custom Expo push chunk', { message: err.message });
+        }
+      }
+    }
+
+    // 2. Send FCM messages
+    for (const fcmMsg of fcmMessages) {
+      await sendDirectFCMPush([fcmMsg.to], fcmMsg.title, fcmMsg.body, fcmMsg.data || {});
     }
   } catch (err) {
     logger.error('Push notification batch setup error', { message: err.message });

@@ -117,6 +117,9 @@ jest.mock('expo-notifications', () => ({
   getExpoPushTokenAsync: jest.fn(() =>
     Promise.resolve({ data: 'ExponentPushToken[test]' })
   ),
+  getDevicePushTokenAsync: jest.fn(() =>
+    Promise.resolve({ data: 'fcm-device-token-test-123' })
+  ),
 }));
 
 // ─── Mock @react-native-async-storage/async-storage ───────────────────────────

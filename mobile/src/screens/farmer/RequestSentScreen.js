@@ -129,8 +129,8 @@ const RequestSentScreen = ({ navigation, route }) => {
   // ── Block hardware back — farmer must explicitly cancel ───────────────────
   useEffect(() => {
     const handleBackPress = () => true;
-    BackHandler.addEventListener('hardwareBackPress', handleBackPress);
-    return () => BackHandler.removeEventListener('hardwareBackPress', handleBackPress);
+    const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return () => subscription?.remove?.();
   }, []);
 
   const handleCancel = () => {

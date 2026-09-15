@@ -76,7 +76,10 @@ const AvailableWorkersScreen = ({ route, navigation }) => {
     try {
       return JSON.parse(val);
     } catch (e) {
-      return null;
+      if (typeof val === 'string' && val.includes(',')) {
+        return val.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      return typeof val === 'string' ? [val.trim()] : null;
     }
   };
 

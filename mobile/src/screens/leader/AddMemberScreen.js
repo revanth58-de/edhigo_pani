@@ -139,9 +139,14 @@ const AddMemberScreen = ({ navigation, route }) => {
                 (() => {
                   let parsedSkills = [];
                   try {
-                    parsedSkills = Array.isArray(item.skills) ? item.skills : JSON.parse(item.skills || '[]');
+                    if (Array.isArray(item.skills)) {
+                      parsedSkills = item.skills;
+                    } else {
+                      const p = JSON.parse(item.skills || '[]');
+                      parsedSkills = Array.isArray(p) ? p : [String(p)];
+                    }
                   } catch (e) {
-                    parsedSkills = [item.skills];
+                    parsedSkills = typeof item.skills === 'string' ? item.skills.split(',').map(s => s.trim()).filter(Boolean) : [item.skills];
                   }
                   
                   return parsedSkills.slice(0, 3).map((skill, index) => (

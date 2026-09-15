@@ -157,6 +157,19 @@ const WorkerProfileScreen = ({ navigation }) => {
     })
   ).current;
 
+  // Safe skill parser: handles array, JSON string, or comma-separated string
+  const safeParseSkills = (val, defaultVal = ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']) => {
+    if (Array.isArray(val)) return val;
+    if (!val || typeof val !== 'string') return defaultVal;
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch {
+      const split = val.split(',').map(s => s.trim()).filter(Boolean);
+      return split.length > 0 ? split : defaultVal;
+    }
+  };
+
   // Editable state
   const [editName, setEditName] = useState(user?.name || '');
   const [editVillage, setEditVillage] = useState(user?.village || '');
@@ -164,11 +177,7 @@ const WorkerProfileScreen = ({ navigation }) => {
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'person');
   const [selectedPhotoUrl, setSelectedPhotoUrl] = useState(user?.photoUrl || '');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [editSkills, setEditSkills] = useState(
-    typeof user?.skills === 'string'
-      ? JSON.parse(user.skills)
-      : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving'])
-  );
+  const [editSkills, setEditSkills] = useState(safeParseSkills(user?.skills));
 
   // Custom skill add state (available in both view & edit modes)
   const [showCustomInput, setShowCustomInput] = useState(false);
@@ -275,9 +284,7 @@ const WorkerProfileScreen = ({ navigation }) => {
       setEditExperience(String(user?.experience ?? ''));
       setSelectedAvatar(user?.avatarIcon || 'person');
       setSelectedPhotoUrl(user?.photoUrl || '');
-      const currentSkills = typeof user?.skills === 'string'
-        ? JSON.parse(user.skills)
-        : (user?.skills || ['Harvesting', 'Sowing', 'Irrigation', 'Tractor Driving']);
+      const currentSkills = safeParseSkills(user?.skills);
       setEditSkills(currentSkills);
       setShowCustomInput(false);
       setCustomSkillText('');
@@ -312,9 +319,7 @@ const WorkerProfileScreen = ({ navigation }) => {
   const ratingAvg = user?.ratingAvg ? user.ratingAvg.toFixed(1) : '—';
   const experience = user?.experience != null ? `${user.experience} yr${user.experience !== 1 ? 's' : ''}` : '—';
 
-  const currentSkills = typeof user?.skills === 'string'
-    ? JSON.parse(user.skills)
-    : (user?.skills || editSkills);
+  const currentSkills = safeParseSkills(user?.skills, editSkills);
 
   return (
     <View style={styles.container}>
@@ -514,9 +519,7 @@ const WorkerProfileScreen = ({ navigation }) => {
                       setEditVillage(user?.village || '');
                       setEditExperience(String(user?.experience ?? ''));
                       setSelectedAvatar(user?.avatarIcon || 'person');
-                      const sk = typeof user?.skills === 'string'
-                        ? JSON.parse(user.skills)
-                        : (user?.skills || []);
+                      const sk = safeParseSkills(user?.skills, []);
                       setEditSkills(sk);
                     }
                     setShowCustomInput(v => !v);

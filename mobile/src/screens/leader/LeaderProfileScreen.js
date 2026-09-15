@@ -40,15 +40,25 @@ const LeaderProfileScreen = ({ navigation }) => {
     { code: 'hi', label: '🇮🇳 Hindi' },
   ];
 
+  // Safe skill parser
+  const safeParseSkills = (val) => {
+    if (Array.isArray(val)) return val;
+    if (!val || typeof val !== 'string') return [];
+    try {
+      const parsed = JSON.parse(val);
+      return Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch {
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+  };
+
   const [isEditing, setIsEditing] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [showLangDropdown, setShowLangDropdown] = React.useState(false);
   const [editName, setEditName] = React.useState(user?.name || '');
   const [editVillage, setEditVillage] = React.useState(user?.village || '');
   const [editLanguage, setEditLanguage] = React.useState(language);
-  const [editSkills, setEditSkills] = React.useState(
-    typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || [])
-  );
+  const [editSkills, setEditSkills] = React.useState(safeParseSkills(user?.skills));
 
   const ALL_SKILLS = [
     'Team Management', 'Land Preparation', 'Pit Digging', 'Planting Saplings', 'Irrigation',
@@ -79,7 +89,7 @@ const LeaderProfileScreen = ({ navigation }) => {
       setEditName(user?.name || '');
       setEditVillage(user?.village || '');
       setEditLanguage(language);
-      setEditSkills(typeof user?.skills === 'string' ? JSON.parse(user.skills) : (user?.skills || []));
+      setEditSkills(safeParseSkills(user?.skills));
       setShowLangDropdown(false);
     }
     setIsEditing(!isEditing);

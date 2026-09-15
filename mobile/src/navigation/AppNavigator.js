@@ -123,6 +123,7 @@ import SupportAndLegalScreen from '../screens/shared/SupportAndLegalScreen';
 
 // Stores
 import useNotificationStore from '../store/notificationStore';
+import alertSoundService from '../services/alertSoundService';
 
 // Global Overlays
 import NotificationOverlay from '../components/NotificationOverlay';
@@ -515,9 +516,10 @@ const AppNavigator = () => {
     socketService.connect();
     socketService.joinUserRoom(user.id);
 
-    // \u2500\u2500 Group invite (workers/leaders) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // ── Group invite (workers/leaders) ────────────────────────────
     const handleGroupInvite = (data) => {
-      // Push to notification store so it shows in bell even if dismissed
+      alertSoundService.playNotificationAlert('Group Invitation', `${data.leaderName} invited you to join ${data.groupName}`);
+
       useNotificationStore.getState().addNotification({
         type: 'group',
         title: '🤝 Group Invitation',
@@ -526,7 +528,6 @@ const AppNavigator = () => {
         data: {
           screen: 'GroupDetail',
           params: { groupId: data.groupId, groupName: data.groupName },
-          // These are required so tapping the notification shows the Accept/Reject dialog
           inviteId: data.inviteId,
           groupId: data.groupId,
           leaderName: data.leaderName,
@@ -566,6 +567,7 @@ const AppNavigator = () => {
     // ── Work done (farmer ended job) → workers scan checkout QR ────
     const handleWorkDone = (data) => {
       if (user?.role === 'worker') {
+        alertSoundService.playAttendanceSuccess('out');
         useNotificationStore.getState().addNotification({
           type: 'attendance',
           title: '🌾 Work Completed!',
@@ -595,6 +597,7 @@ const AppNavigator = () => {
 
     // ── Job cancelled by farmer ─────────────────────────────────────
     const handleJobCancelled = (data) => {
+      alertSoundService.playWarningAlert(data.workType ? `Job ${data.workType} was cancelled` : 'Job was cancelled');
       useNotificationStore.getState().addNotification({
         type: 'job',
         title: '❌ Job Cancelled',
@@ -607,6 +610,7 @@ const AppNavigator = () => {
 
     // ── New job offer pushed to worker ──────────────────────────────
     const handleNewOfferNotif = (offer) => {
+      alertSoundService.playJobOfferAlert(offer.workType, offer.payPerDay);
       useNotificationStore.getState().addNotification({
         type: 'job',
         title: '🌾 New Job Offer!',
@@ -615,8 +619,11 @@ const AppNavigator = () => {
         data: { screen: 'JobOffer', params: { job: { ...offer, id: offer.jobId } } },
       });
     };
+    socketService.onNewOffer(handleNewOfferNotif);
+
     // ── Real-time notification updates from server ─────────────────
     const handleNewNotification = (notif) => {
+      alertSoundService.playNotificationAlert(notif.title, notif.body);
       const type = getNotificationType(notif);
       useNotificationStore.getState().addNotification({
         id: notif.id,

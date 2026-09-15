@@ -87,6 +87,24 @@ jest.mock('react-native-maps', () => {
 jest.mock('expo-speech', () => ({
   speak: jest.fn(),
   stop: jest.fn(),
+  isSpeakingAsync: jest.fn(() => Promise.resolve(false)),
+}));
+
+// ─── Mock expo-haptics ────────────────────────────────────────────────────────
+jest.mock('expo-haptics', () => ({
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  impactAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  NotificationFeedbackType: {
+    Success: 'success',
+    Warning: 'warning',
+    Error: 'error',
+  },
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+  },
 }));
 
 // ─── Mock expo-linear-gradient ────────────────────────────────────────────────

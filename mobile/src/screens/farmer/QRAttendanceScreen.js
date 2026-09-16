@@ -41,8 +41,8 @@ const QRAttendanceScreen = ({ navigation, route }) => {
 
     const eventName = type === 'in' ? 'attendance:check_in' : 'attendance:check_out';
     const handleAttendance = (data) => {
-      const workerName = data.worker?.name || data.workerName || Worker ;
-      const workerId = data.worker?.id || data.workerId || w_;
+      const workerName = data.worker?.name || data.workerName || 'Worker';
+      const workerId = data.worker?.id || data.workerId || `w_${Date.now()}`;
 
       setCheckedWorkers((prev) => {
         if (prev.some((w) => w.id === workerId)) return prev;

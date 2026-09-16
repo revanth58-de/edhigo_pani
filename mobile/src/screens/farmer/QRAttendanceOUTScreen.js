@@ -39,8 +39,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
     }
 
     const handleCheckOut = (data) => {
-      const workerName = data.worker?.name || data.workerName || Worker ;
-      const workerId = data.worker?.id || data.workerId || w_;
+      const workerName = data.worker?.name || data.workerName || 'Worker';
+      const workerId = data.worker?.id || data.workerId || `w_${Date.now()}`;
 
       setCheckedOutWorkers((prev) => {
         if (prev.some((w) => w.id === workerId)) return prev;

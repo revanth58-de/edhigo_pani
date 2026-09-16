@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { formatWorkType } from '../../utils/formatHelper';
 
 const JobOfferBanner = ({ offer, onView, onDismiss }) => {
   if (!offer) return null;
@@ -21,7 +22,7 @@ const JobOfferBanner = ({ offer, onView, onDismiss }) => {
           <View>
             <Text style={styles.title}>🌾 Job Available!</Text>
             <Text style={styles.sub} numberOfLines={1}>
-              {offer.workType} • ₹{offer.payPerDay}/day
+              {formatWorkType(offer.workType)} • ₹{offer.payPerDay}/day
             </Text>
           </View>
         </View>

@@ -11,6 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
+import { formatWorkType } from '../../utils/formatHelper';
 
 const AttendanceConfirmedScreen = ({ navigation, route }) => {
   const { job } = route.params || {};
@@ -49,7 +50,7 @@ const AttendanceConfirmedScreen = ({ navigation, route }) => {
           <View style={styles.infoRow}>
             <MaterialIcons name="work" size={24} color={colors.primary} />
             <Text style={styles.infoLabel}>Work Type:</Text>
-            <Text style={styles.infoValue}>{job?.workType || 'Harvesting'}</Text>
+            <Text style={styles.infoValue}>{formatWorkType(job?.workType, language)}</Text>
           </View>
         </View>
 

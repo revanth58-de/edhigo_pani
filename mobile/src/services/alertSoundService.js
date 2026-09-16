@@ -1,4 +1,4 @@
-﻿import { Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import useAuthStore from '../store/authStore';
@@ -20,10 +20,10 @@ class AlertSoundService {
     try {
       const language = useAuthStore.getState().user?.language || 'te';
       const text = language === 'te' 
-        ? కొత్త పని ఆఫర్!  పని అందుబాటులో ఉంది.
+        ? `కొత్త పని ఆఫర్! ${workType} పని అందుబాటులో ఉంది.`
         : language === 'hi'
-        ? नया काम का ऑफर!  काम उपलब्ध है.
-        : New Job Offer!  is available now.;
+        ? `नया काम का ऑफर! ${workType} काम उपलब्ध है.`
+        : `New Job Offer! ${workType} is available now.`;
 
       Speech.stop();
       Speech.speak(text, {
@@ -68,10 +68,10 @@ class AlertSoundService {
     try {
       const language = useAuthStore.getState().user?.language || 'te';
       const text = language === 'te'
-        ? ${workerName} మీ పొలానికి చేరుకున్నారు!
+        ? `${workerName} మీ పొలానికి చేరుకున్నారు!`
         : language === 'hi'
-        ? ${workerName} आपके खेत पर पहुंच गए हैं!
-        : ${workerName} has arrived at your farm!;
+        ? `${workerName} आपके खेत पर पहुंच गए हैं!`
+        : `${workerName} has arrived at your farm!`;
 
       Speech.stop();
       Speech.speak(text, {

@@ -20,6 +20,7 @@ import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
 import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
+import { formatWorkType } from '../../utils/formatHelper';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route.params;
@@ -154,9 +155,8 @@ const RequestSentScreen = ({ navigation, route }) => {
   };
 
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
-  const workTypeDisplay = job?.workType
-    ? job.workType.charAt(0).toUpperCase() + job.workType.slice(1)
-    : 'Labour';
+  const language = useAuthStore((state) => state.language) || 'en';
+  const workTypeDisplay = formatWorkType(job?.workType, language);
 
   const slots = Array.from({ length: workersNeeded }, (_, i) => i < acceptedCount);
 

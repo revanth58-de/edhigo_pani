@@ -22,6 +22,7 @@ import TopBar from '../../components/TopBar';
 import BottomNavBar from '../../components/BottomNavBar';
 import CustomLoader from '../../components/CustomLoader';
 import EmptyState from '../../components/EmptyState';
+import { formatWorkType, formatStatus } from '../../utils/formatHelper';
 
 const STATUS_META = {
     pending: { label: 'Waiting for Workers', color: '#F59E0B', bg: '#FEF3C7', icon: 'schedule' },
@@ -46,9 +47,10 @@ const formatDate = (dateStr) => {
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const JobCard = ({ job, onUpdateStatus, navigation }) => {
-    const status = STATUS_META[job.status] || STATUS_META.pending;
+const JobCard = ({ job, onUpdateStatus, navigation, language }) => {
+    const statusMeta = STATUS_META[job.status] || STATUS_META.pending;
     const workIcon = WORK_ICONS[job.workType] || 'work';
+    const statusLabel = formatStatus(job.status, language) || statusMeta.label;
 
     const handlePress = () => {
         if (job.status === 'in_progress' || job.status === 'finishing') {
@@ -66,12 +68,12 @@ const JobCard = ({ job, onUpdateStatus, navigation }) => {
                     <MaterialIcons name={workIcon} size={28} color={colors.primary} />
                 </View>
                 <View style={styles.cardHeaderText}>
-                    <Text style={styles.workType}>{job.workType || 'Farm Work'}</Text>
+                    <Text style={styles.workType}>{formatWorkType(job.workType, language)}</Text>
                     <Text style={styles.jobDate}>{formatDate(job.createdAt)}</Text>
                 </View>
-                <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-                    <MaterialIcons name={status.icon} size={14} color={status.color} />
-                    <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+                    <MaterialIcons name={statusMeta.icon} size={14} color={statusMeta.color} />
+                    <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusLabel}</Text>
                 </View>
             </View>
 
@@ -288,6 +290,7 @@ const MachineryBookingCard = ({ booking, navigation, t }) => {
 
 const FarmerHistoryScreen = ({ navigation }) => {
     const user = useAuthStore((state) => state.user);
+    const language = useAuthStore((state) => state.language) || 'en';
     const [jobs, setJobs] = useState([]);
     const [machineryBookings, setMachineryBookings] = useState([]);
     const [activeCategory, setActiveCategory] = useState('jobs'); // 'jobs' | 'machinery'
@@ -426,7 +429,7 @@ const FarmerHistoryScreen = ({ navigation }) => {
                     </Text>
                 </View>
                 {filteredJobs.map((job, i) => (
-                    <JobCard key={job.id || i} job={job} onUpdateStatus={updateJobStatus} navigation={navigation} />
+                    <JobCard key={job.id || i} job={job} onUpdateStatus={updateJobStatus} navigation={navigation} language={language} />
                 ))}
                 {filteredJobs.length === 0 && (
                     <EmptyState

@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavBar from '../../components/BottomNavBar';
 import useAuthStore from '../../store/authStore';
+import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const formatINR = (n) => '₹' + Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
@@ -88,7 +89,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
               <MaterialIcons name="person" size={20} color="#6F8961" />
             </View>
             <View>
-              <Text style={styles.farmerName}>{item.farmerName || item.farmer?.name || 'Farmer'}</Text>
+              <Text style={styles.farmerName}>{formatUserName(item.farmerName || item.farmer?.name, 'Farmer')}</Text>
               <Text style={styles.dateText}>{formattedDate}</Text>
             </View>
           </View>
@@ -100,7 +101,7 @@ const EarningsHistoryScreen = ({ navigation }) => {
         <View style={styles.cardBody}>
           <View style={styles.breakupItem}>
             <Text style={styles.breakupLabel}>Job Type</Text>
-            <Text style={styles.breakupVal}>{(item.workType || item.job?.workType)?.toUpperCase() || 'AGRICULTURE WORK'}</Text>
+            <Text style={styles.breakupVal}>{formatWorkType(item.workType || item.job?.workType, 'en')}</Text>
           </View>
           <View style={styles.breakupItem}>
             <Text style={styles.breakupLabel}>Farmer Paid</Text>

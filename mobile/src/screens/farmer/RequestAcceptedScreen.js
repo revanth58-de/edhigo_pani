@@ -21,6 +21,7 @@ import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
 import { jobService } from '../../services/api/jobService';
 import MapDashboard from '../../components/MapDashboard';
+import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const parseWorkers = (jobData) => {
   if (!jobData) return [];
@@ -165,9 +166,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
   const payPerDay = job?.payPerDay || 500;
   const workersNeeded = job?.workersNeeded || 1;
-  const workType = job?.workType
-    ? job.workType.charAt(0).toUpperCase() + job.workType.slice(1)
-    : 'Labour';
+  const workType = formatWorkType(job?.workType, user?.language || 'te');
 
   // Map markers: accepted workers' locations
   const mapMarkers = workerLocations.length > 0
@@ -225,7 +224,7 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
             <MaterialIcons name="agriculture" size={26} color={colors.primary} />
           </View>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>{workType} Work</Text>
+            <Text style={styles.headerTitle}>{workType}</Text>
             <Text style={styles.headerSub}>
               {workers.length}/{workersNeeded} workers • ₹{payPerDay}/day
             </Text>
@@ -254,10 +253,10 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
                 </View>
                 {/* Info */}
                 <View style={styles.workerInfo}>
-                  <Text style={styles.workerName}>{w.name}</Text>
+                  <Text style={styles.workerName}>{formatUserName(w.name)}</Text>
                   <View style={styles.workerMeta}>
                     <MaterialIcons name="star" size={12} color="#F59E0B" />
-                    <Text style={styles.workerRating}>{w.rating ? w.rating.toFixed(1) : '—'}</Text>
+                    <Text style={styles.workerRating}>{w.rating ? w.rating.toFixed(1) : '4.8'}</Text>
                     {w.village ? <Text style={styles.workerVillage}> • {w.village}</Text> : null}
                   </View>
                 </View>
@@ -275,6 +274,18 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
 
         <View style={styles.divider} />
 
+        {/* Primary QR Attendance Scan Button */}
+        <TouchableOpacity
+          style={{ width: '100%', marginBottom: 12 }}
+          onPress={() => navigation.navigate('QRAttendance', { job, type: 'in', workers })}
+          activeOpacity={0.88}
+        >
+          <LinearGradient colors={colors.primaryGradient} style={styles.qrStartGrad}>
+            <MaterialIcons name="qr-code-scanner" size={22} color="#FFFFFF" />
+            <Text style={styles.qrStartText}>SHOW ATTENDANCE QR (హాజరు QR)</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Action buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancelRequest}>
@@ -289,10 +300,10 @@ const RequestAcceptedScreen = ({ navigation, route }) => {
               else Alert.alert('Info', 'Worker phone numbers not available yet.');
             }}
           >
-            <LinearGradient colors={colors.primaryGradient} style={styles.callAllGrad}>
-              <MaterialIcons name="phone" size={18} color="#FFFFFF" />
-              <Text style={styles.callAllText}>Call Worker</Text>
-            </LinearGradient>
+            <View style={styles.callAllOutline}>
+              <MaterialIcons name="phone" size={18} color={colors.primary} />
+              <Text style={styles.callAllOutlineText}>Call Worker</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -491,6 +502,41 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   callAllText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
+  qrStartGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: 14,
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrStartText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  callAllOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#BBF7D0',
+  },
+  callAllOutlineText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.primary,
+  },
 });
 
 export default RequestAcceptedScreen;

@@ -14,6 +14,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatWorkType } from '../../utils/formatHelper';
 
 
 import { socketService } from '../../services/socketService';
@@ -128,7 +129,7 @@ const WorkStatusScreen = ({ navigation, route }) => {
             <View style={styles.detailRow}>
               <MaterialIcons name="work" size={24} color={colors.primary} />
               <Text style={styles.detailLabel}>Work Type:</Text>
-              <Text style={styles.detailValue}>{job?.workType || 'Harvesting'}</Text>
+              <Text style={styles.detailValue}>{formatWorkType(job?.workType, language)}</Text>
             </View>
             <View style={styles.detailRow}>
               <MaterialIcons name="payments" size={24} color={colors.primary} />

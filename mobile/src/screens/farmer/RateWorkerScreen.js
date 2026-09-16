@@ -17,6 +17,7 @@ import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const RateWorkerScreen = ({ navigation, route }) => {
   const { job, booking, isMachinery, worker, workers } = route.params || {};
@@ -137,13 +138,13 @@ const RateWorkerScreen = ({ navigation, route }) => {
             <MaterialIcons name={isMultiple ? "people" : "person"} size={48} color={colors.primary} />
           </View>
           <Text style={styles.workerName}>
-            {displayWorker?.name || 'Worker'}
+            {formatUserName(displayWorker?.name, 'Worker')}
             {isMultiple ? ` + ${workerList.length - 1} Others` : ''}
           </Text>
           <Text style={styles.jobType}>
             {isMachinery
               ? (booking?.machinery?.name || 'Machinery Rent')
-              : (job?.workType || 'Job Completion')}
+              : formatWorkType(job?.workType, 'en')}
           </Text>
         </View>
 

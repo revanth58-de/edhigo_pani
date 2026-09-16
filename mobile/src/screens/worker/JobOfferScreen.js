@@ -20,6 +20,7 @@ import { jobService } from '../../services/api/jobService';
 import { groupService } from '../../services/api/groupService';
 import { socketService } from '../../services/socketService';
 import * as Haptics from 'expo-haptics'; // M16
+import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const JobOfferScreen = ({ navigation, route }) => {
   const { job: initialJob, jobId } = route.params || {};
@@ -180,10 +181,14 @@ const JobOfferScreen = ({ navigation, route }) => {
         {/* Main Card */}
         <View style={styles.mainCard}>
           <View style={styles.jobTypeBadge}>
-            <Text style={styles.jobTypeText}>{job?.workType || 'Harvesting'}</Text>
+            <Text style={styles.jobTypeText}>{formatWorkType(job?.workType, user?.language || 'te')}</Text>
           </View>
           
-          <Text style={styles.jobHeading}>Work Requested by {job?.farmer?.name || job?.farmerName || 'Farmer'}</Text>
+          <Text style={styles.jobHeading}>
+            {user?.language === 'te' 
+              ? `${formatUserName(job?.farmer?.name || job?.farmerName, 'రైతు')} గారి నుండి పని అభ్యర్థన`
+              : `Work Requested by ${formatUserName(job?.farmer?.name || job?.farmerName, 'Farmer')}`}
+          </Text>
           
           <View style={styles.locationContainer}>
             <View style={styles.locationIconWrap}>

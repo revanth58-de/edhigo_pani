@@ -22,6 +22,8 @@ import CustomLoader from '../CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import TopBar from '../TopBar';
+import { formatWorkType, formatStatus } from '../../utils/formatHelper';
+import useAuthStore from '../../store/authStore';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -47,11 +49,11 @@ const formatDate = (dateStr) => {
 
 // ── JobCard ────────────────────────────────────────────────────────────────────
 
-const JobCard = ({ job }) => {
-  const status   = STATUS_META[job.status] || STATUS_META.pending;
-  const workIcon = WORK_ICONS[job.workType] || 'work';
+const JobCard = ({ job, language }) => {
+  const statusMeta = STATUS_META[job.status] || STATUS_META.pending;
+  const workIcon   = WORK_ICONS[job.workType] || 'work';
+  const statusLabel = formatStatus(job.status, language) || statusMeta.label;
 
-  // BUG FIX: Original code was missing `return` — JSX was unreachable.
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -59,12 +61,12 @@ const JobCard = ({ job }) => {
           <MaterialIcons name={workIcon} size={28} color={colors.primary} />
         </View>
         <View style={styles.cardHeaderText}>
-          <Text style={styles.workType}>{job.workType || 'Farm Work'}</Text>
+          <Text style={styles.workType}>{formatWorkType(job.workType, language)}</Text>
           <Text style={styles.jobDate}>{formatDate(job.createdAt)}</Text>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-          <MaterialIcons name={status.icon} size={14} color={status.color} />
-          <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+        <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+          <MaterialIcons name={statusMeta.icon} size={14} color={statusMeta.color} />
+          <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusLabel}</Text>
         </View>
       </View>
 
@@ -99,41 +101,45 @@ const JobCard = ({ job }) => {
 
 // ── WorkHistory ────────────────────────────────────────────────────────────────
 
-const WorkHistory = ({ jobs, loading, navigation, onClose, onRefresh }) => (
-  <View style={styles.overlay}>
-    <TopBar
-      title="Work History"
-      showBack
-      navigation={navigation}
-      onBack={onClose}
-    />
-    <ScrollView
-      contentContainerStyle={styles.scrollContent}
-      refreshControl={
-        // M6: Pull-to-refresh on the history list
-        <RefreshControl refreshing={loading} onRefresh={onRefresh} colors={[colors.primary]} />
-      }
-    >
-      <Text style={styles.summaryText}>Your recent work history</Text>
+const WorkHistory = ({ jobs, loading, navigation, onClose, onRefresh }) => {
+  const language = useAuthStore((state) => state.language) || 'en';
 
-      {loading ? (
-        <CustomLoader size={48} color={colors.primary} style={{ marginTop: 40 }} />
-      ) : jobs.length === 0 ? (
-        <View style={styles.emptyState}>
-          <MaterialIcons name="history" size={56} color="#D1D5DB" />
-          <Text style={styles.emptyText}>No work history yet</Text>
-          <Text style={styles.emptySubText}>Jobs you complete will appear here</Text>
-        </View>
-      ) : (
-        jobs.map((job) => <JobCard key={job.id} job={job} />)
-      )}
+  return (
+    <View style={styles.overlay}>
+      <TopBar
+        title="Work History"
+        showBack
+        navigation={navigation}
+        onBack={onClose}
+      />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          // M6: Pull-to-refresh on the history list
+          <RefreshControl refreshing={loading} onRefresh={onRefresh} colors={[colors.primary]} />
+        }
+      >
+        <Text style={styles.summaryText}>Your recent work history</Text>
 
-      <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-        <Text style={styles.closeBtnText}>Back to Dashboard</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  </View>
-);
+        {loading ? (
+          <CustomLoader size={48} color={colors.primary} style={{ marginTop: 40 }} />
+        ) : jobs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="history" size={56} color="#D1D5DB" />
+            <Text style={styles.emptyText}>No work history yet</Text>
+            <Text style={styles.emptySubText}>Jobs you complete will appear here</Text>
+          </View>
+        ) : (
+          jobs.map((job) => <JobCard key={job.id} job={job} language={language} />)
+        )}
+
+        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+          <Text style={styles.closeBtnText}>Back to Dashboard</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
+};
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 

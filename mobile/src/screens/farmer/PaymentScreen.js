@@ -24,6 +24,7 @@ import useAuthStore from '../../store/authStore';
 import * as Speech from 'expo-speech';
 import { LinearGradient } from 'expo-linear-gradient';
 import BottomNavBar from '../../components/BottomNavBar';
+import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -475,18 +476,22 @@ const PaymentScreen = ({ navigation, route }) => {
           {/* Worker Profile Card */}
           <View style={styles.workerCard}>
             <View style={styles.workerAvatarContainer}>
-              <MaterialIcons name="account-circle" size={60} color="#CBD5E1" />
+              <MaterialIcons name={workerCount > 1 ? "groups" : "account-circle"} size={60} color="#CBD5E1" />
               <View style={styles.ratingBadge}>
                 <MaterialIcons name="star" size={12} color="#F59E0B" />
                 <Text style={styles.ratingText}>{currentWorker.ratingAvg || '4.8'}</Text>
               </View>
             </View>
             <View style={styles.workerDetails}>
-              <Text style={styles.workerName}>{currentWorker.name || 'Worker'}</Text>
+              <Text style={styles.workerName}>
+                {workerCount > 1
+                  ? `${formatUserName(currentWorker.name, 'Worker')} + ${workerCount - 1} ${t('common.workers') || 'Workers'}`
+                  : formatUserName(currentWorker.name, 'Worker')}
+              </Text>
               <Text style={styles.workerRole}>
                 {isMachinery
                   ? (booking?.machinery?.name?.toUpperCase() || 'MACHINERY OWNER')
-                  : (job?.workType?.toUpperCase() || 'AGRICULTURE LABOUR')}
+                  : formatWorkType(job?.workType, language)}
               </Text>
               <Text style={styles.workerLoc}>📍 {isMachinery ? (booking?.address || 'Farm') : (job?.farmAddress || 'Rural Farm')}</Text>
             </View>
@@ -657,7 +662,7 @@ const PaymentScreen = ({ navigation, route }) => {
             <Text style={styles.miniLabel}>Total Amount</Text>
             <Text style={styles.miniVal}>₹{totalAmount}</Text>
             <Text style={styles.miniWorker}>
-              {currentWorker.name || 'Worker'} • {isMachinery ? (booking?.machinery?.name || 'Machinery') : job?.workType}
+              {formatUserName(currentWorker.name, 'Worker')} • {isMachinery ? (booking?.machinery?.name || 'Machinery') : formatWorkType(job?.workType, language)}
             </Text>
           </View>
         </View>
@@ -687,7 +692,11 @@ const PaymentScreen = ({ navigation, route }) => {
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Paid To</Text>
-              <Text style={styles.receiptVal}>{currentWorker.name || 'Worker'}</Text>
+              <Text style={styles.receiptVal}>
+                {workerCount > 1
+                  ? `${formatUserName(currentWorker.name, 'Worker')} + ${workerCount - 1} workers`
+                  : formatUserName(currentWorker.name, 'Worker')}
+              </Text>
             </View>
             <View style={styles.receiptRow}>
               <Text style={styles.receiptLabel}>Booking ID</Text>

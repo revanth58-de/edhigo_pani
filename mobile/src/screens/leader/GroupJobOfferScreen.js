@@ -86,6 +86,11 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
     }
   };
 
+  const workerTotal = Number(job?.workersNeeded) || Number(job?.workerCount) || Number(workerCount) || 1;
+  const dailyWage = Number(job?.payPerDay) || Number(job?.pay) || 500;
+  const durationDays = Math.max(1, Number(job?.durationDays) || 1);
+  const totalGroupEarnings = dailyWage * workerTotal * durationDays;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -103,7 +108,7 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
           <Text style={styles.headerTitle}>{job.workType?.toUpperCase()}</Text>
           <View style={styles.distanceBadge}>
             <MaterialIcons name="navigation" size={14} color="#FFFFFF" />
-            <Text style={styles.distanceText}>{job.distance} AWAY</Text>
+            <Text style={styles.distanceText}>{job.distance || '2.5 KM'} AWAY</Text>
           </View>
         </View>
       </View>
@@ -114,14 +119,23 @@ const GroupJobOfferScreen = ({ navigation, route }) => {
             <Text style={styles.statLabel}>Workers Required</Text>
             <View style={styles.statValueRow}>
               <MaterialIcons name="groups" size={24} color={colors.primary} />
-              <Text style={styles.statValue}>{job.workerCount}</Text>
+              <Text style={styles.statValue}>{workerTotal}</Text>
             </View>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Wage Offer</Text>
-            <Text style={styles.statValue}>₹{job.pay}/day</Text>
+            <Text style={styles.statLabel}>Wage Rate</Text>
+            <Text style={styles.statValue}>₹{dailyWage}/day</Text>
           </View>
+        </View>
+
+        {/* Total Group Earnings Banner */}
+        <View style={{ backgroundColor: '#ECFDF5', padding: 14, borderRadius: 16, marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#A7F3D0' }}>
+          <View>
+            <Text style={{ fontSize: 12, color: '#065F46', fontWeight: 'bold' }}>TOTAL CREW PAYOUT (మొత్తం బృందం ఆదాయం)</Text>
+            <Text style={{ fontSize: 11, color: '#047857' }}>{workerTotal} workers × ₹{dailyWage}/day {durationDays > 1 ? `× ${durationDays} days` : ''}</Text>
+          </View>
+          <Text style={{ fontSize: 22, fontWeight: '900', color: '#059669' }}>₹{totalGroupEarnings}</Text>
         </View>
 
         <View style={styles.locationCard}>

@@ -130,9 +130,10 @@ const PaymentScreen = ({ navigation, route }) => {
   }
 
   const workerCount = workerList.length > 0 ? workerList.length : Number(job?.workersNeeded) || 1;
+  const durationDays = Math.max(1, Number(job?.durationDays) || 1);
   const totalAmount = isMachinery
     ? (booking?.totalPrice || booking?.price || 1000)
-    : (job?.payPerDay || 500) * workerCount;
+    : (Number(job?.payPerDay) || 500) * workerCount * durationDays;
   
   // Calculate Dinasari split 5% commission & 95% worker amount
   const platformFee = Math.round((totalAmount * 0.05) * 100) / 100;
@@ -517,6 +518,13 @@ const PaymentScreen = ({ navigation, route }) => {
                   <Text style={styles.breakupLabel}>Total Workers</Text>
                   <Text style={styles.breakupValue}>{workerCount} worker{workerCount > 1 ? 's' : ''}</Text>
                 </View>
+
+                {durationDays > 1 && (
+                  <View style={styles.breakupRow}>
+                    <Text style={styles.breakupLabel}>Duration (రోజులు)</Text>
+                    <Text style={styles.breakupValue}>{durationDays} Days</Text>
+                  </View>
+                )}
               </>
             )}
 

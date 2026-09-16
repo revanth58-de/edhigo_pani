@@ -90,7 +90,10 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 const res = await groupAPI.getMyGroups();
                 const groups = res?.data?.groups || res?.data || [];
                 if (groups.length > 0) {
-                    gid = groups[0].id;
+                    const useAuthStore = require('../../store/authStore').default;
+                    const currentUser = useAuthStore.getState().user;
+                    const myGroup = groups.find(g => g.leaderId === currentUser?.id) || groups[0];
+                    gid = myGroup.id;
                     setResolvedGroupId(gid);
                 } else {
                     // No group yet — redirect to create

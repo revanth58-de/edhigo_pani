@@ -32,7 +32,15 @@ const getMyGroups = async (req, res, next) => {
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ groups });
+
+    // Ensure groups led by the user always appear first
+    const sortedGroups = [...groups].sort((a, b) => {
+      const aIsLeader = a.leaderId === userId ? 1 : 0;
+      const bIsLeader = b.leaderId === userId ? 1 : 0;
+      return bIsLeader - aIsLeader;
+    });
+
+    res.json({ groups: sortedGroups });
   } catch (error) {
     next(error);
   }

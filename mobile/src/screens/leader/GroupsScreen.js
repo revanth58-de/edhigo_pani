@@ -48,8 +48,10 @@ const GroupsScreen = ({ navigation }) => {
   };
 
   const renderGroupItem = ({ item }) => {
+    const isMyLedGroup = item.leaderId === user?.id;
+
     return (
-      <View style={styles.groupCard}>
+      <View style={[styles.groupCard, isMyLedGroup && { borderColor: `${colors.primary}60`, borderWidth: 2 }]}>
         <TouchableOpacity
           style={styles.groupCardMain}
           onPress={() => navigation.navigate('GroupDetail', { groupId: item.id, groupName: item.name })}
@@ -58,13 +60,20 @@ const GroupsScreen = ({ navigation }) => {
           {item.photoUrl ? (
             <Image source={{ uri: item.photoUrl }} style={styles.groupPhoto} />
           ) : (
-            <View style={styles.groupPhotoPlaceholder}>
+            <View style={[styles.groupPhotoPlaceholder, isMyLedGroup && { backgroundColor: `${colors.primary}20` }]}>
               <MaterialIcons name="groups" size={32} color={colors.primary} />
             </View>
           )}
 
           <View style={styles.groupInfo}>
-            <Text style={styles.groupName}>{item.name}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text style={styles.groupName}>{item.name}</Text>
+              {isMyLedGroup && (
+                <View style={{ backgroundColor: '#10B981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>⭐ YOUR CREW (మీ బృందం)</Text>
+                </View>
+              )}
+            </View>
             <View style={styles.typeTag}>
               <Text style={styles.typeText}>{item.type || 'General Work'}</Text>
             </View>

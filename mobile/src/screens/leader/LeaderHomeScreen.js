@@ -133,11 +133,14 @@ const LeaderHomeScreen = ({ navigation, route }) => {
           { text: 'Ignore', style: 'cancel' },
           {
             text: 'View Offer',
-            onPress: () => navigation.navigate('GroupJobOffer', {
-              groupId: null, // leader selects group on next screen
-              jobData: { ...jobData, id: jobData.jobId },
-              workerCount: jobData.workersNeeded,
-            }),
+            onPress: () => {
+              const myLedGroup = groups.find(g => g.leaderId === user?.id);
+              navigation.navigate('GroupJobOffer', {
+                groupId: myLedGroup?.id || null,
+                jobData: { ...jobData, id: jobData.jobId },
+                workerCount: jobData.workersNeeded,
+              });
+            },
           },
         ]
       );
@@ -213,8 +216,9 @@ const LeaderHomeScreen = ({ navigation, route }) => {
               <TouchableOpacity
                 style={styles.jobAlertBtn}
                 onPress={() => {
+                  const myLedGroup = groups.find(g => g.leaderId === user?.id);
                   navigation.navigate('GroupJobOffer', {
-                    groupId: null,
+                    groupId: myLedGroup?.id || null,
                     jobData: { ...pendingJob, id: pendingJob.jobId },
                     workerCount: pendingJob.workersNeeded,
                   });
@@ -255,8 +259,9 @@ const LeaderHomeScreen = ({ navigation, route }) => {
             activeOpacity={0.9}
             onPress={() => {
               if (pendingJob) {
+                const myLedGroup = groups.find(g => g.leaderId === user?.id);
                 navigation.navigate('GroupJobOffer', {
-                  groupId: null,
+                  groupId: myLedGroup?.id || null,
                   jobData: { ...pendingJob, id: pendingJob.jobId },
                   workerCount: pendingJob.workersNeeded,
                 });

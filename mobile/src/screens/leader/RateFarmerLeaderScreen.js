@@ -63,7 +63,8 @@ const RateFarmerLeaderScreen = ({ navigation, route }) => {
 
   // Generate UPI payment details
   const upiId = user?.upiId || `${user?.phone || 'leader'}@upi`;
-  const amount = (job?.payPerDay || 500) * (job?.workersNeeded || 1);
+  const durationDays = Math.max(1, Number(job?.durationDays) || 1);
+  const amount = (Number(job?.payPerDay) || 500) * (Number(job?.workersNeeded) || 1) * durationDays;
 
   return (
     <View style={styles.container}>

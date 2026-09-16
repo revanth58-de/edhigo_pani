@@ -136,11 +136,11 @@ describe('GroupJobOfferScreen', () => {
 
   test('✅ Renders work type, pay, and worker count', () => {
     if (!GroupJobOfferScreen) return;
-    const { getByText } = render(
+    const { getByText, getAllByText } = render(
       <GroupJobOfferScreen navigation={mockNavigation} route={route} />
     );
     expect(getByText(/Harvesting/i)).toBeTruthy();
-    expect(getByText(/500|₹/i)).toBeTruthy();
+    expect(getAllByText(/500|₹/i).length).toBeGreaterThan(0);
   });
 
   test('✅ Accept navigates to GroupNavigation', async () => {

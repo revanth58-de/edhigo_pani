@@ -124,9 +124,11 @@ const WorkInProgressScreen = ({ navigation, route }) => {
     ? workers.length 
     : (Number(job?.workersNeeded) || 1);
 
+  const durationDays = Math.max(1, Number(job?.durationDays) || 1);
+
   const totalCost = isMachinery 
     ? (booking?.totalPrice || booking?.price || 0)
-    : (job?.payPerDay || 500) * activeWorkerCount;
+    : (job?.payPerDay || 500) * activeWorkerCount * durationDays;
 
   return (
     <View style={styles.container}>

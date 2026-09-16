@@ -67,9 +67,10 @@ const RateFarmerScreen = ({ navigation, route }) => {
 
   // Generate UPI payment details
   const upiId = user?.upiId || `${user?.phone || 'worker'}@upi`;
+  const durationDays = Math.max(1, Number(job?.durationDays) || 1);
   const amount = isMachinery
     ? (booking?.totalPrice || booking?.price || 1000)
-    : (job?.payPerDay || 500);
+    : (Number(job?.payPerDay) || 500) * durationDays;
 
   return (
     <View style={styles.container}>

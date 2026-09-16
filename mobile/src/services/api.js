@@ -80,10 +80,18 @@ apiClient.interceptors.response.use(
         const status = error.response?.status;
         const originalRequest = error.config;
 
-        // ── Tunnel retry ──────────────────────────────────────────────────
-        if ((status === 408 || status === 503) && !originalRequest._tunnelRetried) {
+        const isTransientNetworkError = 
+            status === 408 || 
+            status === 502 || 
+            status === 503 || 
+            status === 504 || 
+            error.code === 'ECONNABORTED' || 
+            error.message?.includes('Network Error');
+
+        // ── Render cold-start & transient network retry ─────────────────────
+        if (isTransientNetworkError && originalRequest && !originalRequest._tunnelRetried) {
             originalRequest._tunnelRetried = true;
-            console.warn(`⚠️ Tunnel returned ${status}, retrying in 2s...`);
+            console.warn(`⚠️ Network/Server cold start (${status || error.code || 'timeout'}), retrying in 2s...`);
             await sleep(2000);
             return apiClient(originalRequest);
         }

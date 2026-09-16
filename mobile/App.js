@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppNavigator from './src/navigation/AppNavigator';
@@ -13,6 +13,13 @@ initSentry();
 LogBox.ignoreLogs(['props.pointerEvents is deprecated. Use style.pointerEvents']);
 
 export default function App() {
+  useEffect(() => {
+    // Pre-warm backend cloud instance immediately on app launch
+    try {
+      fetch('https://edhigo-pani.onrender.com/health', { method: 'GET' }).catch(() => {});
+    } catch (_) {}
+  }, []);
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider style={{ flex: 1 }}>

@@ -523,7 +523,7 @@ const getSettlements = async (req, res, next) => {
       prisma.settlement.findMany({
         where,
         include: {
-          worker: { select: { id: true, name: true, phone: true, upiId: true } },
+          worker: { select: { id: true, name: true, phone: true } },
           payment: {
             include: {
               job: { select: { id: true, workType: true } },
@@ -552,7 +552,7 @@ const settlePayment = async (req, res, next) => {
     const settlement = await prisma.settlement.findUnique({
       where: { id },
       include: {
-        worker: { select: { id: true, name: true, phone: true, upiId: true } },
+        worker: { select: { id: true, name: true, phone: true } },
         payment: true,
       }
     });

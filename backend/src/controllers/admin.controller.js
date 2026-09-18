@@ -546,9 +546,15 @@ const getSettlements = async (req, res, next) => {
 const settlePayment = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { utr, referenceId } = req.body || {};
+    const refCode = utr || referenceId || `UTR${Date.now()}`;
 
     const settlement = await prisma.settlement.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        worker: { select: { id: true, name: true, phone: true, upiId: true } },
+        payment: true,
+      }
     });
 
     if (!settlement) {
@@ -569,6 +575,7 @@ const settlePayment = async (req, res, next) => {
       where: { id: settlement.paymentId },
       data: {
         settlementStatus: 'settled',
+        transactionId: settlement.payment?.transactionId || refCode,
       }
     });
 
@@ -578,11 +585,26 @@ const settlePayment = async (req, res, next) => {
         adminId: req.user.id,
         action: 'manual_settlement',
         targetId: settlement.id,
-        details: { amount: settlement.amount, workerId: settlement.workerId }
+        details: { amount: settlement.amount, workerId: settlement.workerId, workerName: settlement.worker?.name, utr: refCode }
       }
     });
 
-    res.json({ message: 'Settlement processed successfully', settlement: updatedSettlement });
+    invalidateStatsCache();
+
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.to('admin:room').emit('settlement:completed', {
+          id: settlement.id,
+          workerName: settlement.worker?.name,
+          amount: settlement.amount,
+          utr: refCode
+        });
+      }
+    } catch (_) {}
+
+    res.json({ message: 'Settlement processed successfully', settlement: updatedSettlement, utr: refCode });
   } catch (err) { next(err); }
 };
 

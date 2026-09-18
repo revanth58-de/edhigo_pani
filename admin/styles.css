@@ -549,3 +549,103 @@ tbody td { padding: 16px 24px; font-size: 14px; color: #f8fafc; font-weight: 500
   transition: var(--transition);
 }
 
+/* ── Live WebSocket Sync Pill ── */
+.live-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.5px;
+  transition: var(--transition);
+}
+.live-connected {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.live-disconnected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ── Payment Voucher Styling ── */
+.voucher-box {
+  background: #ffffff;
+  color: #0f172a;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  font-family: 'Outfit', sans-serif;
+  border: 2px dashed #cbd5e1;
+}
+.voucher-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.voucher-brand {
+  font-size: 20px;
+  font-weight: 900;
+  color: #16a34a;
+  letter-spacing: 1px;
+}
+.voucher-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+.voucher-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+.voucher-row.total {
+  font-weight: 800;
+  font-size: 16px;
+  border-top: 2px solid #0f172a;
+  border-bottom: none;
+  padding-top: 12px;
+  margin-top: 8px;
+  color: #16a34a;
+}
+.voucher-seal {
+  display: inline-block;
+  border: 2px solid #16a34a;
+  color: #16a34a;
+  font-weight: 900;
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  transform: rotate(-5deg);
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printableVoucherArea, #printableVoucherArea * {
+    visibility: visible;
+  }
+  #printableVoucherArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+  }
+}
+
+

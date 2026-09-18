@@ -7,18 +7,21 @@
   <meta http-equiv="Content-Security-Policy"
     content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      script-src 'self' 'unsafe-inline' https://cdn.socket.io https://unpkg.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com;
       font-src 'self' https://fonts.gstatic.com;
-      connect-src 'self' http://localhost:3000 http://localhost:5000 https://*.railway.app https://*.render.com https://*.onrender.com;
-      img-src 'self' data: https:;
+      connect-src 'self' http://localhost:3000 http://localhost:5000 https://*.railway.app https://*.render.com https://*.onrender.com wss://*.render.com wss://*.onrender.com ws://localhost:5000 https://*.tile.openstreetmap.org;
+      img-src 'self' data: https: https://*.tile.openstreetmap.org;
       frame-ancestors 'none';
     "
   />
   <title>DINASARI — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
@@ -100,9 +103,8 @@
           <span style="font-size:14px;margin-right:8px;color:var(--text-muted)">🔍</span>
           <span style="font-size:13px;color:var(--text-dim);font-weight:600;letter-spacing:0.5px">Search everything... (Ctrl+K)</span>
         </div>
-        <div class="topbar-live">
-          <div class="topbar-live-dot"></div>
-          <span class="topbar-live-text">Live</span>
+        <div class="topbar-live" style="margin-right:8px">
+          <span id="socketStatusPill" class="live-pill live-connected">🟢 Live Sync</span>
         </div>
         <div class="topbar-time" id="topbarTime"></div>
         <button class="icon-btn refresh-btn" id="refreshBtn" title="Refresh">↻</button>
@@ -227,6 +229,53 @@
   </div>
 </div>
 
+<!-- Settlement Approval Modal -->
+<div class="modal-overlay" id="settlePaymentModal">
+  <div class="modal" style="width: 540px;">
+    <div class="modal-title">💸 Worker Payout Settlement</div>
+    <div class="modal-sub">Confirm payment transfer and enter bank/UPI transaction reference</div>
+    
+    <div id="settleModalDetails" style="margin-top:16px;background:rgba(255,255,255,0.02);padding:16px;border-radius:16px;border:1px solid var(--glass-border)">
+      <!-- Filled dynamically -->
+    </div>
+
+    <div class="form-group" style="margin-top:16px">
+      <label class="form-label" for="settleUtrInput">Bank / UPI Reference ID (UTR) *</label>
+      <input class="form-input" type="text" id="settleUtrInput" placeholder="e.g. UTR20260918987654" required />
+      <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Enter the 12-digit UPI reference or IMPS/NEFT UTR from your banking app.</div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--text-muted)">
+      <input type="checkbox" id="settleConfirmCheck" style="accent-color:var(--primary);cursor:pointer" />
+      <label for="settleConfirmCheck" style="cursor:pointer">I confirm that the net payment has been disbursed to the worker.</label>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-outline btn-sm" id="settleCancelBtn">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="settleConfirmBtn">✓ Approve &amp; Settle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Printable Payout Voucher Modal -->
+<div class="modal-overlay" id="payoutVoucherModal">
+  <div class="modal" style="width: 580px;background:rgba(18,20,24,0.98)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="modal-title" style="margin:0">📄 Payment Voucher</div>
+      <button class="btn btn-outline btn-xs" id="voucherCloseTop" style="border:none;font-size:18px;color:var(--text-dim)">×</button>
+    </div>
+
+    <div id="printableVoucherArea" style="margin-bottom:16px">
+      <!-- Voucher Box Content -->
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px;display:flex;justify-content:space-between">
+      <button class="btn btn-outline btn-sm" id="voucherCloseBtn">Close</button>
+      <button class="btn btn-primary btn-sm" id="voucherPrintBtn" onclick="window.print()">🖨️ Print / Download Voucher</button>
+    </div>
+  </div>
+</div>
+
 <!-- Command Palette Overlay -->
 <div class="modal-overlay" id="commandPaletteModal">
   <div class="modal" style="width: 600px;background:rgba(20,20,22,0.95);border-color:var(--primary)">
@@ -247,7 +296,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-  import { guardAuth, clearSession, getBaseUrl, getToken } from './auth.js';
+  import { guardAuth, clearSession, getBaseUrl, getToken, getAdminRole } from './auth.js';
   import { loadStats }         from './pages/stats.js';
   import { loadUsers }         from './pages/users.js';
   import { loadJobs }          from './pages/jobs.js';
@@ -260,9 +309,56 @@
   import { loadSettings }      from './pages/settings.js';
   import { loadNotifications } from './pages/notifications.js';
   import { loadMachinery }     from './pages/machinery.js';
-  import { api } from './api.js';
+  import { api, initAdminSocket } from './api.js';
 
   guardAuth();
+
+  // ─── RBAC Sidebar Navigation Filtering ─────────────────────────────
+  const adminRole = getAdminRole();
+  const roleDisplayNames = {
+    super_admin: 'Super Admin',
+    finance_admin: 'Finance Admin',
+    support_admin: 'Support Admin',
+  };
+  const roleEl = document.querySelector('.admin-role');
+  if (roleEl) roleEl.textContent = roleDisplayNames[adminRole] || 'Super Admin';
+
+  const roleAllowedPages = {
+    super_admin: ['stats', 'users', 'jobs', 'machinery', 'payments', 'groups', 'disputes', 'attendance', 'ratings', 'audit', 'notifications', 'settings'],
+    finance_admin: ['stats', 'payments', 'audit', 'settings'],
+    support_admin: ['stats', 'users', 'jobs', 'machinery', 'disputes', 'attendance', 'ratings', 'notifications'],
+  };
+
+  const allowedPages = roleAllowedPages[adminRole] || roleAllowedPages.super_admin;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const page = item.dataset.page;
+    if (page && !allowedPages.includes(page)) {
+      item.style.display = 'none';
+    }
+  });
+
+  document.querySelectorAll('.nav-section-label').forEach(label => {
+    let hasVisibleItem = false;
+    let next = label.nextElementSibling;
+    while (next && !next.classList.contains('nav-section-label')) {
+      if (next.classList.contains('nav-item') && next.style.display !== 'none') {
+        hasVisibleItem = true;
+        break;
+      }
+      next = next.nextElementSibling;
+    }
+    if (!hasVisibleItem) label.style.display = 'none';
+  });
+
+  // ─── Live Socket.io Event Handling ────────────────────────────────
+  initAdminSocket((event, data) => {
+    if (event === 'job:created' || event === 'payment:completed' || event === 'settlement:completed' || event === 'dispute:created') {
+      if (currentPage === 'stats') pages.stats.load(true);
+      else if (currentPage === 'jobs' && event === 'job:created') pages.jobs.load();
+      else if (currentPage === 'payments' && (event === 'payment:completed' || event === 'settlement:completed')) pages.payments.load();
+      else if (currentPage === 'disputes' && event === 'dispute:created') pages.disputes.load();
+    }
+  });
 
   // ─── Theme Switcher Initialization ─────────────────────────────────
   const themes = ['', 'theme-emerald', 'theme-midnight', 'theme-sunset'];
@@ -662,6 +758,18 @@
 
   document.getElementById('resolveDisputeCancel').addEventListener('click', () => {
     document.getElementById('resolveDisputeModal').classList.remove('open');
+  });
+
+  document.getElementById('settleCancelBtn')?.addEventListener('click', () => {
+    document.getElementById('settlePaymentModal')?.classList.remove('open');
+  });
+
+  document.getElementById('voucherCloseBtn')?.addEventListener('click', () => {
+    document.getElementById('payoutVoucherModal')?.classList.remove('open');
+  });
+
+  document.getElementById('voucherCloseTop')?.addEventListener('click', () => {
+    document.getElementById('payoutVoucherModal')?.classList.remove('open');
   });
 
   function updateClock() {

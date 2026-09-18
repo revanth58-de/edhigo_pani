@@ -13,11 +13,10 @@ async function call(path, method = 'GET', body = null) {
   const res = await fetch(url, opts);
 
   // A2 FIX: Detect expired/invalid JWT and redirect to login immediately.
-  // Without this, every page shows "Request failed" with no explanation.
   if (res.status === 401) {
     clearSession();
     window.location.href = `index.html?reason=expired`;
-    return; // Never resolves — navigation is in progress
+    return;
   }
 
   if (!res.ok) {
@@ -40,7 +39,7 @@ export const api = {
   getPayments:    (q = '')     => call(`/payments${q}`),
   updatePayment:  (id, data)   => call(`/payments/${id}`, 'PATCH', data),
   getSettlements: (q = '')     => call(`/settlements${q}`),
-  settlePayment:  (id)         => call(`/settlements/${id}/settle`, 'POST'),
+  settlePayment:  (id, data = {}) => call(`/settlements/${id}/settle`, 'POST', data),
   getAttendance:  ()           => call('/attendance'),
   getRatings:     ()           => call('/ratings'),
   getGroups:      ()           => call('/groups'),
@@ -60,3 +59,69 @@ export const api = {
   // Admin Alerts
   getAlerts: () => call('/alerts'),
 };
+
+let _socket = null;
+
+export function initAdminSocket(onEvent) {
+  if (typeof window.io === 'undefined') return null;
+  if (_socket && _socket.connected) return _socket;
+
+  const baseUrl = getBaseUrl();
+  const token = getToken();
+
+  if (!token) return null;
+
+  try {
+    _socket = window.io(baseUrl, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+    });
+
+    _socket.on('connect', () => {
+      console.log('⚡ Admin Live WebSocket Connected');
+      const pill = document.getElementById('socketStatusPill');
+      if (pill) {
+        pill.innerHTML = '🟢 Live Sync';
+        pill.className = 'live-pill live-connected';
+      }
+      if (onEvent) onEvent('connect');
+    });
+
+    _socket.on('disconnect', (reason) => {
+      console.log('⚡ Admin Live WebSocket Disconnected:', reason);
+      const pill = document.getElementById('socketStatusPill');
+      if (pill) {
+        pill.innerHTML = '🔴 Reconnecting...';
+        pill.className = 'live-pill live-disconnected';
+      }
+      if (onEvent) onEvent('disconnect', reason);
+    });
+
+    _socket.on('job:created', (data) => {
+      if (window.showToast) window.showToast(`🌾 New Job: ${data.workType || 'Farming'} posted`, 'info');
+      if (onEvent) onEvent('job:created', data);
+    });
+
+    _socket.on('payment:completed', (data) => {
+      if (window.showToast) window.showToast(`💳 Payment received: ₹${data.totalAmount || data.amount || 0}`, 'success');
+      if (onEvent) onEvent('payment:completed', data);
+    });
+
+    _socket.on('settlement:completed', (data) => {
+      if (window.showToast) window.showToast(`💸 Settled ₹${data.amount} to ${data.workerName || 'Worker'} (UTR: ${data.utr})`, 'success');
+      if (onEvent) onEvent('settlement:completed', data);
+    });
+
+    _socket.on('dispute:created', (data) => {
+      if (window.showToast) window.showToast(`⚠️ New Dispute: ${data.category || 'Dispute'} filed`, 'error');
+      if (onEvent) onEvent('dispute:created', data);
+    });
+
+    return _socket;
+  } catch (err) {
+    console.error('Failed to init Admin Socket:', err);
+    return null;
+  }
+}

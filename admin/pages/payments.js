@@ -332,8 +332,8 @@ function renderSettlements() {
       <td><span class="badge ${statusBadge(s.status)}">${s.status}</span></td>
       <td>
         ${s.status === 'pending'
-          ? `<button class="btn btn-success btn-xs" onclick="window._markManualSettle('${s.id}')">💸 Mark Settled</button>`
-          : `<span style="color:var(--text-dim);font-size:12px">Transferred</span>`}
+          ? `<button class="btn btn-success btn-xs" onclick="window._openSettleModal('${s.id}')">💸 Mark Settled</button>`
+          : `<button class="btn btn-outline btn-xs" onclick="window._viewVoucher('${s.id}')">📄 Voucher</button>`}
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" class="table-empty">No pending payouts found.</td></tr>`;
@@ -387,14 +387,155 @@ window._markAdminPay = async (id) => {
   }
 };
 
-window._markManualSettle = async (id) => {
-  try {
-    await api.settlePayment(id);
-    await loadData();
-    window.showToast('Manual settlement marked successfully!');
-  } catch(e) { 
-    window.showToast(e.message, 'error'); 
+window._openSettleModal = (id) => {
+  const s = allSettlements.find(item => item.id === id);
+  if (!s) return;
+
+  const com = s.payment?.commissionAmount || Math.round(((s.amount / 0.95) * 0.05) * 100) / 100;
+  const gross = s.payment?.amount || Math.round((s.amount + com) * 100) / 100;
+
+  const detailsEl = document.getElementById('settleModalDetails');
+  if (detailsEl) {
+    detailsEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-weight:800;font-size:15px;color:#fff">${s.worker?.name || 'Worker'}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Ph: ${s.worker?.phone || '—'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase">Settlement ID</div>
+          <div style="font-weight:700;font-size:13px;color:var(--primary)">#SET-${s.id?.slice(-6)?.toUpperCase()}</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,0.2);padding:10px 14px;border-radius:10px;margin-bottom:12px">
+        <div style="font-size:11px;color:var(--text-dim)">Beneficiary Coordinate</div>
+        <div style="font-size:13px;font-weight:700;color:var(--primary-dark)">${s.worker?.upiId || `${s.worker?.phone}@upi`}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
+        <div style="background:rgba(255,255,255,0.03);padding:8px;border-radius:8px">
+          <div style="font-size:10px;color:var(--text-dim)">Gross Booking</div>
+          <div style="font-weight:700;font-size:13px">₹${gross.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03);padding:8px;border-radius:8px">
+          <div style="font-size:10px;color:var(--danger)">5% Platform Fee</div>
+          <div style="font-weight:700;font-size:13px;color:var(--danger)">-₹${com.toLocaleString('en-IN')}</div>
+        </div>
+        <div style="background:rgba(16,185,129,0.1);padding:8px;border-radius:8px">
+          <div style="font-size:10px;color:var(--accent)">95% Worker Net</div>
+          <div style="font-weight:900;font-size:14px;color:var(--accent)">₹${(s.amount || 0).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+    `;
   }
+
+  const utrInput = document.getElementById('settleUtrInput');
+  if (utrInput) utrInput.value = `UTR${Date.now().toString().slice(-8)}`;
+  const checkEl = document.getElementById('settleConfirmCheck');
+  if (checkEl) checkEl.checked = true;
+
+  const modal = document.getElementById('settlePaymentModal');
+  if (modal) modal.classList.add('open');
+
+  const confirmBtn = document.getElementById('settleConfirmBtn');
+  confirmBtn.onclick = async () => {
+    const utr = (document.getElementById('settleUtrInput')?.value || '').trim();
+    if (!utr) {
+      window.showToast('Please enter UTR reference number', 'error');
+      return;
+    }
+    if (!document.getElementById('settleConfirmCheck')?.checked) {
+      window.showToast('Please confirm payout disbursement', 'error');
+      return;
+    }
+
+    try {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Processing...';
+      const res = await api.settlePayment(s.id, { utr });
+      modal.classList.remove('open');
+      await loadData();
+      window.showToast(`Settlement completed! UTR: ${res.utr || utr}`);
+      window._viewVoucher(s.id, res.utr || utr);
+    } catch(err) {
+      window.showToast(err.message, 'error');
+    } finally {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '✓ Approve & Settle';
+    }
+  };
+};
+
+window._viewVoucher = (id, utrOverride = null) => {
+  const s = allSettlements.find(item => item.id === id);
+  if (!s) return;
+
+  const com = s.payment?.commissionAmount || Math.round(((s.amount / 0.95) * 0.05) * 100) / 100;
+  const gross = s.payment?.amount || Math.round((s.amount + com) * 100) / 100;
+  const utr = utrOverride || s.payment?.transactionId || `UTR-${s.id?.slice(-8)?.toUpperCase()}`;
+
+  const voucherArea = document.getElementById('printableVoucherArea');
+  if (voucherArea) {
+    voucherArea.innerHTML = `
+      <div class="voucher-box">
+        <div class="voucher-header">
+          <div>
+            <div class="voucher-brand">🌿 DINASARI</div>
+            <div class="voucher-title">Official Payout Disbursement Voucher</div>
+          </div>
+          <div class="voucher-seal">✓ SETTLED &amp; VERIFIED</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:12px">
+          <div>
+            <span style="color:#64748b">Voucher / Settlement ID:</span><br/>
+            <strong>#SET-${s.id?.slice(-6)?.toUpperCase()}</strong>
+          </div>
+          <div>
+            <span style="color:#64748b">Date &amp; Time:</span><br/>
+            <strong>${new Date().toLocaleString('en-IN')}</strong>
+          </div>
+          <div>
+            <span style="color:#64748b">Bank Reference / UTR:</span><br/>
+            <strong style="color:#16a34a">${utr}</strong>
+          </div>
+          <div>
+            <span style="color:#64748b">Payment Mode:</span><br/>
+            <strong>Direct UPI / IMPS Bank Transfer</strong>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;padding:12px;border-radius:10px;margin-bottom:16px;font-size:12px">
+          <div style="font-weight:700;color:#0f172a;margin-bottom:4px">Beneficiary Worker Details:</div>
+          <div><strong>Name:</strong> ${s.worker?.name || 'Worker'}</div>
+          <div><strong>Mobile:</strong> ${s.worker?.phone || '—'}</div>
+          <div><strong>UPI ID:</strong> ${s.worker?.upiId || `${s.worker?.phone}@upi`}</div>
+        </div>
+
+        <div style="border-top:1px solid #e2e8f0;padding-top:12px">
+          <div class="voucher-row">
+            <span>Gross Job Booking Amount</span>
+            <span>₹${gross.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="voucher-row" style="color:#ef4444">
+            <span>Platform Service Fee (5% Commission)</span>
+            <span>- ₹${com.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="voucher-row total">
+            <span>Net Disbursed to Worker (95%)</span>
+            <span>₹${(s.amount || 0).toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:#64748b;border-top:1px solid #e2e8f0;padding-top:12px">
+          <div>This is an electronically generated receipt issued by Dinasari Agro Platform.</div>
+          <div style="text-align:right">Authorized Signatory<br/><strong>Dinasari Finance Desk</strong></div>
+        </div>
+      </div>
+    `;
+  }
+
+  const vModal = document.getElementById('payoutVoucherModal');
+  if (vModal) vModal.classList.add('open');
 };
 
 function exportCsv() {

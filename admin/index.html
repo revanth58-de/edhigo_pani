@@ -34,6 +34,14 @@
         <label class="form-label" for="adminSecret">Admin Secret Key</label>
         <input class="form-input" type="password" id="adminSecret" placeholder="Enter your admin secret" required />
       </div>
+      <div class="form-group">
+        <label class="form-label" for="adminRole">Operational Role</label>
+        <select class="form-input" id="adminRole">
+          <option value="super_admin">🛡️ Super Admin (Full Access)</option>
+          <option value="finance_admin">💳 Finance Admin (Payouts & Ledger)</option>
+          <option value="support_admin">🎧 Support Admin (Users & Disputes)</option>
+        </select>
+      </div>
       <button class="btn btn-primary btn-full" type="submit" id="loginBtn">
         <span id="loginBtnText">Sign In</span>
         <span class="spinner" id="loginSpinner" style="display:none"></span>
@@ -65,6 +73,7 @@
     e.preventDefault();
     const url    = document.getElementById('backendUrl').value.trim().replace(/\/$/, '');
     const secret = document.getElementById('adminSecret').value.trim();
+    const role   = document.getElementById('adminRole').value;
     const errEl  = document.getElementById('loginError');
     const spinner  = document.getElementById('loginSpinner');
     const btnText  = document.getElementById('loginBtnText');
@@ -75,8 +84,8 @@
 
     try {
       // FIX #1: Call the JWT login endpoint instead of embedding the raw secret.
-      // On success, saveSession stores the JWT token (not the secret itself).
-      const result = await loginWithSecret(secret, url);
+      // On success, saveSession stores the JWT token and operational role.
+      const result = await loginWithSecret(secret, url, role);
 
       if (!result.ok) {
         errEl.textContent = result.error || 'Invalid credentials or server unreachable.';
@@ -84,7 +93,7 @@
         return;
       }
 
-      saveSession(result.token, url);
+      saveSession(result.token, url, 2, result.adminRole || role);
       localStorage.setItem('admin_last_url', url);
       window.location.href = 'dashboard.html';
     } catch (err) {

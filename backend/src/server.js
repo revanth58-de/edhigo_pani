@@ -201,7 +201,7 @@ const checkSocketRateLimit = (socket, eventName, maxPerWindow = 10, windowMs = 1
 
 // ─── Socket.io ───
 // SEC-2 FIX: Authenticate every socket connection before allowing room joins.
-// This prevents unauthenticated clients from spying on private user rooms.
+// Supports both mobile client JWTs and admin dashboard JWTs.
 const jwt = require('jsonwebtoken');
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
@@ -211,14 +211,29 @@ io.use((socket, next) => {
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
     socket.userId = decoded.userId; // Attach verified userId to socket for use in handlers
-    next();
+    return next();
   } catch (err) {
+    // If standard user JWT fails, check if this is an Admin JWT
+    try {
+      const adminDecoded = jwt.verify(token, config.adminJwtSecret);
+      if (adminDecoded.role === 'admin') {
+        socket.isAdmin = true;
+        socket.userId = 'admin-portal';
+        socket.adminRole = adminDecoded.adminRole || 'super_admin';
+        return next();
+      }
+    } catch (_) {}
     return next(new Error('Invalid or expired socket token'));
   }
 });
 
 io.on('connection', (socket) => {
-  logger.info(`Socket connected: ${socket.id} (user: ${socket.userId})`);
+  if (socket.isAdmin) {
+    socket.join('admin:room');
+    logger.info(`🛡️ Admin socket connected: ${socket.id} (role: ${socket.adminRole})`);
+  } else {
+    logger.info(`Socket connected: ${socket.id} (user: ${socket.userId})`);
+  }
 
   // Location updates from workers — emit ONLY to the relevant farmer's room
   // data must include: { farmerId, latitude, longitude }

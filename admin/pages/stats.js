@@ -62,6 +62,34 @@ export async function loadStats(isSilent = false) {
         </div>
       </div>
 
+      <!-- Live Agricultural Geospatial Map -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="card-title" style="display:flex;align-items:center;gap:8px">
+              <span>🗺️</span> Live Agricultural Geospatial Map
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+              Real-time distribution of active farm jobs, available workers &amp; agricultural machinery
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center" id="mapFilters">
+            <button class="btn btn-sm btn-primary map-filter-btn" data-filter="all" onclick="window._filterAdminMap('all', this)">All</button>
+            <button class="btn btn-sm btn-outline map-filter-btn" data-filter="jobs" onclick="window._filterAdminMap('jobs', this)">🌾 Jobs</button>
+            <button class="btn btn-sm btn-outline map-filter-btn" data-filter="workers" onclick="window._filterAdminMap('workers', this)">👷 Workers</button>
+            <button class="btn btn-sm btn-outline map-filter-btn" data-filter="machinery" onclick="window._filterAdminMap('machinery', this)">🚜 Machinery</button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0;position:relative;border-radius:0 0 12px 12px;overflow:hidden">
+          <div id="adminGeoMap" style="height:360px;width:100%;background:var(--card-bg, #f3f4f6);z-index:1;"></div>
+          <div id="mapLegend" style="position:absolute;bottom:12px;right:12px;background:rgba(255,255,255,0.92);backdrop-filter:blur(4px);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;display:flex;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:999;color:#1e293b">
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#16a34a;display:inline-block"></span> Jobs</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#2563eb;display:inline-block"></span> Workers</span>
+            <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:#d97706;display:inline-block"></span> Machinery</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Role breakdown + Recent stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
         ${miniCard('🌾', 'var(--primary-light)', 'Farmers', '...', 'mini-farmers')}
@@ -153,7 +181,10 @@ export async function loadStats(isSilent = false) {
   // Draw chart asynchronously
   const chartPromise = drawChart();
 
-  await Promise.all([statsPromise, usersPromise, chartPromise]);
+  // Initialize Map asynchronously
+  const mapPromise = initAdminMap();
+
+  await Promise.all([statsPromise, usersPromise, chartPromise, mapPromise]);
 }
 
 function kpi(icon, value, label, change, up, idPrefix = '') {
@@ -378,3 +409,190 @@ export function avatarColor(name = '') {
   for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xffffffff;
   return colors[Math.abs(hash) % colors.length];
 }
+
+const DISTRICT_CENTERS = [
+  { lat: 16.3067, lng: 80.4365, name: 'Guntur' },
+  { lat: 16.5062, lng: 80.6480, name: 'Vijayawada' },
+  { lat: 16.7107, lng: 81.0952, name: 'Eluru' },
+  { lat: 16.2437, lng: 80.6400, name: 'Tenali' },
+  { lat: 17.2473, lng: 80.1514, name: 'Khammam' },
+  { lat: 17.9689, lng: 79.5941, name: 'Warangal' },
+  { lat: 15.8281, lng: 78.0373, name: 'Kurnool' },
+  { lat: 14.4426, lng: 79.9865, name: 'Nellore' },
+  { lat: 17.0005, lng: 81.8040, name: 'Rajahmundry' },
+  { lat: 16.9891, lng: 82.2475, name: 'Kakinada' },
+  { lat: 17.0577, lng: 79.2684, name: 'Nalgonda' },
+];
+
+function getCoordsForEntity(id, lat, lng, index = 0) {
+  const pLat = parseFloat(lat);
+  const pLng = parseFloat(lng);
+  if (!isNaN(pLat) && !isNaN(pLng) && pLat !== 0 && pLng !== 0) {
+    return [pLat, pLng];
+  }
+  let hash = 0;
+  const str = String(id || index);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 31 + str.charCodeAt(i)) & 0xffffffff;
+  }
+  const hub = DISTRICT_CENTERS[Math.abs(hash) % DISTRICT_CENTERS.length];
+  const offsetLat = (((Math.abs(hash * 7) % 1000) / 1000) - 0.5) * 0.08;
+  const offsetLng = (((Math.abs(hash * 13) % 1000) / 1000) - 0.5) * 0.08;
+  return [hub.lat + offsetLat, hub.lng + offsetLng];
+}
+
+async function initAdminMap() {
+  const mapContainer = document.getElementById('adminGeoMap');
+  if (!mapContainer || typeof window.L === 'undefined') return;
+
+  if (window._adminLeafletMap) {
+    try {
+      window._adminLeafletMap.remove();
+    } catch (_) {}
+    window._adminLeafletMap = null;
+  }
+
+  try {
+    const map = window.L.map('adminGeoMap', {
+      center: [16.5062, 80.6480], // Central Amaravati / Vijayawada
+      zoom: 8,
+      zoomControl: true,
+      attributionControl: true
+    });
+    window._adminLeafletMap = map;
+
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const jobLayer = window.L.layerGroup().addTo(map);
+    const workerLayer = window.L.layerGroup().addTo(map);
+    const machineryLayer = window.L.layerGroup().addTo(map);
+
+    window._adminMapLayers = { jobLayer, workerLayer, machineryLayer };
+
+    const [jData, uData, mData] = await Promise.all([
+      api.getJobs('?limit=50').catch(() => ({ jobs: [] })),
+      api.getUsers('?limit=50').catch(() => ({ users: [] })),
+      api.getMachinery('?limit=50').catch(() => ({ machinery: [] }))
+    ]);
+
+    const jobs = jData.jobs || [];
+    const users = (uData.users || []).filter(u => u.role === 'worker');
+    const machinery = mData.machinery || [];
+
+    // 1. Plot Jobs (Green Pin)
+    jobs.forEach((job, idx) => {
+      const coords = getCoordsForEntity(job.id, job.latitude, job.longitude, idx);
+      const icon = window.L.divIcon({
+        className: 'map-custom-marker',
+        html: `<div style="background:#16a34a;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer">🌾</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+      const marker = window.L.marker(coords, { icon });
+      marker.bindPopup(`
+        <div style="font-family:Inter,sans-serif;font-size:12px;padding:4px">
+          <div style="font-weight:800;font-size:14px;color:#16a34a;margin-bottom:4px">🌾 ${job.workType}</div>
+          <div><strong>Farmer:</strong> ${job.farmer?.name || '—'} (${job.farmer?.phone || '—'})</div>
+          <div><strong>Daily Wage:</strong> ₹${job.payPerDay || 0}/day</div>
+          <div><strong>Workers Needed:</strong> ${job.workersNeeded || 1} slots</div>
+          <div><strong>Village:</strong> ${job.farmer?.village || '—'}</div>
+          <button onclick="window._inspectJob('${job.id}')" style="margin-top:8px;width:100%;padding:6px;background:#16a34a;color:white;border:none;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer">View Job Details</button>
+        </div>
+      `);
+      jobLayer.addLayer(marker);
+    });
+
+    // 2. Plot Workers (Blue Pin)
+    users.forEach((worker, idx) => {
+      const coords = getCoordsForEntity(worker.id, worker.latitude, worker.longitude, idx + 100);
+      const icon = window.L.divIcon({
+        className: 'map-custom-marker',
+        html: `<div style="background:#2563eb;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer">👷</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      const marker = window.L.marker(coords, { icon });
+      marker.bindPopup(`
+        <div style="font-family:Inter,sans-serif;font-size:12px;padding:4px">
+          <div style="font-weight:800;font-size:14px;color:#2563eb;margin-bottom:4px">👷 ${worker.name || 'Worker'}</div>
+          <div><strong>Phone:</strong> ${worker.phone}</div>
+          <div><strong>Village:</strong> ${worker.village || '—'}</div>
+          <div><strong>Rating:</strong> ★ ${worker.ratingAvg ? Number(worker.ratingAvg).toFixed(1) : 'New'}</div>
+          <button onclick="window._inspectUser('${worker.id}')" style="margin-top:8px;width:100%;padding:6px;background:#2563eb;color:white;border:none;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer">Inspect Profile</button>
+        </div>
+      `);
+      workerLayer.addLayer(marker);
+    });
+
+    // 3. Plot Machinery (Orange Pin)
+    machinery.forEach((mach, idx) => {
+      const coords = getCoordsForEntity(mach.id, mach.latitude, mach.longitude, idx + 200);
+      const icon = window.L.divIcon({
+        className: 'map-custom-marker',
+        html: `<div style="background:#d97706;color:white;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid white;cursor:pointer">🚜</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      const marker = window.L.marker(coords, { icon });
+      marker.bindPopup(`
+        <div style="font-family:Inter,sans-serif;font-size:12px;padding:4px">
+          <div style="font-weight:800;font-size:14px;color:#d97706;margin-bottom:4px">🚜 ${mach.name}</div>
+          <div><strong>Type:</strong> ${mach.type || 'Tractor'}</div>
+          <div><strong>Rate:</strong> ₹${mach.pricePerHour || 0}/hour</div>
+          <div><strong>Owner:</strong> ${mach.owner?.name || 'Owner'} (${mach.owner?.phone || '—'})</div>
+          <div><strong>Village:</strong> ${mach.village || '—'}</div>
+          <button onclick="window._cpNavigate('machinery')" style="margin-top:8px;width:100%;padding:6px;background:#d97706;color:white;border:none;border-radius:6px;font-weight:700;font-size:11px;cursor:pointer">View Machinery</button>
+        </div>
+      `);
+      machineryLayer.addLayer(marker);
+    });
+
+    // Update filter counts
+    const allBtn = document.querySelector('.map-filter-btn[data-filter=all]');
+    if (allBtn) allBtn.textContent = `All (${jobs.length + users.length + machinery.length})`;
+    const jobsBtn = document.querySelector('.map-filter-btn[data-filter=jobs]');
+    if (jobsBtn) jobsBtn.textContent = `🌾 Jobs (${jobs.length})`;
+    const workersBtn = document.querySelector('.map-filter-btn[data-filter=workers]');
+    if (workersBtn) workersBtn.textContent = `👷 Workers (${users.length})`;
+    const machBtn = document.querySelector('.map-filter-btn[data-filter=machinery]');
+    if (machBtn) machBtn.textContent = `🚜 Machinery (${machinery.length})`;
+
+    setTimeout(() => {
+      if (window._adminLeafletMap) window._adminLeafletMap.invalidateSize();
+    }, 200);
+  } catch (err) {
+    console.error('Error rendering Leaflet map:', err);
+  }
+}
+
+window._filterAdminMap = (filterType, btnEl) => {
+  if (!window._adminLeafletMap || !window._adminMapLayers) return;
+  const { jobLayer, workerLayer, machineryLayer } = window._adminMapLayers;
+  const map = window._adminLeafletMap;
+
+  document.querySelectorAll('.map-filter-btn').forEach(b => {
+    b.className = 'btn btn-sm btn-outline map-filter-btn';
+  });
+  if (btnEl) btnEl.className = 'btn btn-sm btn-primary map-filter-btn';
+
+  if (filterType === 'all') {
+    if (!map.hasLayer(jobLayer)) map.addLayer(jobLayer);
+    if (!map.hasLayer(workerLayer)) map.addLayer(workerLayer);
+    if (!map.hasLayer(machineryLayer)) map.addLayer(machineryLayer);
+  } else if (filterType === 'jobs') {
+    if (!map.hasLayer(jobLayer)) map.addLayer(jobLayer);
+    if (map.hasLayer(workerLayer)) map.removeLayer(workerLayer);
+    if (map.hasLayer(machineryLayer)) map.removeLayer(machineryLayer);
+  } else if (filterType === 'workers') {
+    if (map.hasLayer(jobLayer)) map.removeLayer(jobLayer);
+    if (!map.hasLayer(workerLayer)) map.addLayer(workerLayer);
+    if (map.hasLayer(machineryLayer)) map.removeLayer(machineryLayer);
+  } else if (filterType === 'machinery') {
+    if (map.hasLayer(jobLayer)) map.removeLayer(jobLayer);
+    if (map.hasLayer(workerLayer)) map.removeLayer(workerLayer);
+    if (!map.hasLayer(machineryLayer)) map.addLayer(machineryLayer);
+  }
+};

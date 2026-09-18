@@ -106,6 +106,19 @@ const createDispute = async (req, res, next) => {
       },
     });
 
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.to('admin:room').emit('dispute:created', {
+          id: dispute.id,
+          jobId: dispute.jobId,
+          category: dispute.category,
+          description: dispute.description,
+        });
+      }
+    } catch (_) {}
+
     return res.status(201).json({
       success: true,
       dispute,

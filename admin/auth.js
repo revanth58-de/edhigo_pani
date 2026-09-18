@@ -10,9 +10,11 @@
 const SESSION_TOKEN = 'edhigo_admin_token';
 const SESSION_URL   = 'edhigo_admin_url';
 const SESSION_EXP   = 'edhigo_admin_exp';
+const SESSION_ROLE  = 'edhigo_admin_role';
 
-export function getToken()   { return sessionStorage.getItem(SESSION_TOKEN) || ''; }
-export function getBaseUrl() { return sessionStorage.getItem(SESSION_URL) || 'http://localhost:5000'; }
+export function getToken()     { return sessionStorage.getItem(SESSION_TOKEN) || ''; }
+export function getBaseUrl()   { return sessionStorage.getItem(SESSION_URL) || 'http://localhost:5000'; }
+export function getAdminRole() { return sessionStorage.getItem(SESSION_ROLE) || 'super_admin'; }
 
 // Check if a valid (non-expired) token exists in sessionStorage
 export function isLoggedIn() {
@@ -23,16 +25,18 @@ export function isLoggedIn() {
 }
 
 // Called after a successful POST /api/admin/auth/login
-export function saveSession(token, url, expiresInHours = 2) {
+export function saveSession(token, url, expiresInHours = 2, role = 'super_admin') {
   sessionStorage.setItem(SESSION_TOKEN, token);
   sessionStorage.setItem(SESSION_URL, url.replace(/\/$/, ''));
   sessionStorage.setItem(SESSION_EXP, String(Date.now() + expiresInHours * 60 * 60 * 1000));
+  sessionStorage.setItem(SESSION_ROLE, role);
 }
 
 export function clearSession() {
   sessionStorage.removeItem(SESSION_TOKEN);
   sessionStorage.removeItem(SESSION_URL);
   sessionStorage.removeItem(SESSION_EXP);
+  sessionStorage.removeItem(SESSION_ROLE);
 }
 
 export function guardAuth() {
@@ -43,17 +47,17 @@ export function guardAuth() {
 }
 
 // Exchange the admin secret for a JWT token via the backend login endpoint.
-// Returns { ok: true, token } or { ok: false, error }
-export async function loginWithSecret(secret, baseUrl) {
+// Returns { ok: true, token, adminRole } or { ok: false, error }
+export async function loginWithSecret(secret, baseUrl, role = 'super_admin') {
   try {
     const res = await fetch(`${baseUrl.replace(/\/$/, '')}/api/admin/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ secret }),
+      body: JSON.stringify({ secret, role }),
     });
     const data = await res.json();
     if (!res.ok) return { ok: false, error: data.error || 'Login failed' };
-    return { ok: true, token: data.token };
+    return { ok: true, token: data.token, adminRole: data.adminRole || role };
   } catch (err) {
     return { ok: false, error: `Cannot reach server: ${err.message}` };
   }

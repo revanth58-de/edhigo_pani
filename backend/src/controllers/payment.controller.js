@@ -270,6 +270,19 @@ const makePayment = async (req, res, next) => {
 
     logger.info('Payments created', { count: payments.length, jobId });
 
+    try {
+      const { getIO } = require('../config/socket');
+      const io = getIO();
+      if (io) {
+        io.to('admin:room').emit('payment:completed', {
+          jobId,
+          totalAmount: amount,
+          workerCount: attendances.length,
+          paymentsCount: payments.length,
+        });
+      }
+    } catch (_) {}
+
     res.json({
       message: 'Payment processed successfully',
       payments,

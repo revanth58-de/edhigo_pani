@@ -37,9 +37,9 @@ const adminRateLimiter = rateLimit({
 });
 
 // ── POST /api/admin/auth/login ────────────────────────────────────────────────
-// Validates the ADMIN_SECRET and returns a short-lived JWT.
+// Validates the ADMIN_SECRET and returns a short-lived JWT with RBAC role.
 const adminLogin = (req, res) => {
-  const { secret } = req.body;
+  const { secret, role = 'super_admin' } = req.body;
   const adminSecret = process.env.ADMIN_SECRET;
 
   if (!adminSecret) {
@@ -60,15 +60,19 @@ const adminLogin = (req, res) => {
     return res.status(401).json({ error: 'Invalid admin secret' });
   }
 
-  // Issue short-lived JWT
+  const validRoles = ['super_admin', 'finance_admin', 'support_admin'];
+  const adminRole = validRoles.includes(role) ? role : 'super_admin';
+
+  // Issue short-lived JWT with adminRole
   const token = jwt.sign(
-    { role: 'admin', iat: Math.floor(Date.now() / 1000) },
+    { role: 'admin', adminRole, iat: Math.floor(Date.now() / 1000) },
     ADMIN_JWT_SECRET,
     { expiresIn: ADMIN_JWT_TTL }
   );
 
   res.json({
     token,
+    adminRole,
     expiresIn: ADMIN_JWT_TTL,
     message: 'Admin session created. Token expires in 2 hours.',
   });
@@ -82,7 +86,7 @@ const adminAuth = async (req, res, next) => {
     return res.status(500).json({ error: 'ADMIN_SECRET not configured on server' });
   }
 
-  const proceed = async () => {
+  const proceed = async (adminRole = 'super_admin') => {
     try {
       let adminUser = await prisma.user.findFirst({
         where: { phone: '+910000000000' }
@@ -99,8 +103,10 @@ const adminAuth = async (req, res, next) => {
         });
       }
       req.user = adminUser;
+      req.adminRole = adminRole;
     } catch (err) {
       req.user = { id: 'admin-system-id', name: 'System Admin', role: 'farmer', isAdmin: true };
+      req.adminRole = adminRole;
     }
     next();
   };
@@ -113,7 +119,7 @@ const adminAuth = async (req, res, next) => {
       const payload = jwt.verify(token, ADMIN_JWT_SECRET);
       if (payload.role !== 'admin') throw new Error('Not an admin token');
       req.adminPayload = payload;
-      return await proceed();
+      return await proceed(payload.adminRole || 'super_admin');
     } catch (err) {
       return res.status(401).json({ error: `Admin token invalid or expired: ${err.message}` });
     }
@@ -136,7 +142,14 @@ const adminAuth = async (req, res, next) => {
     });
   }
 
-  await proceed();
+  await proceed('super_admin');
 };
 
-module.exports = { adminAuth, adminRateLimiter, adminLogin };
+const requireAdminRole = (allowedRoles = []) => (req, res, next) => {
+  if (!req.adminRole || (allowedRoles.length > 0 && !allowedRoles.includes(req.adminRole) && req.adminRole !== 'super_admin')) {
+    return res.status(403).json({ error: `Forbidden: role '${req.adminRole}' does not have sufficient permissions` });
+  }
+  next();
+};
+
+module.exports = { adminAuth, adminRateLimiter, adminLogin, requireAdminRole };

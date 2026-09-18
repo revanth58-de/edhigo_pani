@@ -45,6 +45,13 @@ const createJob = async (req, res, next) => {
             distance: '2.5 km', // Placeholder distance calculation
             farmerName: job.farmer.name
         });
+        io.to('admin:room').emit('job:created', {
+            id: job.id,
+            workType: job.workType,
+            payPerDay: job.payPerDay,
+            workersNeeded: job.workersNeeded,
+            farmer: { name: job.farmer?.name, phone: job.farmer?.phone }
+        });
     }
 
     res.status(201).json({

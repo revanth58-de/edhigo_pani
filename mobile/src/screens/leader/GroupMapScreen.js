@@ -17,7 +17,7 @@ import MapDashboard from '../../components/MapDashboard';
 import { calculateDistance } from '../../utils/location';
 
 const GroupMapScreen = ({ navigation, route }) => {
-    const { groupId, workerCount } = route.params || { workerCount: 15 };
+    const { groupId, workerCount } = route?.params || { workerCount: 15 };
     const { user } = useAuthStore();
     const [location, setLocation] = useState(null);
     // Map of userId -> { latitude, longitude, timestamp }

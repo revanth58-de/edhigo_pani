@@ -114,7 +114,7 @@ const WorkerStatusScreen = ({ navigation, route }) => {
         {/* Finish Job Button (Simulation) */}
         <TouchableOpacity
           style={styles.finishBtn}
-          onPress={() => navigation.navigate('RateFarmer', { job: route.params?.job || {} })}
+          onPress={() => navigation.navigate('RateFarmer', { job: route?.params?.job || {} })}
         >
           <MaterialIcons name="check" size={24} color="#fff" />
           <Text style={styles.finishBtnText}>FINISH JOB (SIMULATE)</Text>

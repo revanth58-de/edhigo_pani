@@ -30,7 +30,7 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
     }
   };
 
-  const { payment } = route.params || {};
+  const { payment } = route?.params || {};
 
   const grossAmount = payment?.amount || 0;
   const commission = payment?.commissionAmount || (grossAmount * 0.05);

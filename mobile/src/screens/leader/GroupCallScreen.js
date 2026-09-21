@@ -12,7 +12,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
 const GroupCallScreen = ({ navigation, route }) => {
-    const { job, groupId } = route.params;
+    const { job, groupId } = route?.params || {};
 
     // M14: Dial the actual farmer phone from the job object, with a safe fallback
     const handleCall = () => {

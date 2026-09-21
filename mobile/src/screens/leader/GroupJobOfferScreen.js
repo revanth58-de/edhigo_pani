@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { jobService } from '../../services/api/jobService';
 
 const GroupJobOfferScreen = ({ navigation, route }) => {
-  const { groupId, jobData, workerCount } = route.params || {};
+  const { groupId, jobData, workerCount } = route?.params || {};
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);

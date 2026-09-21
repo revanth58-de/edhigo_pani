@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const RateWorkerScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery, worker, workers } = route.params || {};
+  const { job, booking, isMachinery, worker, workers } = route?.params || {};
   const { t } = useTranslation();
   
   // Support both single worker (legacy screens) and multiple workers (PaymentScreen)

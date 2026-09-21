@@ -23,7 +23,7 @@ import * as Haptics from 'expo-haptics'; // M16
 import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 
 const JobOfferScreen = ({ navigation, route }) => {
-  const { job: initialJob, jobId } = route.params || {};
+  const { job: initialJob, jobId } = route?.params || {};
   const [job, setJob] = React.useState(initialJob || null);
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);

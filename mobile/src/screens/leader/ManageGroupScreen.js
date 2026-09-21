@@ -27,8 +27,8 @@ const KEYPAD_ROWS = [
 ];
 
 const ManageGroupScreen = ({ navigation, route }) => {
-    const routeGroupId = route.params?.groupId;
-    const routeGroupName = route.params?.groupName;
+    const routeGroupId = route?.params?.groupId;
+    const routeGroupName = route?.params?.groupName;
 
     const [resolvedGroupId, setResolvedGroupId] = useState(routeGroupId || null);
     const [members, setMembers] = useState([]);

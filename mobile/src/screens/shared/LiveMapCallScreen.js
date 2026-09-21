@@ -16,7 +16,7 @@ import { calculateDistance } from '../../utils/location';
 import useAuthStore from '../../store/authStore';
 
 const LiveMapCallScreen = ({ navigation, route }) => {
-  const { worker } = route.params || {};
+  const { worker } = route?.params || {};
   const user = useAuthStore((state) => state.user);
 
   const getDistanceDisplay = () => {

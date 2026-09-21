@@ -31,7 +31,7 @@ const SelectWorkersScreen = ({ navigation, route }) => {
     cropId,
     operationId,
     skillKeyword,
-  } = route.params || {};
+  } = route?.params || {};
 
   const user = useAuthStore((state) => state.user);
   const initialBenchmark = suggestedWage || getBenchmarkWage({ cropId, operationId, skillKeyword });

@@ -27,7 +27,7 @@ const { width } = Dimensions.get('window');
 const SCAN_BOX_SIZE = width * 0.7;
 
 const QRAttendanceINScreen = ({ navigation, route }) => {
-  const { worker, job } = route.params || {};
+  const { worker, job } = route?.params || {};
   const cachedPermission = useAuthStore((state) => state.cameraPermission);
   const setCachedPermission = useAuthStore((state) => state.setCameraPermission);
 

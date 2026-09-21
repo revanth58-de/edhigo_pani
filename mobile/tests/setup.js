@@ -249,6 +249,17 @@ jest.mock('../src/components/CustomLoader', () => {
   return () => React.createElement('View', { testID: 'custom-loader' });
 });
 
+// ─── Mock react-native-webview ────────────────────────────────────────────────
+jest.mock('react-native-webview', () => {
+  const React = require('react');
+  const MockWebView = (props) => React.createElement('WebView', props);
+  return {
+    WebView: MockWebView,
+    default: MockWebView,
+  };
+});
+
 // Increase default timeout for slow Windows environments
 jest.setTimeout(30000);
+
 

@@ -88,7 +88,7 @@ const WebMapStub = ({ userLocation, farmCoords, job }) => {
 
 // ─── Main Screen Component ───
 const NavigationScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job } = route?.params || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const [distance, setDistance] = useState(t('common.calculating') || '...');

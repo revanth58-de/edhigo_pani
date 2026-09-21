@@ -30,7 +30,7 @@ const SettlementStatusScreen = ({ navigation, route }) => {
     }
   };
 
-  const { payment } = route.params || {};
+  const { payment } = route?.params || {};
 
   const isSettled = payment?.settlementStatus?.toLowerCase() === 'settled';
   const grossAmount = payment?.amount || 500;

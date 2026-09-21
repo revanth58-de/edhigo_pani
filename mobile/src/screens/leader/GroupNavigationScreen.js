@@ -29,15 +29,15 @@ if (!isWeb) {
 }
 
 const GroupNavigationScreen = ({ navigation, route }) => {
-    const { job, groupId } = route.params;
+    const { job, groupId } = route?.params || {};
     const user = useAuthStore((state) => state.user);
     const [userLocation, setUserLocation] = useState(null);
     const [distanceRemaining, setDistanceRemaining] = useState(0);
     const [eta, setEta] = useState(0);
 
     const farmCoords = {
-        latitude: job.farmLatitude || 17.3850,
-        longitude: job.farmLongitude || 78.4867,
+        latitude: job?.farmLatitude || 17.3850,
+        longitude: job?.farmLongitude || 78.4867,
     };
 
     useEffect(() => {
@@ -139,7 +139,7 @@ const GroupNavigationScreen = ({ navigation, route }) => {
 
         <View style={styles.addressCard}>
           <MaterialIcons name="location-on" size={24} color={colors.primary} />
-          <Text style={styles.addressText} numberOfLines={2}>{job.farmAddress}</Text>
+          <Text style={styles.addressText} numberOfLines={2}>{job?.farmAddress || 'Farm Location'}</Text>
         </View>
 
         <TouchableOpacity 

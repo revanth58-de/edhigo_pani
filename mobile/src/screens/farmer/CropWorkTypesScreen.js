@@ -21,7 +21,7 @@ import { colors } from '../../theme/colors';
 import { fetchWageRates, getBenchmarkWage, getCachedWageRates } from '../../utils/wageHelper';
 
 const CropWorkTypesScreen = ({ route, navigation }) => {
-  const { cropId, cropName, cropGradient } = route.params || {
+  const { cropId, cropName, cropGradient } = route?.params || {
     cropId: 'paddy',
     cropName: 'Paddy',
     cropGradient: ['#2E7D32', '#1B5E20'],

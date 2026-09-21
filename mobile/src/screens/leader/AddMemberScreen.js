@@ -18,7 +18,7 @@ import { groupAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 const AddMemberScreen = ({ navigation, route }) => {
-  const { groupId, groupName } = route.params;
+  const { groupId, groupName } = route?.params || {};
   const [workers, setWorkers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWorkers, setSelectedWorkers] = useState([]);

@@ -27,7 +27,7 @@ import * as Location from 'expo-location';
 const LeaderHomeScreen = ({ navigation, route }) => {
   const { user, refreshProfile } = useAuthStore();
   const { t } = useTranslation();
-  const activeTab = route.params?.tab || 'home';
+  const activeTab = route?.params?.tab || 'home';
   const [pendingJob, setPendingJob]   = useState(null);
   const [refreshing, setRefreshing]   = useState(false); // M6
   const [groups, setGroups] = useState([]);

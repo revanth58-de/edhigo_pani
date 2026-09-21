@@ -59,7 +59,7 @@ const HELP_STEPS = [
 ];
 
 const GroupQRAttendanceScreen = ({ navigation, route }) => {
-  const { job, groupId, type } = route.params || { type: 'IN' };
+  const { job, groupId, type } = route?.params || { type: 'IN' };
   const [permission, requestPermission] = useCameraPermissions();
   const cachedPermission = useAuthStore((state) => state.cameraPermission);
   const hasPermission = permission?.granted ?? (cachedPermission === 'granted' ? true : null);

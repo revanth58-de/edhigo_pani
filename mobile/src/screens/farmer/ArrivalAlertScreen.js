@@ -16,7 +16,7 @@ import useAuthStore from '../../store/authStore';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const ArrivalAlertScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route?.params || {};
   const { t } = useTranslation();
 
   useEffect(() => {

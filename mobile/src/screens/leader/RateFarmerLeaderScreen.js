@@ -19,7 +19,7 @@ import { ratingService } from '../../services/api/ratingService';
 import useAuthStore from '../../store/authStore';
 
 const RateFarmerLeaderScreen = ({ navigation, route }) => {
-  const { job, groupId } = route.params || {};
+  const { job, groupId } = route?.params || {};
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);

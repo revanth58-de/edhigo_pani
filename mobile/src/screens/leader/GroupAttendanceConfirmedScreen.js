@@ -11,7 +11,7 @@ import { colors } from '../../theme/colors';
 import * as Speech from 'expo-speech';
 
 const GroupAttendanceConfirmedScreen = ({ navigation, route }) => {
-  const { job, groupId, type } = route.params;
+  const { job, groupId, type } = route?.params || {};
 
   useEffect(() => {
     const msg = type === 'IN' ? "Check-in successful" : "Check-out successful";

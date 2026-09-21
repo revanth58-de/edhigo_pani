@@ -96,7 +96,7 @@ const ConfettiRain = () => {
 };
 
 const PaymentScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery, workers, worker, isNewHire } = route.params || {};
+  const { job, booking, isMachinery, workers, worker, isNewHire } = route?.params || {};
   const { t } = useTranslation();
   const { user, language } = useAuthStore();
 

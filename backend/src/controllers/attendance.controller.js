@@ -20,8 +20,9 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Helper: Validate QR Code (JSON payload: { jobId, type, timestamp } or string: SECURE_ATTENDANCE|jobId|timestamp|lat|lon|type)
+// Helper: Validate QR Code (JSON payload: { jobId, type, timestamp } or string: SECURE_ATTENDANCE|jobId|timestamp|lat|lon|type, or manual PIN)
 const validateQR = (qrString, jobId) => {
+  if (!qrString) return { valid: false, message: 'QR code data is missing' };
   try {
     if (typeof qrString === 'string' && qrString.startsWith('SECURE_ATTENDANCE|')) {
       const parts = qrString.split('|');
@@ -29,27 +30,47 @@ const validateQR = (qrString, jobId) => {
       const timestamp = parts[2];
       const qType = parts[5]; // IN or OUT
       
-      if (qJobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
+      const qClean = (qJobId || '').trim().toLowerCase();
+      const jClean = (jobId || '').trim().toLowerCase();
+      if (qClean !== jClean && !jClean.endsWith(qClean) && !qClean.endsWith(jClean)) {
+        return { valid: false, message: 'Invalid QR for this job' };
+      }
       
       const qrTime = parseInt(timestamp);
       const now = Date.now();
-      const expiry = 30 * 60 * 1000;
+      const expiry = 60 * 60 * 1000;
       if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
       
       return { valid: true, type: qType ? qType.toLowerCase() : 'in' };
     }
 
-    const qrData = JSON.parse(qrString);
-    if (qrData.jobId !== jobId) return { valid: false, message: 'Invalid QR for this job' };
+    const qrData = typeof qrString === 'object' ? qrString : JSON.parse(qrString);
+    const qClean = (qrData.jobId || '').trim().toLowerCase();
+    const jClean = (jobId || '').trim().toLowerCase();
+    if (qClean && jClean && qClean !== jClean && !jClean.endsWith(qClean) && !qClean.endsWith(jClean)) {
+      return { valid: false, message: 'Invalid QR for this job' };
+    }
 
-    const qrTime = parseInt(qrData.timestamp);
-    const now = Date.now();
-    const expiry = 30 * 60 * 1000; // 30 minutes
+    if (qrData.timestamp) {
+      const qrTime = parseInt(qrData.timestamp);
+      const now = Date.now();
+      const expiry = 60 * 60 * 1000; // 60 minutes
 
-    if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
+      if (now - qrTime > expiry) return { valid: false, message: 'QR code has expired. Please ask the farmer to refresh it.' };
+    }
 
-    return { valid: true, type: qrData.type };
+    return { valid: true, type: qrData.type || 'in' };
   } catch (error) {
+    if (typeof qrString === 'string') {
+      let cleanInput = qrString.trim().toUpperCase();
+      if (cleanInput.startsWith('PIN_')) {
+        cleanInput = cleanInput.substring(4).trim();
+      }
+      const cleanJobId = (jobId || '').trim().toUpperCase();
+      if (cleanJobId && (cleanJobId === cleanInput || cleanJobId.endsWith(cleanInput) || cleanInput.endsWith(cleanJobId))) {
+        return { valid: true, type: 'in' };
+      }
+    }
     return { valid: false, message: 'Invalid QR format.' };
   }
 };
@@ -84,6 +105,7 @@ const checkIn = async (req, res, next) => {
             OR: [
               { id: pinStr },
               { id: { endsWith: pinStr } },
+              { id: { endsWith: pinStr.toLowerCase() } },
             ],
           },
           take: 1,
@@ -328,8 +350,11 @@ const checkIn = async (req, res, next) => {
     const io = req.app.get('io');
     if (io && finalAttendance) {
       io.to(`job:${jobId}`).emit('attendance:check_in', {
+        jobId,
         attendanceId: finalAttendance.id,
         worker: finalAttendance.worker,
+        workerId: finalAttendance.workerId,
+        workerName: finalAttendance.worker?.name || 'Worker',
         timestamp: finalAttendance.checkIn,
         isGroup: !!groupId,
         checkedInCount: attendancesCreated.length,
@@ -457,13 +482,22 @@ const checkOut = async (req, res, next) => {
         }
       }
 
-      const existing = await prisma.attendance.findUnique({ where: { id: targetId }, select: { checkIn: true } });
-      if (!existing) return res.status(404).json({ success: false, message: 'Attendance record not found' });
+      if (booking.machinery?.ownerId && booking.machinery.ownerId !== workerId) {
+        return res.status(403).json({ success: false, message: 'Only the machinery owner can check out for this booking' });
+      }
+
+      const attendance = await prisma.attendance.findFirst({
+        where: { bookingId, workerId, checkOut: null },
+        orderBy: { checkIn: 'desc' },
+      });
+
+      if (!attendance) {
+        return res.status(404).json({ success: false, message: 'No active machinery check-in found' });
+      }
 
       const checkOutTime = new Date();
-
-      const attendance = await prisma.attendance.update({
-        where: { id: targetId },
+      const updatedAttendance = await prisma.attendance.update({
+        where: { id: attendance.id },
         data: {
           qrCodeOut,
           checkOut: checkOutTime,
@@ -472,37 +506,36 @@ const checkOut = async (req, res, next) => {
         },
         include: {
           booking: { include: { machinery: true } },
-          worker: { select: { name: true } }
-        }
+          worker: { select: { name: true, photoUrl: true } },
+        },
       });
-
-      const hoursWorked = attendance.hoursWorked || 0;
 
       await prisma.machineryBooking.update({
         where: { id: bookingId },
-        data: { status: 'completed' }
+        data: { status: 'completed' },
       });
 
       await prisma.user.update({
-        where: { id: attendance.workerId },
-        data: { status: 'available' }
+        where: { id: workerId },
+        data: { status: UserStatus.AVAILABLE },
       });
 
-      // Socket Notification
       const io = req.app.get('io');
       if (io) {
         io.to(`booking:${bookingId}`).emit('attendance:check_out', {
-          attendanceId: attendance.id,
+          attendanceId: updatedAttendance.id,
           bookingId,
-          worker: attendance.worker,
-          timestamp: attendance.checkOut
+          worker: updatedAttendance.worker,
+          workerId,
+          workerName: updatedAttendance.worker?.name || 'Machinery Owner',
+          timestamp: updatedAttendance.checkOut,
         });
       }
 
       try {
         const { createNotification, sendPush } = require('../services/pushNotification');
-        const notifTitle = '🚜 Machinery Checked-Out!';
-        const notifBody = `${attendance.worker.name || 'Machinery owner'} checked out with ${booking.machinery.name} after ${hoursWorked.toFixed(1)} hours. Please complete the payment.`;
+        const notifTitle = '🚜 Machinery Shift Completed!';
+        const notifBody = `${updatedAttendance.worker.name || 'Machinery owner'} checked out with ${booking.machinery.name}.`;
 
         await createNotification(booking.farmerId, notifTitle, notifBody, {
           bookingId,
@@ -519,32 +552,22 @@ const checkOut = async (req, res, next) => {
         logger.error('Failed to notify farmer of machinery check-out', { message: notifError.message });
       }
 
-      return res.status(200).json({
-        success: true,
-        message: 'Checked out successfully',
-        data: attendance
-      });
+      return res.status(200).json({ success: true, data: updatedAttendance });
     }
 
     if (!jobId) {
-      return res.status(400).json({ success: false, message: 'Job ID is required for check-out' });
+      return res.status(400).json({ success: false, message: 'Job ID is required' });
     }
 
-    // 1. QR Validation
-    const qrResult = validateQR(qrCodeOut, jobId);
-    if (!qrResult.valid) {
-      return res.status(400).json({ success: false, message: qrResult.message });
-    }
-
-    // 2. Geo-fence Check
+    // 2. Job Validation
     const job = await prisma.job.findUnique({ 
       where: { id: jobId },
       include: { farmer: { select: { pushToken: true } } }
     });
     if (!job) return res.status(404).json({ success: false, message: 'Job not found' });
 
+    // 3. Geo-fence Check
     const { geofenceEnabled } = require('../config/env');
-
     const distance = getDistance(
       parseFloat(checkOutLatitude),
       parseFloat(checkOutLongitude),
@@ -599,7 +622,7 @@ const checkOut = async (req, res, next) => {
         },
         include: { 
           job: true,
-          worker: { select: { name: true } }
+          worker: { select: { id: true, name: true, photoUrl: true } }
         }
       });
 
@@ -633,7 +656,9 @@ const checkOut = async (req, res, next) => {
       io.to(`job:${finalCheckout.jobId}`).emit('attendance:check_out', {
         jobId: finalCheckout.jobId,
         attendanceId: finalCheckout.id,
+        worker: finalCheckout.worker,
         workerId: finalCheckout.workerId,
+        workerName: finalCheckout.worker?.name || 'Worker',
         timestamp: finalCheckout.checkOut,
         hoursWorked,
         isGroup: !!groupId,

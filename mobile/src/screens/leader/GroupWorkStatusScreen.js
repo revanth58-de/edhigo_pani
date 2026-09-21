@@ -11,7 +11,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
 const GroupWorkStatusScreen = ({ navigation, route }) => {
-    const { job, groupId } = route.params;
+    const { job, groupId } = route?.params || {};
     const [elapsedTime, setElapsedTime] = useState(0);
 
     useEffect(() => {

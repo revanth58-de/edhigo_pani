@@ -62,7 +62,7 @@ const parseWorkers = (jobData) => {
 };
 
 const RequestAcceptedScreen = ({ navigation, route }) => {
-  const { job: initialJob, jobId } = route.params || {};
+  const { job: initialJob, jobId } = route?.params || {};
   const [job, setJob] = useState(initialJob || null);
   const user = useAuthStore((state) => state.user);
   const { t } = useTranslation();

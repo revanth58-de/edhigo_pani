@@ -20,7 +20,7 @@ import { formatWorkType } from '../../utils/formatHelper';
 import { socketService } from '../../services/socketService';
 
 const WorkStatusScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery } = route.params || {};
+  const { job, booking, isMachinery } = route?.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const [elapsedTime, setElapsedTime] = useState('00:00:00');

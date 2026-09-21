@@ -14,7 +14,7 @@ import useAuthStore from '../../store/authStore';
 import { formatWorkType } from '../../utils/formatHelper';
 
 const AttendanceConfirmedScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job } = route?.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 

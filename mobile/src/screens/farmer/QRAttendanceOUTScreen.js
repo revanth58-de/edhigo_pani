@@ -10,12 +10,14 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import useAuthStore from '../../store/authStore';
 import { colors } from '../../theme/colors';
 import { socketService } from '../../services/socketService';
+import { jobAPI, attendanceAPI } from '../../services/api';
 import BottomNavBar from '../../components/BottomNavBar';
 import { formatWorkType, formatUserName } from '../../utils/formatHelper';
 import alertSoundService from '../../services/alertSoundService';
@@ -23,22 +25,105 @@ import alertSoundService from '../../services/alertSoundService';
 const { width } = Dimensions.get('window');
 
 const QRAttendanceOUTScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery, workers: initialWorkers } = route.params || {};
+  const { job, booking, isMachinery, workers: initialWorkers } = route?.params || {};
   const user = useAuthStore((state) => state.user);
   const language = useAuthStore((state) => state.language) || 'te';
 
-  const totalWorkers = isMachinery ? 1 : Math.max(1, Number(job?.workersNeeded) || (Array.isArray(initialWorkers) ? initialWorkers.length : 1));
+  const [activeJob, setActiveJob] = useState(job || null);
+  const [activeBooking, setActiveBooking] = useState(booking || null);
+  const [loadingActiveJob, setLoadingActiveJob] = useState(!job?.id && !booking?.id);
   const [checkedOutWorkers, setCheckedOutWorkers] = useState([]);
 
+  // Auto-resolve active job if not provided
   useEffect(() => {
+    if (job?.id) {
+      setActiveJob(job);
+    }
+    if (booking?.id) {
+      setActiveBooking(booking);
+    }
+    if (!job?.id && !booking?.id) {
+      setLoadingActiveJob(true);
+      const req = jobAPI?.getMyJobs?.();
+      if (req && typeof req.then === 'function') {
+        req
+          .then((res) => {
+            const list = res?.data?.data || res?.data || [];
+            if (Array.isArray(list) && list.length > 0) {
+              const found = list.find((j) => j.status === 'in_progress' || j.status === 'assigned' || j.status === 'open') || list[0];
+              setActiveJob(found);
+            }
+          })
+          .catch((err) => console.warn('Failed to fetch active job for checkout:', err?.message))
+          .finally(() => setLoadingActiveJob(false));
+      } else {
+        setLoadingActiveJob(false);
+      }
+    }
+  }, [job?.id, booking?.id]);
+
+  const currentJob = activeJob || job;
+  const currentBooking = activeBooking || booking;
+  const targetId = isMachinery ? currentBooking?.id : currentJob?.id;
+
+  const totalWorkers = isMachinery ? 1 : Math.max(1, Number(currentJob?.workersNeeded) || (Array.isArray(initialWorkers) ? initialWorkers.length : 1));
+
+  const workerCount = checkedOutWorkers.length > 0 ? checkedOutWorkers.length : totalWorkers;
+  const durationDays = Math.max(1, Number(currentJob?.durationDays) || 1);
+  const totalPayAmount = isMachinery
+    ? (currentBooking?.totalPrice || currentBooking?.price || 1000)
+    : (Number(currentJob?.payPerDay) || 500) * workerCount * durationDays;
+
+  // Sync attendance records from database for checkout
+  const syncAttendanceFromDB = async (targetJobId) => {
+    if (!targetJobId || isMachinery) return;
+    try {
+      const req = attendanceAPI?.getRecords?.(targetJobId);
+      if (!req || typeof req.then !== 'function') return;
+      const res = await req;
+      const records = res?.data?.data || res?.data || [];
+      if (Array.isArray(records) && records.length > 0) {
+        const filtered = records.filter((r) => !!r.checkOut);
+        const mapped = filtered.map((r) => ({
+          id: r.workerId || r.worker?.id || r.id,
+          name: r.worker?.name || 'Worker',
+          time: new Date(r.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }));
+        setCheckedOutWorkers((prev) => {
+          let hasNew = false;
+          const merged = [...prev];
+          mapped.forEach((m) => {
+            if (!merged.some((x) => x.id === m.id)) {
+              merged.push(m);
+              hasNew = true;
+            }
+          });
+          return hasNew ? merged : prev;
+        });
+      }
+    } catch (_) {
+      // Quietly ignore polling errors
+    }
+  };
+
+  useEffect(() => {
+    if (!targetId) return;
+
     socketService.connect();
-    if (isMachinery && booking?.id) {
-      socketService.joinBookingRoom(booking.id);
-    } else if (job?.id) {
-      socketService.joinJobRoom(job.id);
+    if (isMachinery && currentBooking?.id) {
+      socketService.joinBookingRoom(currentBooking.id);
+    } else if (currentJob?.id) {
+      socketService.joinJobRoom(currentJob.id);
     }
 
+    // Immediate DB sync and recurring poll every 3.5s
+    syncAttendanceFromDB(currentJob?.id);
+    const pollTimer = setInterval(() => {
+      syncAttendanceFromDB(currentJob?.id);
+    }, 3500);
+
     const handleCheckOut = (data) => {
+      if (data.jobId && currentJob?.id && data.jobId !== currentJob.id) return;
       const workerName = data.worker?.name || data.workerName || 'Worker';
       const workerId = data.worker?.id || data.workerId || `w_${Date.now()}`;
 
@@ -50,8 +135,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
 
         if (updated.length >= totalWorkers) {
           setTimeout(() => {
-            navigation.replace('Payment', { job, booking, isMachinery, workers: updated });
-          }, 1200);
+            navigation.replace('Payment', { job: currentJob, booking: currentBooking, isMachinery, workers: updated });
+          }, 1500);
         }
 
         return updated;
@@ -61,20 +146,21 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
     socketService.on('attendance:check_out', handleCheckOut);
 
     return () => {
+      clearInterval(pollTimer);
       socketService.off('attendance:check_out', handleCheckOut);
     };
-  }, [job?.id, booking?.id, isMachinery, totalWorkers]);
+  }, [targetId, currentJob?.id, currentBooking?.id, isMachinery, totalWorkers]);
 
   const qrData = JSON.stringify(
     isMachinery
       ? {
-          bookingId: booking?.id,
+          bookingId: currentBooking?.id,
           farmerId: user?.id,
           type: 'out',
           timestamp: Date.now(),
         }
       : {
-          jobId: job?.id,
+          jobId: currentJob?.id,
           farmerId: user?.id,
           type: 'out',
           timestamp: Date.now(),
@@ -83,8 +169,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
 
   const handleProceedToPayment = () => {
     navigation.replace('Payment', { 
-      job, 
-      booking, 
+      job: currentJob, 
+      booking: currentBooking, 
       isMachinery, 
       workers: checkedOutWorkers.length > 0 ? checkedOutWorkers : initialWorkers || [{ id: 'w1', name: 'Assigned Workers' }],
       workerCount: checkedOutWorkers.length || totalWorkers,
@@ -92,8 +178,8 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
   };
 
   const workTitle = isMachinery 
-    ? (booking?.machinery?.name || 'Machinery Booking')
-    : formatWorkType(job?.workType, language);
+    ? (currentBooking?.machinery?.name || 'Machinery Booking')
+    : formatWorkType(currentJob?.workType, language);
 
   return (
     <View style={styles.container}>
@@ -151,43 +237,97 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          {/* QR Card */}
-          <View style={styles.qrWrapper}>
-            <View style={styles.qrCard}>
-              <View style={styles.qrHeader}>
-                <View style={[styles.avatarPlaceholder, { backgroundColor: '#FEE2E2' }]}>
-                  <Text style={[styles.avatarText, { color: '#B91C1C' }]}>{user?.name?.charAt(0) || 'F'}</Text>
-                </View>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.farmerName}>{formatUserName(user?.name, 'Farmer / రైతు')}</Text>
-                  <Text style={styles.phoneText}>{workTitle}</Text>
-                </View>
-                <View style={[styles.badgePill, { backgroundColor: '#FEF2F2' }]}>
-                  <Text style={[styles.badgePillText, { color: '#DC2626' }]}>Check-Out</Text>
-                </View>
-              </View>
-
-              <View style={styles.divider} />
-
-              <View style={styles.qrCodeContainer}>
-                <QRCode
-                  value={qrData}
-                  size={Math.min(width * 0.55, 210)}
-                  color="#000000"
-                  backgroundColor="#FFFFFF"
-                />
-                <View style={styles.logoOverlay}>
-                  <MaterialIcons name="done-all" size={24} color="#B91C1C" />
-                </View>
-              </View>
-
-              <Text style={styles.scanText}>
-                {language === 'te' 
-                  ? `పని ముగింపు కోసం స్కాన్ చేయండి (${checkedOutWorkers.length}/${totalWorkers})`
-                  : `Scan to complete shift (${checkedOutWorkers.length}/${totalWorkers})`}
+          {/* Loading Indicator */}
+          {loadingActiveJob && (
+            <View style={styles.loadingBox}>
+              <ActivityIndicator size="large" color="#B91C1C" />
+              <Text style={styles.loadingText}>
+                {language === 'te' ? 'పని వివరాలు లోడ్ అవుతున్నాయి...' : 'Loading active job...'}
               </Text>
             </View>
-          </View>
+          )}
+
+          {/* Empty State when no active job is found */}
+          {!loadingActiveJob && !targetId && (
+            <View style={styles.emptyCard}>
+              <MaterialIcons name="event-busy" size={48} color="#9CA3AF" />
+              <Text style={styles.emptyTitle}>
+                {language === 'te' ? 'యాక్టివ్ పని ఏదీ లేదు' : 'No Active Job Found'}
+              </Text>
+              <Text style={styles.emptySub}>
+                {language === 'te' 
+                  ? 'ముగింపు కోసం యాక్టివ్ పని ఏదీ కనుగొనబడలేదు.' 
+                  : 'No active job in progress to generate checkout QR code.'}
+              </Text>
+              <TouchableOpacity
+                style={[styles.emptyButton, { backgroundColor: '#B91C1C' }]}
+                onPress={() => navigation.navigate('FarmerHome')}
+              >
+                <MaterialIcons name="home" size={20} color="#FFFFFF" />
+                <Text style={styles.emptyButtonText}>
+                  {language === 'te' ? 'హోమ్ పేజీకి వెళ్లండి' : 'Go to Home'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* QR Card */}
+          {targetId ? (
+            <View style={styles.qrWrapper}>
+              <View style={styles.qrCard}>
+                <View style={styles.qrHeader}>
+                  <View style={[styles.avatarPlaceholder, { backgroundColor: '#FEE2E2' }]}>
+                    <Text style={[styles.avatarText, { color: '#B91C1C' }]}>{user?.name?.charAt(0) || 'F'}</Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={styles.farmerName}>{formatUserName(user?.name, 'Farmer / రైతు')}</Text>
+                    <Text style={styles.phoneText}>{workTitle}</Text>
+                  </View>
+                  <View style={[styles.badgePill, { backgroundColor: '#FEF2F2' }]}>
+                    <Text style={[styles.badgePillText, { color: '#DC2626' }]}>Check-Out</Text>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={styles.qrCodeContainer}>
+                  <QRCode
+                    value={qrData}
+                    size={Math.min(width * 0.55, 210)}
+                    color="#000000"
+                    backgroundColor="#FFFFFF"
+                    ecl="H"
+                  />
+                  <View style={styles.logoOverlay}>
+                    <MaterialIcons name="done-all" size={24} color="#B91C1C" />
+                  </View>
+                </View>
+
+                {/* 6-Digit Job PIN / Code for manual checkout entry */}
+                <View style={styles.pinContainer}>
+                  <Text style={styles.pinLabel}>
+                    {language === 'te' ? 'జాబ్ కోడ్ / PIN (కెమెరా గ్లేర్ ఉంటే):' : 'JOB PIN (Manual Code):'}
+                  </Text>
+                  <View style={[styles.pinBadge, { backgroundColor: '#7F1D1D' }]}>
+                    <Text style={styles.pinCodeText}>
+                      {String(targetId).slice(-6).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={styles.pinSubText}>
+                    {language === 'te' 
+                      ? 'కార్మికులు తమ స్కానర్‌లో ఈ 6 అంకెల కోడ్‌ని నమోదు చేయవచ్చు' 
+                      : 'Workers can type this 6-digit code in their scanner'}
+                  </Text>
+                </View>
+
+                <Text style={styles.scanText}>
+                  {language === 'te' 
+                    ? `పని ముగింపు కోసం స్కాన్ చేయండి (${checkedOutWorkers.length}/${totalWorkers})`
+                    : `Scan to complete shift (${checkedOutWorkers.length}/${totalWorkers})`}
+                </Text>
+              </View>
+            </View>
+          ) : null}
 
           {/* Checked-out workers list */}
           {checkedOutWorkers.length > 0 && (
@@ -439,6 +579,93 @@ const styles = StyleSheet.create({
   paymentButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  pinContainer: {
+    marginTop: 18,
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    width: '100%',
+  },
+  pinLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#991B1B',
+    marginBottom: 6,
+  },
+  pinBadge: {
+    backgroundColor: '#7F1D1D',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+    letterSpacing: 4,
+  },
+  pinCodeText: {
+    color: '#FEF2F2',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
+  pinSubText: {
+    fontSize: 11,
+    color: '#B91C1C',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  loadingBox: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginVertical: 16,
+    width: '100%',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  emptyCard: {
+    alignItems: 'center',
+    padding: 28,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginVertical: 16,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 12,
+  },
+  emptySub: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  emptyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#B91C1C',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 16,
+  },
+  emptyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold',
   },
 });

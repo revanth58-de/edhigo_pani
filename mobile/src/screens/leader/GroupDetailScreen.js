@@ -30,7 +30,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  const { groupId, groupName } = route.params;
+  const { groupId, groupName } = route?.params || {};
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('Jobs'); // 'Jobs' | 'Chat'
   

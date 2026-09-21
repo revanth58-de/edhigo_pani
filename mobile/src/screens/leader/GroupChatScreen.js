@@ -101,7 +101,7 @@ const GroupChatScreen = ({ navigation, route }) => {
     }
   };
 
-  const { groupId, groupName } = route.params || {};
+  const { groupId, groupName } = route?.params || {};
   const user = useAuthStore((state) => state.user);
   // Read token from in-memory store — avoids SecureStore native calls in Expo Go
   const accessToken = useAuthStore((state) => state.accessToken);

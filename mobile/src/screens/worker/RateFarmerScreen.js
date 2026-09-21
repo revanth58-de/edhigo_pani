@@ -19,7 +19,7 @@ import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 
 const RateFarmerScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery } = route.params || {};
+  const { job, booking, isMachinery } = route?.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
   const user = useAuthStore((state) => state.user);

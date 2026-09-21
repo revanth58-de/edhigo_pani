@@ -21,7 +21,8 @@ import useAuthStore from '../../store/authStore';
 import CustomLoader from '../../components/CustomLoader';
 
 const FarmerWorkerProfileScreen = ({ route, navigation }) => {
-  const { worker, cropId, cropName, operationId, operationName, skillKeyword, acreage } = route.params || {};
+  const { worker, cropId, cropName, operationId, operationName, skillKeyword, acreage } = route?.params || {};
+  const currentWorker = worker || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
@@ -40,8 +41,8 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  const skillsList = worker.skillsList || parseJson(worker.skills) || [];
-  const cropExp = worker.cropExp || parseJson(worker.cropExperience) || {};
+  const skillsList = currentWorker.skillsList || parseJson(currentWorker.skills) || [];
+  const cropExp = currentWorker.cropExp || parseJson(currentWorker.cropExperience) || {};
 
   const handleHireWorker = async () => {
     setLoading(true);
@@ -61,19 +62,19 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
         workType: operationName || 'Labour',
         workerType: 'individual',
         workersNeeded: 1,
-        payPerDay: worker.dailyWage || 500,
+        payPerDay: currentWorker.dailyWage || 500,
         farmLatitude: lat,
         farmLongitude: lng,
         farmAddress: user?.village || 'My Farm',
         description: `Direct Hire for ${cropName || ''} ${operationName || ''}`,
-        workerIds: [worker.id],
+        workerIds: currentWorker.id ? [currentWorker.id] : [],
       };
 
       const response = await jobAPI.createJob(jobData);
       if (response.data?.success) {
         navigation.navigate('Payment', {
           job: response.data.data || response.data.job,
-          worker: worker,
+          worker: currentWorker,
           isNewHire: true,
         });
       } else {
@@ -103,22 +104,22 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
 
         <View style={styles.profileSummary}>
           <Image
-            source={{ uri: worker.photoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
+            source={{ uri: currentWorker.photoUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop' }}
             style={styles.avatar}
           />
-          <Text style={styles.workerName}>{worker.name || 'Worker'}</Text>
+          <Text style={styles.workerName}>{currentWorker.name || 'Worker'}</Text>
           
           <View style={styles.statsRow}>
-            {worker.ratingAvg > 0 && (
+            {currentWorker.ratingAvg > 0 && (
               <View style={styles.statBox}>
                 <MaterialIcons name="star" size={18} color="#F59E0B" />
-                <Text style={styles.statVal}>{worker.ratingAvg.toFixed(1)} / 5</Text>
+                <Text style={styles.statVal}>{(Number(currentWorker.ratingAvg) || 0).toFixed(1)} / 5</Text>
               </View>
             )}
             <View style={styles.statBox}>
               <MaterialIcons name="work" size={18} color="#94A3B8" />
               <Text style={styles.statVal}>
-                {worker.experience ? `${worker.experience} Years` : 'Experienced'}
+                {currentWorker.experience ? `${currentWorker.experience} Years` : 'Experienced'}
               </Text>
             </View>
           </View>
@@ -136,7 +137,7 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
           {/* Daily Wage Card */}
           <View style={styles.wageCard}>
             <Text style={styles.wageTitle}>Expected Daily Wage</Text>
-            <Text style={styles.wageValue}>₹{worker.dailyWage || 500} <Text style={styles.wageUnit}>/ day</Text></Text>
+            <Text style={styles.wageValue}>₹{currentWorker.dailyWage || 500} <Text style={styles.wageUnit}>/ day</Text></Text>
           </View>
 
           {/* Details Section */}
@@ -146,7 +147,7 @@ const FarmerWorkerProfileScreen = ({ route, navigation }) => {
               <View style={styles.infoTextContainer}>
                 <Text style={styles.infoLabel}>{t('workerProfile.locationLabel') || 'Location'}</Text>
                 <Text style={styles.infoVal}>
-                  {worker.distanceKm != null ? `${worker.distanceKm} km away` : 'Nearby'}
+                  {currentWorker.distanceKm != null ? `${currentWorker.distanceKm} km away` : 'Nearby'}
                 </Text>
               </View>
             </View>

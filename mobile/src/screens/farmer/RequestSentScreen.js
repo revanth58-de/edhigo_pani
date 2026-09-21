@@ -23,7 +23,7 @@ import MapDashboard from '../../components/MapDashboard';
 import { formatWorkType } from '../../utils/formatHelper';
 
 const RequestSentScreen = ({ navigation, route }) => {
-  const { job } = route.params;
+  const { job } = route?.params || {};
   const { user } = useAuthStore();
   const { t } = useTranslation();
 

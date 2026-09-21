@@ -22,7 +22,7 @@ import CustomLoader from '../../components/CustomLoader';
 import { getBenchmarkWage, getCachedWageRates, fetchWageRates } from '../../utils/wageHelper';
 
 const AvailableWorkersScreen = ({ route, navigation }) => {
-  const { cropId, cropName, operationId, operationName, skillKeyword, acreage, workersNeeded } = route.params || {};
+  const { cropId, cropName, operationId, operationName, skillKeyword, acreage, workersNeeded } = route?.params || {};
   const { t } = useTranslation();
   const { user } = useAuthStore();
 

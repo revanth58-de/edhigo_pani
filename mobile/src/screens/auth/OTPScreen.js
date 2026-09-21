@@ -18,7 +18,7 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const OTPScreen = ({ navigation, route }) => {
-  const { phone, otp: receivedOTP, name, village, role, age, gender, fromRegister } = route.params;
+  const { phone, otp: receivedOTP, name, village, role, age, gender, fromRegister } = route?.params || {};
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   // M13: Resend cooldown timer (120 seconds matching the backend 2-min window)

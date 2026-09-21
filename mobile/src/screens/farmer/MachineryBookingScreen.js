@@ -44,7 +44,7 @@ const getNextDays = (count = 14) => {
 };
 
 const MachineryBookingScreen = ({ navigation, route }) => {
-  const { machineType = 'Tractor' } = route.params || {};
+  const { machineType = 'Tractor' } = route?.params || {};
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(0);
   const [listings, setListings] = useState([]);

@@ -15,7 +15,7 @@ import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
 
 const JobCancelledScreen = ({ navigation, route }) => {
-  const { job } = route.params || {};
+  const { job } = route?.params || {};
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 

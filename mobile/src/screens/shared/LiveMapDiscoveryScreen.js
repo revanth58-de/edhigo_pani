@@ -86,7 +86,7 @@ const LiveMapDiscoveryScreen = ({ navigation, route }) => {
   };
 
   const handleSendRequest = () => {
-    const selectedWorkType = route.params?.workType || 'Labour';
+    const selectedWorkType = route?.params?.workType || 'Labour';
     navigation.navigate('SelectWorkers', { workType: selectedWorkType });
   };
 

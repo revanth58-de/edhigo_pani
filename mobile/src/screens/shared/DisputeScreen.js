@@ -30,7 +30,7 @@ const DisputeScreen = ({ navigation, route }) => {
       navigation.navigate(getRoleSafeScreen('WorkerHome', user?.role));
     }
   };
-  const { jobId, paymentId } = route.params || {};
+  const { jobId, paymentId } = route?.params || {};
   const { t } = useTranslation();
   const { speak, stop } = useSpeech();
 

@@ -60,7 +60,7 @@ const HELP_STEPS = [
 ];
 
 const QRScannerScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery } = route.params || {};
+  const { job, booking, isMachinery } = route?.params || {};
   
   const user = useAuthStore((state) => state.user);
   const [permission, requestPermission] = useCameraPermissions();
@@ -254,7 +254,7 @@ const QRScannerScreen = ({ navigation, route }) => {
         } catch (_) {}
       }
 
-      const isCheckOut = route.params?.autoCheckout || (job?.status === 'in_progress');
+      const isCheckOut = route?.params?.autoCheckout || (job?.status === 'in_progress');
       const userObj = useAuthStore.getState().user;
       const isMachineryQR = !!booking?.id || isMachinery;
 
@@ -265,15 +265,15 @@ const QRScannerScreen = ({ navigation, route }) => {
             workerId: userObj?.id,
             [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
             [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
-            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: `PIN_${manualPin.trim()}`,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: manualPin.trim(),
           }
         : {
-            jobId: job?.id,
+            jobId: job?.id || manualPin.trim(),
             pin: manualPin.trim(),
             workerId: userObj?.id,
             [isCheckOut ? 'checkOutLatitude' : 'checkInLatitude']: coords.latitude,
             [isCheckOut ? 'checkOutLongitude' : 'checkInLongitude']: coords.longitude,
-            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: `PIN_${manualPin.trim()}`,
+            [isCheckOut ? 'qrCodeOut' : 'qrCodeIn']: manualPin.trim(),
           };
 
       const response = await (isCheckOut
@@ -338,13 +338,13 @@ const QRScannerScreen = ({ navigation, route }) => {
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Enter 4-Digit Job PIN</Text>
+                <Text style={styles.modalTitle}>Enter 6-Character Job Code / PIN</Text>
                 <TouchableOpacity onPress={() => setPinModalVisible(false)} style={styles.modalClose}>
                   <MaterialIcons name="close" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
               <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 16 }}>
-                If camera cannot scan the QR code, ask the farmer for the 4-digit code (పిన్ ఎంటర్ చేసి హాజరు మార్క్ చేయండి):
+                If camera cannot scan the QR code, enter the 6-digit code shown on the farmer's screen (కోడ్ ఎంటర్ చేసి హాజరు మార్క్ చేయండి):
               </Text>
               
               <TextInput
@@ -361,12 +361,13 @@ const QRScannerScreen = ({ navigation, route }) => {
                   borderColor: colors.primary,
                   marginBottom: 20
                 }}
-                placeholder="• • • •"
+                placeholder="A B 1 2 C 3"
                 placeholderTextColor="#9CA3AF"
-                keyboardType="number-pad"
-                maxLength={6}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={8}
                 value={manualPin}
-                onChangeText={setManualPin}
+                onChangeText={(val) => setManualPin(val.toUpperCase())}
                 autoFocus
               />
 

@@ -102,6 +102,11 @@ if (file("dinasari-release.jks").exists()) {
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+// Disable Sentry auto upload if no auth token is provided (prevents release build failure during local/offline APK builds)
+project.ext.shouldSentryAutoUploadGeneral = { ->
+    return System.getenv('SENTRY_AUTH_TOKEN') != null && System.getenv('SENTRY_DISABLE_AUTO_UPLOAD') != 'true'
+}
+
 apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
 
 project.ext.shouldSentryAutoUploadGeneral = { -> return false }

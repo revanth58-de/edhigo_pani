@@ -55,11 +55,19 @@ export const API_BASE_URL = getApiUrl();
 export const SOCKET_BASE_URL = getSocketUrl();
 export default API_BASE_URL;
 
+// ── Offline Self-Contained Mock Mode ─────────────────────────────────────────
+// Defaults to true so release APKs run 100% offline on tester phones with no backend.
+// Can be toggled with EXPO_PUBLIC_OFFLINE_MOCK_MODE=false if connecting to a real backend.
+export const IS_OFFLINE_MOCK_MODE = process.env.EXPO_PUBLIC_OFFLINE_MOCK_MODE !== 'false';
+
 export const API_CONFIG_INFO = {
   platform: Platform.OS,
   apiUrl: API_BASE_URL,
   socketUrl: SOCKET_BASE_URL,
+  offlineMockMode: IS_OFFLINE_MOCK_MODE,
   liveCloud: !USE_LOCAL_BACKEND,
 };
 
-console.log('🌐 DINASARI API Target:', API_CONFIG_INFO);
+if (__DEV__) {
+  console.log('🌐 API Configuration:', API_CONFIG_INFO);
+}

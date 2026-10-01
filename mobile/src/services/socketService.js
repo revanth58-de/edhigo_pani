@@ -1,4 +1,4 @@
-import { SOCKET_BASE_URL } from '../config/api.config';
+import { SOCKET_BASE_URL, IS_OFFLINE_MOCK_MODE } from '../config/api.config';
 
 let io = null;
 try {
@@ -41,6 +41,14 @@ class SocketService {
     }
 
     emit(event, data) {
+        // In offline mock mode, dispatch directly to local listeners
+        if (IS_OFFLINE_MOCK_MODE) {
+            const cbs = this._listeners[event] || [];
+            cbs.forEach(cb => {
+                try { cb(data); } catch (e) { console.warn('Mock listener error:', e); }
+            });
+            return;
+        }
         if (this.socket?.connected) {
             this.socket.emit(event, data);
         } else {
@@ -49,7 +57,12 @@ class SocketService {
     }
 
     connect(explicitToken) {
+        if (IS_OFFLINE_MOCK_MODE) {
+            console.log('📡 [Offline Mode] Socket connections bypassed (using in-app local event bus)');
+            return;
+        }
         if (this.socket?.connected || !io) return;
+
         // Allow retrying even after previous failure (network may have recovered)
         if (this.socket) {
             this.socket.disconnect();

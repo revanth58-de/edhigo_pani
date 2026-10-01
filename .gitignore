@@ -41,6 +41,8 @@ Desktop.ini
 # ── Mobile build artifacts ──
 # android/ (handled by mobile/.gitignore)
 # ios/ (handled by mobile/.gitignore)
+*.apk
+*.aab
 *.jks
 *.keystore
 *.p8

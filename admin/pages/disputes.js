@@ -1,4 +1,4 @@
-import { api } from '../api.js';
+import { api, escapeHtml } from '../api.js';
 import { initials, avatarColor } from './stats.js';
 
 let allDisputes = [];
@@ -165,8 +165,8 @@ function renderDisputes() {
             ${initials(d.initiator?.name||'')}
           </div>
           <div>
-            <div class="user-cell-name" style="${d.initiator?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${d.initiator?.id ? `window._inspectUser('${d.initiator.id}')` : ''}">${d.initiator?.name||'System Admin'}</div>
-            <div class="user-cell-id" style="text-transform: capitalize">${d.initiator?.role || 'admin'} · ${d.initiator?.phone || ''}</div>
+            <div class="user-cell-name" style="${d.initiator?.id ? 'cursor:pointer;text-decoration:underline' : ''}" onclick="${d.initiator?.id ? `window._inspectUser('${d.initiator.id}')` : ''}">${escapeHtml(d.initiator?.name)||'System Admin'}</div>
+            <div class="user-cell-id" style="text-transform: capitalize">${escapeHtml(d.initiator?.role || 'admin')} · ${escapeHtml(d.initiator?.phone || '')}</div>
           </div>
         </div>
       </td>
@@ -175,9 +175,9 @@ function renderDisputes() {
       </td>
       <td>
         <div style="max-width:300px; word-break:break-word">
-          <div style="font-size:13px;color:var(--text-main)">${d.description}</div>
+          <div style="font-size:13px;color:var(--text-main)">${escapeHtml(d.description)}</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Filed on ${formatDate(d.createdAt)}</div>
-          ${d.resolutionDetails ? `<div style="font-size:12px;color:var(--success);margin-top:8px;padding-top:4px;border-top:1px dashed #e2e8f0"><strong>Resolution:</strong> ${d.resolutionDetails}</div>` : ''}
+          ${d.resolutionDetails ? `<div style="font-size:12px;color:var(--success);margin-top:8px;padding-top:4px;border-top:1px dashed #e2e8f0"><strong>Resolution:</strong> ${escapeHtml(d.resolutionDetails)}</div>` : ''}
         </div>
       </td>
       <td>

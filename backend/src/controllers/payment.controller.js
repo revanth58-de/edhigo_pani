@@ -55,6 +55,12 @@ const makePayment = async (req, res, next) => {
         return res.status(400).json({ error: 'Amount must be a positive number' });
       }
 
+      if (booking.totalAmount && booking.totalAmount > 0 && parsedAmount < booking.totalAmount) {
+        return res.status(400).json({
+          error: `Amount ₹${parsedAmount} is below the booking total of ₹${booking.totalAmount}`,
+        });
+      }
+
       // Check duplicate UPI reference
       if (transactionId) {
         const duplicateUPI = await prisma.payment.findFirst({
@@ -160,18 +166,9 @@ const makePayment = async (req, res, next) => {
       return res.status(403).json({ error: 'Not authorized to make payment for this job' });
     }
 
-    // FIX #4: Validate amount is not absurdly low.
-    // The submitted amount must be at least payPerDay per worker to prevent
-    // farmers from submitting ₹0.01 payments that pass silently.
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ error: 'Amount must be a positive number' });
-    }
-    const minExpectedAmount = job.payPerDay; // at least 1 day's pay for 1 worker
-    if (parsedAmount < minExpectedAmount) {
-      return res.status(400).json({
-        error: `Amount ₹${parsedAmount} is below the minimum of ₹${minExpectedAmount} (job rate: ₹${job.payPerDay}/day)`,
-      });
     }
 
     // Ensure we only pay each unique worker once per payment request
@@ -191,6 +188,15 @@ const makePayment = async (req, res, next) => {
 
     if (attendances.length === 0) {
       return res.status(400).json({ error: 'No workers found for this job' });
+    }
+
+    // Server-side wage verification: amount must cover at least payPerDay for each worker
+    const workerCount = attendances.length;
+    const minExpectedAmount = (job.payPerDay || 0) * workerCount;
+    if (parsedAmount < minExpectedAmount) {
+      return res.status(400).json({
+        error: `Amount ₹${parsedAmount} is below the minimum of ₹${minExpectedAmount} for ${workerCount} worker(s) (job rate: ₹${job.payPerDay}/day)`,
+      });
     }
 
     // Check if we already created a pending UPI payment for this transaction reference

@@ -309,7 +309,7 @@
   import { loadSettings }      from './pages/settings.js';
   import { loadNotifications } from './pages/notifications.js';
   import { loadMachinery }     from './pages/machinery.js';
-  import { api, initAdminSocket } from './api.js';
+  import { api, initAdminSocket, escapeHtml } from './api.js';
 
   guardAuth();
 
@@ -544,10 +544,10 @@
 
       document.getElementById('inspectUserContent').innerHTML = `
         <div style="display:flex;gap:20px;align-items:center;margin-bottom:20px;background:rgba(255,255,255,0.02);padding:16px;border-radius:16px;border:1px solid var(--glass-border)">
-          <div class="avatar" style="width:64px;height:64px;font-size:24px;background:linear-gradient(135deg, var(--primary), var(--accent))">${u.name ? u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : '?'}</div>
+          <div class="avatar" style="width:64px;height:64px;font-size:24px;background:linear-gradient(135deg, var(--primary), var(--accent))">${u.name ? escapeHtml(u.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()) : '?'}</div>
           <div>
-            <div style="font-size:18px;font-weight:800;color:#fff">${u.name || '—'}</div>
-            <div style="font-size:13px;color:var(--text-muted)">Village: <b>${u.village || '—'}</b></div>
+            <div style="font-size:18px;font-weight:800;color:#fff">${escapeHtml(u.name) || '—'}</div>
+            <div style="font-size:13px;color:var(--text-muted)">Village: <b>${escapeHtml(u.village) || '—'}</b></div>
             <div style="font-size:13px;color:var(--text-muted);margin-top:2px">Language: <b>${u.language === 'te' ? 'తెలుగు (te)' : 'English (en)'}</b></div>
           </div>
         </div>
@@ -589,9 +589,9 @@
       document.getElementById('inspectJobContent').innerHTML = `
         <div style="background:rgba(255,255,255,0.02);padding:16px;border-radius:16px;border:1px solid var(--glass-border);margin-bottom:16px">
           <div style="font-size:11px;color:var(--text-dim);text-transform:uppercase;font-weight:700;margin-bottom:6px">Farmer Details</div>
-          <div style="font-size:15px;font-weight:800;color:#fff">${j.farmer?.name || '—'}</div>
-          <div style="font-size:13px;color:var(--text-muted)">Phone: <b>${j.farmer?.phone || '—'}</b></div>
-          <div style="font-size:13px;color:var(--text-muted)">Location: 📍 <b>${j.farmer?.village || '—'}</b></div>
+          <div style="font-size:15px;font-weight:800;color:#fff">${escapeHtml(j.farmer?.name) || '—'}</div>
+          <div style="font-size:13px;color:var(--text-muted)">Phone: <b>${escapeHtml(j.farmer?.phone) || '—'}</b></div>
+          <div style="font-size:13px;color:var(--text-muted)">Location: 📍 <b>${escapeHtml(j.farmer?.village) || '—'}</b></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
           <div style="background:rgba(0,0,0,0.2);padding:12px;border-radius:12px;border:1px solid var(--glass-border)">

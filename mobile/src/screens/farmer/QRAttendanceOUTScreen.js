@@ -20,8 +20,10 @@ import { attendanceService } from '../../services/api/attendanceService';
 const { width } = Dimensions.get('window');
 
 const QRAttendanceOUTScreen = ({ navigation, route }) => {
-  const { job, booking, isMachinery } = route.params || {};
+  const { job, booking, isMachinery } = route?.params || {};
   const user = useAuthStore((state) => state.user);
+  const language = useAuthStore((state) => state.language) || 'te';
+  const targetId = isMachinery ? booking?.id : job?.id;
 
   // Track checkout progress across multiple workers
   const [totalWorkers, setTotalWorkers] = useState(null); // null = loading
@@ -227,6 +229,25 @@ const QRAttendanceOUTScreen = ({ navigation, route }) => {
                 </>
               )}
             </View>
+
+            {/* Manual PIN Fallback */}
+            {targetId && !allDone ? (
+              <View style={styles.pinContainer}>
+                <Text style={styles.pinLabel}>
+                  {language === 'te' ? 'జాబ్ కోడ్ / PIN (మాన్యువల్ చెక్-అవుట్):' : 'JOB PIN (Manual Check-Out Code):'}
+                </Text>
+                <View style={styles.pinBadge}>
+                  <Text style={styles.pinCodeText}>
+                    {String(targetId).slice(-6).toUpperCase()}
+                  </Text>
+                </View>
+                <Text style={styles.pinSubText}>
+                  {language === 'te'
+                    ? 'కెమెరా స్కాన్ కాకపోతే కార్మికులు ఈ 6-అంకెల కోడ్‌ని ఎంటర్ చేయవచ్చు'
+                    : 'Workers can enter this 6-digit code if camera cannot scan'}
+                </Text>
+              </View>
+            ) : null}
 
             <Text style={styles.scanText}>
               {allDone ? 'Proceeding to payment...' : 'Ask each worker to scan for Check-Out'}
@@ -510,6 +531,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  pinContainer: {
+    marginTop: 18,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    width: '100%',
+  },
+  pinLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  pinBadge: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  pinCodeText: {
+    color: '#F8FAFC',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
+  pinSubText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 6,
+    textAlign: 'center',
   },
 });
 

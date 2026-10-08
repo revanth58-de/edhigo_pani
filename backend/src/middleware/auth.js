@@ -19,8 +19,8 @@ const authenticate = async (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Support fallback for demo tokens
-    if (token.startsWith('dinasari-demo-token-')) {
+    // Support fallback for demo tokens (strictly disabled in production)
+    if (process.env.NODE_ENV !== 'production' && token.startsWith('dinasari-demo-token-')) {
       const demoRole = token.replace('dinasari-demo-token-', '') || 'farmer';
       const phoneMap = { farmer: '9876543210', worker: '9876543211', leader: '9876543212', machinery: '9876543213' };
       const demoPhone = phoneMap[demoRole] || '9876543210';

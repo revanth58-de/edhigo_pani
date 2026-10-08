@@ -1,5 +1,19 @@
 import { getToken, getBaseUrl, clearSession } from './auth.js';
 
+export function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+if (typeof window !== 'undefined') {
+  window.escapeHtml = escapeHtml;
+}
+
 async function call(path, method = 'GET', body = null) {
   const url = `${getBaseUrl()}/api/admin${path}`;
   const opts = {

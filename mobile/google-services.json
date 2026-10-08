@@ -1,0 +1,29 @@
+﻿{
+  "project_info": {
+    "project_number": "746793480116",
+    "project_id": "dinasari-app",
+    "storage_bucket": "dinasari-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:746793480116:android:384620329ec296c42acce1",
+        "android_client_info": {
+          "package_name": "com.dinasari.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuLVHBQ2rTKDRfe0GAHh4JaYFlhgGSIqI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

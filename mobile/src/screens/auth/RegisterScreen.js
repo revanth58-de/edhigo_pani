@@ -162,28 +162,43 @@ const RegisterScreen = ({ navigation }) => {
                 return;
             }
 
-            navigation.navigate('OTP', {
-                phone: phone.trim(),
-                name: name.trim(),
-                village: village.trim(),
-                age: ageNum.toString(),
-                gender: gender,
-                role: selectedRole,
-                fromRegister: true,
-                otp: result?.devOtp || '1234',
-            });
+            const activeOtp = result?.devOtp || '1234';
+            Alert.alert('Verification Code (Test Mode)', `Your OTP code is: ${activeOtp}`, [
+                {
+                    text: 'Enter OTP',
+                    onPress: () => {
+                        navigation.navigate('OTP', {
+                            phone: phone.trim(),
+                            name: name.trim(),
+                            village: village.trim(),
+                            age: ageNum.toString(),
+                            gender: gender,
+                            role: selectedRole,
+                            fromRegister: true,
+                            otp: activeOtp,
+                        });
+                    },
+                },
+            ]);
         } catch (error) {
             // If network or OTP error occurs, proceed to OTP screen with test code 1234
-            navigation.navigate('OTP', {
-                phone: phone.trim(),
-                name: name.trim(),
-                village: village.trim(),
-                age: ageNum.toString(),
-                gender: gender,
-                role: selectedRole,
-                fromRegister: true,
-                otp: '1234',
-            });
+            Alert.alert('Verification Code (Test Mode)', 'Your test OTP code is: 1234', [
+                {
+                    text: 'Enter OTP',
+                    onPress: () => {
+                        navigation.navigate('OTP', {
+                            phone: phone.trim(),
+                            name: name.trim(),
+                            village: village.trim(),
+                            age: ageNum.toString(),
+                            gender: gender,
+                            role: selectedRole,
+                            fromRegister: true,
+                            otp: '1234',
+                        });
+                    },
+                },
+            ]);
         }
     };
 

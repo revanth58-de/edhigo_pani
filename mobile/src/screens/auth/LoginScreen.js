@@ -284,7 +284,16 @@ const LoginScreen = ({ navigation }) => {
                     activeOpacity={0.8}
                   >
                     <Text style={styles.demoRoleIcon}>👥</Text>
-                    <Text style={styles.demoRoleText}>Leader</Text>
+                    <Text style={styles.demoRoleText}>Leader 1</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.demoRoleButton}
+                    onPress={() => loginAsDemoUser('leader2')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.demoRoleIcon}>👥</Text>
+                    <Text style={styles.demoRoleText}>Leader 2</Text>
                   </TouchableOpacity>
                 </View>
               </View>

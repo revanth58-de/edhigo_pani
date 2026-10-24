@@ -27,14 +27,17 @@ const GroupsScreen = ({ navigation }) => {
   const fetchGroups = useCallback(async () => {
     try {
       const response = await groupAPI.getMyGroups();
-      setGroups(response?.data?.groups || []);
+      const allGroups = response?.data?.groups || [];
+      // STRICT: A group leader must only see their own led groups
+      const myLedGroups = user?.id ? allGroups.filter(g => g.leaderId === user.id) : allGroups;
+      setGroups(myLedGroups);
     } catch (error) {
       console.error('Failed to fetch groups:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {

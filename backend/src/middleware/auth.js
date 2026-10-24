@@ -21,16 +21,23 @@ const authenticate = async (req, res, next) => {
 
     // Support fallback for demo tokens (strictly disabled in production)
     if (process.env.NODE_ENV !== 'production' && token.startsWith('dinasari-demo-token-')) {
-      const demoRole = token.replace('dinasari-demo-token-', '') || 'farmer';
-      const phoneMap = { farmer: '9876543210', worker: '9876543211', leader: '9876543212', machinery: '9876543213' };
-      const demoPhone = phoneMap[demoRole] || '9876543210';
+      const rawRole = token.replace('dinasari-demo-token-', '') || 'farmer';
+      const demoRole = rawRole.startsWith('leader') ? 'leader' : rawRole;
+      const phoneMap = {
+        farmer: '9876543210',
+        worker: '9876543211',
+        leader: '9876543212',
+        leader2: '9876543214',
+        machinery: '9876543213',
+      };
+      const demoPhone = phoneMap[rawRole] || '9876543210';
       let demoUser = await prisma.user.findUnique({ where: { phone: demoPhone } });
       if (!demoUser) {
         demoUser = await prisma.user.create({
           data: {
             phone: demoPhone,
-            name: `Demo ${demoRole.charAt(0).toUpperCase() + demoRole.slice(1)}`,
-            role: demoRole,
+            name: rawRole === 'leader2' ? 'Ravi (Leader 2)' : `Demo ${demoRole.charAt(0).toUpperCase() + demoRole.slice(1)}`,
+            role: 'leader',
             village: 'Kothapalli',
           }
         });

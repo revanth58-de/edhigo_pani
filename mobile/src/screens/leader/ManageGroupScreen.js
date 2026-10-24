@@ -88,12 +88,13 @@ const ManageGroupScreen = ({ navigation, route }) => {
             // If no groupId passed, fetch the leader's own groups
             if (!gid) {
                 const res = await groupAPI.getMyGroups();
-                const groups = res?.data?.groups || res?.data || [];
-                if (groups.length > 0) {
-                    const useAuthStore = require('../../store/authStore').default;
-                    const currentUser = useAuthStore.getState().user;
-                    const myGroup = groups.find(g => g.leaderId === currentUser?.id) || groups[0];
-                    gid = myGroup.id;
+                const allGroups = res?.data?.groups || res?.data || [];
+                const useAuthStore = require('../../store/authStore').default;
+                const currentUser = useAuthStore.getState().user;
+                const myLedGroups = currentUser?.id ? allGroups.filter(g => g.leaderId === currentUser.id) : allGroups;
+
+                if (myLedGroups.length > 0) {
+                    gid = myLedGroups[0].id;
                     setResolvedGroupId(gid);
                 } else {
                     // No group yet — redirect to create

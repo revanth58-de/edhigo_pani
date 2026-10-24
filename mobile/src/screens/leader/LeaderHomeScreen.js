@@ -64,7 +64,8 @@ const LeaderHomeScreen = ({ navigation, route }) => {
         groupAPI.getMyGroups(),
         paymentAPI.getHistory(user.id),
       ]);
-      setGroups(groupsResp?.data?.groups || []);
+      const allGroups = groupsResp?.data?.groups || [];
+      setGroups(user?.id ? allGroups.filter(g => g.leaderId === user.id) : allGroups);
       setPayments(paymentsResp?.data?.payments || []);
     } catch (e) {
       console.warn('Failed to fetch stats details:', e.message);

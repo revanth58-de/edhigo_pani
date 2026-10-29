@@ -1,4 +1,4 @@
-// Screen 3: Login (Phone Entry) - Exact match to login-phone-entry.html
+// Screen 3: Login (Phone Entry) – Production-ready, bottom-to-top layout
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -24,7 +24,6 @@ const LoginScreen = ({ navigation }) => {
   const [showNotRegisteredModal, setShowNotRegisteredModal] = useState(false);
   const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const sendOTP = useAuthStore((state) => state.sendOTP);
-  const loginAsDemoUser = useAuthStore((state) => state.loginAsDemoUser);
   const { t } = useTranslation();
 
   // Handle OTP cooldown countdown
@@ -69,33 +68,24 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      const activeOtp = result?.devOtp || '1234';
-      Alert.alert('Verification Code (Test Mode)', `Your OTP code is: ${activeOtp}`, [
-        {
-          text: 'Enter OTP',
-          onPress: () => {
-            navigation.navigate('OTP', {
-              phone: phone,
-              otp: activeOtp,
-              fromRegister: false,
-            });
-          },
-        },
-      ]);
+      // Navigate to OTP screen — OTP will arrive via SMS
+      navigation.navigate('OTP', {
+        phone: phone,
+        fromRegister: false,
+      });
     } catch (error) {
-      // If error occurs, still proceed to OTP screen with test code 1234
-      Alert.alert('Verification Code (Test Mode)', 'Your test OTP code is: 1234', [
-        {
-          text: 'Enter OTP',
-          onPress: () => {
-            navigation.navigate('OTP', {
-              phone: phone,
-              otp: '1234',
-              fromRegister: false,
-            });
-          },
-        },
-      ]);
+      const errMsg = error?.response?.data?.error
+        || error?.message
+        || 'Failed to send OTP. Please try again.';
+
+      // Handle rate limit cooldown from backend
+      if (error?.response?.status === 429 || error?.code === 'RATE_LIMIT_COOLDOWN') {
+        const remaining = error?.response?.data?.retryAfterSeconds || error?.remainingSeconds || 120;
+        setOtpCooldownSeconds(remaining);
+        Alert.alert('Please Wait', `You can request a new OTP in ${remaining} seconds.`);
+      } else {
+        Alert.alert('Error', errMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -157,6 +147,7 @@ const LoginScreen = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ── Phone Number Display (top section) ── */}
           <View style={styles.displaySection}>
             <View style={styles.labelRow}>
               <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
@@ -189,8 +180,9 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.displayUnderline} />
           </View>
 
-          <View style={{ height: 16 }} />
+          <View style={{ flex: 1 }} />
 
+          {/* ── Keypad + Actions (bottom section, pushed down) ── */}
           <View style={styles.keypadContainer}>
             <View style={styles.keypad}>
               {keypadNumbers.map((row, rowIndex) => (
@@ -224,6 +216,7 @@ const LoginScreen = ({ navigation }) => {
               ))}
             </View>
 
+            {/* ── Send OTP Button ── */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={[
@@ -248,55 +241,19 @@ const LoginScreen = ({ navigation }) => {
                   </>
                 )}
               </TouchableOpacity>
+
+              {/* ── Register Here — large, prominent, right below the button ── */}
               <TouchableOpacity
                 style={styles.registerLink}
                 onPress={() => navigation.navigate('Register')}
+                activeOpacity={0.7}
               >
-                <Text style={styles.registerLinkText}>New user? </Text>
-                <Text style={[styles.registerLinkText, { color: colors.primary, fontWeight: 'bold' }]}>Register here</Text>
-              </TouchableOpacity>
-
-              {/* Instant 1-Click Demo Login (Skip OTP) */}
-              <View style={styles.demoSection}>
-                <Text style={styles.demoSectionTitle}>⚡ Quick Demo Login (Skip OTP)</Text>
-                <View style={styles.demoButtonsRow}>
-                  <TouchableOpacity
-                    style={styles.demoRoleButton}
-                    onPress={() => loginAsDemoUser('farmer')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.demoRoleIcon}>🚜</Text>
-                    <Text style={styles.demoRoleText}>Farmer</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.demoRoleButton}
-                    onPress={() => loginAsDemoUser('worker')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.demoRoleIcon}>👷</Text>
-                    <Text style={styles.demoRoleText}>Worker</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.demoRoleButton}
-                    onPress={() => loginAsDemoUser('leader')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.demoRoleIcon}>👥</Text>
-                    <Text style={styles.demoRoleText}>Leader 1</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.demoRoleButton}
-                    onPress={() => loginAsDemoUser('leader2')}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.demoRoleIcon}>👥</Text>
-                    <Text style={styles.demoRoleText}>Leader 2</Text>
-                  </TouchableOpacity>
+                <View style={styles.registerLinkInner}>
+                  <MaterialIcons name="person-add" size={22} color={colors.primary} />
+                  <Text style={styles.registerLinkPrefix}>New user? </Text>
+                  <Text style={styles.registerLinkCta}>Register here</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
@@ -309,9 +266,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
+
+  // ── Phone Display (top) ──────────────────────────────────────────────────
   displaySection: {
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 32 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 40,
     paddingBottom: 16,
     alignItems: 'center',
   },
@@ -323,6 +282,8 @@ const styles = StyleSheet.create({
   activeChar: { color: colors.primary },
   ghostTap: { position: 'absolute', right: -20, width: 40, height: 80 },
   displayUnderline: { width: '100%', height: 2, backgroundColor: `${colors.primary}4D` },
+
+  // ── Keypad (bottom) ─────────────────────────────────────────────────────
   keypadContainer: { padding: 16 },
   keypad: { gap: 12 },
   keypadRow: { flexDirection: 'row', gap: 12 },
@@ -332,7 +293,9 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   keypadKeyText: { fontSize: 30, fontWeight: 'bold', color: '#131811' },
-  buttonContainer: { paddingHorizontal: 8, paddingTop: 24, paddingBottom: 40 },
+
+  // ── Buttons ──────────────────────────────────────────────────────────────
+  buttonContainer: { paddingHorizontal: 8, paddingTop: 24, paddingBottom: 32 },
   continueButton: {
     flexDirection: 'row', height: 64, borderRadius: 9999, backgroundColor: colors.primary,
     justifyContent: 'center', alignItems: 'center', gap: 8,
@@ -341,6 +304,36 @@ const styles = StyleSheet.create({
   continueButtonDisabled: { opacity: 0.5 },
   continueButtonText: { fontSize: 22, fontWeight: 'bold', color: colors.backgroundDark },
 
+  // ── Register Link (large & prominent) ─────────────────────────────────
+  registerLink: {
+    marginTop: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    backgroundColor: `${colors.primary}0D`,
+    borderWidth: 1.5,
+    borderColor: `${colors.primary}30`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registerLinkInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  registerLinkPrefix: {
+    fontSize: 20,
+    color: '#6f8961',
+    fontWeight: '500',
+  },
+  registerLinkCta: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: colors.primary,
+    textDecorationLine: 'underline',
+  },
+
+  // ── Not Registered Modal ─────────────────────────────────────────────────
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   modalCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 32, alignItems: 'center', width: '100%', gap: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.3, shadowRadius: 32, elevation: 20 },
   modalIconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: `${colors.primary}15`, justifyContent: 'center', alignItems: 'center' },
@@ -350,54 +343,6 @@ const styles = StyleSheet.create({
   modalRegisterBtnText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
   modalDismissBtn: { paddingVertical: 8 },
   modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },
-
-  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
-  registerLinkText: { fontSize: 17, color: '#6f8961' },
-
-  // ── Demo Section ───────────────────────────────────────────────────────────
-  demoSection: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    alignItems: 'center',
-  },
-  demoSectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#6B7280',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  demoButtonsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-    justifyContent: 'space-between',
-  },
-  demoRoleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  demoRoleIcon: {
-    fontSize: 20,
-    marginBottom: 2,
-  },
-  demoRoleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#374151',
-  },
 });
 
 export default LoginScreen;

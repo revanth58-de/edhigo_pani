@@ -1,5 +1,5 @@
-// Screen 4: OTP Verification
-import React, { useState, useEffect, useRef } from 'react';
+// Screen 4: OTP Verification – Production-ready, bottom-to-top layout
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   StatusBar,
   ScrollView,
   Platform,
-  Animated,
   Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,34 +17,19 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const OTPScreen = ({ navigation, route }) => {
-  const { phone, otp: receivedOTP, name, village, role, age, gender, fromRegister } = route?.params || {};
+  const { phone, name, village, role, age, gender, fromRegister } = route?.params || {};
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  // M13: Resend cooldown timer (120 seconds matching the backend 2-min window)
+  // Resend cooldown timer (120 seconds matching the backend 2-min window)
   const [resendCooldown, setResendCooldown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null); // inline error — no alert popups
-  // Track the current dev OTP — defaults to '1234' so it is guaranteed to show on screen for testing
-  const [currentDevOtp, setCurrentDevOtp] = useState(receivedOTP || '1234');
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
   const sendOTPAction = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();
   const language = useAuthStore((state) => state.language) || 'en';
 
-  // Pulse animation for the dev OTP banner to draw the tester's eye
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!currentDevOtp) return;
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.03, duration: 800, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [currentDevOtp]);
-
-  // M13: Count down the resend timer every second
+  // Count down the resend timer every second
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
@@ -68,13 +52,6 @@ const OTPScreen = ({ navigation, route }) => {
     setOtp(otp.slice(0, -1));
   };
 
-  // Developer convenience: auto-fill the OTP boxes and verify immediately
-  const handleAutoFill = () => {
-    if (!currentDevOtp) return;
-    setOtp(currentDevOtp);
-    verifyOTP(currentDevOtp);
-  };
-
   const verifyOTP = async (otpToVerify = otp) => {
     if (otpToVerify.length !== 4) return;
     setLoading(true);
@@ -84,7 +61,7 @@ const OTPScreen = ({ navigation, route }) => {
       await verifyOTPAction(phone, otpToVerify, registrationData);
       setAttemptsRemaining(null);
     } catch (error) {
-      // Show inline error — no Alert popup that says "OTP failed"
+      // Show inline error — no Alert popup
       const serverData = error?.response?.data;
       if (serverData?.locked) {
         setErrorMsg('Too many attempts. Request a new OTP.');
@@ -102,19 +79,14 @@ const OTPScreen = ({ navigation, route }) => {
   };
 
   const handleResendOTP = async () => {
-    if (resendCooldown > 0) return; // M13: ignore tap during cooldown
+    if (resendCooldown > 0) return; // ignore tap during cooldown
     try {
-      const response = await sendOTPAction(phone);
-      const newOtp = response?.devOtp;
-      // M13: Start 120-second cooldown matching backend rate limit
+      await sendOTPAction(phone);
+      // Start 120-second cooldown matching backend rate limit
       setResendCooldown(120);
       setAttemptsRemaining(null); // reset attempt counter display
-      if (newOtp) {
-        // Update the on-screen banner with the latest OTP — no Alert needed
-        setCurrentDevOtp(newOtp);
-      } else {
-        Alert.alert('OTP Resent', 'OTP sent successfully. Check your SMS.');
-      }
+      setErrorMsg(null);
+      Alert.alert('OTP Resent', 'A new OTP has been sent to your phone via SMS.');
     } catch (error) {
       // Handle rate limit cooldown from store
       if (error.code === 'RATE_LIMIT_COOLDOWN') {
@@ -136,8 +108,14 @@ const OTPScreen = ({ navigation, route }) => {
   const otpBoxes = [0, 1, 2, 3].map((index) => {
     const digit = otp[index];
     const isFilled = digit !== undefined;
-    return { index, digit: digit || '_', isFilled };
+    const isNext = index === otp.length;
+    return { index, digit: digit || '', isFilled, isNext };
   });
+
+  // Masked phone for display: 98****7890
+  const maskedPhone = phone
+    ? phone.slice(0, 2) + '••••' + phone.slice(6)
+    : '';
 
   return (
     <View style={styles.container}>
@@ -148,72 +126,71 @@ const OTPScreen = ({ navigation, route }) => {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── OTP Input Section — label, then dev banner, then OTP boxes ── */}
-        <View style={styles.otpInputSection}>
-          <View style={styles.labelRow}>
-            <MaterialIcons name="security" size={20} color={colors.primary} />
-            <Text style={styles.label}>VERIFICATION CODE</Text>
+        {/* ── Top Section: Title & OTP Boxes ── */}
+        <View style={styles.topSection}>
+          {/* Back button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={colors.primary} />
+          </TouchableOpacity>
+
+          <View style={styles.headerContent}>
+            <View style={styles.shieldIcon}>
+              <MaterialIcons name="verified-user" size={48} color={colors.primary} />
+            </View>
+            <Text style={styles.title}>Verify Your Number</Text>
+            <Text style={styles.subtitle}>
+              Enter the 4-digit code sent to{'\n'}
+              <Text style={styles.phoneHighlight}>+91 {maskedPhone}</Text>
+            </Text>
           </View>
 
-          {/* ── Developer OTP Banner — only visible when SHOW_OTP_ON_SCREEN=true ── */}
-          {currentDevOtp && (
-            <Animated.View style={[styles.devBanner, { transform: [{ scale: pulseAnim }] }]}>
-              <View style={styles.devBannerHeader}>
-                <MaterialIcons name="developer-mode" size={16} color="#92400e" />
-                <Text style={styles.devBannerTitle}>DEV MODE — OTP ON SCREEN</Text>
-              </View>
-              <Text style={styles.devBannerOtp}>{currentDevOtp}</Text>
-              <Text style={styles.devBannerSub}>SMS is disabled. Use the code above.</Text>
-              <TouchableOpacity style={styles.autoFillBtn} onPress={handleAutoFill} activeOpacity={0.8}>
-                <MaterialIcons name="flash-on" size={16} color="#fff" />
-                <Text style={styles.autoFillBtnText}>Tap to Auto-fill & Verify</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-
+          {/* ── OTP Input Boxes (large, prominent) ── */}
           <View style={styles.otpBoxRow}>
-            {otpBoxes.map(({ index, digit, isFilled }) => (
+            {otpBoxes.map(({ index, digit, isFilled, isNext }) => (
               <View
                 key={index}
                 style={[
                   styles.otpBox,
                   isFilled && styles.otpBoxFilled,
+                  isNext && styles.otpBoxActive,
+                  errorMsg && styles.otpBoxError,
                 ]}
               >
                 <Text style={[styles.otpDigit, !isFilled && styles.otpDigitEmpty]}>
-                  {digit === '_' ? '' : digit}
+                  {digit || ''}
                 </Text>
-                {!isFilled && <View style={styles.cursor} />}
+                {isNext && !errorMsg && <View style={styles.cursor} />}
               </View>
             ))}
           </View>
 
-          {/* Master Test OTP 1234 Banner */}
-          <TouchableOpacity
-            style={styles.masterOtpBanner}
-            onPress={() => {
-              setOtp('1234');
-              verifyOTP('1234');
-            }}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="bolt" size={20} color="#F59E0B" />
-            <Text style={styles.masterOtpText}>
-              Test OTP: <Text style={{ fontWeight: 'bold', color: colors.primary }}>1234</Text> (Tap to Auto-Fill)
-            </Text>
-          </TouchableOpacity>
-
+          {/* ── Error Message ── */}
           {errorMsg && (
             <View style={styles.inlineErrorContainer}>
-              <MaterialIcons name="error-outline" size={16} color="#DC2626" />
+              <MaterialIcons name="error-outline" size={18} color="#DC2626" />
               <Text style={styles.inlineErrorText}>{errorMsg}</Text>
+            </View>
+          )}
+
+          {/* Attempts remaining warning */}
+          {attemptsRemaining != null && !errorMsg && (
+            <View style={styles.attemptsWarning}>
+              <MaterialIcons name="warning" size={14} color="#DC2626" />
+              <Text style={styles.attemptsWarningText}>
+                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left before lockout
+              </Text>
             </View>
           )}
         </View>
 
-        <View style={{ height: 16 }} />
+        {/* ── Spacer to push keypad down ── */}
+        <View style={{ flex: 1 }} />
 
-        {/* Custom Numeric Keypad */}
+        {/* ── Bottom Section: Keypad + Verify Button ── */}
         <View style={styles.keypadContainer}>
           <View style={styles.keypad}>
             {keypadNumbers.map((row, rowIndex) => (
@@ -249,16 +226,6 @@ const OTPScreen = ({ navigation, route }) => {
             ))}
           </View>
 
-          {/* Attempts remaining warning */}
-          {attemptsRemaining != null && (
-            <View style={styles.attemptsWarning}>
-              <MaterialIcons name="warning" size={14} color="#DC2626" />
-              <Text style={styles.attemptsWarningText}>
-                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left before lockout
-              </Text>
-            </View>
-          )}
-
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
@@ -282,7 +249,6 @@ const OTPScreen = ({ navigation, route }) => {
 
             <View style={styles.resendContainer}>
               <Text style={styles.resendQuestion}>Didn't receive code?</Text>
-              {/* M13: Show countdown instead of tappable link during cooldown */}
               <TouchableOpacity onPress={handleResendOTP} disabled={resendCooldown > 0}>
                 <Text style={[styles.resendButton, resendCooldown > 0 && styles.resendButtonDisabled]}>
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
@@ -304,103 +270,106 @@ const styles = StyleSheet.create({
   scrollView: { flex: 1 },
   scrollContent: { flexGrow: 1 },
 
-  // ── Dev OTP Banner — sits between label and OTP boxes ──────────────────
-  devBanner: {
-    width: '100%',
-    marginBottom: 20,
-    backgroundColor: '#fffbeb',
-    borderWidth: 2,
-    borderColor: '#f59e0b',
-    borderRadius: 20,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  devBannerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  devBannerTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#92400e',
-    letterSpacing: 1.5,
-  },
-  devBannerOtp: {
-    fontSize: 52,
-    fontWeight: '900',
-    color: '#b45309',
-    letterSpacing: 14,
-    marginBottom: 6,
-  },
-  devBannerSub: {
-    fontSize: 12,
-    color: '#78350f',
-    marginBottom: 14,
-    opacity: 0.8,
-  },
-  autoFillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#f59e0b',
+  // ── Top Section ─────────────────────────────────────────────────────────
+  topSection: {
     paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 9999,
-    shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  autoFillBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
-  },
-
-  // ── OTP Boxes ─────────────────────────────────────────────────────────────
-  otpInputSection: {
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 32 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 40,
     paddingBottom: 16,
     alignItems: 'center',
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '700', color: '#6f8961', letterSpacing: 2 },
+  backButton: {
+    alignSelf: 'flex-start',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#dfe6db',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerContent: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  shieldIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#131811',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  phoneHighlight: {
+    fontWeight: '800',
+    color: colors.primary,
+    fontSize: 17,
+  },
+
+  // ── OTP Boxes (enlarged) ──────────────────────────────────────────────────
   otpBoxRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16,
     marginBottom: 24,
   },
   otpBox: {
-    width: 68,
-    height: 84,
+    width: 76,
+    height: 96,
     borderRadius: 24,
-    borderWidth: 2,
+    borderWidth: 2.5,
     borderColor: '#dfe6db',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
   },
   otpBoxFilled: {
     borderColor: colors.primary,
+    backgroundColor: `${colors.primary}08`,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  otpBoxActive: {
+    borderColor: `${colors.primary}80`,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
+  otpBoxError: {
+    borderColor: '#FCA5A5',
+  },
   otpDigit: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 42,
+    fontWeight: '900',
     color: '#131811',
   },
   otpDigitEmpty: {
@@ -408,50 +377,48 @@ const styles = StyleSheet.create({
   },
   cursor: {
     position: 'absolute',
-    bottom: 16,
-    width: 20,
+    bottom: 18,
+    width: 24,
     height: 3,
-    backgroundColor: `${colors.primary}4D`,
+    backgroundColor: `${colors.primary}60`,
     borderRadius: 2,
   },
+
+  // ── Error / Warning ────────────────────────────────────────────────────
   inlineErrorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    marginTop: 14,
+    gap: 8,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FCA5A5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 16,
   },
   inlineErrorText: {
     color: '#DC2626',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
   },
-  masterOtpBanner: {
+  attemptsWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 6,
-    marginTop: 14,
-    paddingVertical: 10,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
+    paddingVertical: 8,
+    marginTop: 12,
   },
-  masterOtpText: {
-    fontSize: 14,
-    color: '#92400E',
+  attemptsWarningText: {
+    fontSize: 13,
     fontWeight: '600',
+    color: '#DC2626',
   },
 
-  // ── Keypad ────────────────────────────────────────────────────────────────
+  // ── Keypad ─────────────────────────────────────────────────────────────
   keypadContainer: { padding: 16 },
   keypad: { gap: 12 },
   keypadRow: { flexDirection: 'row', gap: 12 },
@@ -461,6 +428,8 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
   keypadKeyText: { fontSize: 30, fontWeight: 'bold', color: '#131811' },
+
+  // ── Buttons ────────────────────────────────────────────────────────────
   buttonContainer: { paddingHorizontal: 8, paddingTop: 24, paddingBottom: 40 },
   verifyButton: {
     flexDirection: 'row', height: 64, borderRadius: 9999, backgroundColor: colors.primary,
@@ -486,27 +455,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textDecorationLine: 'underline',
   },
-  // M13: Disabled resend style during cooldown
   resendButtonDisabled: {
     color: '#9CA3AF',
     textDecorationLine: 'none',
-  },
-  // S3: Attempts remaining warning bar
-  attemptsWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FEE2E2',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginHorizontal: 8,
-    marginBottom: 12,
-  },
-  attemptsWarningText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#DC2626',
   },
 });
 

@@ -163,43 +163,28 @@ const RegisterScreen = ({ navigation }) => {
             }
 
             const activeOtp = result?.devOtp || '1234';
-            Alert.alert('Verification Code (Test Mode)', `Your OTP code is: ${activeOtp}`, [
-                {
-                    text: 'Enter OTP',
-                    onPress: () => {
-                        navigation.navigate('OTP', {
-                            phone: phone.trim(),
-                            name: name.trim(),
-                            village: village.trim(),
-                            age: ageNum.toString(),
-                            gender: gender,
-                            role: selectedRole,
-                            fromRegister: true,
-                            otp: activeOtp,
-                        });
-                    },
-                },
-            ]);
+            // Navigate to OTP screen — OTP arrives via SMS
+            navigation.navigate('OTP', {
+                phone: phone.trim(),
+                name: name.trim(),
+                village: village.trim(),
+                age: ageNum.toString(),
+                gender: gender,
+                role: selectedRole,
+                fromRegister: true,
+            });
         } catch (error) {
-            // If network or OTP error occurs, proceed to OTP screen with test code 1234
-            Alert.alert('Verification Code (Test Mode)', 'Your test OTP code is: 1234', [
-                {
-                    text: 'Enter OTP',
-                    onPress: () => {
-                        navigation.navigate('OTP', {
-                            phone: phone.trim(),
-                            name: name.trim(),
-                            village: village.trim(),
-                            age: ageNum.toString(),
-                            gender: gender,
-                            role: selectedRole,
-                            fromRegister: true,
-                            otp: '1234',
-                        });
-                    },
-                },
-            ]);
+            const errMsg = error?.response?.data?.error
+                || error?.message
+                || 'Failed to send OTP. Please try again.';
+
+            if (error?.response?.status === 429 || error?.code === 'RATE_LIMIT_COOLDOWN') {
+                Alert.alert('Please Wait', 'Too many requests. Please wait a moment and try again.');
+            } else {
+                Alert.alert('Error', errMsg);
+            }
         }
+
     };
 
     return (

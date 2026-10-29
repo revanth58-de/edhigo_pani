@@ -158,8 +158,11 @@ android {
                 storePassword keystoreProperties['storePassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
                 keyAlias keystoreProperties['keyAlias'] ?: 'dinasari'
                 keyPassword keystoreProperties['keyPassword'] ?: 'DinasariKey_7a6bc4a941ea0a0a!'
-            } else {
-                throw new GradleException("Release keystore not found.")
+            } else if (file("debug.keystore").exists()) {
+                storeFile file("debug.keystore")
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
             }
         }
     }
@@ -168,7 +171,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
+            signingConfig (signingConfigs.release.storeFile != null ? signingConfigs.release : signingConfigs.debug)
             shrinkResources enableMinifyInReleaseBuilds
             minifyEnabled enableMinifyInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"

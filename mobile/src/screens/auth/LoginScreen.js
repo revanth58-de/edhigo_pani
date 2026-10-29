@@ -69,18 +69,33 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      navigation.navigate('OTP', {
-        phone: phone,
-        otp: result?.devOtp || '1234',
-        fromRegister: false,
-      });
+      const activeOtp = result?.devOtp || '1234';
+      Alert.alert('Verification Code (Test Mode)', `Your OTP code is: ${activeOtp}`, [
+        {
+          text: 'Enter OTP',
+          onPress: () => {
+            navigation.navigate('OTP', {
+              phone: phone,
+              otp: activeOtp,
+              fromRegister: false,
+            });
+          },
+        },
+      ]);
     } catch (error) {
       // If error occurs, still proceed to OTP screen with test code 1234
-      navigation.navigate('OTP', {
-        phone: phone,
-        otp: '1234',
-        fromRegister: false,
-      });
+      Alert.alert('Verification Code (Test Mode)', 'Your test OTP code is: 1234', [
+        {
+          text: 'Enter OTP',
+          onPress: () => {
+            navigation.navigate('OTP', {
+              phone: phone,
+              otp: '1234',
+              fromRegister: false,
+            });
+          },
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -269,7 +284,16 @@ const LoginScreen = ({ navigation }) => {
                     activeOpacity={0.8}
                   >
                     <Text style={styles.demoRoleIcon}>👥</Text>
-                    <Text style={styles.demoRoleText}>Leader</Text>
+                    <Text style={styles.demoRoleText}>Leader 1</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.demoRoleButton}
+                    onPress={() => loginAsDemoUser('leader2')}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.demoRoleIcon}>👥</Text>
+                    <Text style={styles.demoRoleText}>Leader 2</Text>
                   </TouchableOpacity>
                 </View>
               </View>

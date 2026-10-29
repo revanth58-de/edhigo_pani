@@ -10,37 +10,88 @@ const { logger } = require('../middleware/errorHandler');
 
 const expo = new Expo();
 
+const fs = require('fs');
+const path = require('path');
+
 // ── Firebase Admin SDK Initialization (for Native FCM) ──────────────────────
 let firebaseApp = null;
-try {
-  if (admin && process.env.FIREBASE_SERVICE_ACCOUNT) {
-    let serviceAccount;
-    try {
-      const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
-      if (raw.startsWith('{')) {
-        serviceAccount = JSON.parse(raw);
-      } else {
-        const decoded = Buffer.from(raw, 'base64').toString('utf8');
-        serviceAccount = JSON.parse(decoded);
+if (admin) {
+  try {
+    let serviceAccount = null;
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      let raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+      if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+        raw = raw.slice(1, -1).trim();
       }
-    } catch (parseErr) {
-      logger.error('Failed to parse FIREBASE_SERVICE_ACCOUNT JSON', { error: parseErr.message });
+
+      if (fs.existsSync(raw)) {
+        try {
+          serviceAccount = JSON.parse(fs.readFileSync(raw, 'utf8'));
+        } catch (readErr) {
+          logger.error('Failed to read FIREBASE_SERVICE_ACCOUNT file path', { error: readErr.message });
+        }
+      }
+
+      if (!serviceAccount) {
+        try {
+          serviceAccount = JSON.parse(raw);
+        } catch (_) {
+          try {
+            const decoded = Buffer.from(raw, 'base64').toString('utf8');
+            if (decoded.trim().startsWith('{')) {
+              serviceAccount = JSON.parse(decoded);
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (!serviceAccount) {
+        logger.error('Failed to parse FIREBASE_SERVICE_ACCOUNT: String is neither valid JSON, a valid file path, nor valid base64-encoded JSON.');
+      }
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH && fs.existsSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH)) {
+      try {
+        serviceAccount = JSON.parse(fs.readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH, 'utf8'));
+      } catch (readErr) {
+        logger.error('Failed to read FIREBASE_SERVICE_ACCOUNT_PATH file', { error: readErr.message });
+      }
+    } else {
+      // Check common local locations for adminsdk json file
+      const candidatePaths = [
+        path.resolve(__dirname, '../../..', 'dinasari-app-firebase-adminsdk-fbsvc-4d3904b362.json'),
+        path.resolve(__dirname, '../..', 'dinasari-app-firebase-adminsdk-fbsvc-4d3904b362.json'),
+        path.resolve(process.cwd(), 'dinasari-app-firebase-adminsdk-fbsvc-4d3904b362.json'),
+      ];
+      for (const cp of candidatePaths) {
+        if (fs.existsSync(cp)) {
+          try {
+            serviceAccount = JSON.parse(fs.readFileSync(cp, 'utf8'));
+            break;
+          } catch (_) {}
+        }
+      }
     }
 
     if (serviceAccount) {
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-      logger.info('🔥 Firebase Admin initialized successfully for FCM');
+      const certFn = admin.cert || (admin.credential && admin.credential.cert);
+      if (certFn) {
+        firebaseApp = admin.initializeApp({
+          credential: certFn(serviceAccount),
+        });
+        logger.info(`🔥 Firebase Admin initialized successfully for FCM (project: ${serviceAccount.project_id || 'default'})`);
+      }
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const appDefaultFn = admin.applicationDefault || (admin.credential && admin.credential.applicationDefault);
+      if (appDefaultFn) {
+        firebaseApp = admin.initializeApp({
+          credential: appDefaultFn(),
+        });
+        logger.info('🔥 Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS');
+      }
     }
-  } else if (admin && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    firebaseApp = admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
-    });
-    logger.info('🔥 Firebase Admin initialized via GOOGLE_APPLICATION_CREDENTIALS');
+  } catch (err) {
+    logger.warn('Firebase Admin initialization skipped/failed:', { message: err.message });
   }
-} catch (err) {
-  logger.warn('Firebase Admin initialization skipped/failed:', { message: err.message });
 }
 
 /**

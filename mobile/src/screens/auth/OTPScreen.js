@@ -25,8 +25,8 @@ const OTPScreen = ({ navigation, route }) => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null); // inline error — no alert popups
-  // Track the current dev OTP — updates on Resend so the banner always shows the latest code
-  const [currentDevOtp, setCurrentDevOtp] = useState(receivedOTP || null);
+  // Track the current dev OTP — defaults to '1234' so it is guaranteed to show on screen for testing
+  const [currentDevOtp, setCurrentDevOtp] = useState(receivedOTP || '1234');
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
   const sendOTPAction = useAuthStore((state) => state.sendOTP);
   const { t } = useTranslation();

@@ -16,7 +16,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useTranslation } from '../../i18n';
 import useAuthStore from '../../store/authStore';
-import { groupAPI } from '../../services/api';
+import { groupAPI, uploadAPI } from '../../services/api';
 import * as ImagePicker from 'expo-image-picker';
 
 const GROUP_TYPES = [
@@ -65,15 +65,30 @@ const GroupSetupScreen = ({ navigation }) => {
     
     setIsSubmitting(true);
     try {
-      // In a full implementation, you would upload the photoUri to S3/Cloudinary here
-      // and get a remote URL back to pass as photoUrl.
-      // For this step, we mock uploading and just pass the local URI or omit it if not real backend handling is setup yet.
-      
+      let uploadedPhotoUrl = null;
+      if (photoUri) {
+        try {
+          const formData = new FormData();
+          const filename = photoUri.split('/').pop() || 'group_photo.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          formData.append('image', {
+            uri: photoUri,
+            name: filename,
+            type,
+          });
+          const uploadRes = await uploadAPI.uploadProfilePicture(formData);
+          uploadedPhotoUrl = uploadRes.data?.url || null;
+        } catch (uploadErr) {
+          console.warn('Group photo upload failed, proceeding without photo:', uploadErr);
+        }
+      }
+
       const res = await groupAPI.createGroup({
         name: groupName,
         type: groupType,
         description: description,
-        photoUrl: photoUri || null, // pass null if no photo picked
+        photoUrl: uploadedPhotoUrl,
         memberCount: memberCount
       });
       
@@ -82,7 +97,7 @@ const GroupSetupScreen = ({ navigation }) => {
         groupName: groupName
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to create group');
+      Alert.alert('Error', error?.response?.data?.error || 'Failed to create group');
     } finally {
       setIsSubmitting(false);
     }

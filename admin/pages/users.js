@@ -1,4 +1,4 @@
-import { api } from '../api.js';
+import { api, escapeHtml } from '../api.js';
 import { initials, avatarColor } from './stats.js';
 
 let allUsers = [];
@@ -149,7 +149,7 @@ function renderUsers() {
             ${isSuspended ? '🚫' : initials(u.name||'')}
           </div>
           <div>
-            <div class="user-cell-name" style="cursor:pointer;text-decoration:underline" onclick="window._inspectUser('${u.id}')">${u.name||'—'}${
+            <div class="user-cell-name" style="cursor:pointer;text-decoration:underline" onclick="window._inspectUser('${u.id}')">${escapeHtml(u.name)||'—'}${
               isSuspended ? ' <span style="font-size:10px;color:#EF4444;font-weight:800;letter-spacing:1px">SUSPENDED</span>' : ''
             }</div>
             <div class="user-cell-id">ID: #${u.id.slice(-4).toUpperCase()}</div>
@@ -157,7 +157,7 @@ function renderUsers() {
         </div>
       </td>
       <td><span class="badge ${roleBadge(u.role)}">${u.role}</span></td>
-      <td style="color:var(--text-muted)">📍 ${u.village||'—'}</td>
+      <td style="color:var(--text-muted)">📍 ${escapeHtml(u.village)||'—'}</td>
       <td><span class="badge ${statusBadge(u.status)}">${u.status||'active'}</span></td>
       <td style="color:var(--warning)">★ ${u.ratingAvg ? Number(u.ratingAvg).toFixed(1) : '—'}${
         u.ratingCount ? ` <span style="color:var(--text-muted)">(${u.ratingCount})</span>` : ''

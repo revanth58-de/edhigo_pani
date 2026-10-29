@@ -5,24 +5,32 @@ const { JobStatus, GroupStatus, MemberStatus, ApplicationStatus, UserStatus, Wor
 const { isValidPhotoUrl } = require('../utils/urlGuard');
 const { createNotification, sendPush } = require('../services/pushNotification');
 
-// GET /api/groups/my-groups - Get all groups led by or containing current user
+// GET /api/groups/my-groups - Get groups strictly led by user (for leaders) or joined (for workers)
 const getMyGroups = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const groups = await prisma.group.findMany({
-      where: {
-        OR: [
-          { leaderId: userId },
-          {
-            members: {
-              some: {
-                workerId: userId,
-                status: { not: MemberStatus.INVITED }, // joined, checked_in, checked_out
+    const isLeader = req.user.role === 'leader';
+
+    // Group leaders only ever see and manage groups THEY lead.
+    // Workers see groups they have joined as a member.
+    const where = isLeader
+      ? { leaderId: userId }
+      : {
+          OR: [
+            { leaderId: userId },
+            {
+              members: {
+                some: {
+                  workerId: userId,
+                  status: { not: MemberStatus.INVITED },
+                },
               },
             },
-          },
-        ],
-      },
+          ],
+        };
+
+    const groups = await prisma.group.findMany({
+      where,
       include: {
         members: {
           include: {
@@ -33,14 +41,7 @@ const getMyGroups = async (req, res, next) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Ensure groups led by the user always appear first
-    const sortedGroups = [...groups].sort((a, b) => {
-      const aIsLeader = a.leaderId === userId ? 1 : 0;
-      const bIsLeader = b.leaderId === userId ? 1 : 0;
-      return bIsLeader - aIsLeader;
-    });
-
-    res.json({ groups: sortedGroups });
+    res.json({ groups });
   } catch (error) {
     next(error);
   }

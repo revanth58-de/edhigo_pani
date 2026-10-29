@@ -26,6 +26,7 @@ import WeatherLocationHeader from '../../components/WeatherLocationHeader';
 import { WebView } from 'react-native-webview';
 import { socketService } from '../../services/socketService';
 import { Alert } from 'react-native';
+import { jobAPI } from '../../services/api';
 
 // ── M2: Shimmer skeleton for a single work-type card ─────────────────────────
 const SkeletonCard = ({ shimmer }) => {
@@ -99,6 +100,7 @@ const FarmerHomeScreen = ({ navigation }) => {
   const [workers, setWorkers]         = useState([]);
   const [loading, setLoading]         = useState(true);    // M2: drives skeleton
   const [refreshing, setRefreshing]   = useState(false);
+  const [activeJob, setActiveJob]     = useState(null);
 
   const [machineryList, setMachineryList] = useState([
     {
@@ -212,8 +214,16 @@ const FarmerHomeScreen = ({ navigation }) => {
     else setLoading(true);
     try {
       await refreshProfile();
+      const res = await jobAPI?.getMyJobs?.();
+      const list = res?.data?.data || res?.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        const found = list.find((j) => j.status === 'in_progress' || j.status === 'assigned' || j.status === 'open');
+        setActiveJob(found || null);
+      } else {
+        setActiveJob(null);
+      }
     } catch (_) {
-      // profile load error is non-fatal
+      // profile / jobs load error is non-fatal
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -546,6 +556,56 @@ const FarmerHomeScreen = ({ navigation }) => {
             Find the best local workers & modern machinery for your farm today.
           </Text>
         </View>
+
+        {/* Active Farm Job & Manual Attendance PIN Fallback */}
+        {activeJob && (
+          <View style={styles.activeJobCard}>
+            <View style={styles.activeJobHeader}>
+              <View style={styles.activeJobStatusDot} />
+              <Text style={styles.activeJobStatusText}>
+                {activeJob.status === 'in_progress' ? 'WORK IN PROGRESS' : 'ACTIVE JOB'}
+              </Text>
+              <Text style={styles.activeJobCropBadge} numberOfLines={1}>
+                {activeJob.crop || activeJob.workType || 'Farm Work'}
+              </Text>
+            </View>
+
+            <View style={styles.activeJobPinRow}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.activeJobPinLabel}>
+                  JOB PIN (Manual Code):
+                </Text>
+                <Text style={styles.activeJobPinSub}>
+                  Workers can enter this 6-digit code in their scanner
+                </Text>
+              </View>
+              <View style={styles.homePinBadge}>
+                <Text style={styles.homePinText}>
+                  {String(activeJob.id).slice(-6).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.activeJobActionRow}>
+              <TouchableOpacity
+                style={styles.activeJobQrBtn}
+                onPress={() => navigation.navigate('QRAttendance', { job: activeJob, type: 'in' })}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="qr-code" size={18} color="#FFFFFF" />
+                <Text style={styles.activeJobQrBtnText}>Show IN QR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.activeJobQrBtn, { backgroundColor: '#B91C1C' }]}
+                onPress={() => navigation.navigate('QRAttendanceOUT', { job: activeJob })}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="done-all" size={18} color="#FFFFFF" />
+                <Text style={styles.activeJobQrBtnText}>Show OUT QR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
         {/* Dynamic Map Dashboard wrapped with styling for premium look */}
         <View style={styles.mapContainer}>
           <View style={styles.mapWrap}>
@@ -1157,6 +1217,100 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 4,
     letterSpacing: -0.2,
+  },
+  activeJobCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  activeJobHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activeJobStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  activeJobStatusText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#065F46',
+    letterSpacing: 0.5,
+  },
+  activeJobCropBadge: {
+    marginLeft: 'auto',
+    backgroundColor: '#ECFDF5',
+    color: '#047857',
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  activeJobPinRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+  },
+  activeJobPinLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 2,
+  },
+  activeJobPinSub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  homePinBadge: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  homePinText: {
+    color: '#F8FAFC',
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: 3,
+  },
+  activeJobActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  activeJobQrBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  activeJobQrBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

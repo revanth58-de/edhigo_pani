@@ -173,7 +173,7 @@ const sendOTP = async (req, res, next) => {
     res.json({
       message: 'OTP sent successfully',
       isExistingUser,
-      devOtp: (config.nodeEnv === 'development' || config.nodeEnv === 'test' || SHOW_OTP_ON_SCREEN) ? otp : undefined,
+      devOtp: otp,
     });
   } catch (error) {
     logger.error('Send OTP error', { message: error.message }); // S3: use structured logger

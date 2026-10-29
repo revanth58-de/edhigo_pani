@@ -43,8 +43,6 @@ yarn-error.*
 # Keystore signing credentials - NEVER commit these
 android/keystore.properties
 android/*.jks
-google-services.json
-android/app/google-services.json
 *service-account*.json
 *adminsdk*.json
 

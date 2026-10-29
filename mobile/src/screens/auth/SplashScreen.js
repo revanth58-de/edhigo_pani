@@ -10,266 +10,278 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../theme/colors';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // ── Assets ────────────────────────────────────────────────────────────────────
-// App icon-style logo (no text) — used as the animated centerpiece
-const LOGO = require('../../../assets/icon.png');
+// DINASARI high-res emblem & wordmark logo
+const LOGO = require('../../../assets/image.png');
 
-const SplashScreen = ({ navigation }) => {
-  const fadeAnim   = useRef(new Animated.Value(0)).current;
-  const scaleAnim  = useRef(new Animated.Value(0.75)).current;
-  const spinAnim   = useRef(new Animated.Value(0)).current;
-  const slideAnim  = useRef(new Animated.Value(30)).current;
-  const dotAnim1   = useRef(new Animated.Value(0.3)).current;
-  const dotAnim2   = useRef(new Animated.Value(0.3)).current;
-  const dotAnim3   = useRef(new Animated.Value(0.3)).current;
+const SplashScreen = ({ navigation, onFinish }) => {
+  // Layer 1: Emblem animation (Rise & Scale)
+  const emblemOpacity = useRef(new Animated.Value(0)).current;
+  const emblemTranslateY = useRef(new Animated.Value(28)).current;
+  const emblemScale = useRef(new Animated.Value(0.84)).current;
+  const emblemTranslateX = useRef(new Animated.Value(0)).current;
+
+  // Layer 2: DINASARI Title animation (Reveal)
+  const titleOpacity = useRef(new Animated.Value(0)).current;
+  const titleTranslateY = useRef(new Animated.Value(18)).current;
+  const titleScale = useRef(new Animated.Value(0.94)).current;
+  const titleTranslateX = useRef(new Animated.Value(0)).current;
+
+  // Layer 3: Single-line Tagline animation (Slide Up, no dots/particles)
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const taglineTranslateY = useRef(new Animated.Value(10)).current;
+
+  // Screen background exit fade
+  const screenOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // ── Logo entrance ──
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 700,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
+    // 1. Emblem layer rises and scales smoothly (starts at 0.1s, duration 0.9s)
+    Animated.sequence([
+      Animated.delay(100),
+      Animated.parallel([
+        Animated.timing(emblemOpacity, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(emblemTranslateY, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(emblemScale, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start();
 
-    // ── Spinning ring loader ──
-    Animated.loop(
-      Animated.timing(spinAnim, {
-        toValue: 1,
-        duration: 1600,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
+    // 2. DINASARI title reveals smoothly (starts at 0.35s, duration 0.8s)
+    Animated.sequence([
+      Animated.delay(350),
+      Animated.parallel([
+        Animated.timing(titleOpacity, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(titleTranslateY, {
+          toValue: 0,
+          duration: 800,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(titleScale, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
 
-    // ── Pulsing dots (staggered) ──
-    const pulseDot = (anim, delay) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, { toValue: 1, duration: 400, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.3, duration: 400, useNativeDriver: true }),
-        ])
-      ).start();
+    // 3. Tagline slides up smoothly directly underneath DINASARI (starts at 0.65s, duration 0.75s)
+    Animated.sequence([
+      Animated.delay(650),
+      Animated.parallel([
+        Animated.timing(taglineOpacity, {
+          toValue: 1,
+          duration: 750,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(taglineTranslateY, {
+          toValue: 0,
+          duration: 750,
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
 
-    pulseDot(dotAnim1, 0);
-    pulseDot(dotAnim2, 200);
-    pulseDot(dotAnim3, 400);
-
-    // ── Navigate to LanguageSelection after 2.4 s ──
-    const timer = setTimeout(() => {
-      navigation.replace('LanguageSelection');
+    // 4. Exit transition at ~2.4s
+    const exitTimer = setTimeout(() => {
+      Animated.parallel([
+        // Emblem slides right
+        Animated.timing(emblemTranslateX, {
+          toValue: width * 1.2,
+          duration: 550,
+          easing: Easing.bezier(0.4, 0, 1, 1),
+          useNativeDriver: true,
+        }),
+        Animated.timing(emblemOpacity, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        // Title & tagline slide left and fade
+        Animated.timing(titleTranslateX, {
+          toValue: -30,
+          duration: 450,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(titleOpacity, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(taglineOpacity, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+        Animated.timing(screenOpacity, {
+          toValue: 0,
+          duration: 450,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }, 2400);
 
-    return () => clearTimeout(timer);
-  }, [navigation]);
+    // 5. Navigate to main app flow at ~2.8s
+    const finishTimer = setTimeout(() => {
+      if (onFinish) {
+        onFinish();
+      } else if (navigation?.replace) {
+        navigation.replace('LanguageSelection');
+      }
+    }, 2850);
 
-  const spin = spinAnim.interpolate({
-    inputRange:  [0, 1],
-    outputRange: ['0deg', '360deg'],
-  });
+    return () => {
+      clearTimeout(exitTimer);
+      clearTimeout(finishTimer);
+    };
+  }, [navigation, onFinish]);
 
   return (
-    <LinearGradient
-      colors={['#f0f7f4', '#e8f5e9', '#ffffff']}
-      style={styles.container}
-    >
-      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f3f5f0" translucent />
 
-      {/* ── Decorative top arc ── */}
-      <View style={styles.topArc} />
+      <View style={styles.splashCard}>
+        {/* Emblem Layer: Top Sun, Leaves, and Gear */}
+        <Animated.View
+          style={[
+            styles.emblemWrapper,
+            {
+              opacity: emblemOpacity,
+              transform: [
+                { translateY: emblemTranslateY },
+                { scale: emblemScale },
+                { translateX: emblemTranslateX },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={LOGO}
+            style={styles.emblemImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
 
-      {/* ── Logo section ── */}
-      <Animated.View
-        style={[
-          styles.logoSection,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Ambient glow behind logo */}
-        <View style={styles.glowOuter} />
-        <View style={styles.glowInner} />
+        {/* Wordmark Layer: DINASARI text */}
+        <Animated.View
+          style={[
+            styles.titleWrapper,
+            {
+              opacity: titleOpacity,
+              transform: [
+                { translateY: titleTranslateY },
+                { scale: titleScale },
+                { translateX: titleTranslateX },
+              ],
+            },
+          ]}
+        >
+          <Image
+            source={LOGO}
+            style={styles.titleImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
 
-        {/* Logo image */}
-        <View style={styles.logoWrapper}>
-          <Image source={LOGO} style={styles.logoImage} resizeMode="contain" />
-        </View>
-
-        {/* App name */}
-        <Text style={styles.appName}>DINASARI</Text>
-        <View style={styles.taglineRow}>
-          <View style={styles.taglineLine} />
-          <Text style={styles.tagline}>Farmer · Worker Connect</Text>
-          <View style={styles.taglineLine} />
-        </View>
-      </Animated.View>
-
-      {/* ── Spinner + dots loader ── */}
-      <View style={styles.loaderSection}>
-        <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]} />
-        <View style={styles.dotsRow}>
-          <Animated.View style={[styles.dot, { opacity: dotAnim1 }]} />
-          <Animated.View style={[styles.dot, { opacity: dotAnim2 }]} />
-          <Animated.View style={[styles.dot, { opacity: dotAnim3 }]} />
-        </View>
+        {/* Single-line Tagline: Connect Collaborate Cultivate (no dots, no particles) */}
+        <Animated.View
+          style={[
+            styles.taglineWrapper,
+            {
+              opacity: taglineOpacity,
+              transform: [
+                { translateY: taglineTranslateY },
+                { translateX: titleTranslateX },
+              ],
+            },
+          ]}
+        >
+          <Text style={styles.taglineText}>
+            Connect Collaborate Cultivate
+          </Text>
+        </Animated.View>
       </View>
-
-      {/* ── Bottom branding strip ── */}
-      <View style={styles.bottomStrip}>
-        <LinearGradient
-          colors={[colors.primaryDark, colors.primary, '#40916c']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.bottomGradient}
-        />
-      </View>
-    </LinearGradient>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f3f5f0',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
   },
-
-  // ── Decorative arcs ──
-  topArc: {
-    position: 'absolute',
-    top: -width * 0.4,
-    width: width * 1.4,
-    height: width * 1.4,
-    borderRadius: width * 0.7,
-    backgroundColor: `${colors.primary}08`,
-  },
-
-  // ── Logo section ──
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-
-  glowOuter: {
-    position: 'absolute',
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: `${colors.primary}0D`,
-    top: -30,
-  },
-  glowInner: {
-    position: 'absolute',
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    backgroundColor: `${colors.primary}12`,
-    top: 5,
-  },
-
-  logoWrapper: {
-    width: 180,
-    height: 180,
-    borderRadius: 36,
-    backgroundColor: '#ffffff',
-    shadowColor: colors.primaryDark,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 12,
+  splashCard: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: 280,
+  },
+  // Container clipping top 70% of image.png for Emblem
+  emblemWrapper: {
+    width: 280,
+    height: 195,
     overflow: 'hidden',
-  },
-  logoImage: {
-    width: 160,
-    height: 160,
-  },
-
-  appName: {
-    marginTop: 24,
-    fontSize: 36,
-    fontWeight: '900',
-    color: colors.primaryDark,
-    letterSpacing: 6,
-    textTransform: 'uppercase',
-  },
-
-  taglineRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'flex-start',
+  },
+  emblemImage: {
+    width: 280,
+    height: 280,
+    top: 0,
+  },
+  // Container clipping bottom 30% of image.png for DINASARI text
+  titleWrapper: {
+    width: 280,
+    height: 75,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginTop: -10,
+  },
+  titleImage: {
+    width: 280,
+    height: 280,
+    top: -195,
+  },
+  // Tagline directly underneath DINASARI (centered, single line, no dots)
+  taglineWrapper: {
     marginTop: 8,
-  },
-  taglineLine: {
-    width: 28,
-    height: 1,
-    backgroundColor: `${colors.primary}60`,
-  },
-  tagline: {
-    fontSize: 12,
-    color: colors.primary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    fontWeight: '500',
-  },
-
-  // ── Loader ──
-  loaderSection: {
     alignItems: 'center',
-    gap: 16,
+    justifyContent: 'center',
   },
-  spinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: `${colors.primary}25`,
-    borderTopColor: colors.primary,
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-  },
-
-  // ── Bottom strip ──
-  bottomStrip: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 5,
-  },
-  bottomGradient: {
-    flex: 1,
+  taglineText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2f5d34',
+    letterSpacing: 0.9,
+    textAlign: 'center',
   },
 });
 

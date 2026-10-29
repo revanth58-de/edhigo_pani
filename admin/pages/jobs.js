@@ -1,4 +1,4 @@
-import { api } from '../api.js';
+import { api, escapeHtml } from '../api.js';
 
 let allJobs = [];
 let page = 1;
@@ -214,11 +214,11 @@ function renderJobs() {
     return `
     <tr>
       <td>
-        <strong style="cursor:pointer;text-decoration:underline;color:#fff" onclick="window._inspectJob('${j.id}')">${j.workType}</strong>
+        <strong style="cursor:pointer;text-decoration:underline;color:#fff" onclick="window._inspectJob('${j.id}')">${escapeHtml(j.workType)}</strong>
         <br>${sectorTag}
       </td>
-      <td>${j.farmer?.name || '—'}<br><span style="color:var(--text-muted);font-size:12px">${j.farmer?.phone || ''}</span></td>
-      <td style="color:var(--text-muted)">${j.farmer?.village || '—'}</td>
+      <td>${escapeHtml(j.farmer?.name) || '—'}<br><span style="color:var(--text-muted);font-size:12px">${escapeHtml(j.farmer?.phone) || ''}</span></td>
+      <td style="color:var(--text-muted)">${escapeHtml(j.farmer?.village) || '—'}</td>
       <td><strong>${j.workersNeeded}</strong> workers</td>
       <td>
         <span style="font-weight:800;color:var(--primary)">₹${j.payPerDay}</span>/day

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DINASARI — Splash Screen Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const dinasariLogo = './src/assets/image.png';
+
+    function SplashScreen({ onFinish }) {
+      const [stage, setStage] = React.useState('enter');
+
+      React.useEffect(() => {
+        const exitTimer = setTimeout(() => {
+          setStage('exit');
+        }, 2400);
+
+        const finishTimer = setTimeout(() => {
+          setStage('done');
+          if (onFinish) onFinish();
+        }, 3000);
+
+        return () => {
+          clearTimeout(exitTimer);
+          clearTimeout(finishTimer);
+        };
+      }, [onFinish]);
+
+      if (stage === 'done') return null;
+
+      return (
+        <div className={`dinasari-splash-overlay ${stage === 'exit' ? 'splash-exit' : ''}`}>
+          <style>{`
+            .dinasari-splash-overlay {
+              position: fixed;
+              inset: 0;
+              width: 100vw;
+              height: 100vh;
+              background-color: #f3f5f0;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              z-index: 9999;
+              overflow: hidden;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              transition: background-color 0.5s ease, opacity 0.5s ease;
+            }
+
+            .dinasari-splash-card {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              position: relative;
+            }
+
+            .dinasari-logo-stage {
+              position: relative;
+              width: 280px;
+              height: 280px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+            }
+
+            .dinasari-layer {
+              position: absolute;
+              inset: 0;
+              width: 100%;
+              height: 100%;
+              object-fit: contain;
+              mix-blend-mode: multiply;
+              user-select: none;
+              pointer-events: none;
+            }
+
+            .dinasari-emblem-layer {
+              clip-path: inset(0% 0% 30% 0%);
+              opacity: 0;
+              animation: emblemRiseScale 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+            }
+
+            .dinasari-title-layer {
+              clip-path: inset(69% 0% 0% 0%);
+              opacity: 0;
+              animation: titleReveal 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.35s forwards;
+            }
+
+            .dinasari-single-tagline {
+              margin-top: -26px;
+              font-size: 14px;
+              font-weight: 600;
+              color: #2f5d34;
+              letter-spacing: 0.9px;
+              white-space: nowrap;
+              text-align: center;
+              opacity: 0;
+              animation: taglineSlideUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.65s forwards;
+            }
+
+            .splash-exit {
+              opacity: 0;
+              pointer-events: none;
+            }
+
+            .splash-exit .dinasari-emblem-layer {
+              animation: emblemSlideRight 0.55s cubic-bezier(0.4, 0, 1, 1) forwards;
+            }
+
+            .splash-exit .dinasari-title-layer,
+            .splash-exit .dinasari-single-tagline {
+              animation: textBlurFade 0.45s ease-out forwards;
+            }
+
+            @keyframes emblemRiseScale {
+              0% {
+                opacity: 0;
+                transform: translateY(28px) scale(0.84);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+
+            @keyframes titleReveal {
+              0% {
+                opacity: 0;
+                transform: translateY(18px) scale(0.94);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+
+            @keyframes taglineSlideUp {
+              0% {
+                opacity: 0;
+                transform: translateY(10px);
+              }
+              100% {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+
+            @keyframes emblemSlideRight {
+              0% {
+                opacity: 1;
+                transform: translateX(0) scale(1);
+              }
+              100% {
+                opacity: 0;
+                transform: translateX(130%) scale(0.95);
+              }
+            }
+
+            @keyframes textBlurFade {
+              0% {
+                opacity: 1;
+                filter: blur(0px);
+                transform: translateX(0);
+              }
+              100% {
+                opacity: 0;
+                filter: blur(6px);
+                transform: translateX(-24px);
+              }
+            }
+          `}</style>
+
+          <div className="dinasari-splash-card">
+            <div className="dinasari-logo-stage">
+              <img
+                src={dinasariLogo}
+                alt="DINASARI Emblem"
+                className="dinasari-layer dinasari-emblem-layer"
+              />
+              <img
+                src={dinasariLogo}
+                alt="DINASARI Title"
+                className="dinasari-layer dinasari-title-layer"
+              />
+            </div>
+            <p className="dinasari-single-tagline">
+              Connect Collaborate Cultivate
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [isSplashComplete, setIsSplashComplete] = React.useState(false);
+      const [phoneNumber, setPhoneNumber] = React.useState('');
+
+      return (
+        <React.Fragment>
+          {!isSplashComplete && (
+            <SplashScreen onFinish={() => setIsSplashComplete(true)} />
+          )}
+
+          <main style={{
+            minHeight: '100vh',
+            background: 'linear-gradient(180deg, #f0f7f4 0%, #ffffff 100%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px 16px',
+            color: '#1e2d1a'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '28px',
+              boxShadow: '0 12px 36px rgba(46, 80, 36, 0.08)',
+              border: '1px solid #e1ebe0',
+              padding: '36px 28px',
+              maxWidth: '420px',
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#1b4314', marginBottom: '8px' }}>🌾 DINASARI</h2>
+              <p style={{ fontSize: '14px', color: '#5c6b57', textAlign: 'center', marginBottom: '28px', lineHeight: 1.5 }}>
+                Connect • Collaborate • Cultivate<br />
+                Enter your mobile number to get started
+              </p>
+
+              <div style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                background: '#f6f8f5',
+                border: '1.5px solid #d5e0d2',
+                borderRadius: '16px',
+                padding: '12px 16px',
+                marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#2f5d34', marginRight: '12px', paddingRight: '12px', borderRight: '1px solid #d5e0d2' }}>+91</span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  placeholder="Enter 10-digit number"
+                  style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '16px', fontWeight: 600, width: '100%' }}
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+
+              <button
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  background: 'linear-gradient(90deg, #1b4314 0%, #488f28 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '9999px',
+                  fontSize: '16px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 6px 18px rgba(35, 78, 22, 0.25)'
+                }}
+                onClick={() => alert(`Sending OTP to +91 ${phoneNumber || '9876543210'}`)}
+              >
+                Send OTP
+              </button>
+
+              <button
+                style={{
+                  marginTop: '24px',
+                  background: 'transparent',
+                  border: '1px dashed #7ea376',
+                  color: '#3b6e22',
+                  padding: '8px 16px',
+                  borderRadius: '9999px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setIsSplashComplete(false)}
+              >
+                🔄 Replay Splash Animation
+              </button>
+            </div>
+          </main>
+        </React.Fragment>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

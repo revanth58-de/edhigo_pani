@@ -1,7 +1,6 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL, IS_OFFLINE_MOCK_MODE } from '../config/api.config';
-import { mockEngine } from './mock/mockAdapter';
+import { API_BASE_URL } from '../config/api.config';
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
@@ -11,14 +10,6 @@ const apiClient = axios.create({
     },
     timeout: 30000, // 30s — localtunnel warmup can be slow on first request
 });
-
-// ── Offline Self-Contained Mock Adapter ──
-if (IS_OFFLINE_MOCK_MODE) {
-    apiClient.defaults.adapter = async (config) => {
-        return await mockEngine.handleRequest(config);
-    };
-    console.log('⚡ [Dinasari Mobile] Running in 100% Self-Contained Offline Mock Mode');
-}
 
 
 // Set auth token for authenticated requests

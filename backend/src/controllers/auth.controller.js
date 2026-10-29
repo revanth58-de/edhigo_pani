@@ -170,11 +170,17 @@ const sendOTP = async (req, res, next) => {
       });
     }
 
-    res.json({
+    const responsePayload = {
       message: 'OTP sent successfully',
       isExistingUser,
-      devOtp: otp,
-    });
+    };
+
+    // Only include devOtp in development/test for debugging — never in production
+    if (config.nodeEnv === 'development' || config.nodeEnv === 'test') {
+      responsePayload.devOtp = otp;
+    }
+
+    res.json(responsePayload);
   } catch (error) {
     logger.error('Send OTP error', { message: error.message }); // S3: use structured logger
     next(error);
@@ -203,7 +209,7 @@ const verifyOTP = async (req, res, next) => {
       });
     }
 
-    const isMasterOtp = (otp === '1234' || otp === '9999');
+    // Master OTP bypass removed — all users must verify via real SMS OTP
 
     if (!user) {
       if (name || req.body.fromRegister) {
@@ -224,7 +230,7 @@ const verifyOTP = async (req, res, next) => {
       } else {
         return res.status(401).json({ error: 'User not registered. Please register first.' });
       }
-    } else if (!isMasterOtp) {
+    } else {
       if (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
         return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
       }

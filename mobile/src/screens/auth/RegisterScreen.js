@@ -162,8 +162,7 @@ const RegisterScreen = ({ navigation }) => {
                 return;
             }
 
-            const activeOtp = result?.devOtp || '1234';
-            // Navigate to OTP screen — OTP arrives via SMS
+            // Navigate to OTP screen — user will receive real OTP via SMS
             navigation.navigate('OTP', {
                 phone: phone.trim(),
                 name: name.trim(),

@@ -228,16 +228,13 @@ const useAuthStore = create((set, get) => ({
         lastOTPRequestTime: now,
         otpCooldownSeconds: 0 
       });
-      return response.data || { isExistingUser: true, devOtp: '1234' };
+      return response.data;
     } catch (error) {
-      // Graceful offline/demo fallback so network issues never block user testing
       set({ 
         phone, 
-        isLoading: false, 
-        lastOTPRequestTime: now,
-        otpCooldownSeconds: 0 
+        isLoading: false,
       });
-      return { isExistingUser: true, devOtp: '1234' };
+      throw error;
     }
   },
 
@@ -271,26 +268,6 @@ const useAuthStore = create((set, get) => ({
 
       return response.data;
     } catch (error) {
-      // If OTP is 1234/9999 or offline demo bypass is used, create an authorized local session
-      if (otp === '1234' || otp === '9999') {
-        const fallbackUser = {
-          id: 'demo-user-' + (phone || '9999999999'),
-          phone: phone || '9999999999',
-          name: registrationData.name || 'Dinasari User',
-          village: registrationData.village || 'Demo Village',
-          role: registrationData.role || 'farmer',
-          age: registrationData.age || 30,
-          gender: registrationData.gender || 'male',
-          status: 'active',
-          rating: 4.9,
-          jobsDoneCount: 14,
-        };
-        const demoToken = 'dinasari-demo-token';
-        setAuthToken(demoToken);
-        set({ user: fallbackUser, accessToken: demoToken, refreshToken: demoToken, isAuthenticated: true, isLoading: false });
-        await saveToStorage(get());
-        return { user: fallbackUser, accessToken: demoToken };
-      }
       set({ isLoading: false });
       throw error;
     }

@@ -1,5 +1,10 @@
 const { Expo } = require('expo-server-sdk');
-const admin = require('firebase-admin');
+let admin = null;
+try {
+  admin = require('firebase-admin');
+} catch (_) {
+  // Optional dependency: fallback gracefully if firebase-admin is not installed
+}
 const prisma = require('../config/database');
 const { logger } = require('../middleware/errorHandler');
 
@@ -8,7 +13,7 @@ const expo = new Expo();
 // ── Firebase Admin SDK Initialization (for Native FCM) ──────────────────────
 let firebaseApp = null;
 try {
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (admin && process.env.FIREBASE_SERVICE_ACCOUNT) {
     let serviceAccount;
     try {
       const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
@@ -28,7 +33,7 @@ try {
       });
       logger.info('🔥 Firebase Admin initialized successfully for FCM');
     }
-  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  } else if (admin && process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     firebaseApp = admin.initializeApp({
       credential: admin.credential.applicationDefault(),
     });

@@ -1,109 +1,249 @@
 <!DOCTYPE html>
-
-<html class="light" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Login Screen</title>
-<!-- Tailwind CSS with plugins -->
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<!-- Material Symbols -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<!-- Google Fonts: Lexend -->
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              "primary": "#5bec13",
-              "background-light": "#f6f8f6",
-              "background-dark": "#162210",
-            },
-            fontFamily: {
-              "display": ["Lexend", "sans-serif"]
-            },
-            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+<html class="light" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Login Screen — Phone Entry</title>
+  <!-- Tailwind CSS with plugins -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+  <!-- Google Fonts: Lexend -->
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#5bec13",
+            "primary-dark": "#46b80d",
+            "background-light": "#f6f8f6",
+            "background-dark": "#162210",
+          },
+          fontFamily: {
+            "display": ["Lexend", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"
           },
         },
-      }
-    </script>
-<style>
-      body {
-        font-family: 'Lexend', sans-serif;
-      }
-      .material-symbols-outlined {
-        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-      }
-      /* Remove numeric arrows for input */
-      input::-webkit-outer-spin-button,
-      input::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-      }
-    </style>
-<style>
+      },
+    }
+  </script>
+  <style>
     body {
-      min-height: max(884px, 100dvh);
+      font-family: 'Lexend', sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
   </style>
-  </head>
+</head>
 <body class="bg-background-light dark:bg-background-dark min-h-screen transition-colors duration-300">
-<div class="flex flex-col h-screen max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl overflow-hidden">
-<!-- Voice Guidance Bar / ActionPanel style -->
-<div class="p-4 pt-8">
-<div class="flex flex-1 items-center justify-between gap-4 rounded-xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 p-5 shadow-sm">
-<div class="flex flex-col gap-1">
-<p class="text-[#131811] dark:text-white text-lg font-bold leading-tight">Mobile number enter cheyyandi</p>
-<p class="text-[#6f8961] dark:text-gray-400 text-sm font-normal leading-normal">Tap speaker to hear</p>
-</div>
-<button class="flex size-14 cursor-pointer items-center justify-center rounded-full bg-primary text-[#131811] shadow-lg active:scale-95 transition-transform">
-<span class="material-symbols-outlined text-3xl">volume_up</span>
-</button>
-</div>
-</div>
-<!-- Phone Number Input Display -->
-<div class="px-6 py-6 text-center">
-<div class="flex flex-col items-center">
-<div class="flex items-center gap-2 mb-2">
-<span class="material-symbols-outlined text-primary">phone_iphone</span>
-<p class="text-[#6f8961] dark:text-gray-400 font-medium uppercase tracking-widest text-xs">Phone Number</p>
-</div>
-<div class="relative w-full">
-<input class="w-full text-center text-4xl font-bold bg-transparent border-b-2 border-primary/30 focus:border-primary text-[#131811] dark:text-white py-4 outline-none tracking-widest" placeholder="0000 000000" readonly="" type="text" value=""/>
-</div>
-</div>
-</div>
-<!-- Spacer to push keypad down -->
-<div class="flex-grow"></div>
-<!-- Massive Custom Numeric Keypad (TextGrid Style) -->
-<div class="p-4">
-<div class="grid grid-cols-3 gap-3">
-<!-- Numbers 1-9 -->
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">1</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">2</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">3</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">4</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">5</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">6</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">7</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">8</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">9</button>
-<!-- Bottom Row -->
-<div class="h-20"></div>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-3xl font-bold shadow-sm transition-colors">0</button>
-<button class="flex h-20 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-red-50 text-red-500 shadow-sm transition-colors">
-<span class="material-symbols-outlined text-4xl">backspace</span>
-</button>
-</div>
-</div>
-<!-- Primary Action Button -->
-<div class="p-6 pb-10">
-<button class="w-full flex h-16 items-center justify-center overflow-hidden rounded-full bg-primary text-[#131811] text-xl font-bold shadow-xl active:scale-95 transition-all">
-<span class="truncate">Continue</span>
-<span class="material-symbols-outlined ml-2">arrow_forward</span>
-</button>
-</div>
-</div>
-</body></html>
+  <div class="flex flex-col min-h-screen max-w-md mx-auto bg-white dark:bg-background-dark shadow-2xl overflow-hidden justify-between">
+    
+    <!-- Top Area -->
+    <div>
+      <!-- Top header bar -->
+      <div class="px-4 pt-6 flex items-center justify-between">
+        <a href="splash-screen.html" class="flex size-10 items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-[#131811] dark:text-white">
+          <span class="material-symbols-outlined text-xl">arrow_back</span>
+        </a>
+        <span class="text-xs font-semibold px-3 py-1 rounded-full bg-primary/20 text-[#131811] dark:text-primary">DINASARI AUTH</span>
+        <button id="themeToggleBtn" class="flex size-10 items-center justify-center rounded-full bg-gray-100 dark:bg-white/10 text-[#131811] dark:text-white">
+          <span class="material-symbols-outlined text-xl dark:hidden">dark_mode</span>
+          <span class="material-symbols-outlined text-xl hidden dark:block">light_mode</span>
+        </button>
+      </div>
+
+      <!-- Voice Guidance Bar / ActionPanel style -->
+      <div class="p-4 pt-4">
+        <div class="flex flex-1 items-center justify-between gap-4 rounded-xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 p-4 shadow-sm">
+          <div class="flex flex-col gap-0.5">
+            <p class="text-[#131811] dark:text-white text-base font-bold leading-tight">Mobile number enter cheyyandi</p>
+            <p class="text-[#6f8961] dark:text-gray-400 text-xs font-normal">Tap speaker to hear guidance</p>
+          </div>
+          <button id="voiceBtn" class="flex size-12 cursor-pointer items-center justify-center rounded-full bg-primary text-[#131811] shadow-md active:scale-95 transition-transform">
+            <span class="material-symbols-outlined text-2xl">volume_up</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Phone Number Input Display -->
+      <div class="px-6 py-4 text-center">
+        <div class="flex flex-col items-center">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span class="material-symbols-outlined text-primary text-sm">phone_iphone</span>
+            <p class="text-[#6f8961] dark:text-gray-400 font-medium uppercase tracking-widest text-[11px]">Phone Number</p>
+          </div>
+          <div class="relative w-full flex items-center justify-center">
+            <span class="text-3xl font-bold text-gray-400 dark:text-gray-500 mr-2">+91</span>
+            <input id="phoneInput" class="w-64 text-center text-3xl font-extrabold bg-transparent border-b-2 border-primary/40 focus:border-primary text-[#131811] dark:text-white py-2 outline-none tracking-widest transition-colors" placeholder="00000 00000" readonly type="text" value=""/>
+          </div>
+          <p id="phoneError" class="text-red-500 text-xs font-semibold mt-2 hidden">Please enter a valid 10-digit number</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Massive Custom Numeric Keypad (TextGrid Style) -->
+    <div class="p-4 pb-6">
+      <div class="grid grid-cols-3 gap-3 mb-4">
+        <!-- Numbers 1-9 -->
+        <button data-num="1" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">1</button>
+        <button data-num="2" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">2</button>
+        <button data-num="3" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">3</button>
+        <button data-num="4" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">4</button>
+        <button data-num="5" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">5</button>
+        <button data-num="6" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">6</button>
+        <button data-num="7" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">7</button>
+        <button data-num="8" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">8</button>
+        <button data-num="9" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">9</button>
+        <!-- Bottom Row -->
+        <button data-action="clear" class="keypad-btn flex h-16 items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400 active:scale-95 transition-all">CLEAR</button>
+        <button data-num="0" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">0</button>
+        <button data-action="backspace" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-red-50 text-red-500 shadow-sm transition-colors">
+          <span class="material-symbols-outlined text-3xl">backspace</span>
+        </button>
+      </div>
+
+      <!-- Primary Action Button -->
+      <button id="continueBtn" disabled class="w-full flex h-16 items-center justify-center overflow-hidden rounded-full bg-primary hover:bg-primary-dark disabled:opacity-40 disabled:hover:bg-primary text-[#131811] text-xl font-bold shadow-xl active:scale-95 transition-all cursor-pointer">
+        <span id="continueText" class="truncate">Continue</span>
+        <span id="continueIcon" class="material-symbols-outlined ml-2">arrow_forward</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      let phone = '';
+      const phoneInput = document.getElementById('phoneInput');
+      const continueBtn = document.getElementById('continueBtn');
+      const continueText = document.getElementById('continueText');
+      const continueIcon = document.getElementById('continueIcon');
+      const phoneError = document.getElementById('phoneError');
+      const voiceBtn = document.getElementById('voiceBtn');
+      const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+      function updatePhone() {
+        if (phone.length === 0) {
+          phoneInput.value = '';
+          continueBtn.disabled = true;
+        } else if (phone.length <= 5) {
+          phoneInput.value = phone;
+          continueBtn.disabled = true;
+        } else {
+          phoneInput.value = phone.slice(0, 5) + ' ' + phone.slice(5);
+          continueBtn.disabled = (phone.length !== 10);
+        }
+        phoneError.classList.add('hidden');
+      }
+
+      function addDigit(digit) {
+        if (phone.length < 10) {
+          phone += digit;
+          updatePhone();
+        }
+      }
+
+      function backspace() {
+        if (phone.length > 0) {
+          phone = phone.slice(0, -1);
+          updatePhone();
+        }
+      }
+
+      function clearPhone() {
+        phone = '';
+        updatePhone();
+      }
+
+      // Keypad events
+      document.querySelectorAll('.keypad-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const num = btn.getAttribute('data-num');
+          const action = btn.getAttribute('data-action');
+          if (num !== null) addDigit(num);
+          else if (action === 'backspace') backspace();
+          else if (action === 'clear') clearPhone();
+        });
+      });
+
+      // Keyboard support
+      window.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') addDigit(e.key);
+        else if (e.key === 'Backspace') backspace();
+        else if (e.key === 'Enter' && phone.length === 10) handleContinue();
+      });
+
+      // Continue action: calls send-otp and navigates to otp-verification.html
+      async function handleContinue() {
+        if (phone.length !== 10) {
+          phoneError.classList.remove('hidden');
+          return;
+        }
+
+        continueBtn.disabled = true;
+        continueText.textContent = 'Sending OTP...';
+        continueIcon.textContent = 'sync';
+        continueIcon.classList.add('animate-spin');
+
+        let devOtp = null;
+        try {
+          // Attempt backend dispatch
+          const res = await fetch('http://localhost:5000/api/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            devOtp = data.devOtp;
+          }
+        } catch (e) {
+          // Backend offline - generate mock code for testing
+          devOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        sessionStorage.setItem('edhigo_phone', phone);
+        if (devOtp) {
+          sessionStorage.setItem('edhigo_dev_otp', devOtp);
+        }
+
+        const targetUrl = `otp-verification.html?phone=${encodeURIComponent(phone)}${devOtp ? `&otp=${encodeURIComponent(devOtp)}` : ''}`;
+        window.location.href = targetUrl;
+      }
+
+      continueBtn.addEventListener('click', handleContinue);
+
+      // Voice Guidance
+      voiceBtn.addEventListener('click', () => {
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance("Mobile number enter cheyyandi. Please enter your 10 digit mobile number.");
+          utterance.rate = 0.95;
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+
+      // Theme toggle
+      themeToggleBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+      });
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+</body>
+</html>

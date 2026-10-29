@@ -87,4 +87,51 @@ describe('smsService - sendOTPSms', () => {
     expect(result).toBe(false);
     expect(global.fetch).toHaveBeenCalledTimes(4);
   });
+
+  describe('Renflair SMS Gateway', () => {
+    beforeEach(() => {
+      process.env.RENFLAIR_API_KEY = 'test-renflair-key';
+      delete process.env.FAST2SMS_API_KEY;
+    });
+
+    afterEach(() => {
+      delete process.env.RENFLAIR_API_KEY;
+    });
+
+    it('should successfully send OTP via Renflair API', async () => {
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ status: 'success', message: 'SMS sent successfully' }),
+      });
+
+      const result = await sendOTPSms('9876543210', '1234');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toContain('https://sms.renflair.in/V1.php');
+      expect(calledUrl).toContain('API=test-renflair-key');
+      expect(calledUrl).toContain('PHONE=9876543210');
+      expect(calledUrl).toContain('OTP=1234');
+    });
+
+    it('should fallback to Fast2SMS if Renflair fails and Fast2SMS key is present', async () => {
+      process.env.FAST2SMS_API_KEY = 'mock-fast2sms-key';
+
+      // Renflair fails
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      // Fast2SMS succeeds
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ return: true }),
+      });
+
+      const result = await sendOTPSms('9876543210', '1234');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });

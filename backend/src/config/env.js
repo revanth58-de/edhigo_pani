@@ -46,7 +46,7 @@ if (process.env.NODE_ENV === 'production') {
     { key: 'JWT_REFRESH_SECRET', name: 'JWT Refresh Token Secret' },
     { key: 'ADMIN_SECRET', name: 'Admin Master Password' },
     { key: 'ADMIN_JWT_SECRET', name: 'Admin JWT Secret' },
-    { key: 'FAST2SMS_API_KEY', name: 'Fast2SMS Gateway Key' },
+    { key: 'RENFLAIR_API_KEY', name: 'Renflair SMS Gateway Key' },
     { key: 'RAZORPAY_KEY_ID', name: 'Razorpay Key ID' },
     { key: 'RAZORPAY_KEY_SECRET', name: 'Razorpay Key Secret' },
     { key: 'CLOUDINARY_CLOUD_NAME', name: 'Cloudinary Cloud Name' },

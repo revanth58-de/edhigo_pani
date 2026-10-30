@@ -143,25 +143,18 @@ const sendOTP = async (req, res, next) => {
 
     logger.info('OTP saved', { isExistingUser });
 
-    // Attempt real SMS/WhatsApp delivery if credentials are configured
-    sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
-      if (whatsappSent) {
-        logger.info('OTP dispatched via WhatsApp', { phone });
+    // Attempt real SMS/WhatsApp delivery via Renflair SMS Gateway
+    sendOTPSms(phone, otp).then((smsSent) => {
+      if (smsSent) {
+        logger.info('OTP dispatched successfully via Renflair SMS & WhatsApp', { phone });
       } else {
-        logger.info('WhatsApp dispatch skipped/failed — trying SMS');
-        sendOTPSms(phone, otp).then((smsSent) => {
-          if (!smsSent) logger.warn('SMS dispatch skipped or failed — OTP is still valid in DB', { phone });
-        }).catch((err) => {
-          logger.error('Background SMS error', { message: err.message, phone });
+        logger.info('SMS gateway not sent — trying secondary WhatsApp provider', { phone });
+        sendOTPWhatsapp(phone, otp).catch((err) => {
+          logger.warn('Secondary WhatsApp dispatch skipped', { message: err.message, phone });
         });
       }
     }).catch((err) => {
-      logger.error('Background WhatsApp error, falling back to SMS...', { message: err.message, phone });
-      sendOTPSms(phone, otp).then((smsSent) => {
-        if (!smsSent) logger.warn('SMS dispatch skipped or failed — OTP is still valid in DB', { phone });
-      }).catch((smsErr) => {
-        logger.error('Background SMS error', { message: smsErr.message, phone });
-      });
+      logger.error('Background SMS dispatch error', { message: err.message, phone });
     });
 
     const responsePayload = {

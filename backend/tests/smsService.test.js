@@ -3,14 +3,21 @@ const { sendOTPSms } = require('../src/services/smsService');
 describe('smsService - sendOTPSms', () => {
   let originalFetch;
 
+  let originalRenflairKey;
+
   beforeAll(() => {
     originalFetch = global.fetch;
+    originalRenflairKey = process.env.RENFLAIR_API_KEY;
+    delete process.env.RENFLAIR_API_KEY;
     process.env.FAST2SMS_API_KEY = 'mock-api-key';
   });
 
   afterAll(() => {
     global.fetch = originalFetch;
     delete process.env.FAST2SMS_API_KEY;
+    if (originalRenflairKey) {
+      process.env.RENFLAIR_API_KEY = originalRenflairKey;
+    }
   });
 
   beforeEach(() => {

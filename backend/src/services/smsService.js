@@ -44,11 +44,11 @@ const sendRenflairSMS = async (phone, otp) => {
       data = null;
     }
 
-    if (data && (data.status === 'error' || data.success === false || data.status === 'failed')) {
+    if (data && (data.status?.toLowerCase() === 'error' || data.success === false || data.status?.toLowerCase() === 'failed')) {
       throw new Error(data.message || 'Renflair returned failure');
     }
 
-    logger.info('OTP SMS sent successfully via Renflair', { phone });
+    logger.info('OTP SMS sent successfully via Renflair', { phone, message: data?.message });
     return true;
   } catch (err) {
     clearTimeout(timeout);
@@ -125,7 +125,7 @@ const sendOTPSms = async (phone, otp) => {
     return false;
   }
 
-  // 1. Try Renflair SMS Gateway first if configured
+  // 1. Try Renflair SMS Gateway first (Sends SMS + WhatsApp)
   if (renflairKey) {
     const renflairSuccess = await sendRenflairSMS(phone, otp);
     if (renflairSuccess) return true;

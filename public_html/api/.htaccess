@@ -1,0 +1,23 @@
+# Apache / LiteSpeed Configuration for Dinasari PHP REST API
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/
+
+    # Security: Block sensitive files
+    RewriteRule ^(config\.php|schema\.sql|error\.log|\.env) - [F,L,NC]
+
+    # Clean URL routing aliases for mobile app endpoints
+    RewriteRule ^auth/send-otp/?$ send_otp.php [QSA,L]
+    RewriteRule ^auth/verify-otp/?$ verify_otp.php [QSA,L]
+    RewriteRule ^auth/resend-otp/?$ resend_otp.php [QSA,L]
+    RewriteRule ^auth/logout/?$ logout.php [QSA,L]
+</IfModule>
+
+# Security Headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>

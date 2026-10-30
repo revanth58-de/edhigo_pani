@@ -169,8 +169,46 @@ apiClient.interceptors.response.use(
 
 // ─── Auth API ───
 export const authAPI = {
-    sendOTP: (phone) => apiClient.post('/auth/send-otp', { phone }),
-    verifyOTP: (phone, otp, registrationData = {}) => apiClient.post('/auth/verify-otp', { phone, otp, ...registrationData }),
+    sendOTP: async (phone) => {
+        try {
+            return await apiClient.post('/auth/send-otp', { phone });
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                return await apiClient.post('/send_otp.php', { phone });
+            }
+            throw err;
+        }
+    },
+    verifyOTP: async (phone, otp, registrationData = {}) => {
+        try {
+            return await apiClient.post('/auth/verify-otp', { phone, otp, ...registrationData });
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                return await apiClient.post('/verify_otp.php', { phone, otp, ...registrationData });
+            }
+            throw err;
+        }
+    },
+    resendOTP: async (phone) => {
+        try {
+            return await apiClient.post('/auth/resend-otp', { phone });
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                return await apiClient.post('/resend_otp.php', { phone });
+            }
+            throw err;
+        }
+    },
+    logout: async () => {
+        try {
+            return await apiClient.post('/auth/logout');
+        } catch (err) {
+            if (err?.response?.status === 404) {
+                return await apiClient.post('/logout.php');
+            }
+            return { data: { success: true } };
+        }
+    },
     demoLogin: (role) => apiClient.post('/auth/demo-login', { role }),
     setRole: (role) => apiClient.post('/auth/set-role', { role }),
     updateProfile: (data) => apiClient.put('/auth/profile', data),

@@ -22,8 +22,8 @@ const OTPScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   // Track dev/fallback OTP if provided by backend or params
   const [currentDevOtp, setCurrentDevOtp] = useState(devOtp || paramOtp || null);
-  // Resend cooldown timer (120 seconds matching the backend 2-min window)
-  const [resendCooldown, setResendCooldown] = useState(0);
+  // Resend cooldown timer (60 seconds)
+  const [resendCooldown, setResendCooldown] = useState(60);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null); // inline error — no alert popups
   const verifyOTPAction = useAuthStore((state) => state.verifyOTP);
@@ -68,11 +68,12 @@ const OTPScreen = ({ navigation, route }) => {
       if (serverData?.locked) {
         setErrorMsg('Too many attempts. Request a new OTP.');
         setResendCooldown(0);
-      } else if (serverData?.attemptsRemaining != null) {
-        setAttemptsRemaining(serverData.attemptsRemaining);
-        setErrorMsg(`Wrong OTP — ${serverData.attemptsRemaining} attempt${serverData.attemptsRemaining !== 1 ? 's' : ''} left.`);
+      } else if (serverData?.attemptsRemaining != null || serverData?.attempts_remaining != null) {
+        const remaining = serverData?.attemptsRemaining ?? serverData?.attempts_remaining;
+        setAttemptsRemaining(remaining);
+        setErrorMsg(`Wrong OTP — ${remaining} attempt${remaining !== 1 ? 's' : ''} left.`);
       } else {
-        setErrorMsg('Incorrect OTP. Please try again.');
+        setErrorMsg(serverData?.error || 'Incorrect OTP. Please try again.');
       }
       setOtp('');
     } finally {
@@ -84,21 +85,22 @@ const OTPScreen = ({ navigation, route }) => {
     if (resendCooldown > 0) return; // ignore tap during cooldown
     try {
       const result = await sendOTPAction(phone);
-      if (result?.devOtp) {
-        setCurrentDevOtp(result.devOtp);
+      if (result?.devOtp || result?.dev_otp) {
+        setCurrentDevOtp(result.devOtp || result.dev_otp);
       }
-      // Start 120-second cooldown matching backend rate limit
-      setResendCooldown(120);
+      // Start 60-second cooldown matching backend rate limit
+      setResendCooldown(60);
       setAttemptsRemaining(null); // reset attempt counter display
       setErrorMsg(null);
       Alert.alert('OTP Resent', 'A new OTP has been sent to your phone via SMS.');
     } catch (error) {
       // Handle rate limit cooldown from store
       if (error.code === 'RATE_LIMIT_COOLDOWN') {
-        setResendCooldown(error.remainingSeconds);
-        Alert.alert('Too soon', `Please wait ${error.remainingSeconds}s before requesting a new OTP.`);
+        const remaining = error.remainingSeconds || error?.response?.data?.retry_after_seconds || 60;
+        setResendCooldown(remaining);
+        Alert.alert('Too soon', `Please wait ${remaining}s before requesting a new OTP.`);
       } else {
-        Alert.alert('Error', 'Failed to resend OTP. Please try again.');
+        Alert.alert('Error', error?.response?.data?.error || 'Failed to resend OTP. Please try again.');
       }
     }
   };
@@ -151,6 +153,15 @@ const OTPScreen = ({ navigation, route }) => {
               Enter the 4-digit code sent to{'\n'}
               <Text style={styles.phoneHighlight}>+91 {maskedPhone}</Text>
             </Text>
+            {/* Change mobile number option */}
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.changePhoneBtn}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="edit" size={14} color={colors.primary} />
+              <Text style={styles.changePhoneText}>Change mobile number</Text>
+            </TouchableOpacity>
           </View>
 
           {/* ── Fallback/Dev OTP helper banner ── */}
@@ -350,6 +361,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: colors.primary,
     fontSize: 17,
+  },
+  changePhoneBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: `${colors.primary}12`,
+    alignSelf: 'center',
+  },
+  changePhoneText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
 
   // ── Dev / Fallback OTP Banner ───────────────────────────────────────────

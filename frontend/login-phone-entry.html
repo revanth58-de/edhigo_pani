@@ -76,25 +76,30 @@
           </button>
         </div>
       </div>
-
-      <!-- Phone Number Input Display -->
-      <div class="px-6 py-4 text-center">
-        <div class="flex flex-col items-center">
-          <div class="flex items-center gap-1.5 mb-2">
-            <span class="material-symbols-outlined text-primary text-sm">phone_iphone</span>
-            <p class="text-[#6f8961] dark:text-gray-400 font-medium uppercase tracking-widest text-[11px]">Phone Number</p>
-          </div>
-          <div class="relative w-full flex items-center justify-center">
-            <span class="text-3xl font-bold text-gray-400 dark:text-gray-500 mr-2">+91</span>
-            <input id="phoneInput" class="w-64 text-center text-3xl font-extrabold bg-transparent border-b-2 border-primary/40 focus:border-primary text-[#131811] dark:text-white py-2 outline-none tracking-widest transition-colors" placeholder="00000 00000" readonly type="text" value=""/>
-          </div>
-          <p id="phoneError" class="text-red-500 text-xs font-semibold mt-2 hidden">Please enter a valid 10-digit number</p>
-        </div>
-      </div>
     </div>
 
-    <!-- Massive Custom Numeric Keypad (TextGrid Style) -->
-    <div class="p-4 pb-6">
+    <!-- Bottom-to-Top Area: Phone Number Input Box directly above Keypad -->
+    <div class="p-4 pb-6 flex flex-col justify-end">
+      <!-- Heading & Phone Number Input Box directly above Dial Pad -->
+      <div class="mb-4">
+        <div class="flex items-center gap-1.5 mb-2 px-1">
+          <span class="material-symbols-outlined text-primary text-base">phone_iphone</span>
+          <p class="text-[#2D3748] dark:text-gray-300 font-bold uppercase tracking-wider text-xs">Phone Number</p>
+        </div>
+        <div class="flex items-center justify-between bg-white dark:bg-white/5 border-2 border-primary/40 focus-within:border-primary rounded-2xl px-4 py-3 shadow-sm transition-all">
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-bold text-gray-500 dark:text-gray-400">🇮🇳 +91</span>
+            <div class="w-[1.5px] h-6 bg-gray-200 dark:bg-white/10 mx-1"></div>
+            <input id="phoneInput" class="w-48 text-left text-2xl font-black bg-transparent text-[#131811] dark:text-white outline-none tracking-widest placeholder:text-gray-300 dark:placeholder:text-gray-600 transition-colors" placeholder="00000 00000" readonly type="text" value=""/>
+          </div>
+          <button id="clearPhoneBtn" class="hidden text-gray-400 hover:text-gray-600 dark:hover:text-white p-1">
+            <span class="material-symbols-outlined text-xl">cancel</span>
+          </button>
+        </div>
+        <p id="phoneError" class="text-red-500 text-xs font-semibold mt-1.5 hidden px-1">Please enter a valid 10-digit number</p>
+      </div>
+
+      <!-- Massive Custom Numeric Keypad (TextGrid Style) -->
       <div class="grid grid-cols-3 gap-3 mb-4">
         <!-- Numbers 1-9 -->
         <button data-num="1" class="keypad-btn flex h-16 items-center justify-center rounded-2xl border border-[#dfe6db] dark:border-white/10 bg-white dark:bg-white/5 active:bg-primary/20 text-[#131811] dark:text-white text-2xl font-bold shadow-sm transition-colors">1</button>
@@ -133,16 +138,24 @@
       const voiceBtn = document.getElementById('voiceBtn');
       const themeToggleBtn = document.getElementById('themeToggleBtn');
 
+      const clearPhoneBtn = document.getElementById('clearPhoneBtn');
+      if (clearPhoneBtn) {
+        clearPhoneBtn.addEventListener('click', clearPhone);
+      }
+
       function updatePhone() {
         if (phone.length === 0) {
           phoneInput.value = '';
           continueBtn.disabled = true;
+          if (clearPhoneBtn) clearPhoneBtn.classList.add('hidden');
         } else if (phone.length <= 5) {
           phoneInput.value = phone;
           continueBtn.disabled = true;
+          if (clearPhoneBtn) clearPhoneBtn.classList.remove('hidden');
         } else {
           phoneInput.value = phone.slice(0, 5) + ' ' + phone.slice(5);
           continueBtn.disabled = (phone.length !== 10);
+          if (clearPhoneBtn) clearPhoneBtn.classList.remove('hidden');
         }
         phoneError.classList.add('hidden');
       }

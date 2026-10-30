@@ -347,6 +347,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   phoneHighlight: {
+    fontWeight: '800',
+    color: colors.primary,
+    fontSize: 17,
+  },
+
   // ── Dev / Fallback OTP Banner ───────────────────────────────────────────
   devOtpBanner: {
     flexDirection: 'row',

@@ -143,40 +143,34 @@ const sendOTP = async (req, res, next) => {
 
     logger.info('OTP saved', { isExistingUser });
 
-    // Developer mode: skip SMS/WhatsApp entirely; OTP is shown on screen.
-    if (SHOW_OTP_ON_SCREEN) {
-      logger.info(`🛠️ SHOW_OTP_ON_SCREEN=true — Skipping SMS dispatch. OTP will display on screen.`);
-    } else {
-      // Try sending OTP via WhatsApp first; if it fails, fallback to SMS.
-      // Executed in the background so the user gets an instant HTTP response.
-      sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
-        if (whatsappSent) {
-          logger.info('OTP dispatched via WhatsApp');
-        } else {
-          logger.info('WhatsApp dispatch failed or not configured — falling back to SMS');
-          sendOTPSms(phone, otp).then((smsSent) => {
-            if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
-          }).catch((err) => {
-            logger.error('Background SMS error', { message: err.message });
-          });
-        }
-      }).catch((err) => {
-        logger.error('Background WhatsApp error, trying SMS fallback...', { message: err.message });
+    // Attempt real SMS/WhatsApp delivery if credentials are configured
+    sendOTPWhatsapp(phone, otp).then((whatsappSent) => {
+      if (whatsappSent) {
+        logger.info('OTP dispatched via WhatsApp', { phone });
+      } else {
+        logger.info('WhatsApp dispatch skipped/failed — trying SMS');
         sendOTPSms(phone, otp).then((smsSent) => {
-          if (!smsSent) logger.warn('SMS fallback failed or timed out — OTP is still valid in DB');
+          if (!smsSent) logger.warn('SMS dispatch skipped or failed — OTP is still valid in DB', { phone });
         }).catch((err) => {
-          logger.error('Background SMS error', { message: err.message });
+          logger.error('Background SMS error', { message: err.message, phone });
         });
+      }
+    }).catch((err) => {
+      logger.error('Background WhatsApp error, falling back to SMS...', { message: err.message, phone });
+      sendOTPSms(phone, otp).then((smsSent) => {
+        if (!smsSent) logger.warn('SMS dispatch skipped or failed — OTP is still valid in DB', { phone });
+      }).catch((smsErr) => {
+        logger.error('Background SMS error', { message: smsErr.message, phone });
       });
-    }
+    });
 
     const responsePayload = {
       message: 'OTP sent successfully',
       isExistingUser,
     };
 
-    // Only include devOtp in development/test for debugging — never in production
-    if (config.nodeEnv === 'development' || config.nodeEnv === 'test') {
+    // Include devOtp in development, test, or when SHOW_OTP_ON_SCREEN is enabled
+    if (config.nodeEnv === 'development' || config.nodeEnv === 'test' || SHOW_OTP_ON_SCREEN) {
       responsePayload.devOtp = otp;
     }
 

@@ -17,9 +17,11 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 
 const OTPScreen = ({ navigation, route }) => {
-  const { phone, name, village, role, age, gender, fromRegister } = route?.params || {};
+  const { phone, name, village, role, age, gender, fromRegister, devOtp, otp: paramOtp } = route?.params || {};
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  // Track dev/fallback OTP if provided by backend or params
+  const [currentDevOtp, setCurrentDevOtp] = useState(devOtp || paramOtp || null);
   // Resend cooldown timer (120 seconds matching the backend 2-min window)
   const [resendCooldown, setResendCooldown] = useState(0);
   const [attemptsRemaining, setAttemptsRemaining] = useState(null);
@@ -81,7 +83,10 @@ const OTPScreen = ({ navigation, route }) => {
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return; // ignore tap during cooldown
     try {
-      await sendOTPAction(phone);
+      const result = await sendOTPAction(phone);
+      if (result?.devOtp) {
+        setCurrentDevOtp(result.devOtp);
+      }
       // Start 120-second cooldown matching backend rate limit
       setResendCooldown(120);
       setAttemptsRemaining(null); // reset attempt counter display
@@ -147,6 +152,28 @@ const OTPScreen = ({ navigation, route }) => {
               <Text style={styles.phoneHighlight}>+91 {maskedPhone}</Text>
             </Text>
           </View>
+
+          {/* ── Fallback/Dev OTP helper banner ── */}
+          {currentDevOtp && (
+            <TouchableOpacity
+              style={styles.devOtpBanner}
+              onPress={() => {
+                setOtp(currentDevOtp);
+                verifyOTP(currentDevOtp);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={styles.devOtpLeft}>
+                <MaterialIcons name="sms" size={18} color={colors.primary} />
+                <Text style={styles.devOtpBannerText}>
+                  OTP Code: <Text style={styles.devOtpCode}>{currentDevOtp}</Text>
+                </Text>
+              </View>
+              <View style={styles.tapToFillBadge}>
+                <Text style={styles.tapToFillText}>Tap to autofill</Text>
+              </View>
+            </TouchableOpacity>
+          )}
 
           {/* ── OTP Input Boxes (large, prominent) ── */}
           <View style={styles.otpBoxRow}>
@@ -320,9 +347,46 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   phoneHighlight: {
-    fontWeight: '800',
-    color: colors.primary,
+  // ── Dev / Fallback OTP Banner ───────────────────────────────────────────
+  devOtpBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: `${colors.primary}15`,
+    borderWidth: 1.5,
+    borderColor: `${colors.primary}40`,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 20,
+    width: '100%',
+  },
+  devOtpLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  devOtpBannerText: {
+    fontSize: 15,
+    color: '#2D3748',
+    fontWeight: '600',
+  },
+  devOtpCode: {
     fontSize: 17,
+    fontWeight: '900',
+    color: colors.primary,
+    letterSpacing: 2,
+  },
+  tapToFillBadge: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  tapToFillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.backgroundDark,
   },
 
   // ── OTP Boxes (enlarged) ──────────────────────────────────────────────────

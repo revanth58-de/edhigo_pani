@@ -162,7 +162,7 @@ const RegisterScreen = ({ navigation }) => {
                 return;
             }
 
-            // Navigate to OTP screen — user will receive real OTP via SMS
+            // Navigate to OTP screen — pass devOtp as fallback if carrier SMS is delayed
             navigation.navigate('OTP', {
                 phone: phone.trim(),
                 name: name.trim(),
@@ -171,6 +171,7 @@ const RegisterScreen = ({ navigation }) => {
                 gender: gender,
                 role: selectedRole,
                 fromRegister: true,
+                devOtp: result?.devOtp,
             });
         } catch (error) {
             const errMsg = error?.response?.data?.error

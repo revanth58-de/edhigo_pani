@@ -68,10 +68,11 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      // Navigate to OTP screen — OTP will arrive via SMS
+      // Navigate to OTP screen — pass devOtp as fallback for test/dev/SMS failure
       navigation.navigate('OTP', {
         phone: phone,
         fromRegister: false,
+        devOtp: result?.devOtp,
       });
     } catch (error) {
       const errMsg = error?.response?.data?.error
@@ -147,43 +148,71 @@ const LoginScreen = ({ navigation }) => {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Phone Number Display (top section) ── */}
-          <View style={styles.displaySection}>
-            <View style={styles.labelRow}>
-              <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
-              <Text style={styles.label}>{t('auth.phoneNumber')}</Text>
+          {/* ── Top Area: Brand & Welcome Header ── */}
+          <View style={styles.topBrandSection}>
+            <View style={styles.brandBadge}>
+              <MaterialIcons name="agriculture" size={22} color={colors.primary} />
+              <Text style={styles.brandBadgeText}>DINASARI</Text>
             </View>
-
-            <View style={styles.phoneDisplayRow}>
-              {phone.length === 0 ? (
-                <Text style={[styles.phoneDisplay, { color: '#9CA3AF' }]}>0000 000000</Text>
-              ) : (
-                phone.split('').map((char, index) => (
-                  <React.Fragment key={index}>
-                    {index === cursorPos && <View style={styles.activeCursor} />}
-                    {index === 4 && <View style={{ width: 12 }} />}
-                    <TouchableOpacity onPress={() => setCursorPos(index)}>
-                      <Text style={[styles.phoneDisplay, cursorPos === index && styles.activeChar]}>
-                        {char}
-                      </Text>
-                    </TouchableOpacity>
-                  </React.Fragment>
-                ))
-              )}
-              {phone.length > 0 && cursorPos === phone.length && (
-                <View style={styles.activeCursor} />
-              )}
-              {phone.length > 0 && (
-                <TouchableOpacity style={styles.ghostTap} onPress={() => setCursorPos(phone.length)} />
-              )}
-            </View>
-            <View style={styles.displayUnderline} />
+            <Text style={styles.screenTitle}>Welcome Back</Text>
+            <Text style={styles.screenSubtitle}>
+              Enter your mobile number to get OTP
+            </Text>
           </View>
 
-          <View style={{ flex: 1 }} />
+          {/* Spacer pushing the interactive dialpad section to the bottom */}
+          <View style={{ flex: 1, minHeight: 16 }} />
 
-          {/* ── Keypad + Actions (bottom section, pushed down) ── */}
-          <View style={styles.keypadContainer}>
+          {/* ── Bottom Section (Arranged from bottom to top) ── */}
+          <View style={styles.bottomSection}>
+            {/* ── Heading: Phone Number directly on top of the input box ── */}
+            <View style={styles.headingRow}>
+              <MaterialIcons name="phone-iphone" size={20} color={colors.primary} />
+              <Text style={styles.headingText}>{t('auth.phoneNumber') || 'Phone Number'}</Text>
+            </View>
+
+            {/* ── Input Box of Mobile Number directly above the dial pad ── */}
+            <View style={styles.inputBoxContainer}>
+              <View style={styles.countryCodeBadge}>
+                <Text style={styles.countryFlag}>🇮🇳</Text>
+                <Text style={styles.countryCodeText}>+91</Text>
+              </View>
+              <View style={styles.inputDivider} />
+              <View style={styles.phoneDisplayRow}>
+                {phone.length === 0 ? (
+                  <Text style={styles.phonePlaceholder}>00000 00000</Text>
+                ) : (
+                  phone.split('').map((char, index) => (
+                    <React.Fragment key={index}>
+                      {index === cursorPos && <View style={styles.activeCursor} />}
+                      {index === 5 && <View style={{ width: 8 }} />}
+                      <TouchableOpacity onPress={() => setCursorPos(index)} activeOpacity={0.7}>
+                        <Text style={[styles.phoneDigit, cursorPos === index && styles.activeChar]}>
+                          {char}
+                        </Text>
+                      </TouchableOpacity>
+                    </React.Fragment>
+                  ))
+                )}
+                {phone.length > 0 && cursorPos === phone.length && (
+                  <View style={styles.activeCursor} />
+                )}
+                {phone.length > 0 && (
+                  <TouchableOpacity style={styles.ghostTap} onPress={() => setCursorPos(phone.length)} />
+                )}
+              </View>
+              {phone.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => { setPhone(''); setCursorPos(0); }}
+                  style={styles.clearBtn}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="cancel" size={22} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ── Dial Pad (Custom Keypad) ── */}
             <View style={styles.keypad}>
               {keypadNumbers.map((row, rowIndex) => (
                 <View key={rowIndex} style={styles.keypadRow}>
@@ -197,7 +226,7 @@ const LoginScreen = ({ navigation }) => {
                           onPress={handleBackspace}
                           activeOpacity={0.7}
                         >
-                          <MaterialIcons name="backspace" size={36} color="#EF4444" />
+                          <MaterialIcons name="backspace" size={32} color="#EF4444" />
                         </TouchableOpacity>
                       );
                     }
@@ -242,7 +271,7 @@ const LoginScreen = ({ navigation }) => {
                 )}
               </TouchableOpacity>
 
-              {/* ── Register Here — large, prominent, right below the button ── */}
+              {/* ── Register Link ── */}
               <TouchableOpacity
                 style={styles.registerLink}
                 onPress={() => navigation.navigate('Register')}
@@ -265,51 +294,208 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.backgroundLight },
   scrollView: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'space-between' },
 
-  // ── Phone Display (top) ──────────────────────────────────────────────────
-  displaySection: {
+  // ── Top Header Brand ──────────────────────────────────────────────────────
+  topBrandSection: {
     paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'ios' ? 56 : 40,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 56 : 36,
+    paddingBottom: 12,
+  },
+  brandBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: `${colors.primary}18`,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 12,
+  },
+  brandBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.primary,
+    letterSpacing: 1.5,
+  },
+  screenTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#131811',
+    letterSpacing: -0.5,
+  },
+  screenSubtitle: {
+    fontSize: 14,
+    color: '#6f8961',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+
+  // ── Bottom Section (Bottom-to-Top Layout) ──────────────────────────────────
+  bottomSection: {
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
+  },
+
+  // ── Heading: Phone Number (directly on top of input box) ─────────────────
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+    paddingHorizontal: 4,
+  },
+  headingText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2D3748',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // ── Input Box of Mobile Number (directly above dial pad) ──────────────────
+  inputBoxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: `${colors.primary}50`,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  countryCodeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 10,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryCodeText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#131811',
+  },
+  inputDivider: {
+    width: 1.5,
+    height: 28,
+    backgroundColor: '#E5E7EB',
+    marginRight: 12,
+  },
+  phoneDisplayRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+  },
+  phonePlaceholder: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    letterSpacing: 2,
+  },
+  phoneDigit: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#131811',
+    letterSpacing: 1.5,
+  },
+  activeCursor: {
+    width: 2.5,
+    height: 26,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+    marginHorizontal: 1,
+  },
+  activeChar: {
+    color: colors.primary,
+  },
+  ghostTap: {
+    position: 'absolute',
+    right: 0,
+    width: 40,
+    height: 44,
+  },
+  clearBtn: {
+    padding: 6,
+  },
+
+  // ── Keypad (Dial Pad) ────────────────────────────────────────────────────
+  keypad: {
+    gap: 10,
+    marginBottom: 8,
+  },
+  keypadRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  keypadKey: {
+    flex: 1,
+    height: 68,
+    borderRadius: 24,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  label: { fontSize: 14, fontWeight: '600', color: '#6f8961', letterSpacing: 2 },
-  phoneDisplay: { fontSize: 40, fontWeight: 'bold', color: '#131811', letterSpacing: 2, paddingVertical: 16 },
-  phoneDisplayRow: { flexDirection: 'row', alignItems: 'center', minHeight: 80 },
-  activeCursor: { width: 3, height: 40, backgroundColor: colors.primary, borderRadius: 2 },
-  activeChar: { color: colors.primary },
-  ghostTap: { position: 'absolute', right: -20, width: 40, height: 80 },
-  displayUnderline: { width: '100%', height: 2, backgroundColor: `${colors.primary}4D` },
-
-  // ── Keypad (bottom) ─────────────────────────────────────────────────────
-  keypadContainer: { padding: 16 },
-  keypad: { gap: 12 },
-  keypadRow: { flexDirection: 'row', gap: 12 },
-  keypadKey: { flex: 1, height: 80, borderRadius: 32, justifyContent: 'center', alignItems: 'center' },
   keypadKeyActive: {
-    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#dfe6db',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  keypadKeyText: { fontSize: 30, fontWeight: 'bold', color: '#131811' },
+  keypadKeyText: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: '#131811',
+  },
 
   // ── Buttons ──────────────────────────────────────────────────────────────
-  buttonContainer: { paddingHorizontal: 8, paddingTop: 24, paddingBottom: 32 },
-  continueButton: {
-    flexDirection: 'row', height: 64, borderRadius: 9999, backgroundColor: colors.primary,
-    justifyContent: 'center', alignItems: 'center', gap: 8,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 16,
+  buttonContainer: {
+    paddingTop: 14,
+    paddingBottom: 8,
   },
-  continueButtonDisabled: { opacity: 0.5 },
-  continueButtonText: { fontSize: 22, fontWeight: 'bold', color: colors.backgroundDark },
+  continueButton: {
+    flexDirection: 'row',
+    height: 60,
+    borderRadius: 9999,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  continueButtonDisabled: {
+    opacity: 0.45,
+    elevation: 0,
+  },
+  continueButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.backgroundDark,
+  },
 
-  // ── Register Link (large & prominent) ─────────────────────────────────
+  // ── Register Link ────────────────────────────────────────────────────────
   registerLink: {
-    marginTop: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 20,
+    marginTop: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     backgroundColor: `${colors.primary}0D`,
     borderWidth: 1.5,
     borderColor: `${colors.primary}30`,
@@ -322,27 +508,87 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   registerLinkPrefix: {
-    fontSize: 20,
+    fontSize: 16,
     color: '#6f8961',
     fontWeight: '500',
   },
   registerLinkCta: {
-    fontSize: 22,
-    fontWeight: '900',
+    fontSize: 17,
+    fontWeight: '800',
     color: colors.primary,
     textDecorationLine: 'underline',
   },
 
   // ── Not Registered Modal ─────────────────────────────────────────────────
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalCard: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 32, alignItems: 'center', width: '100%', gap: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.3, shadowRadius: 32, elevation: 20 },
-  modalIconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: `${colors.primary}15`, justifyContent: 'center', alignItems: 'center' },
-  modalTitle: { fontSize: 24, fontWeight: '900', color: '#131811', textAlign: 'center' },
-  modalBody: { fontSize: 16, color: '#6B7280', textAlign: 'center', lineHeight: 24 },
-  modalRegisterBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.primary, paddingHorizontal: 36, paddingVertical: 16, borderRadius: 9999, width: '100%', justifyContent: 'center', shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 10 },
-  modalRegisterBtnText: { fontSize: 18, fontWeight: '800', color: '#FFFFFF' },
-  modalDismissBtn: { paddingVertical: 8 },
-  modalDismiss: { fontSize: 15, color: '#9CA3AF', textDecorationLine: 'underline' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    padding: 32,
+    alignItems: 'center',
+    width: '100%',
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.3,
+    shadowRadius: 32,
+    elevation: 20,
+  },
+  modalIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: `${colors.primary}15`,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#131811',
+    textAlign: 'center',
+  },
+  modalBody: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  modalRegisterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 36,
+    paddingVertical: 16,
+    borderRadius: 9999,
+    width: '100%',
+    justifyContent: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalRegisterBtnText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  modalDismissBtn: {
+    paddingVertical: 8,
+  },
+  modalDismiss: {
+    fontSize: 15,
+    color: '#9CA3AF',
+    textDecorationLine: 'underline',
+  },
 });
 
 export default LoginScreen;

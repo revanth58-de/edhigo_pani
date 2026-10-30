@@ -46,7 +46,11 @@ if (process.env.NODE_ENV === 'production') {
     { key: 'JWT_REFRESH_SECRET', name: 'JWT Refresh Token Secret' },
     { key: 'ADMIN_SECRET', name: 'Admin Master Password' },
     { key: 'ADMIN_JWT_SECRET', name: 'Admin JWT Secret' },
-    { key: 'RENFLAIR_API_KEY', name: 'Renflair SMS Gateway Key' },
+    { 
+      key: 'SMS_API', 
+      aliases: ['SMS_API', 'RENFLAIR_API_KEY', 'FAST2SMS_API_KEY', 'SMS_API_KEY'], 
+      name: 'SMS Gateway (SMS_API / Renflair / Fast2SMS)' 
+    },
     { key: 'RAZORPAY_KEY_ID', name: 'Razorpay Key ID' },
     { key: 'RAZORPAY_KEY_SECRET', name: 'Razorpay Key Secret' },
     { key: 'CLOUDINARY_CLOUD_NAME', name: 'Cloudinary Cloud Name' },
@@ -55,15 +59,26 @@ if (process.env.NODE_ENV === 'production') {
     { key: 'SENTRY_DSN', name: 'Sentry Crash Reporting DSN' },
   ];
 
-  for (const { key, name } of secrets) {
-    const val = process.env[key];
-    if (val && isPlaceholder(val)) {
+  for (const item of secrets) {
+    const key = item.key;
+    const name = item.name;
+    const aliases = item.aliases || [key];
+
+    // Check if any alias has an unconfigured placeholder
+    const placeholderAlias = aliases.find((k) => process.env[k] && isPlaceholder(process.env[k]));
+    if (placeholderAlias) {
+      const val = process.env[placeholderAlias];
       if (process.env.JEST_WORKER_ID) {
-        errors.push(`⚠️ ${key} (${name}) contains an unconfigured placeholder: "${val}"`);
+        errors.push(`⚠️ ${placeholderAlias} (${name}) contains an unconfigured placeholder: "${val}"`);
       } else {
-        warnings.push(`⚠️ ${key} (${name}) contains a placeholder value: "${val}"`);
+        warnings.push(`⚠️ ${placeholderAlias} (${name}) contains a placeholder value: "${val}"`);
       }
-    } else if (!val || val.trim() === '') {
+      continue;
+    }
+
+    // Check if at least one alias is configured with a real value
+    const hasValue = aliases.some((k) => process.env[k] && process.env[k].trim() !== '');
+    if (!hasValue) {
       warnings.push(`ℹ️ ${key} (${name}) is not set in environment (using safe fallback or optional mode).`);
     }
   }
@@ -99,6 +114,8 @@ module.exports = {
   
   adminJwtSecret,
   adminSecret,
+  // SMS API configuration
+  smsApi: process.env.SMS_API || process.env.SMS_API_KEY || process.env.RENFLAIR_API_KEY || process.env.FAST2SMS_API_KEY,
   // Cloudinary credentials
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,

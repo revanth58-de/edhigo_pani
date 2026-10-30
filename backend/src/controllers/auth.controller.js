@@ -143,10 +143,10 @@ const sendOTP = async (req, res, next) => {
 
     logger.info('OTP saved', { isExistingUser });
 
-    // Attempt real SMS/WhatsApp delivery via Renflair SMS Gateway
+    // Attempt real SMS/WhatsApp delivery via SMS Gateway (SMS_API / Renflair / Fast2SMS)
     sendOTPSms(phone, otp).then((smsSent) => {
       if (smsSent) {
-        logger.info('OTP dispatched successfully via Renflair SMS & WhatsApp', { phone });
+        logger.info('OTP dispatched successfully via SMS Gateway', { phone });
       } else {
         logger.info('SMS gateway not sent — trying secondary WhatsApp provider', { phone });
         sendOTPWhatsapp(phone, otp).catch((err) => {

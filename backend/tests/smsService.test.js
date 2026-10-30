@@ -1,28 +1,39 @@
-const { sendOTPSms } = require('../src/services/smsService');
+const { sendOTPSms, sendRenflairSMS, sendFast2SMSSMS, sendCustomUrlSMS } = require('../src/services/smsService');
 
 describe('smsService - sendOTPSms', () => {
   let originalFetch;
-
   let originalRenflairKey;
+  let originalFast2smsKey;
+  let originalSmsApi;
 
   beforeAll(() => {
     originalFetch = global.fetch;
     originalRenflairKey = process.env.RENFLAIR_API_KEY;
+    originalFast2smsKey = process.env.FAST2SMS_API_KEY;
+    originalSmsApi = process.env.SMS_API;
+
     delete process.env.RENFLAIR_API_KEY;
+    delete process.env.SMS_API;
     process.env.FAST2SMS_API_KEY = 'mock-api-key';
   });
 
   afterAll(() => {
     global.fetch = originalFetch;
     delete process.env.FAST2SMS_API_KEY;
-    if (originalRenflairKey) {
-      process.env.RENFLAIR_API_KEY = originalRenflairKey;
-    }
+    delete process.env.SMS_API;
+
+    if (originalRenflairKey) process.env.RENFLAIR_API_KEY = originalRenflairKey;
+    if (originalFast2smsKey) process.env.FAST2SMS_API_KEY = originalFast2smsKey;
+    if (originalSmsApi) process.env.SMS_API = originalSmsApi;
   });
 
   beforeEach(() => {
     jest.useFakeTimers();
     global.fetch = jest.fn();
+    delete process.env.RENFLAIR_API_KEY;
+    delete process.env.SMS_API;
+    delete process.env.SMS_API_KEY;
+    process.env.FAST2SMS_API_KEY = 'mock-api-key';
   });
 
   afterEach(() => {
@@ -30,13 +41,12 @@ describe('smsService - sendOTPSms', () => {
   });
 
   it('should return false if API key is not set', async () => {
-    const originalKey = process.env.FAST2SMS_API_KEY;
     delete process.env.FAST2SMS_API_KEY;
+    delete process.env.SMS_API;
+    delete process.env.RENFLAIR_API_KEY;
 
     const result = await sendOTPSms('9876543210', '123456');
     expect(result).toBe(false);
-
-    process.env.FAST2SMS_API_KEY = originalKey;
   });
 
   it('should return true on first attempt if API returns success', async () => {
@@ -95,10 +105,87 @@ describe('smsService - sendOTPSms', () => {
     expect(global.fetch).toHaveBeenCalledTimes(4);
   });
 
+  describe('Render SMS_API Variable (API Key & Custom URL)', () => {
+    it('should dispatch successfully using SMS_API as an API key', async () => {
+      delete process.env.FAST2SMS_API_KEY;
+      delete process.env.RENFLAIR_API_KEY;
+      process.env.SMS_API = 'render-sms-api-key-123';
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ status: 'SUCCESS', message: 'SMS SENT' }),
+      });
+
+      const result = await sendOTPSms('9876543210', '4321');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toContain('API=render-sms-api-key-123');
+      expect(calledUrl).toContain('PHONE=9876543210');
+      expect(calledUrl).toContain('OTP=4321');
+    });
+
+    it('should dispatch successfully using SMS_API as a custom URL endpoint with placeholders', async () => {
+      delete process.env.FAST2SMS_API_KEY;
+      process.env.SMS_API = 'https://custom-gateway.io/send?to={phone}&code={otp}&token=xyz';
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ success: true }),
+      });
+
+      const result = await sendOTPSms('9876543210', '5678');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toBe('https://custom-gateway.io/send?to=9876543210&code=5678&token=xyz');
+    });
+
+    it('should dispatch successfully using SMS_API URL without placeholders by appending params', async () => {
+      delete process.env.FAST2SMS_API_KEY;
+      process.env.SMS_API = 'https://sms.renflair.in/V1.php?API=render-key';
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        text: async () => JSON.stringify({ status: 'SUCCESS' }),
+      });
+
+      const result = await sendOTPSms('9876543210', '9999');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      const calledUrl = global.fetch.mock.calls[0][0];
+      expect(calledUrl).toContain('https://sms.renflair.in/V1.php?API=render-key');
+      expect(calledUrl).toContain('PHONE=9876543210');
+      expect(calledUrl).toContain('OTP=9999');
+    });
+
+    it('should fallback to Fast2SMS if SMS_API custom URL fails', async () => {
+      process.env.SMS_API = 'https://custom-gateway.io/send?to={phone}&code={otp}';
+      process.env.FAST2SMS_API_KEY = 'mock-fast2sms-key';
+
+      // 1. Custom URL fails with 500
+      global.fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      });
+
+      // 2. Fast2SMS succeeds
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ return: true }),
+      });
+
+      const result = await sendOTPSms('9876543210', '1234');
+      expect(result).toBe(true);
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('Renflair SMS Gateway', () => {
     beforeEach(() => {
       process.env.RENFLAIR_API_KEY = 'test-renflair-key';
       delete process.env.FAST2SMS_API_KEY;
+      delete process.env.SMS_API;
     });
 
     afterEach(() => {

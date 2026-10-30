@@ -1,4 +1,18 @@
-const { Expo } = require('expo-server-sdk');
+let Expo;
+try {
+  Expo = require('expo-server-sdk').Expo;
+} catch (_) {
+  Expo = class MockExpo {
+    constructor() {}
+    sendPushNotificationsAsync() { return Promise.resolve([]); }
+    chunkPushNotifications(chunks) { return chunks ? [chunks] : []; }
+    chunkPushNotificationReceiptIds(ids) { return ids ? [ids] : []; }
+    getPushNotificationReceiptsAsync() { return Promise.resolve({}); }
+    static isExpoPushToken(token) {
+      return typeof token === 'string' && (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['));
+    }
+  };
+}
 let admin = null;
 try {
   admin = require('firebase-admin');

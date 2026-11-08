@@ -33,8 +33,8 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
   const { payment } = route?.params || {};
 
   const grossAmount = payment?.amount || 0;
-  const commission = payment?.commissionAmount || (grossAmount * 0.05);
-  const netEarnings = payment?.workerAmount || (grossAmount - commission);
+  const commission = payment?.commissionAmount != null ? payment.commissionAmount : 10;
+  const netEarnings = payment?.workerAmount != null ? payment.workerAmount : Math.max(0, grossAmount - commission);
   const isSettled = payment?.settlementStatus?.toLowerCase() === 'settled';
 
   const dateStr = payment?.paidAt || payment?.createdAt;
@@ -85,12 +85,12 @@ const WorkerPaymentDetailsScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.breakupRow}>
-            <Text style={styles.breakupLabel}>Dinasari Commission (5%)</Text>
+            <Text style={styles.breakupLabel}>Dinasari Service Fee</Text>
             <Text style={[styles.breakupVal, { color: '#EF4444' }]}>- {formatINR(commission)}</Text>
           </View>
 
           <View style={styles.breakupRow}>
-            <Text style={styles.breakupLabel}>Your Earnings share (95%)</Text>
+            <Text style={styles.breakupLabel}>Your Full Earnings Wage</Text>
             <Text style={[styles.breakupVal, { color: '#10B981', fontWeight: '900' }]}>{formatINR(netEarnings)}</Text>
           </View>
 

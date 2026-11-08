@@ -236,8 +236,8 @@ const MachineryBookingScreen = ({ navigation, route }) => {
                 source={{
                   uri: currentListing.photoUrl ||
                     (machineType.toLowerCase() === 'tractor'
-                      ? 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'
-                      : 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800'),
+                      ? 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop'
+                      : 'https://images.unsplash.com/photo-1632723893457-47e3abc47526?q=80&w=800&auto=format&fit=crop'),
                 }}
                 style={styles.machineImage}
               />

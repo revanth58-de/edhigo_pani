@@ -14,9 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = readJsonInput();
 $phone = trim($input['phone'] ?? '');
 
-// Clean phone (strip any non-numeric or country code like +91 or 0)
-$phone = preg_replace('/^\+91|^91|^0/', '', $phone);
-$phone = preg_replace('/\D/', '', $phone);
+// Clean phone (normalizes to 10-digit Indian mobile number without stripping 91 from 10-digit numbers)
+$digits = preg_replace('/\D/', '', $input['phone'] ?? '');
+if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+    $digits = substr($digits, 2);
+} elseif (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+    $digits = substr($digits, 1);
+}
+$phone = $digits;
 
 // 1. Validate 10-digit Indian Mobile Number
 if (!isValidIndianMobile($phone)) {
@@ -28,8 +33,42 @@ if (!isValidIndianMobile($phone)) {
 
 $pdo = getDbConnection();
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$purpose = trim($input['purpose'] ?? 'login');
 
 try {
+    // Check if user exists in database across common formats (+91, 91, 0, or clean 10-digit)
+    $stmtUser = $pdo->prepare(
+        "SELECT id, name, role FROM users 
+         WHERE phone = :p1 OR phone = :p2 OR phone = :p3 OR phone = :p4 
+         LIMIT 1"
+    );
+    $stmtUser->execute([
+        ':p1' => $phone,
+        ':p2' => "+91$phone",
+        ':p3' => "91$phone",
+        ':p4' => "0$phone",
+    ]);
+    $userRow = $stmtUser->fetch();
+    $isExistingUser = ($userRow !== false && !empty($userRow));
+    $isFullyRegistered = ($userRow && (!empty($userRow['name']) || !empty($userRow['role'])));
+
+    // 1. Skip OTP dispatch if user is not registered during login
+    if ($purpose === 'login' && !$isExistingUser) {
+        jsonResponse(200, [
+            'success'        => true,
+            'message'        => 'This phone number is not registered. Please register first.',
+            'isExistingUser' => false,
+        ]);
+    }
+
+    // 2. Skip OTP dispatch if user is already fully registered during registration
+    if ($purpose === 'register' && $isFullyRegistered) {
+        jsonResponse(200, [
+            'success'        => true,
+            'message'        => 'This phone number is already registered. Please login.',
+            'isExistingUser' => true,
+        ]);
+    }
     // 2. Check Resend Cooldown (60 seconds)
     $stmtCooldown = $pdo->prepare(
         "SELECT id, resend_available_at, TIMESTAMPDIFF(SECOND, NOW(), resend_available_at) AS wait_sec

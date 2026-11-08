@@ -227,17 +227,10 @@ const makePayment = async (req, res, next) => {
     const rawPerWorker = amount / attendances.length;
     const perWorkerAmount = Math.round(rawPerWorker * 100) / 100; // round to 2 decimal places
 
-    let commissionPct = 0.05;
-    try {
-      const setting = await prisma.systemSetting.findUnique({ where: { key: 'app.platformCommission' } });
-      if (setting) {
-        commissionPct = parseFloat(setting.value) / 100;
-      }
-    } catch (err) {
-      logger.error('Failed to load platform commission setting', { message: err.message });
-    }
-    const commissionAmount = Math.round((perWorkerAmount * commissionPct) * 100) / 100;
-    const workerAmount = Math.round((perWorkerAmount - commissionAmount) * 100) / 100;
+    // Platform fee: ₹10 per worker in the group comes to us, and the wage goes to the worker
+    const PLATFORM_FEE_PER_WORKER = 10;
+    const commissionAmount = perWorkerAmount > PLATFORM_FEE_PER_WORKER ? PLATFORM_FEE_PER_WORKER : 0;
+    const workerAmount = Math.max(0, Math.round((perWorkerAmount - commissionAmount) * 100) / 100);
 
     for (const att of attendances) {
       const isCompleted = method === PaymentMethod.CASH ? PaymentStatus.COMPLETED : PaymentStatus.PENDING;

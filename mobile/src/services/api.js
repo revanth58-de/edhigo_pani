@@ -171,10 +171,10 @@ apiClient.interceptors.response.use(
 export const authAPI = {
     sendOTP: async (phone, type = 'login') => {
         try {
-            return await apiClient.post('/auth/send-otp', { phone, type });
+            return await apiClient.post('/auth/send-otp', { phone, type, purpose: type });
         } catch (err) {
             if (err?.response?.status === 404 && err?.response?.data?.isExistingUser === undefined) {
-                return await apiClient.post('/send_otp.php', { phone, type });
+                return await apiClient.post('/send_otp.php', { phone, type, purpose: type });
             }
             throw err;
         }

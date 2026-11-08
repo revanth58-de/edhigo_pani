@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const config = require('../config/env');
-const { sendOTPSms } = require('../services/smsService');
+const { sendOTPSms, normalizePhone } = require('../services/smsService');
 const { sendOTPWhatsapp } = require('../services/whatsappService');
 const { logger } = require('../middleware/errorHandler');
 const { UserRole, Gender, Language } = require('../config/enums'); // D1
@@ -90,13 +90,17 @@ const generateTokens = async (userId) => {
 // POST /api/auth/send-otp
 const sendOTP = async (req, res, next) => {
   try {
-    const { phone, type, action, purpose, fromRegister } = req.body;
+    const rawPhone = req.body.phone;
+    const { type, action, purpose, fromRegister } = req.body;
 
-    logger.info(`📞 OTP requested for phone: ${phone}`, { type, action, ip: req.ip });
+    logger.info(`📞 OTP requested for phone: ${rawPhone}`, { type, action, purpose, ip: req.ip });
 
-    if (!phone) {
+    if (!rawPhone) {
       return res.status(400).json({ error: 'Phone number is required' });
     }
+
+    // Clean phone number to 10-digit Indian mobile number
+    const phone = normalizePhone(rawPhone);
 
     // Validate 10-digit Indian mobile number
     const phoneRegex = /^[6-9]\d{9}$/;
@@ -104,9 +108,20 @@ const sendOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid phone number. Must be a valid 10-digit Indian mobile number.' });
     }
 
-    // Check if this phone is already a fully registered user
-    const existingUser = await prisma.user.findUnique({ where: { phone } });
-    const isExistingUser = !!(existingUser?.name && existingUser?.role && !existingUser?.deletedAt);
+    // Check if this phone exists in the database under any common format (10-digit, +91, 91, or leading 0)
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone },
+          { phone: `+91${phone}` },
+          { phone: `91${phone}` },
+          { phone: `0${phone}` },
+        ],
+      },
+    });
+
+    const isExistingUser = !!existingUser;
+    const isFullyRegistered = !!(existingUser && (existingUser.role || existingUser.name) && !existingUser.deletedAt);
 
     // S4: Block suspended/soft-deleted users
     if (existingUser?.deletedAt) {
@@ -122,32 +137,33 @@ const sendOTP = async (req, res, next) => {
     const isRegister = flowType === 'register' || fromRegister === true;
 
     // RULE 1: If user is trying to LOGIN, ONLY registered candidates can receive an OTP!
-    // An unregistered candidate who tries to login must NOT get an OTP.
     if (isLogin && !isExistingUser) {
       logger.warn('Login OTP rejected: Candidate is not registered', { phone, ip: req.ip });
       return res.status(404).json({
         error: 'This phone number is not registered. Please register first to continue.',
+        message: 'This phone number is not registered. Please register first.',
         isExistingUser: false,
       });
     }
 
     // RULE 2: If user is trying to REGISTER, but candidate is already registered, reject to prevent duplicate registration.
-    if (isRegister && isExistingUser) {
+    if (isRegister && isFullyRegistered) {
       logger.info('Register OTP rejected: Candidate is already registered', { phone, ip: req.ip });
       return res.status(409).json({
         error: 'This phone number is already registered. Please login.',
+        message: 'This phone number is already registered. Please login.',
         isExistingUser: true,
       });
     }
 
-    // FIX #12: Per-phone OTP rate limit — prevent SMS flooding without Redis.
-    // If an OTP was issued less than 2 minutes ago, reject the request.
-    // The OTP TTL is already stored in otpExpiresAt; we check the inverse window.
-    const OTP_RESEND_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
+
+
+    // FIX #12: Per-phone OTP rate limit — 60s cooldown matching mobile timer
+    const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
     if (existingUser?.otpExpiresAt && config.nodeEnv !== 'test' && config.nodeEnv !== 'development') {
       const otpIssuedAt = new Date(existingUser.otpExpiresAt.getTime() - config.otpExpiryMinutes * 60 * 1000);
       const msSinceLastOtp = Date.now() - otpIssuedAt.getTime();
-      if (msSinceLastOtp < OTP_RESEND_COOLDOWN_MS) {
+      if (msSinceLastOtp > 0 && msSinceLastOtp < OTP_RESEND_COOLDOWN_MS) {
         const waitSec = Math.ceil((OTP_RESEND_COOLDOWN_MS - msSinceLastOtp) / 1000);
         logger.warn('OTP rate limit hit', { phone, waitSec });
         return res.status(429).json({
@@ -166,10 +182,10 @@ const sendOTP = async (req, res, next) => {
       logger.info(`🛠️ DEV OTP for ${phone}: ${otp}`);
     }
 
-    // Upsert user — create if doesn't exist, update OTP if exists
+    // Upsert user — update existing user if found (normalizing phone if needed), create clean 10-digit if new
     await prisma.user.upsert({
-      where: { phone },
-      update: { otp: otpHash, otpExpiresAt },
+      where: { phone: existingUser ? existingUser.phone : phone },
+      update: { phone, otp: otpHash, otpExpiresAt },
       create: { phone, otp: otpHash, otpExpiresAt },
     });
 
@@ -209,7 +225,9 @@ const sendOTP = async (req, res, next) => {
 // POST /api/auth/verify-otp
 const verifyOTP = async (req, res, next) => {
   try {
-    const { phone, otp, name, village, role, age, gender } = req.body;
+    const rawPhone = req.body.phone;
+    const phone = normalizePhone(rawPhone);
+    const { otp, name, village, role, age, gender } = req.body;
 
     logger.info('OTP verification attempt', { phone });
 
@@ -217,7 +235,16 @@ const verifyOTP = async (req, res, next) => {
       return res.status(400).json({ error: 'Phone and OTP are required' });
     }
 
-    let user = await prisma.user.findUnique({ where: { phone } });
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone },
+          { phone: `+91${phone}` },
+          { phone: `91${phone}` },
+          { phone: `0${phone}` },
+        ],
+      },
+    });
 
     // S4: Block suspended/soft-deleted users from logging in.
     if (user?.deletedAt) {
@@ -296,6 +323,7 @@ const verifyOTP = async (req, res, next) => {
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
+        phone,
         otp:          null,
         otpExpiresAt: null,
         otpFailCount: 0,

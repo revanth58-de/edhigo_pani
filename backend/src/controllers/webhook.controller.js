@@ -142,9 +142,9 @@ const handleRazorpayWebhook = async (req, res, next) => {
 
               if (attendances.length > 0) {
                 const perWorker = Math.round((amountInRupees / attendances.length) * 100) / 100;
-                const commissionPct = 0.05;
-                const commissionAmount = Math.round((perWorker * commissionPct) * 100) / 100;
-                const workerAmount = Math.round((perWorker - commissionAmount) * 100) / 100;
+                const PLATFORM_FEE_PER_WORKER = 10;
+                const commissionAmount = perWorker > PLATFORM_FEE_PER_WORKER ? PLATFORM_FEE_PER_WORKER : 0;
+                const workerAmount = Math.max(0, Math.round((perWorker - commissionAmount) * 100) / 100);
 
                 for (const att of attendances) {
                   const p = await prisma.payment.create({

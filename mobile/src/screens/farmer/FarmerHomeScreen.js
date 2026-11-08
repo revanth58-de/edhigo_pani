@@ -108,7 +108,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       name: 'Tractor Rentals',
       type: 'Tractor',
       price: '₹800/hr',
-      image: 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop',
       owner: 'Ramesh Kumar',
     },
     {
@@ -116,7 +116,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       name: 'Combine Harvester',
       type: 'Harvester',
       price: '₹1,800/hr',
-      image: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1632723893457-47e3abc47526?q=80&w=800&auto=format&fit=crop',
       owner: 'Suresh Singh',
     },
     {
@@ -124,7 +124,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       name: 'Pesticide Drone',
       type: 'Sprayer',
       price: '₹1,200/hr',
-      image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1713952160156-bb59cac789a9?q=80&w=800&auto=format&fit=crop',
       owner: 'Venkatesh Rao',
     },
     {
@@ -132,7 +132,7 @@ const FarmerHomeScreen = ({ navigation }) => {
       name: 'Power Rotavator',
       type: 'Plough',
       price: '₹600/hr',
-      image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+      image: 'https://images.unsplash.com/photo-1700158122231-4845030b502a?q=80&w=800&auto=format&fit=crop',
       owner: 'Anil Reddy',
     },
   ]);
@@ -147,15 +147,15 @@ const FarmerHomeScreen = ({ navigation }) => {
       [
         {
           text: 'Tractor (₹800/hr)',
-          onPress: () => appendMachinery('Tractor', 'Tractor', '₹800/hr', 'https://images.unsplash.com/photo-1595246140625-573b715d11dc?q=80&w=800'),
+          onPress: () => appendMachinery('Tractor', 'Tractor', '₹800/hr', 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop'),
         },
         {
           text: 'Pesticide Drone (₹1,200/hr)',
-          onPress: () => appendMachinery('Pesticide Drone', 'Sprayer', '₹1,200/hr', 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?q=80&w=800'),
+          onPress: () => appendMachinery('Pesticide Drone', 'Sprayer', '₹1,200/hr', 'https://images.unsplash.com/photo-1713952160156-bb59cac789a9?q=80&w=800&auto=format&fit=crop'),
         },
         {
           text: 'Rotavator (₹600/hr)',
-          onPress: () => appendMachinery('Rotavator', 'Plough', '₹600/hr', 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800'),
+          onPress: () => appendMachinery('Rotavator', 'Plough', '₹600/hr', 'https://images.unsplash.com/photo-1700158122231-4845030b502a?q=80&w=800&auto=format&fit=crop'),
         },
         { text: 'Cancel', style: 'cancel' }
       ]
@@ -471,7 +471,7 @@ const FarmerHomeScreen = ({ navigation }) => {
         {
           id: 'const_masonry',
           name: t('crops.const_masonry') || 'మేస్త్రీలు / తాపీ పని (Masons & Brickwork)',
-          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          image: require('../../../assets/work_types/const_masonry.jpg'),
           gradient: ['#EA580C', '#C2410C'],
           icon: 'foundation',
         },
@@ -492,7 +492,7 @@ const FarmerHomeScreen = ({ navigation }) => {
         {
           id: 'const_carpentry',
           name: t('crops.const_carpentry') || 'వడ్రంగులు (Carpenters & Woodwork)',
-          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          image: require('../../../assets/work_types/const_carpentry.jpg'),
           gradient: ['#B45309', '#78350F'],
           icon: 'handyman',
         },
@@ -696,7 +696,7 @@ const FarmerHomeScreen = ({ navigation }) => {
           >
             {machineryList.map((item) => (
               <GlassCard intensity={30} tint="light" key={item.id} style={styles.machineryCard}>
-                <Image source={{ uri: item.image }} style={styles.machineryImage} />
+                <Image source={typeof item.image === "string" ? { uri: item.image } : item.image} style={styles.machineryImage} />
                 <LinearGradient
                   colors={['transparent', 'rgba(0, 0, 0, 0.6)']}
                   style={styles.machineryGradient}

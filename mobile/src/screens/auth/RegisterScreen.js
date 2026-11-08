@@ -154,7 +154,7 @@ const RegisterScreen = ({ navigation }) => {
         }
 
         try {
-            const result = await sendOTP(phone.trim());
+            const result = await sendOTP(phone.trim(), 'register');
 
             // Already a registered user — show full-page modal
             if (result?.isExistingUser) {

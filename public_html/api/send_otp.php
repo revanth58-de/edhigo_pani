@@ -28,8 +28,32 @@ if (!isValidIndianMobile($phone)) {
 
 $pdo = getDbConnection();
 $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+$purpose = trim($input['purpose'] ?? 'login');
 
 try {
+    // Check if user is registered
+    $stmtUser = $pdo->prepare("SELECT id, name, role FROM users WHERE phone = :phone LIMIT 1");
+    $stmtUser->execute([':phone' => $phone]);
+    $userRow = $stmtUser->fetch();
+    $isExistingUser = ($userRow && !empty($userRow['name']) && !empty($userRow['role']));
+
+    // 1. Skip OTP dispatch if user is not registered during login
+    if ($purpose === 'login' && !$isExistingUser) {
+        jsonResponse(200, [
+            'success'        => true,
+            'message'        => 'This phone number is not registered. Please register first.',
+            'isExistingUser' => false,
+        ]);
+    }
+
+    // 2. Skip OTP dispatch if user is already registered during registration
+    if ($purpose === 'register' && $isExistingUser) {
+        jsonResponse(200, [
+            'success'        => true,
+            'message'        => 'This phone number is already registered. Please login.',
+            'isExistingUser' => true,
+        ]);
+    }
     // 2. Check Resend Cooldown (60 seconds)
     $stmtCooldown = $pdo->prepare(
         "SELECT id, resend_available_at, TIMESTAMPDIFF(SECOND, NOW(), resend_available_at) AS wait_sec

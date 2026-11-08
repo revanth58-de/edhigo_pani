@@ -169,12 +169,12 @@ apiClient.interceptors.response.use(
 
 // ─── Auth API ───
 export const authAPI = {
-    sendOTP: async (phone) => {
+    sendOTP: async (phone, purpose = 'login') => {
         try {
-            return await apiClient.post('/auth/send-otp', { phone });
+            return await apiClient.post('/auth/send-otp', { phone, purpose });
         } catch (err) {
             if (err?.response?.status === 404) {
-                return await apiClient.post('/send_otp.php', { phone });
+                return await apiClient.post('/send_otp.php', { phone, purpose });
             }
             throw err;
         }

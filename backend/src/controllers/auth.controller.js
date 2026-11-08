@@ -108,6 +108,24 @@ const sendOTP = async (req, res, next) => {
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     const isExistingUser = !!(existingUser?.name && existingUser?.role);
 
+    // 1. If purpose is 'login', do NOT send OTP to unregistered users
+    if (req.body.purpose === 'login' && !isExistingUser) {
+      logger.info('🚫 Login OTP skipped: Phone number is not registered in the app', { phone });
+      return res.json({
+        message: 'This phone number is not registered. Please register first.',
+        isExistingUser: false,
+      });
+    }
+
+    // 2. If purpose is 'register', do NOT send OTP to already registered users
+    if (req.body.purpose === 'register' && isExistingUser) {
+      logger.info('🚫 Register OTP skipped: Phone number is already registered in the app', { phone });
+      return res.json({
+        message: 'This phone number is already registered. Please login.',
+        isExistingUser: true,
+      });
+    }
+
     // FIX #12: Per-phone OTP rate limit — prevent SMS flooding without Redis.
     // If an OTP was issued less than 2 minutes ago, reject the request.
     // The OTP TTL is already stored in otpExpiresAt; we check the inverse window.

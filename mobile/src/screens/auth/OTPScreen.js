@@ -84,7 +84,7 @@ const OTPScreen = ({ navigation, route }) => {
   const handleResendOTP = async () => {
     if (resendCooldown > 0) return; // ignore tap during cooldown
     try {
-      const result = await sendOTPAction(phone);
+      const result = await sendOTPAction(phone, fromRegister ? 'register' : 'login');
       if (result?.devOtp || result?.dev_otp) {
         setCurrentDevOtp(result.devOtp || result.dev_otp);
       }

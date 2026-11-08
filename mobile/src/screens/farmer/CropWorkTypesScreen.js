@@ -20,6 +20,22 @@ import { useTranslation } from '../../i18n';
 import { colors } from '../../theme/colors';
 import { fetchWageRates, getBenchmarkWage, getCachedWageRates } from '../../utils/wageHelper';
 
+// Highly recognizable 3D cartoon illustrations for rural low-literacy farmers
+const WORK_IMAGES = {
+  landPrep: require('../../../assets/work_types/land_prep.jpg'),
+  pitDigging: require('../../../assets/work_types/pit_digging.jpg'),
+  plantingSaplings: require('../../../assets/work_types/planting_saplings.jpg'),
+  irrigation: require('../../../assets/work_types/irrigation.jpg'),
+  fertilizer: require('../../../assets/work_types/fertilizer.jpg'),
+  spraying: require('../../../assets/work_types/spraying.jpg'),
+  pruning: require('../../../assets/work_types/pruning.jpg'),
+  weeding: require('../../../assets/work_types/weeding.jpg'),
+  harvesting: require('../../../assets/work_types/harvesting.jpg'),
+  loadingPacking: require('../../../assets/work_types/loading_packing.jpg'),
+  constMasonry: require('../../../assets/work_types/const_masonry.jpg'),
+  constCarpentry: require('../../../assets/work_types/const_carpentry.jpg'),
+};
+
 const CropWorkTypesScreen = ({ route, navigation }) => {
   const { cropId, cropName, cropGradient } = route?.params || {
     cropId: 'paddy',
@@ -50,7 +66,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.concreteMixing') || 'కాంక్రీట్ కలపడం (Mixing)',
           skillKeyword: 'concrete',
           icon: 'cached',
-          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 1 }),
         },
         {
@@ -58,7 +74,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
           skillKeyword: 'formwork',
           icon: 'view-quilt',
-          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
         },
         {
@@ -66,7 +82,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.concretePouring') || 'కాంక్రీట్ పోయడం మరియు ముగించడం (Pouring & Finishing)',
           skillKeyword: 'concrete',
           icon: 'format-color-fill',
-          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(4, Math.round(6 * acres)), duration: 1 }),
         },
         {
@@ -74,7 +90,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ (Shotcrete)',
           skillKeyword: 'concrete',
           icon: 'waves',
-          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
         },
         {
@@ -82,7 +98,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.concreteCuring') || 'క్యూరింగ్ (Curing)',
           skillKeyword: 'concrete',
           icon: 'opacity',
-          image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 3 }),
         },
       ];
@@ -96,7 +112,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.woodworkCarpentry') || 'వడ్రంగి పనులు (Carpenters)',
           skillKeyword: 'carpenter',
           icon: 'handyman',
-          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
         },
         {
@@ -104,7 +120,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
           skillKeyword: 'carpenter',
           icon: 'view-quilt',
-          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 1 }),
         },
       ];
@@ -117,7 +133,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.wiringInstallation') || 'ఎలక్ట్రికల్ పనులు (Electricians)',
           skillKeyword: 'electrician',
           icon: 'electrical-services',
-          image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 2 }),
         },
       ];
@@ -130,7 +146,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.wallPainting') || 'పెయింటింగ్ పనులు (Painters)',
           skillKeyword: 'painter',
           icon: 'format-paint',
-          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
         },
         {
@@ -138,7 +154,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ / స్ప్రే (Shotcrete)',
           skillKeyword: 'painter',
           icon: 'waves',
-          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
       ];
@@ -151,7 +167,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.pipeFittingPlumbing') || 'ప్లంబింగ్ పనులు (Plumbers)',
           skillKeyword: 'plumber',
           icon: 'plumbing',
-          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.irrigation,
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
         },
       ];
@@ -164,7 +180,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.weldingFabrication') || 'వెల్డింగ్ పనులు (Welders)',
           skillKeyword: 'welder',
           icon: 'blur-on',
-          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constMasonry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
         },
       ];
@@ -177,7 +193,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.safetyFencing') || 'Safety Fencing & Barriers',
           skillKeyword: 'labour',
           icon: 'security',
-          image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
         },
         {
@@ -185,7 +201,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.temporaryStructures') || 'Temporary Safety Barriers',
           skillKeyword: 'labour',
           icon: 'home-work',
-          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.constCarpentry,
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
         },
       ];
@@ -198,7 +214,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.paddyLandPrep') || 'Land Preparation (Ploughing)',
           skillKeyword: 'tractor',
           icon: 'agriculture',
-          image: require('../../../assets/crops/paddy_landprep.jpg'),
+          image: WORK_IMAGES.landPrep,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: Math.max(1, Math.round(1 * acres)) }),
         },
         {
@@ -206,7 +222,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.nurseryPrep') || 'Nursery Preparation',
           skillKeyword: 'sowing',
           icon: 'grass',
-          image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.plantingSaplings,
           calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
         },
         {
@@ -214,7 +230,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.transplanting') || 'Transplanting',
           skillKeyword: 'sowing',
           icon: 'spa',
-          image: require('../../../assets/crops/paddy_transplanting.jpg'),
+          image: WORK_IMAGES.plantingSaplings,
           calc: (acres) => ({ workers: Math.max(2, Math.round(5 * acres)), duration: 1 }),
         },
         {
@@ -222,7 +238,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.directSeeding') || 'Direct Seeding',
           skillKeyword: 'sowing',
           icon: 'grain',
-          image: 'https://images.pexels.com/photos/2132227/pexels-photo-2132227.jpeg?auto=compress&cs=tinysrgb&w=800',
+          image: WORK_IMAGES.fertilizer,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
         {
@@ -230,7 +246,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.irrigationOrchard') || 'Irrigation',
           skillKeyword: 'labour',
           icon: 'opacity',
-          image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.irrigation,
           calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
         },
         {
@@ -238,7 +254,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.fertilizerAppOrchard') || 'Fertilizer Application',
           skillKeyword: 'labour',
           icon: 'bubble-chart',
-          image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.fertilizer,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
         {
@@ -246,7 +262,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.weedingOrchard') || 'Weed Removal',
           skillKeyword: 'labour',
           icon: 'filter-hdr',
-          image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.weeding,
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
         },
         {
@@ -254,7 +270,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.sprayingOrchard') || 'Pesticide Spraying',
           skillKeyword: 'labour',
           icon: 'waves',
-          image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
+          image: WORK_IMAGES.spraying,
           calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
         },
         {
@@ -262,7 +278,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.harvesting') || 'Harvesting',
           skillKeyword: 'harvesting',
           icon: 'grain',
-          image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
+          image: WORK_IMAGES.harvesting,
           calc: (acres) => ({ workers: Math.max(4, Math.round(8 * acres)), duration: 1 }),
         },
         {
@@ -270,7 +286,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.threshing') || 'Threshing',
           skillKeyword: 'harvesting',
           icon: 'waves',
-          image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
+          image: WORK_IMAGES.harvesting,
           calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
         },
         {
@@ -278,7 +294,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.drying') || 'Drying',
           skillKeyword: 'labour',
           icon: 'wb-sunny',
-          image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.harvesting,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
         {
@@ -286,7 +302,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.bagFilling') || 'Bag Filling',
           skillKeyword: 'labour',
           icon: 'shopping-bag',
-          image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.loadingPacking,
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
         {
@@ -294,7 +310,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
           name: t('cropWorkTypes.loadingOrchard') || 'Loading',
           skillKeyword: 'labour',
           icon: 'local-shipping',
-          image: 'https://images.unsplash.com/photo-1588710922810-ee8a11516e88?q=80&w=800&auto=format&fit=crop',
+          image: WORK_IMAGES.loadingPacking,
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
         },
       ];
@@ -307,7 +323,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.landPrepOrchard') || 'Land Preparation',
         skillKeyword: 'tractor',
         icon: 'agriculture',
-        image: require('../../../assets/crops/orchard_landprep.png'),
+        image: WORK_IMAGES.landPrep,
         calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: Math.max(1, Math.round(1 * acres)) }),
       },
       {
@@ -315,7 +331,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.pitDigging') || 'Pit Digging',
         skillKeyword: 'labour',
         icon: 'gavel',
-        image: require('../../../assets/crops/orchard_pitdigging.jpg'),
+        image: WORK_IMAGES.pitDigging,
         calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
       },
       {
@@ -323,7 +339,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.plantingSaplings') || 'Planting Saplings',
         skillKeyword: 'sowing',
         icon: 'park',
-        image: 'https://images.unsplash.com/photo-1592882199738-9271a5c68b75?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.plantingSaplings,
         calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
       },
       {
@@ -331,7 +347,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.irrigationOrchard') || 'Irrigation',
         skillKeyword: 'labour',
         icon: 'opacity',
-        image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.irrigation,
         calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
       },
       {
@@ -339,7 +355,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.fertilizerAppOrchard') || 'Fertilizer Application',
         skillKeyword: 'labour',
         icon: 'bubble-chart',
-        image: 'https://images.unsplash.com/photo-1595855759920-86582396756a?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.fertilizer,
         calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
       },
       {
@@ -347,7 +363,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.sprayingOrchard') || 'Pesticide Spraying',
         skillKeyword: 'labour',
         icon: 'waves',
-        image: 'https://images.pexels.com/photos/2933243/pexels-photo-2933243.jpeg?auto=compress&cs=tinysrgb&w=800',
+        image: WORK_IMAGES.spraying,
         calc: (acres) => ({ workers: Math.max(1, Math.round(1 * acres)), duration: 1 }),
       },
       {
@@ -355,7 +371,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.pruning') || 'Pruning',
         skillKeyword: 'labour',
         icon: 'content-cut',
-        image: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.pruning,
         calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
       },
       {
@@ -363,7 +379,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.weedingOrchard') || 'Weed Removal',
         skillKeyword: 'labour',
         icon: 'filter-hdr',
-        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.weeding,
         calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
       },
       {
@@ -371,7 +387,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.fruitThinning') || 'Fruit Thinning',
         skillKeyword: 'labour',
         icon: 'nature',
-        image: 'https://images.unsplash.com/photo-1617113930975-f9c7243ae527?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.pruning,
         calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
       },
       {
@@ -379,7 +395,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.harvestingOrchard') || 'Harvesting',
         skillKeyword: 'harvesting',
         icon: 'grain',
-        image: 'https://images.pexels.com/photos/259280/pexels-photo-259280.jpeg?auto=compress&cs=tinysrgb&w=800',
+        image: WORK_IMAGES.harvesting,
         calc: (acres) => ({ workers: Math.max(3, Math.round(6 * acres)), duration: 1 }),
       },
       {
@@ -387,7 +403,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.sortingGrading') || 'Sorting & Grading',
         skillKeyword: 'labour',
         icon: 'sort',
-        image: 'https://images.pexels.com/photos/5928014/pexels-photo-5928014.jpeg?auto=compress&cs=tinysrgb&w=800',
+        image: WORK_IMAGES.loadingPacking,
         calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
       },
       {
@@ -395,7 +411,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.packing') || 'Packing',
         skillKeyword: 'labour',
         icon: 'inbox',
-        image: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.loadingPacking,
         calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
       },
       {
@@ -403,7 +419,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.loadingOrchard') || 'Loading',
         skillKeyword: 'labour',
         icon: 'local-shipping',
-        image: 'https://images.unsplash.com/photo-1588710922810-ee8a11516e88?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.loadingPacking,
         calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
       },
       {
@@ -411,7 +427,7 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
         name: t('cropWorkTypes.orchardCleaning') || 'Orchard Cleaning',
         skillKeyword: 'labour',
         icon: 'cleaning-services',
-        image: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?q=80&w=800&auto=format&fit=crop',
+        image: WORK_IMAGES.weeding,
         calc: (acres) => ({ workers: Math.max(1, Math.round(3 * acres)), duration: 1 }),
       },
     ];

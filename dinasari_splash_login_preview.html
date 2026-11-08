@@ -3,187 +3,624 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DINASARI — Splash & Login Transition</title>
+  <title>DINASARI — Splash & Login Preview</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./src/SplashScreen.css">
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
     body {
-      background-color: #dbe4d5;
+      background: radial-gradient(circle at 50% 20%, #e2ecd9 0%, #c4d7bb 100%);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
       min-height: 100vh;
-      padding: 20px 0;
+      padding: 24px 16px;
+      color: #1e2d1a;
     }
-    .preview-bar {
-      position: fixed;
-      bottom: 20px;
+
+    .phone-container {
+      width: 100%;
+      max-width: 412px;
+      height: 840px;
+      background: #ffffff;
+      border-radius: 44px;
+      box-shadow: 0 25px 60px rgba(27, 67, 20, 0.22), 0 0 0 12px #202b1c, 0 0 0 14px rgba(255,255,255,0.4);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Status Bar Mock */
+    .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 38px;
+      z-index: 2000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 22px;
+      font-size: 13px;
+      font-weight: 600;
+      pointer-events: none;
+      color: #2e4d25;
+      transition: color 0.3s;
+    }
+
+    .status-bar.dark-text {
+      color: #1b4314;
+    }
+
+    .status-bar.light-text {
+      color: #ffffff;
+    }
+
+    .camera-notch {
+      width: 90px;
+      height: 22px;
+      background: #202b1c;
+      border-radius: 0 0 14px 14px;
+      position: absolute;
+      top: 0;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 99999;
-      background: rgba(27, 67, 20, 0.95);
-      color: #fff;
-      padding: 10px 20px;
-      border-radius: 30px;
+      z-index: 2100;
+    }
+
+    /* Screen Viewport */
+    .screen-viewport {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    /* ==============================
+       1. SPLASH SCREEN STYLES
+       ============================== */
+    .splash-screen {
+      position: absolute;
+      inset: 0;
+      background-color: #eef5ea;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      z-index: 1000;
+      transition: opacity 0.4s ease;
+    }
+
+    .splash-screen.hidden {
+      display: none;
+    }
+
+    .splash-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .logo-wrapper {
+      width: 240px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dinasari-logo-img {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+    }
+
+    .dinasari-tagline {
+      margin-top: -12px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #5c6b57;
+      letter-spacing: 0.6px;
+      white-space: nowrap;
+      opacity: 0;
+      animation: taglineFadeIn 0.7s ease-out 0.4s forwards;
+    }
+
+    .animate-in .logo-wrapper {
+      animation: logoRiseScale 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .slide-out .logo-wrapper {
+      animation: slideOutRight 0.55s cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+
+    .slide-out .dinasari-tagline {
+      animation: blurFadeOut 0.4s ease-out forwards;
+    }
+
+    /* ==============================
+       2. LOGIN SCREEN STYLES
+       ============================== */
+    .login-screen {
+      min-height: 100%;
+      width: 100%;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .login-screen.hidden {
+      display: none;
+    }
+
+    .header-banner {
+      background: linear-gradient(135deg, #2d5a27 0%, #5c9e31 100%);
+      height: 230px;
+      border-bottom-left-radius: 32px;
+      border-bottom-right-radius: 32px;
+      padding: 44px 24px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      animation: dropHeader 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .header-text {
+      z-index: 2;
+      animation: fadeIn 0.6s ease-out 0.2s both;
+    }
+
+    .header-brand {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #d8f3c5;
+      margin-bottom: 8px;
+    }
+
+    .header-subtitle {
+      font-size: 13px;
+      line-height: 1.4;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .header-illustration {
+      width: 140px;
+      height: 140px;
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 24px;
+      padding: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      animation: slideInFromRight 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+    }
+
+    .header-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      mix-blend-mode: multiply;
+    }
+
+    .login-form-container {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      animation: slideUpForm 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+    }
+
+    .welcome-title {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e2d1a;
+      margin-bottom: 20px;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background-color: #f4f5f3;
+      border-radius: 14px;
+      padding: 0 16px;
+      height: 52px;
+      margin-bottom: 14px;
+      border: 1px solid transparent;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .input-group:focus-within {
+      background-color: #ffffff;
+      border-color: #5c9e31;
+    }
+
+    .input-icon {
+      font-size: 16px;
+      margin-right: 12px;
+      opacity: 0.55;
+    }
+
+    .form-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: 15px;
+      color: #222;
+      outline: none;
+    }
+
+    .eye-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      opacity: 0.55;
+      padding: 4px;
+    }
+
+    .form-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 6px 0 22px;
+      font-size: 13px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #555;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-label input {
+      accent-color: #4c8c2b;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .forgot-link {
+      color: #3b6e22;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .login-btn {
+      height: 52px;
+      border: none;
+      border-radius: 26px;
+      background: linear-gradient(90deg, #1b4314 0%, #589a2d 100%);
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(68, 128, 39, 0.25);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(68, 128, 39, 0.32);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 20px 0;
+      color: #999;
+      font-size: 13px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .divider span {
+      padding: 0 12px;
+    }
+
+    .social-buttons {
       display: flex;
       gap: 12px;
-      align-items: center;
-      font-size: 13px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      margin-bottom: 22px;
     }
-    .preview-bar button {
-      background: #589a2d;
-      color: #fff;
+
+    .social-btn {
+      flex: 1;
+      height: 48px;
+      border-radius: 24px;
+      border: 1px solid #e6e8e4;
+      background-color: #f7f8f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #2b3b24;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .social-btn:hover {
+      background-color: #edf2eb;
+    }
+
+    .signup-prompt {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .signup-prompt a {
+      color: #3b6e22;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* Keyframes */
+    @keyframes logoRiseScale {
+      0% { opacity: 0; transform: translateY(24px) scale(0.88); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes taglineFadeIn {
+      0% { opacity: 0; transform: translateY(8px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideOutRight {
+      0% { opacity: 1; transform: translateX(0); }
+      100% { opacity: 0; transform: translateX(120%); }
+    }
+    @keyframes blurFadeOut {
+      0% { opacity: 1; filter: blur(0px); }
+      100% { opacity: 0; filter: blur(6px); transform: translateX(-20px); }
+    }
+    @keyframes dropHeader {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(0); }
+    }
+    @keyframes slideInFromRight {
+      0% { opacity: 0; transform: translateX(80px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideUpForm {
+      0% { opacity: 0; transform: translateY(40px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Bottom Control Bar */
+    .controls-bar {
+      margin-top: 18px;
+      background: rgba(32, 43, 28, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 10px 18px;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #ffffff;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    }
+
+    .controls-bar button {
+      background: #5c9e31;
+      color: #ffffff;
       border: none;
-      padding: 6px 14px;
-      border-radius: 18px;
+      padding: 7px 16px;
+      border-radius: 20px;
       cursor: pointer;
       font-weight: 600;
+      font-size: 12px;
+      transition: background 0.15s;
+    }
+
+    .controls-bar button:hover {
+      background: #73b844;
+    }
+
+    .step-pill {
+      background: rgba(255,255,255,0.15);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <div class="preview-bar">
-    <span>DINASARI Splash ➔ Login</span>
-    <button onclick="window.location.reload()">Replay Animation</button>
-  </div>
+  <!-- Mockup Phone Shell -->
+  <div class="phone-container">
+    <div class="camera-notch"></div>
+    <div class="status-bar dark-text" id="statusBar">
+      <span>09:41</span>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span>5G</span>
+        <span>100%</span>
+      </div>
+    </div>
 
-  <script type="text/babel">
-    const dinasariLogo = './src/assets/image.png';
-
-    function DinasariSplashAndLogin() {
-      const [phase, setPhase] = React.useState('splash');
-      const [showPassword, setShowPassword] = React.useState(false);
-      const [keepSignedIn, setKeepSignedIn] = React.useState(true);
-
-      React.useEffect(() => {
-        const exitTimer = setTimeout(() => {
-          setPhase('exit');
-        }, 2000);
-
-        const loginTimer = setTimeout(() => {
-          setPhase('login');
-        }, 2600);
-
-        return () => {
-          clearTimeout(exitTimer);
-          clearTimeout(loginTimer);
-        };
-      }, []);
-
-      if (phase === 'splash' || phase === 'exit') {
-        return (
-          <div className="splash-screen">
-            <div className={`splash-content ${phase === 'exit' ? 'slide-out' : 'animate-in'}`}>
-              <div className="logo-wrapper">
-                <img
-                  src={dinasariLogo}
-                  alt="DINASARI Logo"
-                  className="dinasari-logo-img"
-                />
-              </div>
-              <p className="dinasari-tagline">
-                Connect Collaborate Cultivate
-              </p>
-            </div>
+    <div class="screen-viewport">
+      <!-- 1. SPLASH SCREEN -->
+      <div class="splash-screen" id="splashScreen">
+        <div class="splash-content animate-in" id="splashContent">
+          <div class="logo-wrapper">
+            <img src="./src/assets/image.png" alt="DINASARI Logo" class="dinasari-logo-img">
           </div>
-        );
-      }
+          <p class="dinasari-tagline">
+            Connect Collaborate Cultivate
+          </p>
+        </div>
+      </div>
 
-      return (
-        <div className="login-screen">
-          <div className="header-banner">
-            <div className="header-text">
-              <h1 className="header-brand">DINASARI</h1>
-              <p className="header-subtitle">
-                Connect Collaborate<br />Cultivate
-              </p>
-            </div>
-            <div className="header-illustration">
-              <img
-                src={dinasariLogo}
-                alt="DINASARI"
-                className="header-logo-img"
-              />
-            </div>
-          </div>
-
-          <div className="login-form-container">
-            <h2 className="welcome-title">Welcome Back</h2>
-
-            <div className="input-group">
-              <span className="input-icon">✉️</span>
-              <input
-                type="text"
-                placeholder="Email or phone"
-                className="form-input"
-              />
-            </div>
-
-            <div className="input-group">
-              <span className="input-icon">🔒</span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Password"
-                className="form-input"
-              />
-              <button
-                type="button"
-                className="eye-btn"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
-            </div>
-
-            <div className="form-options">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={keepSignedIn}
-                  onChange={(e) => setKeepSignedIn(e.target.checked)}
-                />
-                <span className="custom-checkbox"></span>
-                Keep me signed in
-              </label>
-              <a href="#forgot" className="forgot-link">Forgot Password?</a>
-            </div>
-
-            <button type="button" className="login-btn">
-              Log In
-            </button>
-
-            <div className="divider">
-              <span>Or continue with</span>
-            </div>
-
-            <div className="social-buttons">
-              <button type="button" className="social-btn">
-                <span className="social-icon">G</span> Google
-              </button>
-              <button type="button" className="social-btn">
-                <span className="social-icon"></span> Apple
-              </button>
-            </div>
-
-            <p className="signup-prompt">
-              Don't have an account? <a href="#signup">Sign Up</a>
+      <!-- 2. LOGIN SCREEN -->
+      <div class="login-screen hidden" id="loginScreen">
+        <!-- Top Green Curved Header -->
+        <div class="header-banner">
+          <div class="header-text">
+            <h1 class="header-brand">DINASARI</h1>
+            <p class="header-subtitle">
+              Connect Collaborate<br>Cultivate
             </p>
           </div>
+          <div class="header-illustration">
+            <img src="./src/assets/image.png" alt="DINASARI" class="header-logo-img">
+          </div>
         </div>
-      );
+
+        <!-- Welcome Back Form -->
+        <div class="login-form-container">
+          <h2 class="welcome-title">Welcome Back</h2>
+
+          <div class="input-group">
+            <span class="input-icon">✉️</span>
+            <input type="text" placeholder="Email or phone" class="form-input">
+          </div>
+
+          <div class="input-group">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="passwordInput" placeholder="Password" class="form-input">
+            <button type="button" class="eye-btn" id="togglePassword">👁️</button>
+          </div>
+
+          <div class="form-options">
+            <label class="checkbox-label">
+              <input type="checkbox" checked>
+              Keep me signed in
+            </label>
+            <a href="#forgot" class="forgot-link">Forgot Password?</a>
+          </div>
+
+          <button type="button" class="login-btn">
+            Log In
+          </button>
+
+          <div class="divider">
+            <span>Or continue with</span>
+          </div>
+
+          <div class="social-buttons">
+            <button type="button" class="social-btn">
+              <span>🇬</span> Google
+            </button>
+            <button type="button" class="social-btn">
+              <span></span> Apple
+            </button>
+          </div>
+
+          <p class="signup-prompt">
+            Don't have an account? <a href="#signup">Sign Up</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Controls -->
+  <div class="controls-bar">
+    <span class="step-pill" id="phaseIndicator">Phase: Splash (2.0s)</span>
+    <button onclick="startFlow()">Replay Flow</button>
+    <button onclick="jumpTo('splash')">Splash</button>
+    <button onclick="jumpTo('login')">Login</button>
+  </div>
+
+  <script>
+    let timerExit = null;
+    let timerLogin = null;
+
+    const splashScreen = document.getElementById('splashScreen');
+    const splashContent = document.getElementById('splashContent');
+    const loginScreen = document.getElementById('loginScreen');
+    const statusBar = document.getElementById('statusBar');
+    const phaseIndicator = document.getElementById('phaseIndicator');
+    const passwordInput = document.getElementById('passwordInput');
+    const togglePassword = document.getElementById('togglePassword');
+
+    let showPassword = false;
+    togglePassword.addEventListener('click', () => {
+      showPassword = !showPassword;
+      passwordInput.type = showPassword ? 'text' : 'password';
+      togglePassword.textContent = showPassword ? '🙈' : '👁️';
+    });
+
+    function clearTimers() {
+      if (timerExit) clearTimeout(timerExit);
+      if (timerLogin) clearTimeout(timerLogin);
     }
 
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<DinasariSplashAndLogin />);
+    function startFlow() {
+      clearTimers();
+
+      // Step 1: Splash Screen Initial Entrance
+      splashScreen.classList.remove('hidden');
+      splashContent.className = 'splash-content animate-in';
+      loginScreen.classList.add('hidden');
+      statusBar.className = 'status-bar dark-text';
+      phaseIndicator.textContent = 'Phase 1: Splash (0s - 2.0s)';
+
+      // Step 2: Exit Animation at 2.0s
+      timerExit = setTimeout(() => {
+        splashContent.className = 'splash-content slide-out';
+        phaseIndicator.textContent = 'Phase 2: Exit Transition (2.0s - 2.6s)';
+      }, 2000);
+
+      // Step 3: Switch to Login at 2.6s
+      timerLogin = setTimeout(() => {
+        splashScreen.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        statusBar.className = 'status-bar light-text';
+        phaseIndicator.textContent = 'Phase 3: Login Screen (Ready)';
+      }, 2600);
+    }
+
+    function jumpTo(phase) {
+      clearTimers();
+      if (phase === 'splash') {
+        splashScreen.classList.remove('hidden');
+        splashContent.className = 'splash-content animate-in';
+        loginScreen.classList.add('hidden');
+        statusBar.className = 'status-bar dark-text';
+        phaseIndicator.textContent = 'View: Splash Screen';
+      } else {
+        splashScreen.classList.add('hidden');
+        loginScreen.classList.remove('hidden');
+        statusBar.className = 'status-bar light-text';
+        phaseIndicator.textContent = 'View: Login Screen';
+      }
+    }
+
+    // Auto-start flow on load
+    startFlow();
   </script>
 </body>
 </html>

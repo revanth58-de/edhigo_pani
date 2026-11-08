@@ -11,6 +11,7 @@ import {
     Modal,
     TextInput,
     Platform,
+    Linking,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,13 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { groupAPI } from '../../services/api';
 import { socketService } from '../../services/socketService';
-
-const KEYPAD_ROWS = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['7', '8', '9'],
-    [null, '0', 'backspace'],
-];
+import useAuthStore from '../../store/authStore';
 
 const ManageGroupScreen = ({ navigation, route }) => {
     const routeGroupId = route?.params?.groupId;
@@ -85,11 +80,9 @@ const ManageGroupScreen = ({ navigation, route }) => {
         try {
             let gid = resolvedGroupId;
 
-            // If no groupId passed, fetch the leader's own groups
             if (!gid) {
                 const res = await groupAPI.getMyGroups();
                 const allGroups = res?.data?.groups || res?.data || [];
-                const useAuthStore = require('../../store/authStore').default;
                 const currentUser = useAuthStore.getState().user;
                 const myLedGroups = currentUser?.id ? allGroups.filter(g => g.leaderId === currentUser.id) : allGroups;
 
@@ -97,7 +90,6 @@ const ManageGroupScreen = ({ navigation, route }) => {
                     gid = myLedGroups[0].id;
                     setResolvedGroupId(gid);
                 } else {
-                    // No group yet — redirect to create
                     Alert.alert(
                         'No Group Found',
                         'You don\'t have a group yet. Create one first!',
@@ -138,7 +130,28 @@ const ManageGroupScreen = ({ navigation, route }) => {
         }
     };
 
-    // Removed dialpad handlers as AddMemberScreen handles member addition
+    const handleWhatsAppInvite = () => {
+        const leaderName = useAuthStore.getState().user?.name || 'గ్రూప్ లీడర్';
+        const inviteText = `🌾 *ఎదిగో పని (Edhigo Pani) - గ్రూప్ ఆహ్వానం!*\n\nనమస్తే! *${leaderName}* మిమ్మల్ని "*${routeGroupName || 'మా వ్యవసాయ బృందం'}*" గ్రూప్‌లో చేరడానికి ఆహ్వానిస్తున్నారు.\n\n✅ కలిసి పని చేద్దాం - ఎక్కువ సంపాదిద్దాం\n✅ రోజువారీ వేతనం నేరుగా అందుతుంది\n\nఇప్పుడే చేరండి: https://edhigo-pani.onrender.com`;
+        const encoded = encodeURIComponent(inviteText);
+        const waUrl = `whatsapp://send?text=${encoded}`;
+        const webUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+
+        Linking.canOpenURL(waUrl)
+            .then(supported => {
+                if (supported) Linking.openURL(waUrl);
+                else Linking.openURL(webUrl);
+            })
+            .catch(() => Linking.openURL(webUrl));
+    };
+
+    const handleCallMember = (phone) => {
+        if (phone) {
+            Linking.openURL(`tel:${phone}`);
+        } else {
+            Alert.alert('Phone Unavailable', 'This member has not listed a phone number.');
+        }
+    };
 
     const removeMember = async (workerId) => {
         Alert.alert('Remove Member', 'Are you sure?', [
@@ -199,7 +212,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
                     <MaterialIcons name="arrow-back" size={24} color={colors.backgroundDark} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Manage your group</Text>
+                <Text style={styles.headerTitle}>Manage Group / బృందం నిర్వహణ</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity
                         style={styles.headerBtn}
@@ -217,13 +230,37 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 </View>
             </View>
 
+            {/* ── WhatsApp Direct Invite Banner ── */}
+            <View style={styles.bannerContainer}>
+                <TouchableOpacity
+                    style={styles.whatsappBanner}
+                    onPress={handleWhatsAppInvite}
+                    activeOpacity={0.88}
+                >
+                    <View style={styles.waIconBox}>
+                        <MaterialIcons name="share" size={26} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.waBannerTextCol}>
+                        <Text style={styles.waBannerTitle}>వాట్సాప్ ద్వారా ఆహ్వానించండి</Text>
+                        <Text style={styles.waBannerSub}>Invite members via WhatsApp directly</Text>
+                    </View>
+                    <View style={styles.waArrowCircle}>
+                        <MaterialIcons name="arrow-forward" size={18} color="#25D366" />
+                    </View>
+                </TouchableOpacity>
+            </View>
+
             {/* ── Member list ───────────────────────────────────────────── */}
             <>
                 <View style={styles.titleSection}>
-                    <Text style={styles.sectionTitle}>Group Members</Text>
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{members.length} Active</Text>
-                    </View>
+                    <Text style={styles.sectionTitle}>Group Members ({members.length})</Text>
+                    <TouchableOpacity
+                        style={styles.chatShortcutBtn}
+                        onPress={() => navigation.navigate('GroupChat', { groupId: resolvedGroupId, groupName: routeGroupName })}
+                    >
+                        <MaterialIcons name="chat" size={16} color={colors.primary} />
+                        <Text style={styles.chatShortcutText}>Group Chat</Text>
+                    </TouchableOpacity>
                 </View>
 
                 <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 220 }}>
@@ -235,7 +272,7 @@ const ManageGroupScreen = ({ navigation, route }) => {
                         <View style={styles.emptyState}>
                             <MaterialIcons name="groups" size={80} color="#E5E7EB" />
                             <Text style={styles.emptyText}>No members yet</Text>
-                            <Text style={styles.emptySubText}>Tap ADD MEMBER to get started</Text>
+                            <Text style={styles.emptySubText}>Tap WhatsApp or ADD MEMBER below to get started</Text>
                         </View>
                     ) : (
                         <>
@@ -246,14 +283,30 @@ const ManageGroupScreen = ({ navigation, route }) => {
                                             source={{ uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.name || 'Worker')}&background=random` }}
                                             style={styles.avatar}
                                         />
-                                        <View>
+                                        <View style={{ flex: 1 }}>
                                             <Text style={styles.memberName}>{item.name || 'Unknown'}</Text>
                                             <Text style={styles.memberRole}>{item.phone || item.role || 'Member'}</Text>
                                         </View>
                                     </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => removeMember(item.workerId)}>
-                                        <MaterialIcons name="delete-outline" size={24} color="#EF4444" />
-                                    </TouchableOpacity>
+
+                                    {/* Action buttons: Call, Chat & Remove */}
+                                    <View style={styles.memberActionBtns}>
+                                        {item.phone ? (
+                                            <TouchableOpacity 
+                                                style={styles.callIconBtn} 
+                                                onPress={() => handleCallMember(item.phone)}
+                                            >
+                                                <MaterialIcons name="call" size={18} color="#FFFFFF" />
+                                            </TouchableOpacity>
+                                        ) : null}
+
+                                        <TouchableOpacity 
+                                            style={styles.deleteIconBtn} 
+                                            onPress={() => removeMember(item.workerId)}
+                                        >
+                                            <MaterialIcons name="delete-outline" size={20} color="#EF4444" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
                             ))}
 
@@ -284,11 +337,32 @@ const ManageGroupScreen = ({ navigation, route }) => {
                 </ScrollView>
 
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddMember', { groupId: resolvedGroupId, groupName: routeGroupName })}>
-                        <MaterialIcons name="person-add" size={24} color="#111827" />
-                        <Text style={styles.addButtonText}>ADD MEMBER</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.goLiveButton} onPress={handleGoLive} disabled={!resolvedGroupId}>
+                    <View style={styles.footerRow}>
+                        <TouchableOpacity 
+                            style={styles.waFooterBtn} 
+                            onPress={handleWhatsAppInvite}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialIcons name="share" size={22} color="#FFFFFF" />
+                            <Text style={styles.waFooterBtnText}>WHATSAPP</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={styles.addButton} 
+                            onPress={() => navigation.navigate('AddMember', { groupId: resolvedGroupId, groupName: routeGroupName })}
+                            activeOpacity={0.85}
+                        >
+                            <MaterialIcons name="person-add" size={22} color="#111827" />
+                            <Text style={styles.addButtonText}>ADD MEMBER</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <TouchableOpacity 
+                        style={styles.goLiveButton} 
+                        onPress={handleGoLive} 
+                        disabled={!resolvedGroupId}
+                        activeOpacity={0.88}
+                    >
                         <Text style={styles.goLiveButtonText}>GO LIVE (G{members.length + 1})</Text>
                     </TouchableOpacity>
                 </View>
@@ -325,7 +399,6 @@ const ManageGroupScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAF7' },
 
-    // Header — same as all screens
     header: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -337,71 +410,143 @@ const styles = StyleSheet.create({
     },
     headerBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: `${colors.backgroundDark}22`, justifyContent: 'center', alignItems: 'center' },
     deleteBtn: { backgroundColor: '#FEE2E2' },
-    headerTitle: { fontSize: 20, fontWeight: '900', color: colors.backgroundDark },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: colors.backgroundDark },
 
-    // Member list
-    titleSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 20 },
-    sectionTitle: { fontSize: 26, fontWeight: '900', color: '#111827' },
-    badge: { backgroundColor: `${colors.primary}1A`, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99 },
-    badgeText: { fontSize: 14, fontWeight: '900', color: colors.primary },
-    content: { flex: 1, paddingHorizontal: 20 },
-    memberCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 14, borderRadius: 99, backgroundColor: '#FFFFFF', marginBottom: 12, borderWidth: 1, borderColor: '#F3F4F6', elevation: 2 },
-    memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-    avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: '#E5E7EB' },
-    memberName: { fontSize: 16, fontWeight: '800', color: '#111827' },
-    memberRole: { fontSize: 13, color: '#6B7280', fontWeight: '500' },
-    emptyState: { alignItems: 'center', marginTop: 80, gap: 8 },
-    emptyText: { color: '#9CA3AF', fontSize: 18, fontWeight: '700' },
-    emptySubText: { color: '#D1D5DB', fontSize: 14 },
+    bannerContainer: {
+        paddingHorizontal: 16,
+        paddingTop: 12,
+    },
+    whatsappBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#25D366',
+        borderRadius: 16,
+        padding: 12,
+        shadowColor: '#25D366',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 3,
+        gap: 12,
+    },
+    waIconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.25)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    waBannerTextCol: {
+        flex: 1,
+    },
+    waBannerTitle: {
+        color: '#FFFFFF',
+        fontWeight: '900',
+        fontSize: 14,
+    },
+    waBannerSub: {
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 1,
+    },
+    waArrowCircle: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 
-    // Footer
-    footer: { position: 'absolute', bottom: 20, left: 0, right: 0, paddingHorizontal: 20, gap: 12 },
-    addButton: { height: 68, backgroundColor: colors.primary, borderRadius: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, elevation: 6, shadowColor: colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12 },
-    addButtonText: { fontSize: 20, fontWeight: '900', color: '#111827' },
-    goLiveButton: { height: 52, backgroundColor: '#374151', borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-    goLiveButtonText: { color: '#FFF', fontWeight: '900', fontSize: 16 },
-    pendingHeader: { fontSize: 13, fontWeight: '700', color: '#9CA3AF', marginTop: 20, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' },
+    titleSection: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10 },
+    sectionTitle: { fontSize: 20, fontWeight: '900', color: '#111827' },
+    chatShortcutBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: `${colors.primary}15`,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        gap: 4,
+    },
+    chatShortcutText: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: colors.primary,
+    },
+
+    content: { flex: 1, paddingHorizontal: 16 },
+    memberCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 16, backgroundColor: '#FFFFFF', marginBottom: 10, borderWidth: 1, borderColor: '#F3F4F6', elevation: 2 },
+    memberInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+    avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E5E7EB' },
+    memberName: { fontSize: 15, fontWeight: '800', color: '#111827' },
+    memberRole: { fontSize: 12, color: '#6B7280', fontWeight: '500' },
+    memberActionBtns: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    callIconBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: '#16A34A',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    deleteIconBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: '#FEE2E2',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyState: { alignItems: 'center', marginTop: 60, gap: 8, paddingHorizontal: 24 },
+    emptyText: { color: '#4B5563', fontSize: 17, fontWeight: '700' },
+    emptySubText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center' },
+
+    footer: { position: 'absolute', bottom: 16, left: 0, right: 0, paddingHorizontal: 16, gap: 10 },
+    footerRow: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    waFooterBtn: {
+        flex: 1,
+        height: 56,
+        backgroundColor: '#25D366',
+        borderRadius: 28,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        elevation: 4,
+    },
+    waFooterBtnText: {
+        fontSize: 14,
+        fontWeight: '900',
+        color: '#FFFFFF',
+    },
+    addButton: { 
+        flex: 1.3,
+        height: 56, 
+        backgroundColor: colors.primary, 
+        borderRadius: 28, 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        gap: 8, 
+        elevation: 4, 
+    },
+    addButtonText: { fontSize: 14, fontWeight: '900', color: '#111827' },
+    goLiveButton: { height: 48, backgroundColor: '#374151', borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+    goLiveButtonText: { color: '#FFF', fontWeight: '900', fontSize: 15 },
+    pendingHeader: { fontSize: 12, fontWeight: '700', color: '#9CA3AF', marginTop: 16, marginBottom: 8, letterSpacing: 1, textTransform: 'uppercase' },
     pendingCard: { opacity: 0.75, borderStyle: 'dashed', borderColor: '#E5E7EB' },
     pendingAvatar: { opacity: 0.6 },
 
-    // ── Dialpad ──
-    nameSection: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 8 },
-    nameLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-    nameLabel: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
-    nameInput: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#131811',
-        borderWidth: 1.5,
-        borderColor: `${colors.primary}44`,
-    },
-    displaySection: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 16, alignItems: 'center' },
-    labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-    label: { fontSize: 12, fontWeight: '500', color: '#6f8961', letterSpacing: 2 },
-    phoneDisplay: { fontSize: 36, fontWeight: 'bold', color: '#131811', letterSpacing: 2, paddingVertical: 12 },
-    phoneDisplayRow: { flexDirection: 'row', alignItems: 'center', minHeight: 70 },
-    activeCursor: { width: 3, height: 36, backgroundColor: colors.primary, borderRadius: 2 },
-    activeChar: { color: colors.primary },
-    ghostTap: { position: 'absolute', right: -20, width: 40, height: 70 },
-    displayUnderline: { width: '100%', height: 2, backgroundColor: `${colors.primary}4D` },
-    keypadContainer: { padding: 16 },
-    keypad: { gap: 10 },
-    keypadRow: { flexDirection: 'row', gap: 10 },
-    keypadKey: { flex: 1, height: 74, borderRadius: 28, justifyContent: 'center', alignItems: 'center' },
-    keypadKeyActive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#dfe6db', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-    keypadKeyText: { fontSize: 28, fontWeight: 'bold', color: '#131811' },
-    dialpadButtons: { flexDirection: 'row', gap: 10, paddingHorizontal: 4, paddingTop: 16 },
-    cancelDialBtn: { flex: 1, height: 60, borderRadius: 9999, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
-    cancelDialBtnText: { fontSize: 16, fontWeight: 'bold', color: '#6B7280' },
-    addBtn: { flex: 2, flexDirection: 'row', height: 60, borderRadius: 9999, backgroundColor: colors.primary, justifyContent: 'center', alignItems: 'center', gap: 8, elevation: 8 },
-    addBtnDisabled: { opacity: 0.45 },
-    addBtnText: { fontSize: 17, fontWeight: 'bold', color: colors.backgroundDark },
-
-    // Edit modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
     modalTitle: { fontSize: 22, fontWeight: '900', color: '#111827', marginBottom: 20 },

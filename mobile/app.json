@@ -56,7 +56,13 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1F8A3D"
+        }
+      ],
       [
         "expo-camera",
         {
@@ -79,6 +85,10 @@
         "projectId": "cc35e220-f0b2-4acb-8f54-fd790ed0c66f"
       }
     },
-    "owner": "revanth_de"
+    "owner": "revanth_de",
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#1F8A3D"
+    }
   }
 }

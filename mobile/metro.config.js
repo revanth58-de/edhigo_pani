@@ -4,6 +4,8 @@ const path = require('path');
 const config = getDefaultConfig(__dirname);
 
 config.resolver.assetExts.push('cjs');
+if (!config.resolver.assetExts.includes('wav')) config.resolver.assetExts.push('wav');
+if (!config.resolver.assetExts.includes('mp3')) config.resolver.assetExts.push('mp3');
 config.transformer.babelTransformerPath = require.resolve('./metro-transformer.js');
 config.maxWorkers = 1;
 

@@ -83,6 +83,23 @@ jest.mock('react-native-maps', () => {
   };
 });
 
+// ─── Mock expo-av ─────────────────────────────────────────────────────────────
+jest.mock('expo-av', () => ({
+  Audio: {
+    Sound: {
+      createAsync: jest.fn(() => Promise.resolve({
+        sound: {
+          playAsync: jest.fn(() => Promise.resolve()),
+          unloadAsync: jest.fn(() => Promise.resolve()),
+          setOnPlaybackStatusUpdate: jest.fn(),
+        },
+        status: { isLoaded: true },
+      })),
+    },
+    setAudioModeAsync: jest.fn(() => Promise.resolve()),
+  },
+}), { virtual: true });
+
 // ─── Mock expo-speech ─────────────────────────────────────────────────────────
 jest.mock('expo-speech', () => ({
   speak: jest.fn(),

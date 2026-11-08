@@ -10,6 +10,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Linking,
+  ScrollView,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +21,14 @@ import { groupAPI } from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { getRoleSafeScreen } from '../../utils/navigationHelper';
 import { socketService } from '../../services/socketService';
+
+const QUICK_REPLIES = [
+  { text: 'వస్తున్నాను 👍', label: 'Coming / వస్తున్నాను' },
+  { text: 'సరే ✅', label: 'OK / సరే' },
+  { text: 'చేరుకున్నాను 📍', label: 'Arrived / చేరుకున్నాను' },
+  { text: 'కాల్ చేయండి 📞', label: 'Call Me / కాల్ చేయండి' },
+  { text: 'పని పూర్తయింది 🌾', label: 'Done / పని పూర్తి' },
+];
 
 const GroupDetailScreen = ({ route, navigation }) => {
   const handleBack = () => {
@@ -37,8 +47,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Use a ref to store the group data so that fetchJobs and other callbacks
-  // do not need to depend on the reactive 'group' state itself, breaking the focus effect loop.
   const groupRef = React.useRef(null);
   const updateGroup = useCallback((data) => {
     setGroup(data);
@@ -60,7 +68,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
       const res = await groupAPI.getGroupDetails(groupId);
       const groupData = res.data.group || res.data;
       updateGroup(groupData);
-      // Pass freshly fetched group so fetchJobs can check leaderId before state settles
       if (activeTab === 'Jobs') fetchJobs(groupData);
     } catch (error) {
       console.warn('Failed to fetch group details:', error);
@@ -70,7 +77,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   }, [groupId, activeTab, fetchJobs, updateGroup]);
 
   const fetchJobs = useCallback(async (groupData) => {
-    // Only the group leader is allowed to view group-eligible jobs (backend enforces 403)
     const currentGroup = groupData || groupRef.current;
     if (!currentGroup || currentGroup.leaderId !== user?.id) return;
 
@@ -89,7 +95,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
     try {
       setChatLoading(true);
       const res = await groupAPI.getGroupMessages(groupId);
-      // Backend returns { success, data } — support both shapes for resilience
       const msgs = res.data?.data || res.data?.messages || res.data || [];
       setMessages(msgs);
     } catch (error) {
@@ -99,19 +104,10 @@ const GroupDetailScreen = ({ route, navigation }) => {
     }
   }, [groupId]);
 
-
-  const loadTabContent = useCallback(() => {
-    if (activeTab === 'Jobs') {
-      fetchJobs(); // guard inside checks leader status using current group state
-    } else if (activeTab === 'Chat') {
-      fetchChat();
-    }
-  }, [activeTab, fetchJobs, fetchChat]);
-
   useFocusEffect(
     useCallback(() => {
       fetchGroupDetails();
-      if (activeTab === 'Chat') fetchChat(); // Jobs loaded inside fetchGroupDetails
+      if (activeTab === 'Chat') fetchChat();
     }, [fetchGroupDetails, fetchChat, activeTab])
   );
 
@@ -119,7 +115,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     socketService.joinGroupRoom(groupId);
 
-    // Listen for group deletion by leader
     const handleGroupDeleted = () => {
       Alert.alert('Group Dissolved', 'The leader has deleted this group.');
       handleBack();
@@ -153,7 +148,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    // Optimistic UI update for immediate feedback
     const tempId = `temp-${Date.now()}`;
     const tempMessage = {
       id: tempId,
@@ -165,7 +159,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
     
     setMessages(prev => [...prev, tempMessage]);
     
-    // Emit through socket
     socketService.emitGroupMessage({
       groupId,
       senderId: user?.id,
@@ -173,6 +166,85 @@ const GroupDetailScreen = ({ route, navigation }) => {
     });
     
     setNewMessage('');
+  };
+
+  const handleSendQuickReply = (text) => {
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage = {
+      id: tempId,
+      content: text,
+      senderId: user?.id,
+      sender: { name: user?.name || 'Me' },
+      createdAt: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, tempMessage]);
+    socketService.emitGroupMessage({
+      groupId,
+      senderId: user?.id,
+      content: text,
+    });
+  };
+
+  const handleCallLeaderOrCrew = () => {
+    const isLeader = user?.role === 'leader' || group?.leaderId === user?.id;
+    if (!isLeader) {
+      const leaderPhone = group?.leader?.phone;
+      if (leaderPhone) {
+        Linking.openURL(`tel:${leaderPhone}`);
+      } else {
+        Alert.alert(
+          '📞 Call Group Leader / లీడర్‌కి కాల్',
+          `Leader: ${group?.leader?.name || 'Group Leader'}\nPhone number not available directly. You can send a direct chat message!`,
+          [
+            { text: 'Send Message 💬', onPress: () => setActiveTab('Chat') },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      }
+    } else {
+      const activeMembers = (group?.members || []).filter(m => (m.phone || m.worker?.phone));
+      if (activeMembers.length === 0) {
+        Alert.alert('📞 Call Crew / బృందానికి కాల్', 'No crew members have phone numbers registered yet.');
+        return;
+      }
+      if (activeMembers.length === 1) {
+        const phone = activeMembers[0].phone || activeMembers[0].worker?.phone;
+        Linking.openURL(`tel:${phone}`);
+        return;
+      }
+      Alert.alert(
+        '📞 Call Crew Member / సభ్యునికి కాల్',
+        'Choose a member to call directly:',
+        [
+          ...activeMembers.slice(0, 5).map(m => ({
+            text: `📞 ${m.name || m.worker?.name || 'Member'}`,
+            onPress: () => Linking.openURL(`tel:${m.phone || m.worker?.phone}`),
+          })),
+          { text: 'Cancel', style: 'cancel' },
+        ]
+      );
+    }
+  };
+
+  const handleWhatsAppInvite = () => {
+    const currentGroupName = groupName || group?.name || 'మన ఎదిగో పని బృందం';
+    const leaderName = group?.leader?.name || user?.name || 'గ్రూప్ లీడర్';
+    const inviteText = `🌾 *ఎదిగో పని (Edhigo Pani) - గ్రూప్ ఆహ్వానం!*\n\nనమస్తే! *${leaderName}* మిమ్మల్ని "*${currentGroupName}*" వ్యవసాయ పని బృందంలో చేరడానికి ఆహ్వానిస్తున్నారు.\n\n✅ కలిసి పని చేద్దాం - ఎక్కువ సంపాదిద్దాం\n✅ రోజువారీ వేతనం నేరుగా అందుతుంది\n\nఇప్పుడే చేరండి: https://edhigo-pani.onrender.com`;
+    const encoded = encodeURIComponent(inviteText);
+    const waUrl = `whatsapp://send?text=${encoded}`;
+    const webUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+
+    Linking.canOpenURL(waUrl)
+      .then(supported => {
+        if (supported) {
+          Linking.openURL(waUrl);
+        } else {
+          Linking.openURL(webUrl);
+        }
+      })
+      .catch(() => {
+        Linking.openURL(webUrl);
+      });
   };
 
   const handleExitGroup = () => {
@@ -200,8 +272,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
   const handleAcceptJob = async (jobId) => {
     try {
       await groupAPI.acceptGroupJob({ groupId, jobId });
-      
-      // Find the job to pass it to the navigation screen
       const acceptedJob = jobs.find(j => j.id === jobId);
       setJobs(prev => prev.filter(j => j.id !== jobId));
       
@@ -270,7 +340,6 @@ const GroupDetailScreen = ({ route, navigation }) => {
           </Text>
         </View>
 
-        {/* Show settings (manage) for leader, exit button for members */}
         {user?.role === 'leader' ? (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
@@ -306,6 +375,58 @@ const GroupDetailScreen = ({ route, navigation }) => {
         )}
       </View>
 
+      {/* ── High-Affordance Action Bar for Easy Leader Call, Messages & WhatsApp ── */}
+      <View style={styles.quickBarContainer}>
+        {/* Call Button */}
+        <TouchableOpacity
+          style={styles.quickActionBtnCall}
+          onPress={handleCallLeaderOrCrew}
+          activeOpacity={0.85}
+        >
+          <View style={styles.quickIconCircleGreen}>
+            <MaterialIcons name="call" size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.quickBtnTextCol}>
+            <Text style={styles.quickBtnTitle}>
+              {user?.role === 'leader' ? 'CALL CREW' : 'CALL LEADER'}
+            </Text>
+            <Text style={styles.quickBtnSub}>
+              {user?.role === 'leader' ? 'బృందానికి కాల్' : 'లీడర్‌కి కాల్'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Message / Chat Button */}
+        <TouchableOpacity
+          style={[styles.quickActionBtnChat, activeTab === 'Chat' && styles.quickActionBtnChatActive]}
+          onPress={() => setActiveTab('Chat')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.quickIconCircleBlue}>
+            <MaterialIcons name="chat" size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.quickBtnTextCol}>
+            <Text style={styles.quickBtnTitle}>MESSAGES</Text>
+            <Text style={styles.quickBtnSub}>మెసేజ్‌లు</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* WhatsApp Direct Invite Button */}
+        <TouchableOpacity
+          style={styles.quickActionBtnWA}
+          onPress={handleWhatsAppInvite}
+          activeOpacity={0.85}
+        >
+          <View style={styles.quickIconCircleWA}>
+            <MaterialIcons name="share" size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.quickBtnTextCol}>
+            <Text style={styles.quickBtnTitle}>WHATSAPP</Text>
+            <Text style={styles.quickBtnSub}>వాట్సాప్ ఆహ్వానం</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity 
@@ -313,14 +434,18 @@ const GroupDetailScreen = ({ route, navigation }) => {
           onPress={() => setActiveTab('Jobs')}
         >
           <MaterialIcons name="work-outline" size={20} color={activeTab === 'Jobs' ? colors.primary : '#9CA3AF'} />
-          <Text style={[styles.tabText, activeTab === 'Jobs' && styles.activeTabText]}>Jobs</Text>
+          <Text style={[styles.tabText, activeTab === 'Jobs' && styles.activeTabText]}>
+            Jobs / పనులు
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'Chat' && styles.activeTab]} 
           onPress={() => setActiveTab('Chat')}
         >
           <MaterialIcons name="chat-bubble-outline" size={20} color={activeTab === 'Chat' ? colors.primary : '#9CA3AF'} />
-          <Text style={[styles.tabText, activeTab === 'Chat' && styles.activeTabText]}>Chat</Text>
+          <Text style={[styles.tabText, activeTab === 'Chat' && styles.activeTabText]}>
+            Crew Chat / చర్చ
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -339,6 +464,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 <View style={styles.emptyState}>
                   <MaterialIcons name="inbox" size={48} color="#D1D5DB" />
                   <Text style={styles.emptyText}>No jobs assigned to this group yet.</Text>
+                  <Text style={styles.emptySubText}>The leader will receive offers when farmers request bulk workers.</Text>
                 </View>
               }
             />
@@ -352,7 +478,7 @@ const GroupDetailScreen = ({ route, navigation }) => {
               activeOpacity={0.85}
             >
               <MaterialIcons name="open-in-full" size={18} color={colors.primary} />
-              <Text style={styles.fullChatBannerText}>Open Full Screen Chat</Text>
+              <Text style={styles.fullChatBannerText}>Open Full Screen Chat (పూర్తి స్క్రీన్)</Text>
               <MaterialIcons name="arrow-forward" size={18} color={colors.primary} />
             </TouchableOpacity>
 
@@ -367,20 +493,37 @@ const GroupDetailScreen = ({ route, navigation }) => {
                 ListEmptyComponent={
                   <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>Start the conversation with your crew.</Text>
+                    <Text style={styles.emptySubText}>Use the quick buttons below for one-tap replies!</Text>
                   </View>
                 }
               />
             )}
 
+            {/* Quick Pill Buttons for Uneducated People */}
+            <View style={styles.quickRepliesSection}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRepliesScroll}>
+                {QUICK_REPLIES.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.quickReplyPill}
+                    onPress={() => handleSendQuickReply(item.text)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.quickReplyText}>{item.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
             <View style={styles.chatInputContainer}>
-              <TouchableOpacity style={styles.attachBtn}>
-                <MaterialIcons name="add-circle" size={24} color="#9CA3AF" />
+              <TouchableOpacity style={styles.attachBtn} onPress={handleCallLeaderOrCrew}>
+                <MaterialIcons name="phone" size={24} color="#16A34A" />
               </TouchableOpacity>
               <TextInput
                 style={styles.chatInput}
                 value={newMessage}
                 onChangeText={setNewMessage}
-                placeholder="Message crew..."
+                placeholder="Message crew / సందేశం..."
                 placeholderTextColor="#9CA3AF"
               />
               <TouchableOpacity
@@ -440,6 +583,94 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: '500',
   },
+  // ── Quick Bar ─────────────────────────────────
+  quickBarContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  quickActionBtnCall: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#16A34A',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  quickActionBtnChat: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#2563EB',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  quickActionBtnChatActive: {
+    backgroundColor: '#DBEAFE',
+  },
+  quickActionBtnWA: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#25D366',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  quickIconCircleGreen: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#16A34A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickIconCircleBlue: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#2563EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickIconCircleWA: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#25D366',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickBtnTextCol: {
+    flex: 1,
+  },
+  quickBtnTitle: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#111827',
+  },
+  quickBtnSub: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#6B7280',
+    marginTop: 1,
+  },
+  // ── Tabs ──────────────────────────────────────
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
@@ -451,7 +682,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 14,
     gap: 8,
     borderBottomWidth: 3,
     borderBottomColor: 'transparent',
@@ -460,8 +691,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.primary,
   },
   tabText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: '#9CA3AF',
   },
   activeTabText: {
@@ -522,12 +753,21 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 60,
+    paddingTop: 48,
+    paddingHorizontal: 24,
   },
   emptyText: {
     marginTop: 12,
-    fontSize: 15,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4B5563',
+    textAlign: 'center',
+  },
+  emptySubText: {
+    marginTop: 6,
+    fontSize: 13,
     color: '#9CA3AF',
+    textAlign: 'center',
   },
   chatContainer: {
     flex: 1,
@@ -547,7 +787,7 @@ const styles = StyleSheet.create({
   fullChatBannerText: {
     color: colors.primary,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     flex: 1,
     textAlign: 'center',
   },
@@ -592,6 +832,29 @@ const styles = StyleSheet.create({
   },
   chatTimeMe: {
     color: 'rgba(255,255,255,0.7)',
+  },
+  quickRepliesSection: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  quickRepliesScroll: {
+    paddingHorizontal: 12,
+    gap: 8,
+  },
+  quickReplyPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#D1D5DB',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  quickReplyText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#374151',
   },
   chatInputContainer: {
     flexDirection: 'row',

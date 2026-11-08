@@ -18,7 +18,7 @@ export const machineryService = {
   getMachineryListings: async (params) => {
     try {
       const response = await machineryAPI.getListings(params);
-      return { success: true, listings: response.data.listings || [] };
+      return { success: true, listings: response?.data?.listings || response?.data || [] };
     } catch (error) {
       console.error('Get Machinery Listings Error:', error);
       return {
@@ -45,7 +45,7 @@ export const machineryService = {
   getBookings: async () => {
     try {
       const response = await machineryAPI.getBookings();
-      return { success: true, bookings: response.data.bookings || [] };
+      return { success: true, bookings: response?.data?.bookings || response?.data || [] };
     } catch (error) {
       console.error('Get Bookings Error:', error);
       return {

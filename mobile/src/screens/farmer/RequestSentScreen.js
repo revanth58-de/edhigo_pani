@@ -21,6 +21,7 @@ import { socketService } from '../../services/socketService';
 import { jobAPI } from '../../services/api';
 import MapDashboard from '../../components/MapDashboard';
 import { formatWorkType } from '../../utils/formatHelper';
+import alertSoundService from '../../services/alertSoundService';
 
 const RequestSentScreen = ({ navigation, route }) => {
   const { job } = route?.params || {};
@@ -88,6 +89,7 @@ const RequestSentScreen = ({ navigation, route }) => {
     if (job?.id) socketService.joinJobRoom(job.id);
 
     const handleJobAccepted = (data) => {
+      alertSoundService.playJobAcceptedAlert(data);
       if (data.jobId !== job?.id) return;
 
       const newCount = data.acceptedCount ?? 1;

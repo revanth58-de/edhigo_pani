@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   Image,
+  Linking,
+  Alert,
 } from 'react-native';
 import CustomLoader from '../../components/CustomLoader';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -28,7 +30,6 @@ const GroupsScreen = ({ navigation }) => {
     try {
       const response = await groupAPI.getMyGroups();
       const allGroups = response?.data?.groups || [];
-      // STRICT: A group leader must only see their own led groups
       const myLedGroups = user?.id ? allGroups.filter(g => g.leaderId === user.id) : allGroups;
       setGroups(myLedGroups);
     } catch (error) {
@@ -48,6 +49,42 @@ const GroupsScreen = ({ navigation }) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchGroups();
+  };
+
+  const handleWhatsAppShare = (item) => {
+    const leaderName = item.leader?.name || user?.name || 'గ్రూప్ లీడర్';
+    const text = `🌾 *ఎదిగో పని (Edhigo Pani) - గ్రూప్ ఆహ్వానం!*\n\nనమస్తే! మన "${item.name}" వ్యవసాయ బృందంలో చేరండి. కలిసి పనిచేద్దాం, ఎక్కువ సంపాదిద్దాం!\n\nఇప్పుడే చేరండి: https://edhigo-pani.onrender.com`;
+    const encoded = encodeURIComponent(text);
+    const waUrl = `whatsapp://send?text=${encoded}`;
+    const webUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+
+    Linking.canOpenURL(waUrl)
+      .then(supported => {
+        if (supported) Linking.openURL(waUrl);
+        else Linking.openURL(webUrl);
+      })
+      .catch(() => Linking.openURL(webUrl));
+  };
+
+  const handleCallGroupLeader = (item) => {
+    const isMyLedGroup = item.leaderId === user?.id;
+    if (isMyLedGroup) {
+      navigation.navigate('GroupDetail', { groupId: item.id, groupName: item.name });
+    } else {
+      const phone = item.leader?.phone;
+      if (phone) {
+        Linking.openURL(`tel:${phone}`);
+      } else {
+        Alert.alert(
+          '📞 Group Leader',
+          `Leader: ${item.leader?.name || 'Group Leader'}\nPlease chat directly in the group!`,
+          [
+            { text: 'Chat Now 💬', onPress: () => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name }) },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      }
+    }
   };
 
   const renderGroupItem = ({ item }) => {
@@ -88,27 +125,48 @@ const GroupsScreen = ({ navigation }) => {
           <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" />
         </TouchableOpacity>
 
-        {/* ── Quick Chat Button ── */}
-        <TouchableOpacity
-          style={styles.chatBtn}
-          onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
-          activeOpacity={0.85}
-        >
-          <MaterialIcons name="chat" size={18} color={colors.white} />
-          <Text style={styles.chatBtnText}>Chat</Text>
-        </TouchableOpacity>
+        {/* ── Quick Action Row for Group Leader Call, Messages & WhatsApp ── */}
+        <View style={styles.cardActionRow}>
+          <TouchableOpacity
+            style={styles.cardCallBtn}
+            onPress={() => handleCallGroupLeader(item)}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="call" size={16} color="#FFFFFF" />
+            <Text style={styles.cardActionBtnText}>
+              {isMyLedGroup ? 'CREW' : 'CALL LEADER'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cardChatBtn}
+            onPress={() => navigation.navigate('GroupChat', { groupId: item.id, groupName: item.name })}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="chat" size={16} color="#FFFFFF" />
+            <Text style={styles.cardActionBtnText}>MESSAGES</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.cardWABtn}
+            onPress={() => handleWhatsAppShare(item)}
+            activeOpacity={0.85}
+          >
+            <MaterialIcons name="share" size={16} color="#FFFFFF" />
+            <Text style={styles.cardActionBtnText}>WHATSAPP</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
-
 
   return (
     <View style={styles.container}>
       <TopBar title="My Groups" navigation={navigation} showBack />
       
       <View style={styles.headerArea}>
-        <Text style={styles.headerTitle}>Your Crews</Text>
-        <Text style={styles.headerSubtitle}>Manage all your working groups</Text>
+        <Text style={styles.headerTitle}>Your Crews / బృందాలు</Text>
+        <Text style={styles.headerSubtitle}>Manage working groups, call leaders & chat with members</Text>
       </View>
 
       {loading && !refreshing ? (
@@ -157,12 +215,12 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#131811',
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6f8961',
     marginTop: 4,
   },
@@ -171,7 +229,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
-    paddingBottom: 100, // Space for FAB
+    paddingBottom: 100,
   },
   groupCard: {
     backgroundColor: '#fff',
@@ -190,31 +248,31 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   groupPhoto: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    marginRight: 16,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 14,
   },
   groupPhotoPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: `${colors.primary}20`,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   groupInfo: {
     flex: 1,
   },
   groupName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#131811',
     marginBottom: 4,
   },
   typeTag: {
-    backgroundColor: colors.secondary + '20', // Yellow tint
+    backgroundColor: colors.secondary + '20',
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 2,
@@ -227,8 +285,48 @@ const styles = StyleSheet.create({
     color: '#b07f00',
   },
   memberCount: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#6f8961',
+  },
+  cardActionRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  cardCallBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#16A34A',
+    paddingVertical: 10,
+    gap: 6,
+  },
+  cardChatBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    gap: 6,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  cardWABtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#25D366',
+    paddingVertical: 10,
+    gap: 6,
+  },
+  cardActionBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 12,
   },
   emptyState: {
     alignItems: 'center',
@@ -277,21 +375,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
-  },
-  chatBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    backgroundColor: colors.primary,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: `${colors.primary}30`,
-  },
-  chatBtnText: {
-    color: colors.white,
-    fontWeight: '700',
-    fontSize: 14,
   },
 });
 

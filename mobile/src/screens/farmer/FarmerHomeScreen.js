@@ -85,7 +85,7 @@ const CropCard = ({ crop, onPress }) => (
         </View>
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.workTypeName} numberOfLines={1}>
+        <Text style={styles.workTypeName} numberOfLines={2}>
           {crop.name}
         </Text>
       </View>
@@ -466,61 +466,77 @@ const FarmerHomeScreen = ({ navigation }) => {
       ],
     },
     {
-      title: t('cropCategories.masonryConcrete') || 'మేస్త్రీలు & కాంక్రీట్ పనులు (Masons & Concrete Work)',
+      title: t('cropCategories.construction') || 'భవన నిర్మాణ & సాంకేతిక కార్మికులు (Construction & Building Labour)',
       crops: [
         {
           id: 'const_masonry',
-          name: t('crops.const_masonry') || 'మేస్త్రీలు (Masons/Bricklayers)',
+          name: t('crops.const_masonry') || 'మేస్త్రీలు / తాపీ పని (Masons & Brickwork)',
           image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
           gradient: ['#EA580C', '#C2410C'],
           icon: 'foundation',
         },
         {
           id: 'const_concrete',
-          name: t('crops.const_concrete') || 'కాంక్రీట్ పనులు (Concrete Work)',
+          name: t('crops.const_concrete') || 'కాంక్రీట్ & సెంటరింగ్ (Concrete & Slabs)',
           image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
-          gradient: ['#64748B', '#475569'],
+          gradient: ['#475569', '#334155'],
           icon: 'layers',
         },
-      ],
-    },
-    {
-      title: t('cropCategories.skilledTrades') || 'సాంకేతిక వృత్తులు (Skilled Trades)',
-      crops: [
+        {
+          id: 'const_barbending',
+          name: t('crops.const_barbending') || 'రాడ్ బెండింగ్ & స్టీల్ ఫిక్సింగ్ (Steel Barbending)',
+          image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#0D9488', '#115E59'],
+          icon: 'construction',
+        },
         {
           id: 'const_carpentry',
-          name: t('crops.const_carpentry') || 'వడ్రంగులు (Carpenters)',
+          name: t('crops.const_carpentry') || 'వడ్రంగులు (Carpenters & Woodwork)',
           image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
           gradient: ['#B45309', '#78350F'],
           icon: 'handyman',
         },
         {
           id: 'const_electrical',
-          name: t('crops.const_electrical') || 'ఎలక్ట్రీషియన్లు (Electricians)',
-          image: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?q=80&w=800&auto=format&fit=crop',
+          name: t('crops.const_electrical') || 'ఎలక్ట్రీషియన్లు (Electricians & Wiring)',
+          image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop',
           gradient: ['#EAB308', '#CA8A04'],
-          icon: 'settings-input-component',
-        },
-        {
-          id: 'const_painting',
-          name: t('crops.const_painting') || 'పెయింటర్లు (Painters)',
-          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
-          gradient: ['#8B5CF6', '#6D28D9'],
-          icon: 'format-paint',
+          icon: 'electrical-services',
         },
         {
           id: 'const_plumbing',
-          name: t('crops.const_plumbing') || 'ప్లంబర్లు (Plumbers)',
+          name: t('crops.const_plumbing') || 'ప్లంబర్లు (Plumbers & Piping)',
           image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
           gradient: ['#0284C7', '#0369A1'],
           icon: 'plumbing',
         },
         {
+          id: 'const_painting',
+          name: t('crops.const_painting') || 'పెయింటర్లు (Painters & Putty Work)',
+          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#8B5CF6', '#6D28D9'],
+          icon: 'format-paint',
+        },
+        {
           id: 'const_welding',
-          name: t('crops.const_welding') || 'వెల్డర్లు (Welders)',
+          name: t('crops.const_welding') || 'వెల్డర్లు (Welders & Fabrication)',
           image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
-          gradient: ['#475569', '#1E293B'],
+          gradient: ['#DC2626', '#991B1B'],
           icon: 'hardware',
+        },
+        {
+          id: 'const_tiles_marble',
+          name: t('crops.const_tiles_marble') || 'టైల్స్ & మార్బుల్ (Tiles & Granite Work)',
+          image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#4F46E5', '#3730A3'],
+          icon: 'dashboard-customize',
+        },
+        {
+          id: 'const_helper',
+          name: t('crops.const_helper') || 'భవన నిర్మాణ కూలీలు (Construction Helpers)',
+          image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
+          gradient: ['#D97706', '#92400E'],
+          icon: 'engineering',
         },
       ],
     },

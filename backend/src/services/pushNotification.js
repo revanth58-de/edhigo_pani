@@ -131,6 +131,8 @@ const sendDirectFCMPush = async (fcmTokens, title, body, data = {}) => {
           channelId: 'default',
           sound: 'default',
           priority: 'max',
+          icon: 'ic_stat_notification',
+          color: '#1F8A3D',
         },
       },
       tokens: fcmTokens,

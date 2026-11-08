@@ -42,44 +42,73 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
 
   // Define dynamic operations list based on crop selection
   const getOperationsForCrop = () => {
-    // ─── 1. మేస్త్రీలు & కాంక్రీట్ పనులు (Masons & Concrete Work) ───
-    if (cropId === 'const_concrete' || cropId === 'const_masonry') {
+    // ─── 1. మేస్త్రీలు & కాంక్రీట్ పనులు (Construction & Building Operations) ───
+    if (cropId === 'const_masonry') {
       return [
         {
-          id: 'concreteMixing',
-          name: t('cropWorkTypes.concreteMixing') || 'కాంక్రీట్ కలపడం (Mixing)',
+          id: 'brickwork_walls',
+          name: 'ఇటుక గోడల నిర్మాణం (Bricklaying & Wall Construction)',
+          skillKeyword: 'mason',
+          icon: 'foundation',
+          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 2 }),
+        },
+        {
+          id: 'wall_plastering',
+          name: 'గోడల ప్లాస్టరింగ్ / గార పని (Wall Plastering)',
+          skillKeyword: 'mason',
+          icon: 'format-paint',
+          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 2 }),
+        },
+        {
+          id: 'compound_wall',
+          name: 'కాంపౌండ్ వాల్ నిర్మాణం (Boundary & Compound Wall)',
+          skillKeyword: 'mason',
+          icon: 'fence',
+          image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 3 }),
+        },
+        {
+          id: 'foundation_masonry',
+          name: 'పునాది & బేస్మెంట్ రాతి పని (Basement Stone Masonry)',
+          skillKeyword: 'mason',
+          icon: 'view-quilt',
+          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(4, Math.round(6 * acres)), duration: 2 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_concrete') {
+      return [
+        {
+          id: 'concrete_mixing_pouring',
+          name: 'కాంక్రీట్ మిక్సింగ్ & పోత (Mixing & Pouring Gang)',
           skillKeyword: 'concrete',
           icon: 'cached',
           image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 1 }),
+          calc: (acres) => ({ workers: Math.max(5, Math.round(8 * acres)), duration: 1 }),
         },
         {
-          id: 'formworkAssembly',
-          name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
+          id: 'shuttering_formwork',
+          name: 'సెంటరింగ్ & షట్టరింగ్ అమరిక (Centering & Shuttering)',
           skillKeyword: 'formwork',
           icon: 'view-quilt',
           image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(4 * acres)), duration: 1 }),
+          calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 2 }),
         },
         {
-          id: 'concretePouring',
-          name: t('cropWorkTypes.concretePouring') || 'కాంక్రీట్ పోయడం మరియు ముగించడం (Pouring & Finishing)',
+          id: 'slab_casting',
+          name: 'రూఫ్ స్లాబ్ కాస్టింగ్ & ఫినిషింగ్ (Roof Slab Casting)',
           skillKeyword: 'concrete',
-          icon: 'format-color-fill',
-          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(4, Math.round(6 * acres)), duration: 1 }),
+          icon: 'layers',
+          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(6, Math.round(10 * acres)), duration: 1 }),
         },
         {
-          id: 'shotcrete',
-          name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ (Shotcrete)',
-          skillKeyword: 'concrete',
-          icon: 'waves',
-          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
-        },
-        {
-          id: 'concreteCuring',
-          name: t('cropWorkTypes.concreteCuring') || 'క్యూరింగ్ (Curing)',
+          id: 'concrete_curing',
+          name: 'కాంక్రీట్ క్యూరింగ్ & నీళ్లు కొట్టడం (Curing & Watering)',
           skillKeyword: 'concrete',
           icon: 'opacity',
           image: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?q=80&w=800&auto=format&fit=crop',
@@ -88,24 +117,60 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
       ];
     }
 
-    // ─── 2. సాంకేతిక వృత్తులు (5 Skilled Trades) ───
+    if (cropId === 'const_barbending') {
+      return [
+        {
+          id: 'slab_mesh_binding',
+          name: 'స్లాబ్ స్టీల్ మెష్ కట్టడం (Slab Steel Mesh Binding)',
+          skillKeyword: 'welder',
+          icon: 'construction',
+          image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 1 }),
+        },
+        {
+          id: 'column_beam_binding',
+          name: 'పిల్లర్స్ & బీమ్స్ రాడ్ కట్టడం (Pillars & Beams Rebar)',
+          skillKeyword: 'welder',
+          icon: 'view-column',
+          image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 2 }),
+        },
+        {
+          id: 'rebar_cutting_bending',
+          name: 'కడ్డీలు కత్తిరించడం & వంచడం (Rebar Cutting & Bending)',
+          skillKeyword: 'welder',
+          icon: 'content-cut',
+          image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
     if (cropId === 'const_carpentry') {
       return [
         {
-          id: 'woodworkCarpentry',
-          name: t('cropWorkTypes.woodworkCarpentry') || 'వడ్రంగి పనులు (Carpenters)',
+          id: 'doors_windows_fitting',
+          name: 'తలుపులు & కిటికీల ఫ్రేముల బిగింపు (Door & Window Fitting)',
           skillKeyword: 'carpenter',
-          icon: 'handyman',
+          icon: 'meeting-room',
           image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
         },
         {
-          id: 'formworkAssembly',
-          name: t('cropWorkTypes.formworkAssembly') || 'ఫార్మ్‌వర్క్ అమర్చడం (Formwork Assembly)',
+          id: 'wooden_centering_support',
+          name: 'చెక్క సెంటరింగ్ & తాత్కాలిక సపోర్ట్ (Centering Support)',
           skillKeyword: 'carpenter',
-          icon: 'view-quilt',
-          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
+          icon: 'handyman',
+          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 1 }),
+        },
+        {
+          id: 'cupboards_wood_polish',
+          name: 'కప్ బోర్డులు & వుడ్ పాలిష్ (Cupboards & Wood Polish)',
+          skillKeyword: 'carpenter',
+          icon: 'carpenter',
+          image: 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 3 }),
         },
       ];
     }
@@ -113,80 +178,173 @@ const CropWorkTypesScreen = ({ route, navigation }) => {
     if (cropId === 'const_electrical') {
       return [
         {
-          id: 'wiringInstallation',
-          name: t('cropWorkTypes.wiringInstallation') || 'ఎలక్ట్రికల్ పనులు (Electricians)',
+          id: 'pipe_conduit_wiring',
+          name: 'పైపులు వేయడం & ఇంటర్నల్ వైరింగ్ (Pipe Conduits & Wiring)',
           skillKeyword: 'electrician',
           icon: 'electrical-services',
           image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 2 }),
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'switchboard_mcb_fitting',
+          name: 'స్విచ్ బోర్డులు & MCB బాక్స్ అమరిక (Switchboards & MCB)',
+          skillKeyword: 'electrician',
+          icon: 'settings-input-component',
+          image: 'https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'fixtures_fans_earthing',
+          name: 'లైట్లు, ఫ్యాన్లు & ఎర్తింగ్ కనెక్షన్ (Fixtures & Earthing)',
+          skillKeyword: 'electrician',
+          icon: 'lightbulb',
+          image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
       ];
     }
 
-    if (cropId === 'const_painting' || cropId === 'const_painting_finishing') {
+    if (cropId === 'const_plumbing') {
       return [
         {
-          id: 'wallPainting',
-          name: t('cropWorkTypes.wallPainting') || 'పెయింటింగ్ పనులు (Painters)',
+          id: 'water_pipes_fitting',
+          name: 'నీటి పైపులు & CPVC లైన్ల అమరిక (Water Pipes & CPVC Lines)',
+          skillKeyword: 'plumber',
+          icon: 'plumbing',
+          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'sanitary_bathroom_fittings',
+          name: 'బాత్‌రూమ్ ట్యాప్స్, కమోడ్ & సింక్ (Sanitary & Bathroom)',
+          skillKeyword: 'plumber',
+          icon: 'bathtub',
+          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 2 }),
+        },
+        {
+          id: 'tank_motor_connection',
+          name: 'ట్యాంక్ & బోర్‌వెల్ మోటార్ కనెక్షన్ (Tank & Motor Connection)',
+          skillKeyword: 'plumber',
+          icon: 'water-damage',
+          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_painting') {
+      return [
+        {
+          id: 'wall_putty_primer',
+          name: 'వాల్ పుట్టీ & ప్రైమర్ పూత (Wall Putty & Primer)',
           skillKeyword: 'painter',
           icon: 'format-paint',
           image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
         },
         {
-          id: 'shotcrete',
-          name: t('cropWorkTypes.shotcrete') || 'షాట్‌క్రీట్ / స్ప్రే (Shotcrete)',
+          id: 'interior_paint',
+          name: 'లోపలి గోడలకు ఎమల్షన్ పెయింట్ (Interior Wall Painting)',
           skillKeyword: 'painter',
-          icon: 'waves',
+          icon: 'brush',
+          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'exterior_weathercoat',
+          name: 'బయటి గోడల వెదర్ కోట్ పెయింట్ (Exterior Weathercoat)',
+          skillKeyword: 'painter',
+          icon: 'texture',
+          image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+      ];
+    }
+
+    if (cropId === 'const_welding') {
+      return [
+        {
+          id: 'gates_grills_welding',
+          name: 'మెయిన్ గేట్లు & కిటికీ గ్రిల్స్ తయారీ (Gates & Grills Fabrication)',
+          skillKeyword: 'welder',
+          icon: 'hardware',
+          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'shed_roof_truss',
+          name: 'ఐరన్ షెడ్లు & రేకుల పైకప్పు నిర్మాణం (Iron Sheds & Roofing Truss)',
+          skillKeyword: 'welder',
+          icon: 'roofing',
+          image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(4 * acres)), duration: 3 }),
+        },
+        {
+          id: 'spot_welding_repairs',
+          name: 'స్పాట్ వెల్డింగ్ & ఇనుప మరమ్మతులు (Spot Welding & Repairs)',
+          skillKeyword: 'welder',
+          icon: 'blur-on',
           image: 'https://images.unsplash.com/photo-1504917599217-d4dc5ebe6122?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(1, Math.round(2 * acres)), duration: 1 }),
         },
       ];
     }
 
-    if (cropId === 'const_plumbing' || cropId === 'const_electrical_plumbing') {
+    if (cropId === 'const_tiles_marble') {
       return [
         {
-          id: 'pipeFittingPlumbing',
-          name: t('cropWorkTypes.pipeFittingPlumbing') || 'ప్లంబింగ్ పనులు (Plumbers)',
-          skillKeyword: 'plumber',
-          icon: 'plumbing',
-          image: 'https://images.unsplash.com/photo-1585704032915-c3400ca199e7?q=80&w=800&auto=format&fit=crop',
+          id: 'floor_tiles_laying',
+          name: 'ఫ్లోరింగ్ టైల్స్ వేయడం & లెవలింగ్ (Floor Tiles Laying)',
+          skillKeyword: 'mason',
+          icon: 'dashboard-customize',
+          image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
+        },
+        {
+          id: 'kitchen_granite_fitting',
+          name: 'కిచెన్ ప్లాట్‌ఫారమ్ గ్రానైట్ ఫిట్టింగ్ (Kitchen Granite Platform)',
+          skillKeyword: 'mason',
+          icon: 'kitchen',
+          image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop',
           calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+        },
+        {
+          id: 'bathroom_wall_tiles',
+          name: 'బాత్‌రూమ్ & గోడల టైల్స్ ఫిక్సింగ్ (Bathroom & Wall Tiles)',
+          skillKeyword: 'mason',
+          icon: 'border-all',
+          image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 2 }),
         },
       ];
     }
 
-    if (cropId === 'const_welding' || cropId === 'const_steel_welding') {
+    if (cropId === 'const_helper') {
       return [
         {
-          id: 'weldingFabrication',
-          name: t('cropWorkTypes.weldingFabrication') || 'వెల్డింగ్ పనులు (Welders)',
-          skillKeyword: 'welder',
-          icon: 'blur-on',
-          image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
-        },
-      ];
-    }
-
-    if (cropId === 'const_safety' || cropId === 'const_site_safety') {
-      return [
-        {
-          id: 'safetyFencing',
-          name: t('cropWorkTypes.safetyFencing') || 'Safety Fencing & Barriers',
+          id: 'material_shifting',
+          name: 'ఇసుక, కంకర, సిమెంట్, ఇటుకలు మోయడం (Material Shifting)',
           skillKeyword: 'labour',
-          icon: 'security',
+          icon: 'engineering',
           image: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+          calc: (acres) => ({ workers: Math.max(4, Math.round(6 * acres)), duration: 1 }),
         },
         {
-          id: 'temporaryStructures',
-          name: t('cropWorkTypes.temporaryStructures') || 'Temporary Safety Barriers',
+          id: 'foundation_earthwork',
+          name: 'పునాది గుంతలు తవ్వడం & మట్టి పని (Foundation Digging & Earthwork)',
           skillKeyword: 'labour',
-          icon: 'home-work',
-          image: 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=800&auto=format&fit=crop',
-          calc: (acres) => ({ workers: Math.max(2, Math.round(2 * acres)), duration: 1 }),
+          icon: 'terrain',
+          image: 'https://images.unsplash.com/photo-1578575437130-527eed3abbec?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(3, Math.round(5 * acres)), duration: 2 }),
+        },
+        {
+          id: 'site_cleaning_debris',
+          name: 'సైట్ క్లీనింగ్ & వ్యర్థాల తొలగింపు (Site Cleaning & Debris)',
+          skillKeyword: 'labour',
+          icon: 'cleaning-services',
+          image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop',
+          calc: (acres) => ({ workers: Math.max(2, Math.round(3 * acres)), duration: 1 }),
         },
       ];
     }

@@ -621,6 +621,48 @@ const AppNavigator = () => {
     };
     socketService.onNewOffer(handleNewOfferNotif);
 
+    // ── Job accepted by worker or group (for farmer) ───────────────
+    const handleJobAccepted = (data) => {
+      const displayName = data.isGroup
+        ? (data.groupName || 'Group')
+        : (data.workerName || 'Worker');
+
+      alertSoundService.playJobAcceptedAlert({
+        workerName: data.workerName,
+        isGroup: data.isGroup,
+        groupName: data.groupName,
+        workType: data.workType,
+      });
+
+      useNotificationStore.getState().addNotification({
+        type: 'job',
+        title: '🎉 Worker Accepted Job!',
+        body: `${displayName} accepted your request. Tap to view status.`,
+        icon: 'check-circle',
+        data: { screen: 'RequestAccepted', params: { jobId: data.jobId, job: data } },
+      });
+
+      if (user?.role === 'farmer') {
+        Alert.alert(
+          '🎉 Job Accepted!',
+          `${displayName} accepted your job!\n\n${data.isFullyStaffed ? 'Your request is now fully staffed!' : `Workers joined: ${data.acceptedCount}/${data.workersNeeded}`}`,
+          [
+            {
+              text: 'View on Map 📍',
+              onPress: () => {
+                navigationRef.current?.navigate('RequestAccepted', {
+                  jobId: data.jobId,
+                  job: data,
+                });
+              },
+            },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+      }
+    };
+    socketService.onJobAccepted(handleJobAccepted);
+
     // ── Real-time notification updates from server ─────────────────
     const handleNewNotification = (notif) => {
       alertSoundService.playNotificationAlert(notif.title, notif.body);
@@ -643,6 +685,7 @@ const AppNavigator = () => {
       socketService.offWorkDone(handleWorkDone);
       socketService.offJobCancelled(handleJobCancelled);
       socketService.offNewOffer(handleNewOfferNotif);
+      socketService.offJobAccepted(handleJobAccepted);
       socketService.off('notification:new', handleNewNotification);
     };
   }, [isAuthenticated, user?.id, user?.role]);

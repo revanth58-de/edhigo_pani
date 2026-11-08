@@ -63,7 +63,7 @@ const LoginScreen = ({ navigation }) => {
     try {
       const result = await sendOTP(phone);
 
-      if (!result?.isExistingUser) {
+      if (result?.isExistingUser === false) {
         setShowNotRegisteredModal(true);
         return;
       }

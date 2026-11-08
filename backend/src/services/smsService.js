@@ -12,6 +12,26 @@ const { logger } = require('../middleware/errorHandler');
 const SMS_APK_HASH = '4403b4b16e3df066b4d44bb00fd2daeb';
 
 /**
+ * Normalizes an Indian mobile number to a clean 10-digit string.
+ * Strips non-digits, leading country code (+91 or 91 if 12 digits), or leading 0 (if 11 digits).
+ * Preserves 10-digit numbers that begin with 91 (e.g. 9160265926).
+ *
+ * @param {string|number} input
+ * @returns {string} 10-digit mobile number or empty string
+ */
+const normalizePhone = (input) => {
+  if (!input) return '';
+  let digits = String(input).replace(/\D/g, '').trim();
+  if (digits.length === 12 && digits.startsWith('91')) {
+    digits = digits.slice(2);
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+  return digits;
+};
+
+
+/**
  * Resolve SMS configuration from environment variables.
  * Prioritizes SMS_API (from Render), then RENFLAIR_API_KEY, then FAST2SMS_API_KEY.
  */
@@ -40,7 +60,8 @@ const getSmsConfig = () => {
  * @param {string} otp   - The 4-digit OTP
  * @returns {Promise<boolean>}
  */
-const sendCustomUrlSMS = async (url, phone, otp) => {
+const sendCustomUrlSMS = async (url, rawPhone, otp) => {
+  const phone = normalizePhone(rawPhone);
   try {
     let targetUrl = url.trim();
 
@@ -109,7 +130,8 @@ const sendCustomUrlSMS = async (url, phone, otp) => {
  * @param {string} [overrideKey] - Optional API key override
  * @returns {Promise<boolean>}
  */
-const sendRenflairSMS = async (phone, otp, overrideKey) => {
+const sendRenflairSMS = async (rawPhone, otp, overrideKey) => {
+  const phone = normalizePhone(rawPhone);
   const apiKey = overrideKey || process.env.RENFLAIR_API_KEY || process.env.SMS_API || process.env.SMS_API_KEY;
   if (!apiKey || typeof apiKey !== 'string' || apiKey.startsWith('http')) return false;
 
@@ -164,7 +186,8 @@ const sendRenflairSMS = async (phone, otp, overrideKey) => {
  * @param {string} [overrideKey] - Optional API key override
  * @returns {Promise<boolean>}
  */
-const sendFast2SMSSMS = async (phone, otp, overrideKey) => {
+const sendFast2SMSSMS = async (rawPhone, otp, overrideKey) => {
+  const phone = normalizePhone(rawPhone);
   const apiKey = overrideKey || process.env.FAST2SMS_API_KEY || (!process.env.RENFLAIR_API_KEY ? (process.env.SMS_API || process.env.SMS_API_KEY) : null);
   if (!apiKey || typeof apiKey !== 'string' || apiKey.startsWith('http')) return false;
 
@@ -217,7 +240,8 @@ const sendFast2SMSSMS = async (phone, otp, overrideKey) => {
  * @param {string} otp   - The OTP to send
  * @returns {Promise<boolean>} - true if sent successfully
  */
-const sendOTPSms = async (phone, otp) => {
+const sendOTPSms = async (rawPhone, otp) => {
+  const phone = normalizePhone(rawPhone);
   const { smsApi, isCustomUrl, renflairKey, fast2smsKey } = getSmsConfig();
 
   if (!smsApi && !renflairKey && !fast2smsKey) {
@@ -263,6 +287,7 @@ const sendOTPSms = async (phone, otp) => {
 };
 
 module.exports = {
+  normalizePhone,
   sendOTPSms,
   sendRenflairSMS,
   sendFast2SMSSMS,

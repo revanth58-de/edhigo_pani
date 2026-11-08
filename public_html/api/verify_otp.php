@@ -23,9 +23,14 @@ $role    = strtolower(trim($input['role'] ?? ''));
 $age     = isset($input['age']) ? (int)$input['age'] : null;
 $gender  = trim($input['gender'] ?? '');
 
-// Clean phone number
-$phone = preg_replace('/^\+91|^91|^0/', '', $phone);
-$phone = preg_replace('/\D/', '', $phone);
+// Clean phone (normalizes to 10-digit Indian mobile number without stripping 91 from 10-digit numbers)
+$digits = preg_replace('/\D/', '', $input['phone'] ?? '');
+if (strlen($digits) === 12 && str_starts_with($digits, '91')) {
+    $digits = substr($digits, 2);
+} elseif (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+    $digits = substr($digits, 1);
+}
+$phone = $digits;
 
 // 1. Validate Input Format
 if (!isValidIndianMobile($phone)) {

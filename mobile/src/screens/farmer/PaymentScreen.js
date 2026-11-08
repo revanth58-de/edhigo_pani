@@ -131,13 +131,20 @@ const PaymentScreen = ({ navigation, route }) => {
 
   const workerCount = workerList.length > 0 ? workerList.length : Number(job?.workersNeeded) || 1;
   const durationDays = Math.max(1, Number(job?.durationDays) || 1);
-  const totalAmount = isMachinery
+  const baseDailyWage = Number(job?.payPerDay) || 500;
+  const totalWorkerWages = isMachinery
     ? (booking?.totalPrice || booking?.price || 1000)
-    : (Number(job?.payPerDay) || 500) * workerCount * durationDays;
-  
-  // Calculate Dinasari split 5% commission & 95% worker amount
-  const platformFee = Math.round((totalAmount * 0.05) * 100) / 100;
-  const workerEarning = Math.round((totalAmount - platformFee) * 100) / 100;
+    : baseDailyWage * workerCount * durationDays;
+  const PLATFORM_FEE_PER_WORKER = 10;
+  // ₹10 fee per worker in the group goes to the platform ("comes to us")
+  const platformFee = isMachinery
+    ? Math.round((totalWorkerWages * 0.05) * 100) / 100
+    : PLATFORM_FEE_PER_WORKER * workerCount;
+  // Farmer pays wage + 10 rupees for each worker in the group
+  const totalAmount = isMachinery
+    ? totalWorkerWages
+    : totalWorkerWages + platformFee;
+  const workerEarning = totalWorkerWages;
 
   const currentWorker = workerList[0] || {};
   const recipientPhone = currentWorker.phone || job?.workerPhone || booking?.machinery?.owner?.phone || '';
@@ -529,12 +536,14 @@ const PaymentScreen = ({ navigation, route }) => {
             )}
 
             <View style={styles.breakupRow}>
-              <Text style={styles.breakupLabel}>Dinasari platform fee (5%)</Text>
+              <Text style={styles.breakupLabel}>
+                {isMachinery ? 'Dinasari platform fee (5%)' : `Dinasari platform fee (₹10 × ${workerCount} worker${workerCount > 1 ? 's' : ''})`}
+              </Text>
               <Text style={styles.breakupValue}>₹{platformFee}</Text>
             </View>
 
             <View style={styles.breakupRow}>
-              <Text style={styles.breakupLabel}>Net worker earnings (95%)</Text>
+              <Text style={styles.breakupLabel}>Total worker earnings</Text>
               <Text style={styles.breakupValue}>₹{workerEarning}</Text>
             </View>
 

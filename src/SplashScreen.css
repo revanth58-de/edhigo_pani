@@ -1,0 +1,363 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ==============================
+   1. SPLASH SCREEN STYLES
+   ============================== */
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background-color: #eef5ea; /* Soft light green matching reference */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.logo-wrapper {
+  width: 240px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dinasari-logo-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  /* Blends the light background of image.png seamlessly into the splash screen */
+  mix-blend-mode: multiply;
+}
+
+/* Single-line tagline positioned directly under DINASARI */
+.dinasari-tagline {
+  margin-top: -12px; /* Pulls tagline snug right under the DINASARI text in the image */
+  font-size: 14px;
+  font-weight: 500;
+  color: #5c6b57;
+  letter-spacing: 0.6px;
+  white-space: nowrap; /* Forces single line */
+  opacity: 0;
+  animation: taglineFadeIn 0.7s ease-out 0.4s forwards;
+}
+
+/* Entrance Animation */
+.animate-in .logo-wrapper {
+  animation: logoRiseScale 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Exit Animation (Slides right & fades out like reference video) */
+.slide-out .logo-wrapper {
+  animation: slideOutRight 0.55s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.slide-out .dinasari-tagline {
+  animation: blurFadeOut 0.4s ease-out forwards;
+}
+
+/* ==============================
+   2. LOGIN SCREEN STYLES
+   ============================== */
+.login-screen {
+  min-height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top Green Curved Banner */
+.header-banner {
+  background: linear-gradient(135deg, #2d5a27 0%, #5c9e31 100%);
+  height: 230px;
+  border-bottom-left-radius: 32px;
+  border-bottom-right-radius: 32px;
+  padding: 40px 24px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  animation: dropHeader 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.header-text {
+  z-index: 2;
+  animation: fadeIn 0.6s ease-out 0.2s both;
+}
+
+.header-brand {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #d8f3c5;
+  margin-bottom: 8px;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.header-illustration {
+  width: 145px;
+  height: 145px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 24px;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  animation: slideInFromRight 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both;
+}
+
+.header-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+/* Form Area */
+.login-form-container {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  animation: slideUpForm 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+.welcome-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e2d1a;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #f4f5f3;
+  border-radius: 14px;
+  padding: 0 16px;
+  height: 54px;
+  margin-bottom: 14px;
+}
+
+.input-icon {
+  font-size: 16px;
+  margin-right: 12px;
+  opacity: 0.5;
+}
+
+.form-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #222;
+  outline: none;
+}
+
+.eye-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.5;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0 22px;
+  font-size: 13px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  accent-color: #4c8c2b;
+  width: 16px;
+  height: 16px;
+}
+
+.forgot-link {
+  color: #3b6e22;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-btn {
+  height: 54px;
+  border: none;
+  border-radius: 27px;
+  background: linear-gradient(90deg, #1b4314 0%, #589a2d 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(68, 128, 39, 0.25);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 22px 0;
+  color: #999;
+  font-size: 13px;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #eee;
+}
+
+.divider span {
+  padding: 0 12px;
+}
+
+.social-buttons {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.social-btn {
+  flex: 1;
+  height: 50px;
+  border-radius: 25px;
+  border: none;
+  background-color: #f4f5f3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  cursor: pointer;
+}
+
+.signup-prompt {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+}
+
+.signup-prompt a {
+  color: #3b6e22;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* ==============================
+   3. KEYFRAME ANIMATIONS
+   ============================== */
+@keyframes logoRiseScale {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.88);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes taglineFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutRight {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(120%);
+  }
+}
+
+@keyframes blurFadeOut {
+  0% {
+    opacity: 1;
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes dropHeader {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(80px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideUpForm {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

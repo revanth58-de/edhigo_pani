@@ -15,6 +15,7 @@ const {
 
 // Public routes — strict rate limit to prevent OTP spam & brute-force
 router.post('/send-otp', otpLimiter, sendOTP);
+router.post('/resend-otp', otpLimiter, sendOTP);
 router.post('/verify-otp', authLimiter, verifyOTP);
 router.post('/demo-login', authLimiter, demoLogin);
 router.post('/refresh', authLimiter, refreshToken);

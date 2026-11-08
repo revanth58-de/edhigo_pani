@@ -90,9 +90,9 @@ const generateTokens = async (userId) => {
 // POST /api/auth/send-otp
 const sendOTP = async (req, res, next) => {
   try {
-    const { phone } = req.body;
+    const { phone, type, action, purpose, fromRegister } = req.body;
 
-    logger.info(`📞 OTP requested for phone: ${phone}`, { ip: req.ip });
+    logger.info(`📞 OTP requested for phone: ${phone}`, { type, action, ip: req.ip });
 
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required' });
@@ -106,7 +106,39 @@ const sendOTP = async (req, res, next) => {
 
     // Check if this phone is already a fully registered user
     const existingUser = await prisma.user.findUnique({ where: { phone } });
-    const isExistingUser = !!(existingUser?.name && existingUser?.role);
+    const isExistingUser = !!(existingUser?.name && existingUser?.role && !existingUser?.deletedAt);
+
+    // S4: Block suspended/soft-deleted users
+    if (existingUser?.deletedAt) {
+      logger.warn('OTP requested for suspended account', { phone, ip: req.ip });
+      return res.status(403).json({
+        error: 'This account has been suspended. Please contact support.',
+        suspended: true,
+      });
+    }
+
+    const flowType = (type || action || purpose || (fromRegister ? 'register' : '')).toLowerCase();
+    const isLogin = flowType === 'login';
+    const isRegister = flowType === 'register' || fromRegister === true;
+
+    // RULE 1: If user is trying to LOGIN, ONLY registered candidates can receive an OTP!
+    // An unregistered candidate who tries to login must NOT get an OTP.
+    if (isLogin && !isExistingUser) {
+      logger.warn('Login OTP rejected: Candidate is not registered', { phone, ip: req.ip });
+      return res.status(404).json({
+        error: 'This phone number is not registered. Please register first to continue.',
+        isExistingUser: false,
+      });
+    }
+
+    // RULE 2: If user is trying to REGISTER, but candidate is already registered, reject to prevent duplicate registration.
+    if (isRegister && isExistingUser) {
+      logger.info('Register OTP rejected: Candidate is already registered', { phone, ip: req.ip });
+      return res.status(409).json({
+        error: 'This phone number is already registered. Please login.',
+        isExistingUser: true,
+      });
+    }
 
     // FIX #12: Per-phone OTP rate limit — prevent SMS flooding without Redis.
     // If an OTP was issued less than 2 minutes ago, reject the request.
@@ -198,8 +230,10 @@ const verifyOTP = async (req, res, next) => {
 
     // Master OTP bypass removed — all users must verify via real SMS OTP
 
+    const isRegistering = !!(name || req.body.fromRegister || req.body.type === 'register');
+
     if (!user) {
-      if (name || req.body.fromRegister) {
+      if (isRegistering) {
         user = await prisma.user.create({
           data: {
             phone,
@@ -218,6 +252,13 @@ const verifyOTP = async (req, res, next) => {
         return res.status(401).json({ error: 'User not registered. Please register first.' });
       }
     } else {
+      // If user row in DB was just an OTP placeholder (no name or role),
+      // and user is trying to login without completing registration, reject:
+      if (!isRegistering && (!user.name || !user.role)) {
+        logger.warn('Login verification rejected: Candidate has not completed registration', { phone, ip: req.ip });
+        return res.status(401).json({ error: 'User not registered. Please register first.' });
+      }
+
       if (!user.otp || !user.otpExpiresAt || user.otpExpiresAt < new Date()) {
         return res.status(401).json({ error: 'Invalid or expired OTP. Please request a new one.' });
       }

@@ -61,7 +61,7 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const result = await sendOTP(phone);
+      const result = await sendOTP(phone, 'login');
 
       if (!result?.isExistingUser) {
         setShowNotRegisteredModal(true);
@@ -75,6 +75,16 @@ const LoginScreen = ({ navigation }) => {
         devOtp: result?.devOtp,
       });
     } catch (error) {
+      // If candidate is not registered, show the register prompt modal immediately without error alert
+      if (
+        error?.response?.status === 404 ||
+        error?.response?.data?.isExistingUser === false ||
+        error?.response?.data?.error?.toLowerCase()?.includes('not registered')
+      ) {
+        setShowNotRegisteredModal(true);
+        return;
+      }
+
       const errMsg = error?.response?.data?.error
         || error?.message
         || 'Failed to send OTP. Please try again.';

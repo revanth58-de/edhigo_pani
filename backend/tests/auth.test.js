@@ -36,6 +36,43 @@ describe('POST /api/auth/send-otp', () => {
     await prisma.user.deleteMany({ where: { phone: '9876543210' } });
   });
 
+  test('❌ Unregistered phone attempting login → 404 (No OTP issued)', async () => {
+    await prisma.user.deleteMany({ where: { phone: '9888777666' } });
+    const res = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ phone: '9888777666', type: 'login' });
+    expect(res.statusCode).toBe(404);
+    expect(res.body).toHaveProperty('isExistingUser', false);
+    expect(res.body.error).toContain('not registered');
+  });
+
+  test('✅ Registered phone attempting login → 200 + OTP', async () => {
+    const res = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ phone: testFarmer.phone, type: 'login' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('isExistingUser', true);
+  });
+
+  test('✅ Unregistered phone attempting register → 200 + OTP', async () => {
+    await prisma.user.deleteMany({ where: { phone: '9777888999' } });
+    const res = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ phone: '9777888999', type: 'register' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('isExistingUser', false);
+    await prisma.user.deleteMany({ where: { phone: '9777888999' } });
+  });
+
+  test('❌ Registered phone attempting register → 409 (Already registered)', async () => {
+    const res = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ phone: testFarmer.phone, type: 'register' });
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toHaveProperty('isExistingUser', true);
+    expect(res.body.error).toContain('already registered');
+  });
+
   test('❌ Missing phone → 400', async () => {
     const res = await request(app).post('/api/auth/send-otp').send({});
     expect(res.statusCode).toBe(400);
@@ -60,17 +97,34 @@ describe('POST /api/auth/send-otp', () => {
 
 // ─── verify-otp ───────────────────────────────────────────────────────────────
 describe('POST /api/auth/verify-otp', () => {
-  test('✅ Correct OTP → 200 + accessToken + refreshToken', async () => {
-    const phoneForTest = '9111222333';
+  test('✅ Correct OTP for registered user login → 200 + accessToken + refreshToken', async () => {
     const sendRes = await request(app)
       .post('/api/auth/send-otp')
-      .send({ phone: phoneForTest });
+      .send({ phone: testFarmer.phone, type: 'login' });
     const devOtp = sendRes.body.devOtp;
     expect(devOtp).toBeDefined();
 
     const res = await request(app)
       .post('/api/auth/verify-otp')
-      .send({ phone: phoneForTest, otp: devOtp });
+      .send({ phone: testFarmer.phone, otp: devOtp });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toHaveProperty('accessToken');
+    expect(res.body).toHaveProperty('refreshToken');
+    expect(res.body.user).toHaveProperty('phone', testFarmer.phone);
+  });
+
+  test('✅ Correct OTP for new user registration → 200 + accessToken + refreshToken', async () => {
+    const phoneForTest = '9111222333';
+    await prisma.user.deleteMany({ where: { phone: phoneForTest } });
+    const sendRes = await request(app)
+      .post('/api/auth/send-otp')
+      .send({ phone: phoneForTest, type: 'register' });
+    const devOtp = sendRes.body.devOtp;
+    expect(devOtp).toBeDefined();
+
+    const res = await request(app)
+      .post('/api/auth/verify-otp')
+      .send({ phone: phoneForTest, otp: devOtp, name: 'New Test User', role: 'worker', type: 'register' });
     expect(res.statusCode).toBe(200);
     expect(res.body).toHaveProperty('accessToken');
     expect(res.body).toHaveProperty('refreshToken');

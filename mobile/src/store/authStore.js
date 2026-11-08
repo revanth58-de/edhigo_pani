@@ -201,7 +201,7 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  sendOTP: async (phone) => {
+  sendOTP: async (phone, type = 'login') => {
     const state = get();
     const now = Date.now();
     const cooldownDuration = 60000; // 60 seconds in milliseconds
@@ -221,7 +221,7 @@ const useAuthStore = create((set, get) => ({
 
     set({ isLoading: true });
     try {
-      const response = await authAPI.sendOTP(phone);
+      const response = await authAPI.sendOTP(phone, type);
       set({ 
         phone, 
         isLoading: false, 

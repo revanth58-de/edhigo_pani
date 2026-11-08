@@ -169,12 +169,12 @@ apiClient.interceptors.response.use(
 
 // ─── Auth API ───
 export const authAPI = {
-    sendOTP: async (phone) => {
+    sendOTP: async (phone, type = 'login') => {
         try {
-            return await apiClient.post('/auth/send-otp', { phone });
+            return await apiClient.post('/auth/send-otp', { phone, type });
         } catch (err) {
-            if (err?.response?.status === 404) {
-                return await apiClient.post('/send_otp.php', { phone });
+            if (err?.response?.status === 404 && err?.response?.data?.isExistingUser === undefined) {
+                return await apiClient.post('/send_otp.php', { phone, type });
             }
             throw err;
         }
@@ -183,18 +183,18 @@ export const authAPI = {
         try {
             return await apiClient.post('/auth/verify-otp', { phone, otp, ...registrationData });
         } catch (err) {
-            if (err?.response?.status === 404) {
+            if (err?.response?.status === 404 && !err?.response?.data?.error) {
                 return await apiClient.post('/verify_otp.php', { phone, otp, ...registrationData });
             }
             throw err;
         }
     },
-    resendOTP: async (phone) => {
+    resendOTP: async (phone, type = 'login') => {
         try {
-            return await apiClient.post('/auth/resend-otp', { phone });
+            return await apiClient.post('/auth/send-otp', { phone, type });
         } catch (err) {
-            if (err?.response?.status === 404) {
-                return await apiClient.post('/resend_otp.php', { phone });
+            if (err?.response?.status === 404 && err?.response?.data?.isExistingUser === undefined) {
+                return await apiClient.post('/resend_otp.php', { phone, type });
             }
             throw err;
         }

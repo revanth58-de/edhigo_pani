@@ -2,15 +2,18 @@
 import { authAPI, setAuthToken } from '../api';
 
 export const authService = {
-  sendOTP: async (phone) => {
+  sendOTP: async (phone, type = 'login') => {
     try {
-      const response = await authAPI.sendOTP(phone);
+      const response = await authAPI.sendOTP(phone, type);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Send OTP Error:', error);
       return {
         success: false,
-        message: error.response?.data?.message || 'Failed to send OTP',
+        message: error.response?.data?.error || error.response?.data?.message || 'Failed to send OTP',
+        isExistingUser: error.response?.data?.isExistingUser,
+        status: error.response?.status,
+        response: error.response,
       };
     }
   },

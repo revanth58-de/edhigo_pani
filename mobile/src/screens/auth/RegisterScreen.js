@@ -154,7 +154,7 @@ const RegisterScreen = ({ navigation }) => {
         }
 
         try {
-            const result = await sendOTP(phone.trim());
+            const result = await sendOTP(phone.trim(), 'register');
 
             // Already a registered user — show full-page modal
             if (result?.isExistingUser) {
@@ -174,6 +174,16 @@ const RegisterScreen = ({ navigation }) => {
                 devOtp: result?.devOtp,
             });
         } catch (error) {
+            // Already registered candidate attempting to register again
+            if (
+                error?.response?.status === 409 ||
+                error?.response?.data?.isExistingUser === true ||
+                error?.response?.data?.error?.toLowerCase()?.includes('already registered')
+            ) {
+                setShowExistsModal(true);
+                return;
+            }
+
             const errMsg = error?.response?.data?.error
                 || error?.message
                 || 'Failed to send OTP. Please try again.';
